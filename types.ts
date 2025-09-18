@@ -15,6 +15,10 @@ export interface SignalData {
     stop_loss: number;
     take_profits: number[];
     reasons: string[];
+    sources?: {
+        uri: string;
+        title: string;
+    }[];
 }
 
 // FIX: Added the missing 'TradingStyle' type, which is used in 'constants.ts' and caused a compilation error.
