@@ -68,6 +68,14 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                             )}
                          </button>
                      </div>
+                    <svg className="h-16 w-16 mx-auto mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M20 12V20" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"/>
+                        <rect x="16" y="20" width="8" height="18" rx="1" fill="#dc2626"/>
+                        <path d="M20 38V48" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"/>
+                        <path d="M44 16V26" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+                        <rect x="40" y="26" width="8" height="18" rx="1" fill="#22c55e"/>
+                        <path d="M44 44V52" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+                    </svg>
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-red-500">
                         Grey Algo Chart Analyzer
                     </h1>
