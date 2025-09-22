@@ -67,7 +67,7 @@ async function callGemini(request) {
         config: {
             tools: [{googleSearch: {}}],
             seed: 42,
-            temperature: 0.1,
+            temperature: 0,
         },
     });
 
