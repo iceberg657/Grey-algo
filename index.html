@@ -202,6 +202,11 @@
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
     <script>
+        // Redirect to hash-based URL for PWA compatibility
+        if (location.pathname === '/' && !location.hash) {
+            location.replace('./#/');
+        }
+
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js').then(registration => {
