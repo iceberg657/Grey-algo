@@ -1,17 +1,18 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
-import { SignalDisplay } from './SignalDisplay';
 import { Loader } from './Loader';
 import { ErrorMessage } from './ErrorMessage';
 import { generateTradingSignal } from '../services/geminiService';
 import type { SignalData, AnalysisRequest } from '../types';
 
-interface ChartAnalyzerPageProps {
+interface HomePageProps {
     onLogout: () => void;
+    onAnalysisComplete: (data: Omit<SignalData, 'id' | 'timestamp'>) => void;
+    onNavigateToHistory: () => void;
+    onNavigateToNews: () => void;
 }
 
-export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }) => {
-    const [signalData, setSignalData] = useState<SignalData | null>(null);
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -26,30 +27,24 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
         setTheme(prevTheme => prevTheme === 'light' ? 'dark' : 'light');
     };
 
-    const handleClearAnalysis = () => {
-        setSignalData(null);
-        setError(null);
-    };
-
     const handleGenerateSignal = useCallback(async (request: AnalysisRequest) => {
         setIsLoading(true);
         setError(null);
-        setSignalData(null);
 
         try {
             const data = await generateTradingSignal(request);
-            setSignalData(data);
+            onAnalysisComplete(data);
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');
         } finally {
             setIsLoading(false);
         }
-    }, []);
+    }, [onAnalysisComplete]);
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300">
-            <div className="w-full max-w-md mx-auto">
+            <div className="w-full max-w-2xl mx-auto">
                 <header className="text-center mb-8 relative">
                      <div className="absolute top-0 left-0">
                          <button 
@@ -69,15 +64,15 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                          </button>
                      </div>
                     <svg className="h-16 w-16 mx-auto mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <g className="animate-candle-down origin-center">
-                            <path d="M20 12V20" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"/>
-                            <rect x="16" y="20" width="8" height="18" rx="1" fill="#dc2626"/>
-                            <path d="M20 38V48" stroke="#ef4444" strokeWidth="3" strokeLinecap="round"/>
+                        <g className="animate-bounce-candle origin-center [animation-delay:-0.2s]">
+                           <path d="M20 12V20" stroke="#047857" strokeWidth="3" strokeLinecap="round"/>
+                            <rect x="16" y="20" width="8" height="18" rx="1" fill="#059669"/>
+                            <path d="M20 38V48" stroke="#047857" strokeWidth="3" strokeLinecap="round"/>
                         </g>
-                        <g className="animate-candle-up origin-center [animation-delay:0.2s]">
-                            <path d="M44 16V26" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
-                            <rect x="40" y="26" width="8" height="18" rx="1" fill="#22c55e"/>
-                            <path d="M44 44V52" stroke="#4ade80" strokeWidth="3" strokeLinecap="round"/>
+                        <g className="animate-bounce-candle origin-center">
+                            <path d="M44 16V26" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
+                            <rect x="40" y="26" width="8" height="18" rx="1" fill="#10b981"/>
+                            <path d="M44 44V52" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
                         </g>
                     </svg>
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
@@ -86,10 +81,24 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                     <p className="mt-3 text-lg text-gray-600 dark:text-dark-text/80">
                         Upload your chart and let AI find your next trade.
                     </p>
-                    <div className="absolute top-0 right-0">
+                    <div className="absolute top-0 right-0 flex items-center space-x-2">
+                        <button 
+                            onClick={onNavigateToNews}
+                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
+                            aria-label="View market news"
+                        >
+                            News
+                        </button>
+                        <button 
+                            onClick={onNavigateToHistory}
+                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
+                            aria-label="View analysis history"
+                        >
+                            History
+                        </button>
                         <button 
                             onClick={onLogout} 
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm p-2"
+                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
                             aria-label="Logout"
                         >
                             Logout
@@ -99,31 +108,23 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
 
                 <main>
                    <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl">
-                        <SignalGeneratorForm onSubmit={handleGenerateSignal} isLoading={isLoading} />
-                        
-                        <div className="mt-8 pt-8 border-t border-gray-300 dark:border-green-500/50 min-h-[200px] relative">
-                             {(signalData || error) && !isLoading && (
-                                <button 
-                                    onClick={handleClearAnalysis}
-                                    className="absolute -top-5 right-0 text-gray-500 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs p-1 flex items-center font-medium"
-                                    aria-label="Clear analysis"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                    Clear
-                                </button>
-                            )}
-                            <div className="flex items-center justify-center">
-                                {isLoading && <Loader />}
-                                {error && <ErrorMessage message={error} />}
-                                {signalData && !isLoading && <SignalDisplay data={signalData} />}
-                                {!signalData && !isLoading && !error && (
-                                    <div className="text-center">
-                                        <h3 className="text-base font-medium text-gray-800 dark:text-green-400">Your trade analysis will appear here.</h3>
-                                        <p className="mt-1 text-sm text-gray-600 dark:text-dark-text-secondary">Upload a chart and click "Analyze" to begin.</p>
-                                    </div>
-                                )}
+                        {isLoading ? (
+                            <div className="min-h-[400px] flex items-center justify-center">
+                                <Loader />
                             </div>
-                        </div>
+                        ) : error ? (
+                             <div className="min-h-[400px] flex flex-col items-center justify-center">
+                                <ErrorMessage message={error} />
+                                <button
+                                    onClick={() => setError(null)}
+                                    className="mt-4 px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-500 transition-colors"
+                                >
+                                    Try Again
+                                </button>
+                            </div>
+                        ) : (
+                            <SignalGeneratorForm onSubmit={handleGenerateSignal} isLoading={isLoading} />
+                        )}
                    </div>
                 </main>
             </div>

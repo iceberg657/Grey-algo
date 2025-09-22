@@ -1,25 +1,41 @@
+export interface ImagePart {
+    data: string; // base64 encoded data
+    mimeType: string;
+}
+
 export interface AnalysisRequest {
-    image: {
-        data: string; // base64 encoded data
-        mimeType: string;
+    images: {
+        higher?: ImagePart;
+        primary: ImagePart;
+        entry?: ImagePart;
     };
     riskRewardRatio: string;
+    tradingStyle: TradingStyle;
 }
 
 export interface SignalData {
-    instrument: string;
+    id: string;
+    timestamp: number;
+    asset: string;
     timeframe: string;
     signal: 'BUY' | 'SELL';
     confidence: number;
     entry: number;
-    stop_loss: number;
-    take_profits: number[];
-    reasons: string[];
+    stopLoss: number;
+    takeProfits: number[];
+    reasoning: string[];
     sources?: {
         uri: string;
         title: string;
     }[];
 }
 
-// FIX: Added the missing 'TradingStyle' type, which is used in 'constants.ts' and caused a compilation error.
+export interface NewsArticle {
+    title: string;
+    summary: string;
+    url: string;
+    source: string;
+    date: string; // ISO 8601 format
+}
+
 export type TradingStyle = 'Scalp' | 'Swing' | 'Day Trading';

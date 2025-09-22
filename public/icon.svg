@@ -1,0 +1,15 @@
+<svg width="512" height="512" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="64" height="64" rx="12" fill="#1e293b"/>
+  <!-- Grey Candle -->
+  <g>
+    <path d="M22 14V22" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+    <rect x="18" y="22" width="8" height="20" rx="2" fill="#64748b"/>
+    <path d="M22 42V50" stroke="#94a3b8" stroke-width="4" stroke-linecap="round"/>
+  </g>
+  <!-- Green Candle -->
+  <g>
+    <path d="M42 18V28" stroke="#34d399" stroke-width="4" stroke-linecap="round"/>
+    <rect x="38" y="28" width="8" height="20" rx="2" fill="#10b981"/>
+    <path d="M42 48V56" stroke="#34d399" stroke-width="4" stroke-linecap="round"/>
+  </g>
+</svg>

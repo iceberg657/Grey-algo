@@ -4,25 +4,76 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Grey Algo Chart Analyzer</title>
+    
+    <!-- Icon -->
+    <link rel="icon" type="image/svg+xml" href="/icon.svg">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#0f172a">
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <script>
         tailwind.config = {
-            darkMode: 'class', // Enable dark mode based on class
+            darkMode: 'class',
             theme: {
                 extend: {
+                    colors: {
+                        green: { // New accent color
+                            300: '#6ee7b7', // emerald-300
+                            400: '#34d399', // emerald-400
+                            500: '#10b981', // emerald-500
+                            600: '#059669', // emerald-600
+                            700: '#047857', // emerald-700
+                        },
+                        blue: { // Keep blue for gradient
+                            300: '#93c5fd',
+                            400: '#60a5fa',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                        },
+                        'dark-bg': '#0f172a', // slate-900
+                        'dark-card': '#1e293b', // slate-800
+                        'dark-text': '#e2e8f0', // slate-200
+                        'dark-text-secondary': '#94a3b8', // slate-400
+                    },
                     fontFamily: {
                         sans: ['Inter', 'sans-serif'],
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.5s ease-in-out',
+                        'bounce-candle': 'bounceCandle 1.2s ease-in-out infinite',
+                        'glowing-border': 'glowingBorder 2s ease-in-out infinite',
+                        'animated-gradient': 'animatedGradient 10s ease infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                     },
                     keyframes: {
                         fadeIn: {
                             '0%': { opacity: '0', transform: 'translateY(10px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        glowingBorder: {
+                            '0%, 100%': {
+                                boxShadow: '0 0 3px theme(colors.green.500), inset 0 0 3px theme(colors.green.500)',
+                                borderColor: 'theme(colors.green.500)'
+                            },
+                            '50%': {
+                                boxShadow: '0 0 10px theme(colors.green.400), inset 0 0 10px theme(colors.green.400)',
+                                borderColor: 'theme(colors.green.300)'
+                            },
+                        },
+                        bounceCandle: {
+                            '0%, 100%': { transform: 'translateY(0)', animationTimingFunction: 'cubic-bezier(0.8, 0, 1, 1)' },
+                            '50%': { transform: 'translateY(-25%)', animationTimingFunction: 'cubic-bezier(0, 0, 0.2, 1)' },
+                        },
+                        animatedGradient: {
+                            '0%': { backgroundPosition: '0% 50%' },
+                            '50%': { backgroundPosition: '100% 50%' },
+                            '100%': { backgroundPosition: '0% 50%' },
                         },
                     },
                 },
@@ -31,14 +82,102 @@
     </script>
     <style>
         body {
-            /* Light theme background */
             background-color: #f3f4f6; /* gray-100 */
             transition: background-color 0.3s ease;
         }
         .dark body {
-            /* Dark theme background */
-            background-color: #0c131a;
-            background-image: radial-gradient(ellipse at 50% 0%, #1e4234 0%, #0a0e13 70%);
+            background: linear-gradient(to bottom right, #0f172a, #0c4a6e); /* slate-900 to sky-800 */
+        }
+        .animated-gradient-text {
+            background: linear-gradient(to right, #4ade80, #06b6d4, #3b82f6, #9333ea); /* green-400, cyan-500, blue-500, purple-600 */
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            color: transparent;
+            background-clip: text;
+        }
+        #background-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            z-index: -10;
+        }
+        .orb {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(90px);
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
+        .dark .orb {
+            opacity: 0.15;
+        }
+        .light .orb {
+            opacity: 0.1;
+        }
+        .orb1 {
+            width: 450px;
+            height: 450px;
+            background: radial-gradient(circle, #10b981, transparent 60%); /* green-500 */
+            animation: float 22s infinite linear;
+            top: 5%;
+            left: 15%;
+        }
+        .orb2 {
+            width: 600px;
+            height: 600px;
+            background: radial-gradient(circle, #e2e8f0, #10b981 50%, transparent 70%); /* green-500 */
+            animation: float 28s infinite linear reverse;
+            bottom: -20%;
+            right: 10%;
+        }
+        .orb3 {
+            width: 350px;
+            height: 350px;
+            background: radial-gradient(circle, #34d399, transparent 60%); /* green-400 */
+            animation: float 18s infinite linear;
+            top: 40%;
+            left: 30%;
+        }
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg) scale(1); }
+            50% { transform: translate(80px, 120px) rotate(180deg) scale(1.1); }
+            100% { transform: translate(0, 0) rotate(360deg) scale(1); }
+        }
+
+        /* --- Glowing Edge Effect --- */
+        :root {
+            --glow-color-1: rgba(52, 211, 153, 0.4);   /* green-400 */
+            --glow-color-2: rgba(110, 231, 183, 0.2);  /* green-300 */
+            --glow-blur-1: 10px;
+            --glow-blur-2: 30px;
+        }
+
+        .dark {
+            --glow-color-1: rgba(16, 185, 129, 0.7);   /* green-500 */
+            --glow-color-2: rgba(5, 150, 105, 0.5);    /* green-600 */
+            --glow-blur-1: 15px;
+            --glow-blur-2: 50px;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            pointer-events: none;
+            box-shadow:
+                inset 0 0 var(--glow-blur-1) var(--glow-color-1),
+                inset 0 0 var(--glow-blur-2) var(--glow-color-2);
+            animation: subtleGlowPulse 6s ease-in-out infinite alternate;
+        }
+
+        @keyframes subtleGlowPulse {
+            from { opacity: 0.8; }
+            to { opacity: 1; }
         }
     </style>
 <script type="importmap">
@@ -55,7 +194,23 @@
 </script>
 </head>
 <body>
+    <div id="background-animation">
+        <div class="orb orb1"></div>
+        <div class="orb orb2"></div>
+        <div class="orb orb3"></div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('ServiceWorker registration successful with scope: ', registration.scope);
+                }, err => {
+                    console.log('ServiceWorker registration failed: ', err);
+                });
+            });
+        }
+    </script>
 </body>
 </html>
