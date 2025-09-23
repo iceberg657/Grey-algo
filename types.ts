@@ -14,6 +14,17 @@ export interface AnalysisRequest {
     isMultiDimensional: boolean;
 }
 
+export interface EconomicEvent {
+    name: string;
+    date: string; // ISO 8601 format
+    impact: 'High' | 'Medium' | 'Low';
+}
+
+export interface Sentiment {
+    score: number; // 0 (Bearish) to 100 (Bullish)
+    summary: string;
+}
+
 export interface SignalData {
     id: string;
     timestamp: number;
@@ -25,6 +36,8 @@ export interface SignalData {
     stopLoss: number;
     takeProfits: number[];
     reasoning: string[];
+    sentiment?: Sentiment;
+    economicEvents?: EconomicEvent[];
     sources?: {
         uri: string;
         title: string;
@@ -40,3 +53,9 @@ export interface NewsArticle {
 }
 
 export type TradingStyle = 'Scalp' | 'Swing' | 'Day Trading';
+
+export interface ChatMessage {
+    id: string;
+    role: 'user' | 'model';
+    text: string;
+}

@@ -10,6 +10,17 @@ if (!API_KEY) {
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const PROMPT = (riskRewardRatio, tradingStyle, imageLabels, isMultiDimensional) => {
+    let scalpInstructions = '';
+    if (tradingStyle === 'Scalp') {
+        scalpInstructions = `
+**SCALPING MODE ENGAGAGED:** Your analysis MUST adapt to a high-frequency scalping strategy.
+*   **Trend is Law:** The direction of the trade is dictated ONLY by the dominant intraday trend established on the **Strategic View (Higher TF)**, which is typically a 1-hour or 30-minute chart. If this trend is bullish, you ONLY look for BUY signals. If it is bearish, you ONLY look for SELL signals. There are no exceptions.
+*   **Precision Zones:** Use the **Tactical View (Primary TF)**, typically a 15-minute chart, to pinpoint high-probability zones for entry, such as pullbacks to a moving average or a key support/resistance level within the established trend.
+*   **Execution Trigger:** Use the **Execution View (Entry TF)**, typically a 5-minute or 1-minute chart, to find the exact trigger for entry. This is a micro-level confirmation, like a small breakout or a specific candlestick pattern that signals the resumption of the main trend.
+*   **Speed is Paramount:** Your targets (TakeProfits) will be small and your StopLoss tight. The goal is to capture small, rapid price movements.
+`;
+    }
+
     const analysisSection = isMultiDimensional
         ? `
 **MULTI-DIMENSIONAL ANALYSIS:**
@@ -33,6 +44,7 @@ You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track 
 *   **Trading Style:** ${tradingStyle}. Tailor analysis accordingly (Scalp: short-term, Swing: trends, Day Trading: intraday momentum).
 *   **Risk/Reward Ratio:** ${riskRewardRatio}.
 
+${scalpInstructions}
 ${analysisSection}
 
 **ANALYSIS INSTRUCTIONS:**
@@ -42,6 +54,8 @@ ${analysisSection}
 4.  **Declare The Signal:** Declare your single, definitive signal: **BUY or SELL**. Hesitation is failure. Neutrality is not an option. Find the winning trade.
 5.  **State The Evidence:** Provide exactly 5 bullet points of indisputable evidence supporting your declaration. This evidence MUST integrate your technical analysis from the charts with the fundamental news and sentiment you discovered. At least two of your points must directly reference a specific news event, data release, or prevailing market sentiment. These are not 'reasons'; they are statements of fact. Frame them with unwavering authority. Each point must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.
 6.  **Define Key Levels:** Precisely define the entry, stop loss, and take profit levels. These are not estimates; they are calculated points of action.
+7.  **Market Sentiment:** Analyze the overall market sentiment for the asset. Provide a score from 0 (Extremely Bearish) to 100 (Extremely Bullish) and a concise, one-sentence summary of the current sentiment.
+8.  **Economic Events:** Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days. Include the event name, the exact date in ISO 8601 format, and its impact level ('High', 'Medium', or 'Low'). If no high-impact events are found, return an empty array.
 
 **OUTPUT FORMAT:**
 Return ONLY a valid JSON object. Do not include markdown, backticks, or any other text outside the JSON structure.
@@ -54,7 +68,18 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
   "entry": "number",
   "stopLoss": "number",
   "takeProfits": ["array of numbers"],
-  "reasoning": ["array of 5 strings of indisputable evidence"]
+  "reasoning": ["array of 5 strings of indisputable evidence"],
+  "sentiment": {
+    "score": "number (0-100)",
+    "summary": "string"
+  },
+  "economicEvents": [
+    {
+      "name": "string",
+      "date": "string (ISO 8601 format)",
+      "impact": "'High', 'Medium', or 'Low'"
+    }
+  ]
 }
 `;
 };

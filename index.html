@@ -179,6 +179,34 @@
             --glow-blur-2: 50px;
         }
 
+        .dark.glow-buy {
+            --glow-color-1: rgba(74, 222, 128, 0.9);   /* green-400, more intense */
+            --glow-color-2: rgba(34, 197, 94, 0.7);    /* green-500, more intense */
+            --glow-blur-1: 25px;
+            --glow-blur-2: 70px;
+        }
+
+        .dark.glow-sell {
+            --glow-color-1: rgba(248, 113, 113, 0.9);  /* red-400, more intense */
+            --glow-color-2: rgba(239, 68, 68, 0.7);    /* red-500, more intense */
+            --glow-blur-1: 25px;
+            --glow-blur-2: 70px;
+        }
+        
+        .light.glow-buy {
+            --glow-color-1: rgba(74, 222, 128, 0.7);
+            --glow-color-2: rgba(34, 197, 94, 0.5);
+            --glow-blur-1: 20px;
+            --glow-blur-2: 60px;
+        }
+        
+        .light.glow-sell {
+            --glow-color-1: rgba(248, 113, 113, 0.7);
+            --glow-color-2: rgba(239, 68, 68, 0.5);
+            --glow-blur-1: 20px;
+            --glow-blur-2: 60px;
+        }
+
         body::after {
             content: '';
             position: fixed;
@@ -189,6 +217,7 @@
                 inset 0 0 var(--glow-blur-1) var(--glow-color-1),
                 inset 0 0 var(--glow-blur-2) var(--glow-color-2);
             animation: subtleGlowPulse 6s ease-in-out infinite alternate;
+            transition: box-shadow 0.8s ease-in-out, opacity 0.8s ease-in-out;
         }
 
         @keyframes subtleGlowPulse {

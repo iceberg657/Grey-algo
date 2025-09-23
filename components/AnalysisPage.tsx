@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useEffect } from 'react';
 import { SignalDisplay } from './SignalDisplay';
 import type { SignalData } from '../types';
 
@@ -9,6 +10,18 @@ interface AnalysisPageProps {
 }
 
 export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, onBack, onLogout }) => {
+    
+    useEffect(() => {
+        const root = document.documentElement;
+        const glowClass = data.signal === 'BUY' ? 'glow-buy' : 'glow-sell';
+        root.classList.add(glowClass);
+
+        // Cleanup: remove the class when the component unmounts
+        return () => {
+            root.classList.remove('glow-buy', 'glow-sell');
+        };
+    }, [data.signal]);
+
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300 animate-fade-in">
             <div className="w-full max-w-2xl mx-auto">

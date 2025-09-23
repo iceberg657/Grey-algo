@@ -5,12 +5,13 @@ import { HomePage } from './components/HomePage';
 import { AnalysisPage } from './components/AnalysisPage';
 import { HistoryPage } from './components/HistoryPage';
 import { NewsPage } from './components/NewsPage';
+import { ChatPage } from './components/ChatPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData } from './types';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'auth' | 'home' | 'analysis' | 'history' | 'news';
+type AppView = 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat';
 
 const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
@@ -56,6 +57,10 @@ const App: React.FC = () => {
     const handleNavigateToNews = () => {
         setAppView('news');
     };
+
+    const handleNavigateToChat = () => {
+        setAppView('chat');
+    };
     
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
@@ -67,6 +72,10 @@ const App: React.FC = () => {
             return <SignUpPage onSignUp={handleSignUp} onNavigateToLogin={() => setAuthPage('login')} />;
         }
         return <LoginPage onLogin={handleLogin} onNavigateToSignUp={() => setAuthPage('signup')} />;
+    }
+
+    if (appView === 'chat') {
+        return <ChatPage onBack={handleNavigateToHome} onLogout={handleLogout} />;
     }
 
     if (appView === 'news') {
@@ -95,6 +104,7 @@ const App: React.FC = () => {
         onAnalysisComplete={handleNewAnalysis} 
         onNavigateToHistory={handleNavigateToHistory}
         onNavigateToNews={handleNavigateToNews}
+        onNavigateToChat={handleNavigateToChat}
     />;
 };
 

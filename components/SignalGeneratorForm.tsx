@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { AnalysisRequest, ImagePart, TradingStyle } from '../types';
 import { RISK_REWARD_RATIOS, TRADING_STYLES } from '../constants';
@@ -132,21 +133,30 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
     useEffect(() => {
         return () => {
-            // FIX: Explicitly type `img` to fix "property 'previewUrl' does not exist on type 'unknown'" error,
-            // which can happen with some TypeScript configurations for Object.values.
             Object.values(images).forEach((img: ImageFileState) => {
                 if (img.previewUrl) {
                     URL.revokeObjectURL(img.previewUrl);
                 }
             });
         };
-        // FIX: Add `images` to dependency array to revoke object URLs when images change, preventing memory leaks.
     }, [images]);
+
+    useEffect(() => {
+        const root = document.documentElement;
+        if (tradingStyle === 'Scalp') {
+            root.classList.add('glow-sell');
+        } else {
+            root.classList.remove('glow-sell');
+        }
+
+        return () => {
+            root.classList.remove('glow-sell');
+        };
+    }, [tradingStyle]);
 
     const handleFileSelect = (id: ImageSlot, file: File) => {
         setError(null);
         setImages(prev => {
-            // Revoke old URL before creating a new one.
             const oldUrl = prev[id].previewUrl;
             if (oldUrl) URL.revokeObjectURL(oldUrl);
             return {
@@ -193,117 +203,114 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
         }
     };
 
+    const descriptions = {
+        default: {
+            higher: "Optional: The 'big picture' view to establish the dominant market trend.",
+            primary: "Your main chart. The AI will identify the specific trade setup and key levels here.",
+            entry: "Optional: A lower timeframe chart to pinpoint the optimal entry trigger."
+        },
+        scalp: {
+            higher: "Crucial: 1h/30m chart for dominant intraday trend.",
+            primary: "Key: 15m chart to pinpoint high-probability zones like pullbacks.",
+            entry: "Trigger: 5m/1m chart to find the exact entry confirmation."
+        }
+    };
+    const currentDescriptions = tradingStyle === 'Scalp' ? descriptions.scalp : descriptions.default;
+
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-                <div>
-                    <label htmlFor="risk-reward" className="block mb-2 text-sm font-medium text-gray-700 dark:text-dark-text/80">Risk/Reward</label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <ImageUploadSlot
+                    id="higher"
+                    label={isMultiDimensional ? "Strategic View (Higher TF)" : "Higher Timeframe"}
+                    description={currentDescriptions.higher}
+                    imageState={images.higher}
+                    onFileSelect={handleFileSelect}
+                    onFileRemove={handleFileRemove}
+                />
+                <ImageUploadSlot
+                    id="primary"
+                    label={isMultiDimensional ? "Tactical View (Primary TF)" : "Primary Timeframe"}
+                    description={currentDescriptions.primary}
+                    required={true}
+                    imageState={images.primary}
+                    onFileSelect={handleFileSelect}
+                    onFileRemove={handleFileRemove}
+                />
+                <ImageUploadSlot
+                    id="entry"
+                    label={isMultiDimensional ? "Execution View (Entry TF)" : "Entry Timeframe"}
+                    description={currentDescriptions.entry}
+                    imageState={images.entry}
+                    onFileSelect={handleFileSelect}
+                    onFileRemove={handleFileRemove}
+                />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
+                 <div>
+                    <label htmlFor="tradingStyle" className="block text-sm font-medium text-gray-700 dark:text-dark-text/80 mb-2">Trading Style</label>
                     <select
-                        id="risk-reward"
-                        value={riskRewardRatio}
-                        onChange={(e) => setRiskRewardRatio(e.target.value)}
-                        disabled={isLoading}
-                        className="bg-gray-100 border border-gray-400 text-slate-800 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-black/50 dark:border-green-500/40 dark:placeholder-gray-400 dark:text-dark-text dark:focus:ring-green-500 dark:focus:border-green-500 disabled:opacity-50"
-                    >
-                        {RISK_REWARD_RATIOS.map((ratio) => (
-                            <option key={ratio} value={ratio}>
-                                {ratio}
-                            </option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <label htmlFor="trading-style" className="block mb-2 text-sm font-medium text-gray-700 dark:text-dark-text/80">Trading Style</label>
-                    <select
-                        id="trading-style"
+                        id="tradingStyle"
                         value={tradingStyle}
                         onChange={(e) => setTradingStyle(e.target.value as TradingStyle)}
-                        disabled={isLoading}
-                        className="bg-gray-100 border border-gray-400 text-slate-800 text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 dark:bg-black/50 dark:border-green-500/40 dark:placeholder-gray-400 dark:text-dark-text dark:focus:ring-green-500 dark:focus:border-green-500 disabled:opacity-50"
+                        className="bg-white dark:bg-dark-bg/80 border border-gray-300 dark:border-green-500/50 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5"
                     >
-                        {TRADING_STYLES.map((style) => (
-                            <option key={style} value={style}>
-                                {style}
-                            </option>
-                        ))}
+                        {TRADING_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
+                    </select>
+                </div>
+                 <div>
+                    <label htmlFor="riskRewardRatio" className="block text-sm font-medium text-gray-700 dark:text-dark-text/80 mb-2">Risk/Reward Ratio</label>
+                    <select
+                        id="riskRewardRatio"
+                        value={riskRewardRatio}
+                        onChange={(e) => setRiskRewardRatio(e.target.value)}
+                         className="bg-white dark:bg-dark-bg/80 border border-gray-300 dark:border-green-500/50 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5"
+                    >
+                        {RISK_REWARD_RATIOS.map(ratio => <option key={ratio} value={ratio}>{ratio}</option>)}
                     </select>
                 </div>
             </div>
-
-            <div className="flex items-center justify-between p-3 bg-gray-200/50 dark:bg-black/20 rounded-lg">
-                <div>
-                    <label htmlFor="multi-dimensional-toggle" className="font-semibold text-gray-800 dark:text-green-400">
-                        Oracle Multi-Dimensional Analysis
-                    </label>
-                    <p className="text-xs text-gray-500 dark:text-dark-text-secondary">
-                        {isMultiDimensional ? 'Enabled: Synthesizes Strategic, Tactical, and Execution views for timeframe and structural alignment.' : 'Disabled: Performs standard Top-Down analysis.'}
-                    </p>
-                </div>
-                <label htmlFor="multi-dimensional-toggle" className="inline-flex relative items-center cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        id="multi-dimensional-toggle" 
-                        className="sr-only peer" 
-                        checked={isMultiDimensional} 
-                        onChange={() => setIsMultiDimensional(!isMultiDimensional)}
-                        disabled={isLoading}
-                    />
-                    <div className="w-11 h-6 bg-gray-400 rounded-full peer peer-focus:ring-2 peer-focus:ring-green-500/50 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                </label>
-            </div>
             
-            <div className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                   <ImageUploadSlot 
-                        id="higher" 
-                        label={isMultiDimensional ? "Strategic View (Higher TF)" : "Higher Timeframe"}
-                        description={isMultiDimensional ? "The big picture for overall market trend and context." : "Optional: Chart for the overall market direction."}
-                        imageState={images.higher} 
-                        onFileSelect={handleFileSelect} 
-                        onFileRemove={handleFileRemove} 
-                    />
-                   <ImageUploadSlot 
-                        id="primary" 
-                        label={isMultiDimensional ? "Tactical View (Primary TF)" : "Primary Timeframe"}
-                        description={isMultiDimensional ? "The main chart for the specific trade setup and key levels." : "Required: The main chart for the trade setup."}
-                        required={true} 
-                        imageState={images.primary} 
-                        onFileSelect={handleFileSelect} 
-                        onFileRemove={handleFileRemove} 
-                    />
-                   <ImageUploadSlot 
-                        id="entry" 
-                        label={isMultiDimensional ? "Execution View (Entry TF)" : "Entry Timeframe"}
-                        description={isMultiDimensional ? "The zoomed-in view for precise entry timing and confirmation." : "Optional: Chart for fine-tuning your entry."}
-                        imageState={images.entry} 
-                        onFileSelect={handleFileSelect} 
-                        onFileRemove={handleFileRemove} 
-                    />
+            <div className="flex items-center justify-between p-3 bg-gray-200/50 dark:bg-dark-bg/40 rounded-lg">
+                <div className="flex flex-col">
+                    <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Oracle Multi-Dimensional Analysis</span>
+                    <span className="text-xs text-gray-500 dark:text-dark-text-secondary">Synthesizes all charts for highest accuracy</span>
                 </div>
+                <button
+                    type="button"
+                    onClick={() => setIsMultiDimensional(!isMultiDimensional)}
+                    className={`${isMultiDimensional ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
+                    aria-pressed={isMultiDimensional}
+                >
+                    <span className="sr-only">Toggle Analysis Mode</span>
+                    <span className={`${isMultiDimensional ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
+                </button>
             </div>
 
-            {error && <p className="text-sm text-red-500 dark:text-red-400 text-center">{error}</p>}
+            {error && (
+                <div className="text-center p-2 text-sm text-red-400 bg-red-900/20 border border-red-500/50 rounded-lg animate-fade-in">
+                    {error}
+                </div>
+            )}
 
-            <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full text-white bg-green-600 hover:bg-green-500 focus:ring-4 focus:outline-none focus:ring-green-500/50 font-bold rounded-lg text-sm px-5 py-3 text-center disabled:opacity-70 disabled:cursor-not-allowed transition-all duration-300 flex items-center justify-center transform hover:scale-105 disabled:scale-100"
-            >
-                {isLoading ? (
-                    <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Analyzing...
-                    </>
-                ) : (
-                    <>
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5A10 10 0 0 1 11.5 2h.05"/><path d="M22 12.5A10 10 0 0 1 12.5 22h-.05"/></svg>
-                        Analyze Chart
-                    </>
-                )}
-            </button>
+            <div className="pt-4">
+                 <button 
+                    type="submit" 
+                    disabled={isLoading}
+                    className="w-full text-white bg-green-600 hover:bg-green-500 focus:ring-4 focus:outline-none focus:ring-green-500/50 font-bold rounded-lg text-base px-5 py-3.5 text-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                >
+                    {isLoading ? (
+                        <>
+                             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                            Analyzing...
+                        </>
+                    ) : 'Analyze Chart'}
+                 </button>
+            </div>
         </form>
     );
 };
