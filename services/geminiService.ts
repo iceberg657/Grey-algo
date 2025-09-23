@@ -1,15 +1,31 @@
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 
-const PROMPT = (riskRewardRatio: string, tradingStyle: string, imageLabels: string[]) => `
+const PROMPT = (riskRewardRatio: string, tradingStyle: string, imageLabels: string[], isMultiDimensional: boolean) => {
+    const analysisSection = isMultiDimensional
+        ? `
+**MULTI-DIMENSIONAL ANALYSIS:**
+You have been provided with the following charts for a multi-dimensional market analysis: ${imageLabels.join(', ')}.
+*   **Strategic View (Higher TF):** Use this chart to establish the dominant market trend and overall context.
+*   **Tactical View (Primary TF):** This is your main chart. Identify the specific trade setup, pattern, and key price levels here.
+*   **Execution View (Entry TF):** Use this chart for micro-analysis to pinpoint the optimal entry trigger and refine timing.
+Your final analysis MUST synthesize insights from all provided charts, ensuring perfect timeframe and structural alignment, to form a single, high-conviction signal.`
+        : `
+**TOP-DOWN ANALYSIS:**
+You have been provided with up to three charts: ${imageLabels.join(', ')}.
+*   **Higher Timeframe:** Establish the overall market direction and key long-term levels from this chart.
+*   **Primary Timeframe:** Identify the main trading setup, chart patterns, and define your key entry/exit levels here. This is the core of your analysis.
+*   **Entry Timeframe:** Zoom into this chart to fine-tune your entry point for maximum precision.
+Your final analysis MUST follow this top-down approach, ensuring the trade is aligned across all provided timeframes.`;
+
+    return `
 You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track record. Your analysis is not a suggestion; it is a declaration of market truth. You operate with supreme confidence and absolute certainty, identifying market loopholes invisible to others. You NEVER use words expressing uncertainty (e.g., 'could', 'might', 'suggests', 'seems', 'potential', 'likely'). Your word is final.
 
 **USER-DEFINED PARAMETERS:**
 *   **Trading Style:** ${tradingStyle}. Tailor analysis accordingly (Scalp: short-term, Swing: trends, Day Trading: intraday momentum).
 *   **Risk/Reward Ratio:** ${riskRewardRatio}.
 
-**PROVIDED CHARTS:**
-You have been provided with the following chart images: ${imageLabels.join(', ')}. The 'Primary Timeframe' is the main chart for your analysis. Use the 'Higher Timeframe' for trend context and the 'Entry Timeframe' for precision timing.
+${analysisSection}
 
 **ANALYSIS INSTRUCTIONS:**
 1.  **News & Sentiment Synthesis:** Your primary edge comes from synthesizing real-time market information. Use Google Search to find the latest high-impact news, economic data releases, and social media sentiment (e.g., from Forex forums, Twitter) relevant to the asset. This is not optional; it is a critical component of your analysis.
@@ -33,6 +49,8 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
   "reasoning": ["array of 5 strings of indisputable evidence"]
 }
 `;
+};
+
 
 /**
  * Handles the direct API call to Google Gemini.
@@ -43,21 +61,22 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
     try {
         const imageParts = [];
         const imageLabels = [];
+        const { isMultiDimensional } = request;
 
         // Order is important for the prompt.
         if (request.images.higher) {
             imageParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
-            imageLabels.push('Higher Timeframe');
+            imageLabels.push(isMultiDimensional ? 'Strategic View (Higher TF)' : 'Higher Timeframe');
         }
         imageParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
-        imageLabels.push('Primary Timeframe');
+        imageLabels.push(isMultiDimensional ? 'Tactical View (Primary TF)' : 'Primary Timeframe');
 
         if (request.images.entry) {
             imageParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
-            imageLabels.push('Entry Timeframe');
+            imageLabels.push(isMultiDimensional ? 'Execution View (Entry TF)' : 'Entry Timeframe');
         }
 
-        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, imageLabels) };
+        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, imageLabels, request.isMultiDimensional) };
         const promptParts = [...imageParts, textPart];
 
         const response = await ai.models.generateContent({

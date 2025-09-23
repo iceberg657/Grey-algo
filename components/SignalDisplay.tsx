@@ -11,11 +11,18 @@ interface InfoCardProps {
 const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal = false }) => (
     <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 ${className}`}>
         <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider">{label}</span>
-        <span className={`mt-1 font-semibold ${isSignal ? 'text-2xl ' + (value === 'BUY' ? 'text-green-500' : 'text-red-500') : 'text-lg font-mono text-gray-800 dark:text-dark-text'}`}>
-            {value}
-        </span>
+        {isSignal ? (
+            <span className={`mt-1 font-semibold text-2xl ${value === 'BUY' ? 'text-green-400 animate-glowing-text-green' : 'text-red-400 animate-glowing-text-red'}`}>
+                {value}
+            </span>
+        ) : (
+            <span className='text-lg font-mono text-gray-800 dark:text-dark-text mt-1 font-semibold'>
+                {value}
+            </span>
+        )}
     </div>
 );
+
 
 interface SignalDisplayProps {
     data: SignalData;
@@ -27,8 +34,9 @@ export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
     return (
         <div className="w-full animate-fade-in space-y-6">
             <header className="text-center">
-                 {/* FIX: Changed data.instrument to data.asset to match SignalData type */}
-                 <h2 className="text-xl font-bold text-gray-900 dark:text-green-400 border-b-2 border-transparent dark:border-green-500/50 pb-2 mb-2">{data.asset}</h2>
+                 <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient pb-2 mb-2">
+                    {data.asset}
+                </h2>
                  <p className="text-sm text-gray-500 dark:text-dark-text/70">{data.timeframe}</p>
             </header>
 
@@ -49,13 +57,11 @@ export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
                  />
                  <InfoCard 
                     label="Stop Loss" 
-                    // FIX: Changed data.stop_loss to data.stopLoss to match SignalData type
                     value={<span className="text-red-500 dark:text-red-400">{data.stopLoss}</span>}
                  />
                  <div className="col-span-2 flex flex-col items-center justify-center p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50">
                      <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider">Take Profits</span>
                      <div className="mt-1 flex flex-wrap justify-center gap-x-4 gap-y-1 text-lg font-mono text-green-500 dark:text-green-400">
-                        {/* FIX: Changed data.take_profits to data.takeProfits to match SignalData type */}
                         {data.takeProfits.map((tp, index) => (
                             <span key={index}>{tp}</span>
                         ))}
@@ -64,10 +70,8 @@ export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
             </div>
             
             <div>
-                {/* FIX: Changed "10 Reasons" to "Reasoning" for accuracy. */}
                 <h3 className="font-semibold mb-3 text-gray-800 dark:text-green-400 text-center text-lg border-b-2 border-transparent dark:border-green-500/50 pb-2">Reasoning</h3>
                 <ul className="space-y-2 text-sm text-gray-700 dark:text-dark-text/90">
-                    {/* FIX: Changed data.reasons to data.reasoning to match SignalData type */}
                     {data.reasoning.map((reason, index) => {
                         const emoji = reason.startsWith('✅') ? '✅' : reason.startsWith('❌') ? '❌' : '';
                         const text = reason.replace(/^(✅|❌)\s*/, '');

@@ -29,13 +29,14 @@ type ImageSlot = 'higher' | 'primary' | 'entry';
 interface ImageUploadSlotProps {
     id: ImageSlot;
     label: string;
+    description: string;
     required?: boolean;
     imageState: ImageFileState;
     onFileSelect: (id: ImageSlot, file: File) => void;
     onFileRemove: (id: ImageSlot) => void;
 }
 
-const ImageUploadSlot: React.FC<ImageUploadSlotProps> = ({ id, label, required = false, imageState, onFileSelect, onFileRemove }) => {
+const ImageUploadSlot: React.FC<ImageUploadSlotProps> = ({ id, label, description, required = false, imageState, onFileSelect, onFileRemove }) => {
     const [isDragging, setIsDragging] = useState<boolean>(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -69,9 +70,10 @@ const ImageUploadSlot: React.FC<ImageUploadSlotProps> = ({ id, label, required =
 
     return (
         <div>
-            <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-dark-text/80">
+            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text/80">
                 {label} {required && <span className="text-red-500">*</span>}
             </label>
+            <p className="text-xs text-gray-500 dark:text-dark-text-secondary mb-2 h-8">{description}</p>
             <div
                 {...dragHandlers}
                 className={`flex flex-col justify-center items-center w-full min-h-[8rem] p-2 transition-all duration-300 bg-gray-200/50 dark:bg-black/20 border-2 border-dashed rounded-xl ${isDragging ? 'animate-glowing-border' : 'border-gray-400/50 dark:border-green-500/40 hover:border-green-500/60'}`}
@@ -125,6 +127,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     });
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[1]);
+    const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
@@ -169,7 +172,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
         e.preventDefault();
         setError(null);
         if (!images.primary.file) {
-            setError('Please upload a chart for the Primary Timeframe.');
+            setError('Please upload a chart for the Tactical View.');
             return;
         }
 
@@ -181,7 +184,8 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             onSubmit({ 
                 images: { primary, higher, entry }, 
                 riskRewardRatio, 
-                tradingStyle 
+                tradingStyle,
+                isMultiDimensional,
             });
 
         } catch(err) {
@@ -225,13 +229,56 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     </select>
                 </div>
             </div>
+
+            <div className="flex items-center justify-between p-3 bg-gray-200/50 dark:bg-black/20 rounded-lg">
+                <div>
+                    <label htmlFor="multi-dimensional-toggle" className="font-semibold text-gray-800 dark:text-green-400">
+                        Oracle Multi-Dimensional Analysis
+                    </label>
+                    <p className="text-xs text-gray-500 dark:text-dark-text-secondary">
+                        {isMultiDimensional ? 'Enabled: Synthesizes Strategic, Tactical, and Execution views for timeframe and structural alignment.' : 'Disabled: Performs standard Top-Down analysis.'}
+                    </p>
+                </div>
+                <label htmlFor="multi-dimensional-toggle" className="inline-flex relative items-center cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        id="multi-dimensional-toggle" 
+                        className="sr-only peer" 
+                        checked={isMultiDimensional} 
+                        onChange={() => setIsMultiDimensional(!isMultiDimensional)}
+                        disabled={isLoading}
+                    />
+                    <div className="w-11 h-6 bg-gray-400 rounded-full peer peer-focus:ring-2 peer-focus:ring-green-500/50 dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                </label>
+            </div>
             
             <div className="space-y-4">
-                <p className="text-sm text-center text-gray-500 dark:text-dark-text-secondary">Upload up to 3 timeframes for a comprehensive analysis.</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                   <ImageUploadSlot id="higher" label="Higher Timeframe" imageState={images.higher} onFileSelect={handleFileSelect} onFileRemove={handleFileRemove} />
-                   <ImageUploadSlot id="primary" label="Primary Timeframe" required={true} imageState={images.primary} onFileSelect={handleFileSelect} onFileRemove={handleFileRemove} />
-                   <ImageUploadSlot id="entry" label="Entry Timeframe" imageState={images.entry} onFileSelect={handleFileSelect} onFileRemove={handleFileRemove} />
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                   <ImageUploadSlot 
+                        id="higher" 
+                        label={isMultiDimensional ? "Strategic View (Higher TF)" : "Higher Timeframe"}
+                        description={isMultiDimensional ? "The big picture for overall market trend and context." : "Optional: Chart for the overall market direction."}
+                        imageState={images.higher} 
+                        onFileSelect={handleFileSelect} 
+                        onFileRemove={handleFileRemove} 
+                    />
+                   <ImageUploadSlot 
+                        id="primary" 
+                        label={isMultiDimensional ? "Tactical View (Primary TF)" : "Primary Timeframe"}
+                        description={isMultiDimensional ? "The main chart for the specific trade setup and key levels." : "Required: The main chart for the trade setup."}
+                        required={true} 
+                        imageState={images.primary} 
+                        onFileSelect={handleFileSelect} 
+                        onFileRemove={handleFileRemove} 
+                    />
+                   <ImageUploadSlot 
+                        id="entry" 
+                        label={isMultiDimensional ? "Execution View (Entry TF)" : "Entry Timeframe"}
+                        description={isMultiDimensional ? "The zoomed-in view for precise entry timing and confirmation." : "Optional: Chart for fine-tuning your entry."}
+                        imageState={images.entry} 
+                        onFileSelect={handleFileSelect} 
+                        onFileRemove={handleFileRemove} 
+                    />
                 </div>
             </div>
 

@@ -11,6 +11,7 @@ export interface AnalysisRequest {
     };
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
+    isMultiDimensional: boolean;
 }
 
 export interface SignalData {
