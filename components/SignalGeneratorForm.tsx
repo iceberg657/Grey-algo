@@ -130,6 +130,8 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[1]);
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    
+    const isScalp = tradingStyle === 'Scalp';
 
     useEffect(() => {
         return () => {
@@ -298,7 +300,11 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                  <button 
                     type="submit" 
                     disabled={isLoading}
-                    className="w-full text-white bg-green-600 hover:bg-green-500 focus:ring-4 focus:outline-none focus:ring-green-500/50 font-bold rounded-lg text-base px-5 py-3.5 text-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+                    className={`w-full text-white font-bold rounded-lg text-base px-5 py-3.5 text-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-4 focus:outline-none ${
+                        isScalp 
+                        ? 'bg-red-600 hover:bg-red-500 focus:ring-red-500/50 animate-glowing-border-red' 
+                        : 'bg-green-600 hover:bg-green-500 focus:ring-green-500/50'
+                    }`}
                 >
                     {isLoading ? (
                         <>

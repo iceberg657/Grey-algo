@@ -54,6 +54,7 @@
                         'fade-in': 'fadeIn 0.5s ease-in-out',
                         'bounce-candle': 'bounceCandle 1.2s ease-in-out infinite',
                         'glowing-border': 'glowingBorder 2s ease-in-out infinite',
+                        'glowing-border-red': 'glowingBorderRed 1.5s ease-in-out infinite alternate',
                         'animated-gradient': 'animatedGradient 10s ease infinite',
                         'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
                         'glowing-text-green': 'glowingTextGreen 1.5s ease-in-out infinite alternate',
@@ -90,6 +91,10 @@
                         glowingTextRed: {
                             'from': { textShadow: '0 0 4px theme(colors.red.500), 0 0 8px theme(colors.red.400), 0 0 12px theme(colors.red.600)' },
                             'to': { textShadow: '0 0 8px theme(colors.red.400), 0 0 16px theme(colors.red.300), 0 0 24px theme(colors.red.500)' },
+                        },
+                        glowingBorderRed: {
+                           'from': { boxShadow: '0 0 5px theme(colors.red.500), 0 0 10px theme(colors.red.400), 0 0 15px theme(colors.red.600)' },
+                           'to': { boxShadow: '0 0 10px theme(colors.red.400), 0 0 20px theme(colors.red.300), 0 0 30px theme(colors.red.500)' },
                         },
                     },
                 },

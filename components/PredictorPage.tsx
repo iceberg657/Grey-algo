@@ -56,9 +56,10 @@ const CountdownDisplay: React.FC<{ targetDate: string }> = ({ targetDate }) => {
     const timeLeft = useCountdown(targetDate);
 
     const timerComponents = Object.entries(timeLeft).map(([interval, value]) => {
-        // FIX: The value from `Object.entries` is now correctly typed as `number | undefined`
-        // instead of `unknown`, so this comparison is now valid.
-        if (value === undefined || value < 0) return null;
+        // FIX: The `value` from `Object.entries` can be inferred as `unknown`. Using a `typeof`
+        // check acts as a type guard, correctly narrowing `value` to type `number` and allowing
+        // the comparison to proceed without a type error.
+        if (typeof value !== 'number' || value < 0) return null;
         return (
             <div key={interval} className="flex flex-col items-center">
                 <span className="text-xl font-mono font-bold text-dark-text">{String(value).padStart(2, '0')}</span>
