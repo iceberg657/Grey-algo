@@ -59,3 +59,12 @@ export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
 }
+
+export interface PredictedEvent {
+    name: string;
+    date: string; // ISO 8601 format with timezone
+    affectedAsset: string;
+    predictedDirection: 'BUY' | 'SELL';
+    confidence: number; // 80-100
+    reasoning: string;
+}

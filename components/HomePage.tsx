@@ -11,9 +11,10 @@ interface HomePageProps {
     onNavigateToHistory: () => void;
     onNavigateToNews: () => void;
     onNavigateToChat: () => void;
+    onNavigateToPredictor: () => void;
 }
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
@@ -115,6 +116,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                         Upload your chart and let AI find your next trade.
                     </p>
                     <div className="absolute top-0 right-0 flex items-center space-x-2">
+                        <button 
+                            onClick={onNavigateToPredictor}
+                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
+                            aria-label="Open Catalyst Predictor"
+                        >
+                            Predictor
+                        </button>
                         <button 
                             onClick={onNavigateToChat}
                             className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"

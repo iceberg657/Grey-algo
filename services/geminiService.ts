@@ -106,7 +106,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: promptParts },
+            contents: [{ parts: promptParts }],
             config: {
                 tools: [{googleSearch: {}}],
                 seed: 42,

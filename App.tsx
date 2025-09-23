@@ -6,12 +6,13 @@ import { AnalysisPage } from './components/AnalysisPage';
 import { HistoryPage } from './components/HistoryPage';
 import { NewsPage } from './components/NewsPage';
 import { ChatPage } from './components/ChatPage';
+import { PredictorPage } from './components/PredictorPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData } from './types';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat';
+type AppView = 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor';
 
 const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
@@ -62,6 +63,10 @@ const App: React.FC = () => {
         setAppView('chat');
     };
     
+    const handleNavigateToPredictor = () => {
+        setAppView('predictor');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         setAppView(previousView);
@@ -72,6 +77,10 @@ const App: React.FC = () => {
             return <SignUpPage onSignUp={handleSignUp} onNavigateToLogin={() => setAuthPage('login')} />;
         }
         return <LoginPage onLogin={handleLogin} onNavigateToSignUp={() => setAuthPage('signup')} />;
+    }
+
+    if (appView === 'predictor') {
+        return <PredictorPage onBack={handleNavigateToHome} onLogout={handleLogout} />;
     }
 
     if (appView === 'chat') {
@@ -105,6 +114,7 @@ const App: React.FC = () => {
         onNavigateToHistory={handleNavigateToHistory}
         onNavigateToNews={handleNavigateToNews}
         onNavigateToChat={handleNavigateToChat}
+        onNavigateToPredictor={handleNavigateToPredictor}
     />;
 };
 
