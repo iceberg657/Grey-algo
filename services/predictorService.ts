@@ -11,7 +11,7 @@ Scan the economic calendar for the next 7 days using Google Search. Identify ONL
 1.  **Identify High-Impact Events:** Find up to 5 of the most significant, market-moving economic events scheduled within the next 7 days.
 2.  **Determine Affected Assets:** For each event, identify and list the primary currency pairs that will experience the most significant volatility. List them as a single string of comma-separated values (e.g., "EURUSD, GBPUSD, XAUUSD"). Focus on major pairs and gold (XAUUSD) where relevant.
 3.  **Predict Spike Direction:** This is your most critical task. Based on your synthesis of all available data (analyst expectations, recent economic trends, market positioning, sentiment), declare the direction of the initial, immediate price spike upon the news release. The prediction MUST be either **'BUY'** (asset strengthens) or **'SELL'** (asset weakens). Neutrality is not an option.
-4.  **Assign Confidence:** Quantify your certainty with a confidence score from 65 to 80. A score of 80 represents a very high conviction prediction.
+4.  **Assign Confidence:** Quantify your certainty with a confidence score from 65 to 85. A score of 85 represents a very high conviction prediction.
 5.  **Provide Rationale:** In a single, concise sentence, state the core logic behind your directional prediction. This is not a list of possibilities; it is a statement of the key factor driving your conclusion.
 
 **OUTPUT FORMAT:**
@@ -23,7 +23,7 @@ Return ONLY a valid JSON array of objects. Do not include markdown, backticks, o
     "date": "string (ISO 8601 format with timezone)",
     "affectedAsset": "string (comma-separated list of pairs, e.g., 'EURUSD, XAUUSD')",
     "predictedDirection": "'BUY' or 'SELL'",
-    "confidence": "number (65-80)",
+    "confidence": "number (65-85)",
     "reasoning": "string"
   }
 ]
