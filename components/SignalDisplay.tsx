@@ -1,4 +1,5 @@
-import React from 'react';
+
+import React, { useState, useEffect } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
 
 interface InfoCardProps {
@@ -108,14 +109,74 @@ interface SignalDisplayProps {
 
 export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
     const isBuy = data.signal === 'BUY';
+    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [canSpeak, setCanSpeak] = useState(false);
+
+    useEffect(() => {
+        setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
+        // When the component unmounts, cancel any ongoing speech
+        return () => {
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+        };
+    }, []);
+
+    const handleToggleSpeech = () => {
+        if (!canSpeak) return;
+
+        if (isSpeaking) {
+            window.speechSynthesis.cancel();
+            setIsSpeaking(false);
+        } else {
+            const textToSpeak = `
+                Analysis for ${data.asset} on the ${data.timeframe} timeframe.
+                The signal is a ${data.signal} with ${data.confidence}% confidence.
+                Entry is at ${data.entry}.
+                Stop Loss is at ${data.stopLoss}.
+                Take Profit targets are ${data.takeProfits.join(', ')}.
+                The reasoning is as follows:
+                ${data.reasoning.map(r => r.replace(/^(✅|❌)\s*/, '')).join('. ')}
+            `;
+            const utterance = new SpeechSynthesisUtterance(textToSpeak.trim().replace(/\s+/g, ' '));
+            utterance.onend = () => setIsSpeaking(false);
+            utterance.onerror = () => {
+                setIsSpeaking(false);
+                console.error("An error occurred during speech synthesis.");
+            };
+            
+            window.speechSynthesis.speak(utterance);
+            setIsSpeaking(true);
+        }
+    };
 
     return (
         <div className="w-full animate-fade-in space-y-6">
-            <header className="text-center">
+            <header className="text-center relative">
                  <h2 className="text-xl sm:text-2xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient pb-2 mb-2">
                     {data.asset}
                 </h2>
                  <p className="text-sm text-gray-500 dark:text-dark-text/70">{data.timeframe}</p>
+                 <div className="absolute top-0 right-0">
+                    <button 
+                        onClick={handleToggleSpeech}
+                        disabled={!canSpeak}
+                        className="p-2 rounded-full text-gray-500 dark:text-green-400 hover:bg-gray-200 dark:hover:bg-dark-bg/80 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        aria-label={isSpeaking ? "Stop listening to analysis" : "Listen to analysis"}
+                    >
+                        {isSpeaking ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M4.022 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356zM5.394 9.122a.5.5 0 00-.638.45l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.302-.262zM7.17 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208z" />
+                                <path fillRule="evenodd" d="M9.707 3.707a1 1 0 011.414 0l.443.443a1 1 0 010 1.414l-4.25 4.25a1 1 0 01-1.414 0L3.707 7.53a1 1 0 010-1.414l.443-.443a1 1 0 011.414 0l1.293 1.293L9.707 3.707zm5.553 3.53a.5.5 0 00-.45.638l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.49-.45zM13.829 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208zM15.978 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356z" clipRule="evenodd" />
+                                <path d="M11 12.333a1.5 1.5 0 01-3 0V7.5a1.5 1.5 0 013 0v4.833z" />
+                            </svg>
+                        )}
+                    </button>
+                 </div>
             </header>
 
             <div className="grid grid-cols-2 gap-3 text-center">

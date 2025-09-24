@@ -1,116 +1,94 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import type { AnalysisRequest, ImagePart, TradingStyle } from '../types';
 import { RISK_REWARD_RATIOS, TRADING_STYLES } from '../constants';
 
-const toBase64 = (file: File): Promise<ImagePart> =>
-  new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = () => {
-      const result = reader.result as string;
-      const [meta, data] = result.split(',');
-      if (!meta || !data) {
-          reject(new Error("Invalid file format for base64 conversion."));
-          return;
-      }
-      const mimeType = meta.split(';')[0].split(':')[1];
-      resolve({ data, mimeType });
-    };
-    reader.onerror = (error) => reject(error);
-  });
-
-interface ImageFileState {
-    file: File | null;
-    previewUrl: string | null;
-}
-
-type ImageSlot = 'higher' | 'primary' | 'entry';
-
-interface ImageUploadSlotProps {
-    id: ImageSlot;
-    label: string;
-    description: string;
-    required?: boolean;
-    imageState: ImageFileState;
-    onFileSelect: (id: ImageSlot, file: File) => void;
-    onFileRemove: (id: ImageSlot) => void;
-}
-
-const ImageUploadSlot: React.FC<ImageUploadSlotProps> = ({ id, label, description, required = false, imageState, onFileSelect, onFileRemove }) => {
-    const [isDragging, setIsDragging] = useState<boolean>(false);
-    const fileInputRef = useRef<HTMLInputElement>(null);
-
-    const handleFile = (file: File | undefined) => {
-        if (file) {
-            const MAX_SIZE_MB = 10;
-            if (!file.type.startsWith('image/')) {
-                // Optionally show an error to the user
+const fileToImagePart = (file: File): Promise<ImagePart> =>
+    new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result as string;
+            const data = result.split(',')[1];
+            if (!data) {
+                reject(new Error("Invalid file format."));
                 return;
             }
-            if (file.size > MAX_SIZE_MB * 1024 * 1024) {
-                 return;
-            }
-            onFileSelect(id, file);
+            resolve({ data, mimeType: file.type });
+        };
+        reader.onerror = error => reject(error);
+    });
+
+interface ImageUploaderProps {
+    id: string;
+    title: string;
+    subtitle: string;
+    onFileChange: (file: File | null) => void;
+    required?: boolean;
+}
+
+const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFileChange, required }) => {
+    const [fileName, setFileName] = useState<string | null>(null);
+    const [isDragging, setIsDragging] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFile = (file: File | null) => {
+        if (file && file.type.startsWith('image/')) {
+            setFileName(file.name);
+            onFileChange(file);
+        } else {
+            setFileName(null);
+            onFileChange(null);
+        }
+    };
+
+    const handleDrag = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.type === "dragenter" || e.type === "dragover") {
+            setIsDragging(true);
+        } else if (e.type === "dragleave") {
+            setIsDragging(false);
+        }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setIsDragging(false);
+        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            handleFile(e.dataTransfer.files[0]);
         }
     };
     
-    const dragHandlers = {
-        onDragEnter: (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(true); },
-        onDragLeave: (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); setIsDragging(false); },
-        onDragOver: (e: React.DragEvent<HTMLDivElement>) => { e.preventDefault(); e.stopPropagation(); },
-        onDrop: (e: React.DragEvent<HTMLDivElement>) => {
-            e.preventDefault();
-            e.stopPropagation();
-            setIsDragging(false);
-            if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-                handleFile(e.dataTransfer.files[0]);
-            }
-        },
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            handleFile(e.target.files[0]);
+        }
     };
 
     return (
-        <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-dark-text/80">
-                {label} {required && <span className="text-red-500">*</span>}
-            </label>
-            <p className="text-xs text-gray-500 dark:text-dark-text-secondary mb-2 h-8">{description}</p>
-            <div
-                {...dragHandlers}
-                className={`flex flex-col justify-center items-center w-full min-h-[8rem] p-2 transition-all duration-300 bg-gray-200/50 dark:bg-black/20 border-2 border-dashed rounded-xl ${isDragging ? 'animate-glowing-border' : 'border-gray-400/50 dark:border-green-500/40 hover:border-green-500/60'}`}
-            >
-                {imageState.previewUrl && imageState.file ? (
-                     <div className="text-center">
-                        <img src={imageState.previewUrl} alt={`${label} preview`} className="max-h-24 w-auto object-contain rounded-md shadow-md" />
-                        <div className="flex items-center justify-center space-x-2 mt-2">
-                             <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                className="px-2 py-1 text-xs font-semibold text-gray-700 bg-white rounded-md border border-gray-300 hover:bg-gray-100 dark:bg-gray-700 dark:text-gray-200 dark:border-gray-600 dark:hover:bg-gray-600 transition-colors"
-                                aria-label={`Change ${label} image`}
-                            >
-                                Change
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => onFileRemove(id)}
-                                className="px-2 py-1 text-xs font-semibold text-red-700 bg-red-100 rounded-md border border-red-200 hover:bg-red-200 dark:bg-red-900/40 dark:text-red-300 dark:border-red-700/60 dark:hover:bg-red-900/60 transition-colors"
-                                aria-label={`Remove ${label} image`}
-                            >
-                                Remove
-                            </button>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="text-center cursor-pointer p-2" onClick={() => fileInputRef.current?.click()}>
-                         <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mx-auto mb-2 text-gray-500 dark:text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1">
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M12 12v9m0 0l-3-3m3 3l3-3" />
-                        </svg>
-                        <p className="text-xs text-gray-600 dark:text-dark-text/80"><span className="font-semibold text-green-600 dark:text-green-400">Click</span> or drag</p>
-                    </div>
-                )}
-                 <input type="file" ref={fileInputRef} onChange={(e) => handleFile(e.target.files?.[0])} className="hidden" accept="image/*" />
-            </div>
+        <div 
+            onDragEnter={handleDrag} 
+            onDragLeave={handleDrag} 
+            onDragOver={handleDrag}
+            onDrop={handleDrop}
+            onClick={() => fileInputRef.current?.click()}
+            className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+                isDragging ? 'border-green-400 bg-dark-card/80' : 'border-gray-300 dark:border-green-500/50 hover:border-green-400 dark:hover:bg-dark-bg/60'
+            }`}
+        >
+            <input
+                ref={fileInputRef}
+                type="file"
+                id={id}
+                accept="image/png, image/jpeg, image/webp"
+                className="hidden"
+                onChange={handleChange}
+            />
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+            <p className="font-semibold text-gray-700 dark:text-dark-text">{title} {required && <span className="text-red-500">*</span>}</p>
+            <p className="text-xs text-gray-500 dark:text-dark-text-secondary">{subtitle}</p>
+            {fileName && <p className="mt-2 text-xs text-center text-green-500">{fileName}</p>}
         </div>
     );
 };
@@ -121,134 +99,111 @@ interface SignalGeneratorFormProps {
 }
 
 export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {
-    const [images, setImages] = useState<Record<ImageSlot, ImageFileState>>({
-        higher: { file: null, previewUrl: null },
-        primary: { file: null, previewUrl: null },
-        entry: { file: null, previewUrl: null },
-    });
+    const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[1]);
-    const [isMultiDimensional, setIsMultiDimensional] = useState(true);
+    const [images, setImages] = useState<{ higher?: File, primary?: File, entry?: File }>({});
     const [error, setError] = useState<string | null>(null);
-    
-    const isScalp = tradingStyle === 'Scalp';
 
-    useEffect(() => {
-        return () => {
-            Object.values(images).forEach((img: ImageFileState) => {
-                if (img.previewUrl) {
-                    URL.revokeObjectURL(img.previewUrl);
-                }
-            });
-        };
-    }, [images]);
-
-    useEffect(() => {
+     useEffect(() => {
         const root = document.documentElement;
         if (tradingStyle === 'Scalp') {
             root.classList.add('glow-sell');
         } else {
             root.classList.remove('glow-sell');
         }
-
         return () => {
             root.classList.remove('glow-sell');
         };
     }, [tradingStyle]);
 
-    const handleFileSelect = (id: ImageSlot, file: File) => {
-        setError(null);
-        setImages(prev => {
-            const oldUrl = prev[id].previewUrl;
-            if (oldUrl) URL.revokeObjectURL(oldUrl);
-            return {
-                ...prev,
-                [id]: { file, previewUrl: URL.createObjectURL(file) }
-            };
-        });
-    };
-    
-    const handleFileRemove = (id: ImageSlot) => {
-        setError(null);
-         setImages(prev => {
-            const oldUrl = prev[id].previewUrl;
-            if (oldUrl) URL.revokeObjectURL(oldUrl);
-            return {
-                ...prev,
-                [id]: { file: null, previewUrl: null }
-            };
-        });
+    const handleFileChange = (id: 'higher' | 'primary' | 'entry', file: File | null) => {
+        setImages(prev => file ? { ...prev, [id]: file } : { ...prev, [id]: undefined });
     };
 
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
-        if (!images.primary.file) {
-            setError('Please upload a chart for the Tactical View.');
+
+        if (!images.primary) {
+            setError('The Tactical View (Primary TF) chart is required.');
             return;
         }
 
+        if (isMultiDimensional && (!images.higher || !images.entry)) {
+             setError('For Multi-Dimensional Analysis, all three charts are required.');
+             return;
+        }
+
         try {
-            const primary = await toBase64(images.primary.file);
-            const higher = images.higher.file ? await toBase64(images.higher.file) : undefined;
-            const entry = images.entry.file ? await toBase64(images.entry.file) : undefined;
+            const imageParts: AnalysisRequest['images'] = {
+                primary: await fileToImagePart(images.primary),
+            };
+
+            if (isMultiDimensional) {
+                if (images.higher) imageParts.higher = await fileToImagePart(images.higher);
+                if (images.entry) imageParts.entry = await fileToImagePart(images.entry);
+            }
             
             onSubmit({ 
-                images: { primary, higher, entry }, 
+                images: imageParts, 
                 riskRewardRatio, 
                 tradingStyle,
                 isMultiDimensional,
             });
 
         } catch(err) {
-            setError(err instanceof Error ? err.message : 'Could not process the image file(s).');
+            setError('Failed to process one of the image files. Please try again.');
         }
     };
-
-    const descriptions = {
-        default: {
-            higher: "Optional: The 'big picture' view to establish the dominant market trend.",
-            primary: "Your main chart. The AI will identify the specific trade setup and key levels here.",
-            entry: "Optional: A lower timeframe chart to pinpoint the optimal entry trigger."
-        },
-        scalp: {
-            higher: "Crucial: 1h/30m chart for dominant intraday trend.",
-            primary: "Key: 15m chart to pinpoint high-probability zones like pullbacks.",
-            entry: "Trigger: 5m/1m chart to find the exact entry confirmation."
-        }
-    };
-    const currentDescriptions = tradingStyle === 'Scalp' ? descriptions.scalp : descriptions.default;
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <ImageUploadSlot
-                    id="higher"
-                    label={isMultiDimensional ? "Strategic View (Higher TF)" : "Higher Timeframe"}
-                    description={currentDescriptions.higher}
-                    imageState={images.higher}
-                    onFileSelect={handleFileSelect}
-                    onFileRemove={handleFileRemove}
-                />
-                <ImageUploadSlot
-                    id="primary"
-                    label={isMultiDimensional ? "Tactical View (Primary TF)" : "Primary Timeframe"}
-                    description={currentDescriptions.primary}
-                    required={true}
-                    imageState={images.primary}
-                    onFileSelect={handleFileSelect}
-                    onFileRemove={handleFileRemove}
-                />
-                <ImageUploadSlot
-                    id="entry"
-                    label={isMultiDimensional ? "Execution View (Entry TF)" : "Entry Timeframe"}
-                    description={currentDescriptions.entry}
-                    imageState={images.entry}
-                    onFileSelect={handleFileSelect}
-                    onFileRemove={handleFileRemove}
-                />
+            <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg">
+                <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Top-Down Analysis</span>
+                <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
+                    <input 
+                        type="checkbox" 
+                        id="analysis-toggle" 
+                        className="sr-only peer"
+                        checked={isMultiDimensional}
+                        onChange={() => setIsMultiDimensional(!isMultiDimensional)}
+                    />
+                    <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                </label>
+                <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
+                    Oracle Multi-Dimensional Analysis
+                </span>
             </div>
 
+            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'lg:grid-cols-3' : ''}`}>
+                {isMultiDimensional && (
+                     <ImageUploader 
+                        id="higher" 
+                        title="Strategic View" 
+                        subtitle="Higher TF"
+                        onFileChange={(file) => handleFileChange('higher', file)}
+                        required={isMultiDimensional}
+                     />
+                )}
+                <ImageUploader 
+                    id="primary" 
+                    title="Tactical View" 
+                    subtitle="Primary TF"
+                    onFileChange={(file) => handleFileChange('primary', file)}
+                    required
+                />
+                 {isMultiDimensional && (
+                    <ImageUploader 
+                        id="entry" 
+                        title="Execution View" 
+                        subtitle="Entry TF"
+                        onFileChange={(file) => handleFileChange('entry', file)}
+                        required={isMultiDimensional}
+                    />
+                 )}
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
                  <div>
                     <label htmlFor="tradingStyle" className="block text-sm font-medium text-gray-700 dark:text-dark-text/80 mb-2">Trading Style</label>
@@ -273,22 +228,6 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     </select>
                 </div>
             </div>
-            
-            <div className="flex items-center justify-between p-3 bg-gray-200/50 dark:bg-dark-bg/40 rounded-lg">
-                <div className="flex flex-col">
-                    <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Oracle Multi-Dimensional Analysis</span>
-                    <span className="text-xs text-gray-500 dark:text-dark-text-secondary">Synthesizes all charts for highest accuracy</span>
-                </div>
-                <button
-                    type="button"
-                    onClick={() => setIsMultiDimensional(!isMultiDimensional)}
-                    className={`${isMultiDimensional ? 'bg-green-500' : 'bg-gray-400 dark:bg-gray-600'} relative inline-flex h-6 w-11 items-center rounded-full transition-colors`}
-                    aria-pressed={isMultiDimensional}
-                >
-                    <span className="sr-only">Toggle Analysis Mode</span>
-                    <span className={`${isMultiDimensional ? 'translate-x-6' : 'translate-x-1'} inline-block h-4 w-4 transform rounded-full bg-white transition-transform`} />
-                </button>
-            </div>
 
             {error && (
                 <div className="text-center p-2 text-sm text-red-400 bg-red-900/20 border border-red-500/50 rounded-lg animate-fade-in">
@@ -296,12 +235,12 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 </div>
             )}
 
-            <div className="pt-4">
+            <div className="pt-2">
                  <button 
                     type="submit" 
                     disabled={isLoading}
                     className={`w-full text-white font-bold rounded-lg text-base px-5 py-3.5 text-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-4 focus:outline-none ${
-                        isScalp 
+                        tradingStyle === 'Scalp'
                         ? 'bg-red-600 hover:bg-red-500 focus:ring-red-500/50 animate-glowing-border-red' 
                         : 'bg-green-600 hover:bg-green-500 focus:ring-green-500/50'
                     }`}

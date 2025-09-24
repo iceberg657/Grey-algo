@@ -20,17 +20,45 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
     return <div dangerouslySetInnerHTML={formatText(text)} />;
 };
 
-const ChatBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
+const ChatBubble: React.FC<{
+    message: ChatMessage;
+    isSpeaking: boolean;
+    onToggleSpeech: (message: ChatMessage) => void;
+    canSpeak: boolean;
+}> = ({ message, isSpeaking, onToggleSpeech, canSpeak }) => {
     const isUser = message.role === 'user';
     return (
         <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
             {!isUser && (
                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 border border-green-500/50 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5A10 10 0 0 1 11.5 2h.05"/><path d="M22 12.5A10 10 0 0 1 12.5 22h-.05"/></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
                 </div>
             )}
             <div className={`relative group max-w-md lg:max-w-lg p-3 rounded-2xl text-sm ${isUser ? 'bg-blue-600/50 text-white rounded-br-none' : 'bg-dark-bg/60 text-dark-text/90 rounded-bl-none'}`}>
                  <SimpleMarkdown text={message.text} />
+                  {!isUser && (
+                     <button
+                        onClick={() => onToggleSpeech(message)}
+                        disabled={!canSpeak}
+                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-dark-card/80 text-green-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                        aria-label={isSpeaking ? "Stop reading message" : "Read message aloud"}
+                    >
+                        {isSpeaking ? (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
+                            </svg>
+                        ) : (
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                                <path d="M4.022 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356zM5.394 9.122a.5.5 0 00-.638.45l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.302-.262zM7.17 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208z" />
+                                <path fillRule="evenodd" d="M9.707 3.707a1 1 0 011.414 0l.443.443a1 1 0 010 1.414l-4.25 4.25a1 1 0 01-1.414 0L3.707 7.53a1 1 0 010-1.414l.443-.443a1 1 0 011.414 0l1.293 1.293L9.707 3.707zm5.553 3.53a.5.5 0 00-.45.638l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.49-.45zM13.829 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208zM15.978 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356z" clipRule="evenodd" />
+                                <path d="M11 12.333a1.5 1.5 0 01-3 0V7.5a1.5 1.5 0 013 0v4.833z" />
+                            </svg>
+                        )}
+                    </button>
+                 )}
             </div>
         </div>
     );
@@ -40,7 +68,10 @@ const ChatBubble: React.FC<{ message: ChatMessage }> = ({ message }) => {
 const TypingIndicator: React.FC = () => (
     <div className="flex items-end gap-2 justify-start">
         <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-500/20 border border-green-500/50 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6"/><path d="M2.5 22v-6h6"/><path d="M2 11.5A10 10 0 0 1 11.5 2h.05"/><path d="M22 12.5A10 10 0 0 1 12.5 22h-.05"/></svg>
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                <circle cx="12" cy="12" r="3"/>
+            </svg>
         </div>
         <div className="max-w-md lg:max-w-lg p-3 rounded-2xl bg-dark-bg/60 text-dark-text/90 rounded-bl-none">
             <div className="flex items-center space-x-1">
@@ -63,10 +94,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [canSpeak, setCanSpeak] = useState(false);
+    const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         getChatInstance(); // Initialize on component mount
+        setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
+
         const initialMessageId = `model-${Date.now()}`;
         const initialMessageText = "Oracle is online. Ask me about any asset, request technical analysis, or inquire about current market sentiment. I will reveal the market's hidden truths.";
         setMessages([{
@@ -74,6 +109,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
             role: 'model',
             text: initialMessageText,
         }]);
+
+        // Cleanup speech on unmount
+        return () => {
+            if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+        };
     }, []);
 
     useEffect(() => {
@@ -81,6 +123,38 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
     }, [messages, isLoading]);
+    
+    const handleToggleSpeech = useCallback((message: ChatMessage) => {
+        if (!canSpeak) return;
+
+        // If the clicked message is already speaking, stop it.
+        if (speakingMessageId === message.id) {
+            window.speechSynthesis.cancel();
+            setSpeakingMessageId(null);
+            return;
+        }
+
+        // If another message is speaking, or to start a new one, cancel any current speech.
+        if (window.speechSynthesis.speaking) {
+            window.speechSynthesis.cancel();
+        }
+
+        const textToSpeak = message.text
+            .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold markdown for speech
+            .replace(/(\* )/g, '') // remove list markers for speech
+            .trim()
+            .replace(/\s+/g, ' ');
+
+        const utterance = new SpeechSynthesisUtterance(textToSpeak);
+        utterance.onend = () => setSpeakingMessageId(null);
+        utterance.onerror = (event) => {
+            setSpeakingMessageId(null);
+            console.error("Speech synthesis error", event.error);
+        };
+
+        window.speechSynthesis.speak(utterance);
+        setSpeakingMessageId(message.id);
+    }, [canSpeak, speakingMessageId]);
 
     const handleSendMessage = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
@@ -146,6 +220,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
                         <ChatBubble 
                             key={msg.id} 
                             message={msg}
+                            isSpeaking={speakingMessageId === msg.id}
+                            onToggleSpeech={handleToggleSpeech}
+                            canSpeak={canSpeak}
                         />
                     ))}
                     {isLoading && <TypingIndicator />}

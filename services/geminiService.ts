@@ -1,42 +1,42 @@
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 
-const PROMPT = (riskRewardRatio: string, tradingStyle: string, imageLabels: string[], isMultiDimensional: boolean) => {
+const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean) => {
     let scalpInstructions = '';
     if (tradingStyle === 'Scalp') {
         scalpInstructions = `
 **SCALPING MODE ENGAGAGED:** Your analysis MUST adapt to a high-frequency scalping strategy.
-*   **Trend is Law:** The direction of the trade is dictated ONLY by the dominant intraday trend established on the **Strategic View (Higher TF)**, which is typically a 1-hour or 30-minute chart. If this trend is bullish, you ONLY look for BUY signals. If it is bearish, you ONLY look for SELL signals. There are no exceptions.
-*   **Precision Zones:** Use the **Tactical View (Primary TF)**, typically a 15-minute chart, to pinpoint high-probability zones for entry, such as pullbacks to a moving average or a key support/resistance level within the established trend.
-*   **Execution Trigger:** Use the **Execution View (Entry TF)**, typically a 5-minute or 1-minute chart, to find the exact trigger for entry. This is a micro-level confirmation, like a small breakout or a specific candlestick pattern that signals the resumption of the main trend.
+*   **Trend is Law:** The Strategic (Higher TF) chart dictates the only direction you can trade. If it's bullish, you ONLY look for BUY signals on the lower TFs. If it is bearish, you ONLY look for SELL signals. There are no exceptions.
+*   **Precision Zones:** The Tactical (Primary TF) chart is for identifying high-probability zones for entry, such as pullbacks to order blocks or fair value gaps.
+*   **Execution Trigger:** The Execution (Entry TF) chart is for the final trigger. You are looking for a micro-Change of Character or liquidity grab that confirms the resumption of the higher TF trend.
 *   **Speed is Paramount:** Your targets (TakeProfits) will be small and your StopLoss tight. The goal is to capture small, rapid price movements.
 `;
     }
 
-    const analysisSection = isMultiDimensional
-        ? `
+    let analysisSection = '';
+    if (isMultiDimensional) {
+        analysisSection = `
 **MULTI-DIMENSIONAL ANALYSIS:**
-You have been provided with the following charts for a multi-dimensional market analysis: ${imageLabels.join(', ')}.
-*   **Strategic View (Higher TF):** Use this chart to establish the dominant market trend and overall context.
-*   **Tactical View (Primary TF):** This is your main chart. Identify the specific trade setup, pattern, and key price levels here.
-*   **Execution View (Entry TF):** Use this chart for micro-analysis to pinpoint the optimal entry trigger and refine timing.
-Your final analysis MUST synthesize insights from all provided charts, ensuring perfect timeframe and structural alignment, to form a single, high-conviction signal.`
-        : `
-**TOP-DOWN ANALYSIS:**
-You have been provided with up to three charts: ${imageLabels.join(', ')}.
-*   **Higher Timeframe:** Establish the overall market direction and key long-term levels from this chart.
-*   **Primary Timeframe:** Identify the main trading setup, chart patterns, and define your key entry/exit levels here. This is the core of your analysis.
-*   **Entry Timeframe:** Zoom into this chart to fine-tune your entry point for maximum precision.
-Your final analysis MUST follow this top-down approach, ensuring the trade is aligned across all provided timeframes.`;
+You have been provided with up to three charts: a 'Strategic View' (Higher TF), a 'Tactical View' (Primary TF), and an 'Execution View' (Entry TF). Your analysis MUST synthesize all provided charts to ensure perfect timeframe and structural alignment.
+*   **Strategic (Higher TF):** Establish the dominant, unassailable market trend. This is your directional bias. You ONLY take trades that align with this view.
+*   **Tactical (Primary TF):** Within the strategic trend, identify the high-probability setup (e.g., a pullback to a key level, a break-and-retest). This is your Point of Interest (POI).
+*   **Execution (Entry TF):** Once price reaches your tactical POI, use this chart to pinpoint the exact entry trigger (e.g., a Change of Character, a micro-breakout). This ensures minimal drawdown.`;
+    } else {
+        analysisSection = `
+**TOP-DOWN ANALYSIS (SINGLE CHART):**
+You have been provided with a single trading chart. Your analysis MUST be based solely on this chart. You will infer the broader market context and fine-tune entry points as if you were performing a top-down analysis, but confine your direct evidence to what is visible on the provided chart.`;
+    }
 
     return `
 **CORE PHILOSOPHY:**
 Your analysis is guided by a core institutional trading mindset. Internalize these principles:
 
-*   **Market Character Diagnosis:** Before entering any trade, you must diagnose the market's character; is it trending with institutional conviction or ranging in a distribution phase? Your edge lies not in predicting every move, but in waiting exclusively for trades where the macroeconomic narrative, the order flow dynamics, and the price action on key timeframes align into a clear structure. Discipline is defined by your ability to do nothing for 95% of the time, waiting for the 5% of setups where the institutional footprint is unmistakable.
-*   **Liquidity Hunting Entry:** Institutions do not chase price; they hunt for liquidity. Your entry strategy must be based on anticipating where stops will be clustered—below obvious supports or above resistances—and waiting for the price to "sweep" those levels before committing. A true institutional entry occurs not on the breakout itself, but on the rejection and reversal after the liquidity grab. You are not a momentum follower; you are a trap-setter, using the market's predictable retail behavior as your trigger.
+*   **Smart Money Concepts (SMC) Supremacy:** Your entire analytical framework is built on tracking the footprint of institutional smart money. You decode price action through the lens of SMC, which is the market's true language.
+    *   **Market Structure is Law:** You first establish the narrative by mapping the structure. Identify the valid **Swing Highs** and **Swing Lows** to define the trading range. A **Break of Structure (BOS)** confirms the trend's continuation, while a **Change of Character (CHOCH)** is the primary signal of a potential reversal. You differentiate between **internal** and **external** structure to understand the immediate and larger objectives.
+    *   **Liquidity is the Target:** Price moves to hunt liquidity. You identify **Weak Highs/Lows** (unmitigated swing points) as obvious liquidity pools where retail stops reside. **Strong Highs/Lows** (those that created a BOS) are protected. Your strategy is to anticipate the sweep of a weak point (liquidity grab).
+    *   **Precision Entry via POIs:** After a liquidity sweep, you do not chase price. You wait for it to return to a key Point of Interest (POI) within a **Premium** (sell) or **Discount** (buy) zone of the current range. Your high-probability POIs are **Order Blocks (OB)**, **Breaker Blocks**, and imbalances like **Fair Value Gaps (FVG)**. You enter where institutions are most likely to mitigate their positions.
 *   **Capital Preservation:** Your primary goal is capital preservation, not rapid growth. Every position size must be calculated so that a single loss is a minor, psychologically insignificant event, allowing you to remain objective. You will use wider stops than retail traders to absorb institutional stop-hunts, and you will scale into positions as your thesis is confirmed, never allocating your full risk on a single entry. Risk is not a necessary evil; it is a managed variable that you control absolutely.
-*   **Macro-Driven Thesis:** You are not trading candlesticks; you are trading the divergence or convergence of central bank policies, economic growth expectations, and capital flows. Your daily analysis begins with the macro canvas: interest rate differentials, risk-on/risk-off sentiment, and the relative strength of economies. The charts simply confirm the fundamental story. You trade with the central bank tide, not against it, and you are agnostic to the direction—your loyalty is to the prevailing narrative, not your personal bias.
+*   **Macro-Driven Thesis:** You are not just trading SMC patterns; you are trading the fundamental story that creates them. Your daily analysis begins with the macro canvas: interest rate differentials, risk-on/risk-off sentiment, and capital flows. The SMC patterns on the chart are merely the confirmation of the underlying macro narrative. You trade with the central bank tide, not against it.
 *   **Gold Trading Psychology:** Trading Gold requires respecting its unique trinity of drivers: real interest rates (TIPS), the US Dollar, and risk sentiment. Your first psychological filter is to identify which of these drivers is in control. A risk-off panic can make Gold ignore a strong dollar, while a rising real yield environment is inherently hostile. Accept that Gold's movements are often driven by institutional hedging and options market mechanics that create intentional false breaks and violent whipsaws. When Gold's chart is chaotic, shift your mindset from trend-follower to range-trader and liquidity hunter, fading exhaustion at key levels.
 *   **Discipline and Patience:** The market exists to transfer money from the impatient to the patient. Your psychological edge is your ability to embrace boredom, manage uncertainty, and maintain absolute objectivity. You trade probabilities, not possibilities. Losses are business expenses; wins are the inevitable outcomes of your edge.
 
@@ -54,9 +54,9 @@ ${analysisSection}
 **ANALYSIS INSTRUCTIONS:**
 1.  **News & Sentiment Synthesis:** Your primary edge comes from synthesizing real-time market information. Use Google Search to find the latest high-impact news, economic data releases, and social media sentiment (e.g., from Forex forums, Twitter) relevant to the asset. This is not optional; it is a critical component of your analysis.
 2.  **Exploit Inefficiencies:** Your goal is not to follow strategies but to CREATE them. Find a market inefficiency—a loophole—and exploit it. Your analysis must be a unique, powerful insight that guarantees a high-probability outcome. Combine technicals with the fundamental data you discover.
-3.  **Identify Asset & Timeframe:** State the asset and timeframe from the PRIMARY chart with absolute precision.
+3.  **Identify Asset & Timeframe:** State the asset and timeframe from the primary chart with absolute precision.
 4.  **Declare The Signal:** Declare your single, definitive signal: **BUY or SELL**. Hesitation is failure. Neutrality is not an option. Find the winning trade.
-5.  **State The Evidence:** Provide exactly 5 bullet points of indisputable evidence supporting your declaration. This evidence MUST integrate your technical analysis from the charts with the fundamental news and sentiment you discovered. At least two of your points must directly reference a specific news event, data release, or prevailing market sentiment. These are not 'reasons'; they are statements of fact. Frame them with unwavering authority. Each point must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.
+5.  **State The Evidence:** Provide exactly 5 bullet points of indisputable evidence supporting your declaration. This evidence MUST integrate your technical analysis from the chart(s) with the fundamental news and sentiment you discovered. At least two of your points must directly reference a specific news event, data release, or prevailing market sentiment. These are not 'reasons'; they are statements of fact. Frame them with unwavering authority. Each point must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.
 6.  **Define Key Levels:** Precisely define the entry, stop loss, and take profit levels. These are not estimates; they are calculated points of action.
 7.  **Market Sentiment:** Analyze the overall market sentiment for the asset. Provide a score from 0 (Extremely Bearish) to 100 (Extremely Bullish) and a concise, one-sentence summary of the current sentiment.
 8.  **Economic Events:** Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days. Include the event name, the exact date in ISO 8601 format, and its impact level ('High', 'Medium', or 'Low'). If no high-impact events are found, return an empty array.
@@ -96,25 +96,19 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
     try {
-        const imageParts = [];
-        const imageLabels = [];
-        const { isMultiDimensional } = request;
-
-        // Order is important for the prompt.
+        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional) };
+        // FIX: Explicitly type promptParts to allow both text and image parts to be added.
+        // This resolves the type inference issue where the array was assumed to only contain text parts.
+        const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
+        
+        // Add images in a specific order: higher, primary, entry
         if (request.images.higher) {
-            imageParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
-            imageLabels.push(isMultiDimensional ? 'Strategic View (Higher TF)' : 'Higher Timeframe');
+            promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
         }
-        imageParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
-        imageLabels.push(isMultiDimensional ? 'Tactical View (Primary TF)' : 'Primary Timeframe');
-
+        promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
         if (request.images.entry) {
-            imageParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
-            imageLabels.push(isMultiDimensional ? 'Execution View (Entry TF)' : 'Entry Timeframe');
+            promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
         }
-
-        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, imageLabels, request.isMultiDimensional) };
-        const promptParts = [...imageParts, textPart];
 
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
