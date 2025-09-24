@@ -63,6 +63,7 @@ export interface ChatMessage {
 export interface PredictedEvent {
     name: string;
     date: string; // ISO 8601 format with timezone
+    eventDurationHours: number;
     affectedAsset: string;
     predictedDirection: 'BUY' | 'SELL';
     confidence: number; // 80-100

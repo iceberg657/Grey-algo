@@ -1,77 +1,40 @@
-
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PredictedEvent } from '../types';
 import { getPredictedEvents } from '../services/predictorService';
 import { ErrorMessage } from './ErrorMessage';
+
+type ActiveTab = 'now' | 'today' | 'future';
 
 interface PredictorPageProps {
     onBack: () => void;
     onLogout: () => void;
 }
 
-// FIX: Add a type for the countdown object to fix type inference issues downstream.
-// This ensures that `timeLeft` is not inferred as `{}`, which causes `Object.entries`
-// to return a value of type `unknown`.
-interface TimeLeft {
-    days?: number;
-    hours?: number;
-    minutes?: number;
-    seconds?: number;
-}
+const DateTimeDisplay: React.FC<{ startDate: Date; durationHours: number }> = ({ startDate, durationHours }) => {
+    const endDate = new Date(startDate.getTime() + durationHours * 60 * 60 * 1000);
 
-const useCountdown = (targetDate: string) => {
-    const calculateTimeLeft = () => {
-        const difference = +new Date(targetDate) - +new Date();
-        let timeLeft: TimeLeft = {};
+    const dateOptions: Intl.DateTimeFormatOptions = { day: '2-digit', month: '2-digit', year: 'numeric' };
+    const timeOptions: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true };
 
-        if (difference > 0) {
-            timeLeft = {
-                days: Math.floor(difference / (1000 * 60 * 60 * 24)),
-                hours: Math.floor((difference / (1000 * 60 * 60)) % 24),
-                minutes: Math.floor((difference / 1000 / 60) % 60),
-                seconds: Math.floor((difference / 1000) % 60),
-            };
-        }
-        return timeLeft;
-    };
+    const dateStr = new Intl.DateTimeFormat('en-GB', dateOptions).format(startDate);
+    const startTimeStr = new Intl.DateTimeFormat('en-US', timeOptions).format(startDate);
+    const endTimeStr = new Intl.DateTimeFormat('en-US', timeOptions).format(endDate);
 
-    // FIX: Explicitly type the useState hook with `TimeLeft`. This prevents TypeScript
-    // from inferring the type as `{}` when `calculateTimeLeft` returns an empty
-    // object, which would cause `Object.entries` to produce a value of type `unknown`.
-    const [timeLeft, setTimeLeft] = useState<TimeLeft>(calculateTimeLeft());
+    const now = new Date();
+    const isHappeningNow = now >= startDate && now <= endDate;
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setTimeLeft(calculateTimeLeft());
-        }, 1000);
-
-        return () => clearTimeout(timer);
-    });
-
-    return timeLeft;
-};
-
-const CountdownDisplay: React.FC<{ targetDate: string }> = ({ targetDate }) => {
-    const timeLeft = useCountdown(targetDate);
-
-    const timerComponents = Object.entries(timeLeft).map(([interval, value]) => {
-        // FIX: The `value` from `Object.entries` can be inferred as `unknown`. Using a `typeof`
-        // check acts as a type guard, correctly narrowing `value` to type `number` and allowing
-        // the comparison to proceed without a type error.
-        if (typeof value !== 'number' || value < 0) return null;
+    if (isHappeningNow) {
         return (
-            <div key={interval} className="flex flex-col items-center">
-                <span className="text-xl font-mono font-bold text-dark-text">{String(value).padStart(2, '0')}</span>
-                <span className="text-xs uppercase text-dark-text/60">{interval}</span>
-            </div>
+            <p className="text-sm font-semibold text-center text-red-400 animate-pulse">
+                EVENT IN PROGRESS (Ends {endTimeStr})
+            </p>
         );
-    });
-
+    }
+    
     return (
-        <div className="flex justify-center space-x-3">
-            {Object.keys(timeLeft).length ? timerComponents : <span className="text-xl font-bold text-red-400">Event in Progress</span>}
-        </div>
+        <p className="text-xs text-dark-text/70 text-center">
+            {dateStr}, Start: {startTimeStr} End: {endTimeStr}
+        </p>
     );
 };
 
@@ -111,18 +74,17 @@ const ConfidenceGauge: React.FC<{ value: number }> = ({ value }) => {
 const PredictionCard: React.FC<{ event: PredictedEvent, index: number }> = ({ event, index }) => {
     const isBuy = event.predictedDirection === 'BUY';
     const animationDelay = `${index * 100}ms`;
+    const startDate = new Date(event.date);
 
     return (
         <div 
             className="bg-dark-bg/40 p-5 rounded-xl border border-green-500/20 shadow-lg space-y-4 animate-fade-in"
             style={{ animationDelay }}
         >
-            <div className="text-center border-b border-green-500/20 pb-3">
+            <div className="text-center border-b border-green-500/20 pb-3 space-y-2">
                 <h3 className="font-bold text-lg text-green-400">{event.name}</h3>
-                <p className="text-xs text-dark-text/70">{new Date(event.date).toLocaleString()}</p>
+                <DateTimeDisplay startDate={startDate} durationHours={event.eventDurationHours} />
             </div>
-            
-            <CountdownDisplay targetDate={event.date} />
 
             <div>
                 <span className="text-xs text-dark-text/60 uppercase text-center block mb-2">Affected Assets</span>
@@ -177,16 +139,17 @@ const PredictorLoader: React.FC = () => (
 );
 
 export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }) => {
-    const [events, setEvents] = useState<PredictedEvent[]>([]);
+    const [allEvents, setAllEvents] = useState<PredictedEvent[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [activeTab, setActiveTab] = useState<ActiveTab>('now');
 
     const fetchPredictions = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         try {
             const fetchedEvents = await getPredictedEvents();
-            setEvents(fetchedEvents);
+            setAllEvents(fetchedEvents);
         } catch (err) {
             setError(err instanceof Error ? err.message : 'Failed to fetch predictions.');
         } finally {
@@ -198,19 +161,89 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
         fetchPredictions();
     }, [fetchPredictions]);
 
-    const renderContent = () => {
-        if (isLoading) {
-            return <PredictorLoader />;
+    const { eventsNow, eventsToday, eventsFuture } = useMemo(() => {
+        const now = new Date();
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+        const tomorrowStart = new Date(todayStart);
+        tomorrowStart.setDate(todayStart.getDate() + 1);
+
+        const nowList: PredictedEvent[] = [];
+        const todayList: PredictedEvent[] = [];
+        const futureList: PredictedEvent[] = [];
+
+        allEvents.forEach(event => {
+            const startDate = new Date(event.date);
+            if (isNaN(startDate.getTime())) return;
+
+            const endDate = new Date(startDate.getTime() + event.eventDurationHours * 3600 * 1000);
+
+            if (now >= startDate && now <= endDate) {
+                nowList.push(event);
+            } else if (startDate > now && startDate < tomorrowStart) {
+                todayList.push(event);
+            } else if (startDate >= tomorrowStart) {
+                futureList.push(event);
+            }
+        });
+        
+        futureList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        todayList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        return { eventsNow: nowList, eventsToday: todayList, eventsFuture: futureList };
+    }, [allEvents]);
+
+    useEffect(() => {
+        if (!isLoading && !error) {
+            if (eventsNow.length > 0) setActiveTab('now');
+            else if (eventsToday.length > 0) setActiveTab('today');
+            else setActiveTab('future');
         }
-        if (error) {
+    }, [isLoading, error, eventsNow.length, eventsToday.length]);
+
+    const TabButton: React.FC<{ tab: ActiveTab; label: string; count: number }> = ({ tab, label, count }) => (
+        <button
+            onClick={() => setActiveTab(tab)}
+            className={`flex-1 px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-card focus:ring-green-500/80 ${
+                activeTab === tab
+                    ? 'bg-green-600 text-white shadow-md'
+                    : 'bg-transparent text-dark-text-secondary hover:bg-dark-bg/80'
+            }`}
+        >
+            {label} <span className={`ml-1.5 inline-block px-2 py-0.5 text-xs rounded-full ${activeTab === tab ? 'bg-white/20' : 'bg-dark-bg/90'}`}>{count}</span>
+        </button>
+    );
+
+    const renderEventList = (list: PredictedEvent[], emptyMessage: string, emptySubMessage: string) => {
+        if (list.length === 0) {
             return (
-                 <div className="p-4"><ErrorMessage message={error} /></div>
+                <div className="text-center py-16 animate-fade-in">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <h3 className="mt-2 text-lg font-medium text-green-400">{emptyMessage}</h3>
+                    <p className="mt-1 text-sm text-dark-text-secondary">{emptySubMessage}</p>
+                </div>
             );
         }
-        if (events.length === 0) {
+        return (
+            <ul className="space-y-4">
+                {list.map((event, index) => (
+                    <li key={event.date + event.name}>
+                        <PredictionCard event={event} index={index} />
+                    </li>
+                ))}
+            </ul>
+        );
+    };
+
+    const renderMainContent = () => {
+        if (isLoading) return <PredictorLoader />;
+        if (error) return <div className="p-4"><ErrorMessage message={error} /></div>;
+        if (allEvents.length === 0) {
             return (
                 <div className="text-center py-16">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
                     <h3 className="mt-2 text-lg font-medium text-green-400">No High-Impact Events Found</h3>
@@ -218,14 +251,31 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
                 </div>
             );
         }
+
+        let contentToRender;
+        switch(activeTab) {
+            case 'now':
+                contentToRender = renderEventList(eventsNow, "No Events In Progress", "Check back later or view upcoming events.");
+                break;
+            case 'today':
+                contentToRender = renderEventList(eventsToday, "No More Events Scheduled Today", "Check the 'Tomorrow & Beyond' tab for future catalysts.");
+                break;
+            case 'future':
+                contentToRender = renderEventList(eventsFuture, "No Future Events Found", "The calendar for the upcoming week is clear.");
+                break;
+            default:
+                contentToRender = null;
+        }
+
         return (
-            <ul className="space-y-4">
-                {events.map((event, index) => (
-                    <li key={event.date + event.name}>
-                        <PredictionCard event={event} index={index} />
-                    </li>
-                ))}
-            </ul>
+            <>
+                <div className="flex justify-center space-x-2 p-1 bg-dark-bg/40 rounded-lg mb-4">
+                    <TabButton tab="now" label="In Progress" count={eventsNow.length} />
+                    <TabButton tab="today" label="Later Today" count={eventsToday.length} />
+                    <TabButton tab="future" label="Tomorrow & Beyond" count={eventsFuture.length} />
+                </div>
+                {contentToRender}
+            </>
         );
     };
 
@@ -262,7 +312,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
                         </button>
                     </div>
                     <div className="max-h-[65vh] overflow-y-auto pr-2">
-                        {renderContent()}
+                        {renderMainContent()}
                     </div>
                 </main>
              </div>
