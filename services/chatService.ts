@@ -37,6 +37,7 @@ export function initializeChat(): Chat {
             config: {
                 systemInstruction: SYSTEM_INSTRUCTION,
                 tools: [{ googleSearch: {} }],
+                temperature: 0.4,
             },
         });
         return chat;

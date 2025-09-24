@@ -122,7 +122,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
             config: {
                 tools: [{googleSearch: {}}],
                 seed: 42,
-                temperature: 0,
+                temperature: 0.4,
             },
         });
 

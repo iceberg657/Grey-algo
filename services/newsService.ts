@@ -2,13 +2,13 @@ import { GoogleGenAI, Type } from "@google/genai";
 import type { NewsArticle } from '../types';
 
 const NEWS_PROMPT = `
-You are a financial news aggregator AI. Your sole purpose is to find and summarize the 10 most recent and impactful news articles related to the global Forex (Foreign Exchange) market.
+You are a financial news aggregator AI. Your sole purpose is to find and summarize the 10 most recent and impactful news articles related to the global Forex (Foreign Exchange) market, specifically from myfxbook.com and investing.com.
 
 **Instructions:**
-1.  Use Google Search to find the latest top 10 news articles, reports, or analyses concerning the Forex market.
+1.  Use Google Search to find the latest top 10 news articles, reports, or analyses concerning the Forex market. **You MUST prioritize and source content exclusively from myfxbook.com and investing.com.**
 2.  Focus on news that impacts major currency pairs (e.g., EUR/USD, GBP/USD, USD/JPY).
 3.  For each article, provide a concise, one-sentence summary.
-4.  Provide the name of the news source (e.g., Reuters, Bloomberg).
+4.  Provide the name of the news source, which will be either 'MyFxBook' or 'Investing.com'.
 5.  Provide the original URL of the article.
 6.  Provide the publication date in strict ISO 8601 format (YYYY-MM-DDTHH:mm:ssZ).
 
@@ -37,7 +37,7 @@ export async function getForexNews(): Promise<NewsArticle[]> {
             contents: NEWS_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],
-                temperature: 0,
+                temperature: 0.4,
             },
         });
 
