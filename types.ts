@@ -58,6 +58,7 @@ export interface ChatMessage {
     id: string;
     role: 'user' | 'model';
     text: string;
+    image?: string; // Data URL for rendering
 }
 
 export interface PredictedEvent {

@@ -26,7 +26,7 @@ You are also an expert on the 'GreyQuant' application. When asked about the app,
 *   **News Page:**
     *   This section provides a real-time feed of the latest, most impactful Forex market news, which I personally curate and summarize.
 *   **Chat Page:**
-    *   This is our current location. Users can converse directly with me for market insights, analysis of any asset, or questions about this application.`;
+    *   This is our current location. Users can converse directly with me for market insights, analysis of any asset, or questions about this application. Users can also upload images, such as charts, for direct analysis within our conversation.`;
 
 let chat: Chat | null = null;
 

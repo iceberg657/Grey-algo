@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import type { ChatMessage } from '../types';
+import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance } from '../services/chatService';
+
+const fileToImagePart = (file: File): Promise<ImagePart> =>
+    new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            const result = reader.result as string;
+            const data = result.split(',')[1];
+            if (!data) {
+                reject(new Error("Invalid file format."));
+                return;
+            }
+            resolve({ data, mimeType: file.type });
+        };
+        reader.onerror = error => reject(error);
+    });
+
 
 // A simple markdown to HTML converter for bold and lists
 const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
@@ -38,6 +55,14 @@ const ChatBubble: React.FC<{
                 </div>
             )}
             <div className={`relative group max-w-md lg:max-w-lg p-3 rounded-2xl text-sm ${isUser ? 'bg-blue-600/50 text-white rounded-br-none' : 'bg-dark-bg/60 text-dark-text/90 rounded-bl-none'}`}>
+                 {message.image && (
+                    <img 
+                        src={message.image} 
+                        alt="User upload" 
+                        className="mb-2 rounded-lg max-w-full h-auto"
+                        style={{ maxHeight: '300px' }}
+                    />
+                 )}
                  <SimpleMarkdown text={message.text} />
                   {!isUser && (
                      <button
@@ -96,7 +121,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
     const [error, setError] = useState<string | null>(null);
     const [canSpeak, setCanSpeak] = useState(false);
     const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const chatContainerRef = useRef<HTMLDivElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         getChatInstance(); // Initialize on component mount
@@ -156,20 +184,52 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
         setSpeakingMessageId(message.id);
     }, [canSpeak, speakingMessageId]);
 
+    const removeImage = () => {
+        setImageFile(null);
+        setImagePreview(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            setImageFile(file);
+            setImagePreview(URL.createObjectURL(file));
+        }
+    };
+
     const handleSendMessage = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         const finalInput = input;
-        if (!finalInput.trim() || isLoading) return;
+        if ((!finalInput.trim() && !imageFile) || isLoading) return;
 
-        const userMessage: ChatMessage = { id: `user-${Date.now()}`, role: 'user', text: finalInput };
+        const userMessage: ChatMessage = {
+            id: `user-${Date.now()}`,
+            role: 'user',
+            text: finalInput,
+            image: imagePreview,
+        };
         setMessages(prev => [...prev, userMessage]);
         setInput('');
+        const currentImageFile = imageFile;
+        removeImage();
+
         setIsLoading(true);
         setError(null);
 
         try {
             const chat = getChatInstance();
-            const result = await chat.sendMessageStream({ message: finalInput });
+            const messageParts: (({ text: string } | { inlineData: { data: string, mimeType: string } }))[] = [];
+
+            if (currentImageFile) {
+                const imagePart = await fileToImagePart(currentImageFile);
+                messageParts.push({ inlineData: { data: imagePart.data, mimeType: imagePart.mimeType } });
+            }
+            messageParts.push({ text: finalInput });
+
+            const result = await chat.sendMessageStream({ message: messageParts });
 
             let responseText = '';
             const streamMessageId = `model-stream-${Date.now()}`;
@@ -196,7 +256,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading]);
+    }, [input, isLoading, imageFile, imagePreview]);
     
     return (
         <div className="min-h-screen text-dark-text font-sans p-4 flex flex-col transition-colors duration-300 animate-fade-in">
@@ -230,7 +290,37 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
                 </main>
 
                 <footer className="mt-4 flex-shrink-0">
+                    {imagePreview && (
+                        <div className="p-2 bg-dark-bg/60 rounded-lg mb-2 inline-block relative">
+                            <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
+                            <button 
+                                onClick={removeImage}
+                                className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold leading-none"
+                                aria-label="Remove image"
+                            >
+                                &#x2715;
+                            </button>
+                        </div>
+                    )}
                     <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+                         <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleFileChange}
+                        />
+                        <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isLoading}
+                            className="p-3 text-white bg-green-800/80 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-600/50 disabled:opacity-50 transition-colors"
+                            aria-label="Attach image"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </button>
                         <input
                             type="text"
                             value={input}
@@ -242,7 +332,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
                         />
                         <button
                             type="submit"
-                            disabled={isLoading || !input.trim()}
+                            disabled={isLoading || (!input.trim() && !imageFile)}
                             className="p-3 text-white bg-green-600 rounded-lg hover:bg-green-500 focus:ring-4 focus:outline-none focus:ring-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
                             aria-label="Send message"
                         >
