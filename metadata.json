@@ -1,5 +1,5 @@
 {
-  "name": "Grey Algo Chart Analyzer",
-  "description": "Upload your chart and let AI find your next trade.",
+  "name": "GreyQuant",
+  "description": "Your AI-powered suite for quantitative trading and market analysis.",
   "requestFramePermissions": []
 }

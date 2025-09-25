@@ -10,28 +10,33 @@ import { PredictorPage } from './components/PredictorPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData } from './types';
+import { LandingPage } from './components/LandingPage';
+import { TransitionLoader } from './components/TransitionLoader';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor';
 
 const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
-    const [appView, setAppView] = useState<AppView>('home');
+    const [appView, setAppView] = useState<AppView>('landing');
     const [analysisData, setAnalysisData] = useState<SignalData | null>(null);
     const [previousView, setPreviousView] = useState<AppView>('home');
+    const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
     
     const handleLogin = () => {
         login();
+        setAppView('home');
     };
     
     const handleSignUp = () => {
         login(); // Auto-login on sign up for simplicity
+        setAppView('home');
     };
 
     const handleLogout = () => {
         logout();
-        setAppView('home'); // Go back to home view on logout
+        setAppView('landing'); // Go back to landing page on logout
         setAuthPage('login');
     };
 
@@ -71,7 +76,23 @@ const App: React.FC = () => {
         setAnalysisData(null);
         setAppView(previousView);
     };
+
+    const handleEnterApp = () => {
+        setIsTransitioning(true);
+        setTimeout(() => {
+            setAppView(isLoggedIn ? 'home' : 'auth');
+            setIsTransitioning(false);
+        }, 2500); // 2.5 second transition for loading effect
+    };
     
+    if (isTransitioning) {
+        return <TransitionLoader />;
+    }
+
+    if (appView === 'landing') {
+        return <LandingPage onEnterApp={handleEnterApp} />;
+    }
+
     if (!isLoggedIn) {
         if (authPage === 'signup') {
             return <SignUpPage onSignUp={handleSignUp} onNavigateToLogin={() => setAuthPage('login')} />;

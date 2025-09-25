@@ -59,7 +59,7 @@ ${analysisSection}
 5.  **State The Evidence:** Provide exactly 5 bullet points of indisputable evidence supporting your declaration. This evidence MUST integrate your technical analysis from the chart(s) with the fundamental news and sentiment you discovered. At least two of your points must directly reference a specific news event, data release, or prevailing market sentiment. These are not 'reasons'; they are statements of fact. Frame them with unwavering authority. Each point must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.
 6.  **Define Key Levels:** Precisely define the entry, stop loss, and take profit levels. These are not estimates; they are calculated points of action.
 7.  **Market Sentiment:** Analyze the overall market sentiment for the asset. Provide a score from 0 (Extremely Bearish) to 100 (Extremely Bullish) and a concise, one-sentence summary of the current sentiment.
-8.  **Economic Events:** Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days. Include the event name, the exact date in ISO 8601 format, and its impact level ('High', 'Medium', or 'Low'). If no high-impact events are found, return an empty array.
+8.  **Economic Events:** Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days. Include the event name, the exact date in ISO 8601 format, and its impact level ('High', 'Medium', 'or 'Low'). If no high-impact events are found, return an empty array.
 
 **OUTPUT FORMAT:**
 Return ONLY a valid JSON object. Do not include markdown, backticks, or any other text outside the JSON structure.
@@ -110,14 +110,21 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
             promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
         }
 
+        const config: any = {
+            tools: [{googleSearch: {}}],
+            seed: 42,
+            temperature: 0.4,
+        };
+
+        // When Oracle mode is off (Top-Down Analysis), disable thinking for a significant speed increase.
+        if (!request.isMultiDimensional) {
+            config.thinkingConfig = { thinkingBudget: 0 };
+        }
+
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [{ parts: promptParts }],
-            config: {
-                tools: [{googleSearch: {}}],
-                seed: 42,
-                temperature: 0.4,
-            },
+            config,
         });
 
         const responseText = response.text;

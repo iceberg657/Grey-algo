@@ -110,10 +110,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                         </g>
                     </svg>
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
-                        Grey Algo Chart Analyzer
+                        GreyQuant
                     </h1>
                     <p className="mt-3 text-lg text-gray-600 dark:text-dark-text/80">
-                        Upload your chart and let AI find your next trade.
+                        AI-powered quantitative trading and market analysis.
                     </p>
                     <div className="absolute top-0 right-0 flex items-center space-x-2">
                         <button 

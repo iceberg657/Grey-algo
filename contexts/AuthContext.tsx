@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 
 interface AuthContextType {
     isLoggedIn: boolean;
@@ -6,19 +6,53 @@ interface AuthContextType {
     logout: () => void;
 }
 
+const AUTH_STORAGE_KEY = 'greyquant_isLoggedIn';
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    // In a real app, you might check localStorage or a cookie here
-    const [isLoggedIn, setIsLoggedIn] = useState(false); 
+    const [isLoggedIn, setIsLoggedIn] = useState(() => {
+        try {
+            // Check localStorage on initial load
+            return window.localStorage.getItem(AUTH_STORAGE_KEY) === 'true';
+        } catch (error) {
+            console.warn(`Could not read login state from localStorage: ${error}`);
+            return false;
+        }
+    });
+
+    // Listen for storage changes to sync across tabs
+    useEffect(() => {
+        const syncLoginState = (event: StorageEvent) => {
+            if (event.key === AUTH_STORAGE_KEY) {
+                setIsLoggedIn(event.newValue === 'true');
+            }
+        };
+
+        window.addEventListener('storage', syncLoginState);
+        return () => {
+            window.removeEventListener('storage', syncLoginState);
+        };
+    }, []);
 
     const login = () => {
-        // In a real app, this would involve tokens, etc.
-        setIsLoggedIn(true);
+        try {
+            // Set login state in localStorage
+            window.localStorage.setItem(AUTH_STORAGE_KEY, 'true');
+            setIsLoggedIn(true);
+        } catch (error) {
+            console.error(`Could not save login state to localStorage: ${error}`);
+        }
     };
 
     const logout = () => {
-        setIsLoggedIn(false);
+        try {
+            // Remove login state from localStorage
+            window.localStorage.removeItem(AUTH_STORAGE_KEY);
+            setIsLoggedIn(false);
+        } catch (error) {
+            console.error(`Could not remove login state from localStorage: ${error}`);
+        }
     };
 
     return (

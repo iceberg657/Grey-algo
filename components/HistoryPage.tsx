@@ -86,7 +86,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
-        link.setAttribute('download', 'grey_algo_analysis_history.csv');
+        link.setAttribute('download', 'greyquant_analysis_history.csv');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

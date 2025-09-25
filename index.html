@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Grey Algo Chart Analyzer</title>
+    <title>GreyQuant</title>
     
     <!-- Icon -->
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
@@ -16,6 +16,11 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Added for Landing Page -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
     <script>
         tailwind.config = {
             darkMode: 'class',
@@ -107,7 +112,14 @@
             transition: background-color 0.3s ease;
         }
         .dark body {
-            background: linear-gradient(to bottom right, #0f172a, #0c4a6e); /* slate-900 to sky-800 */
+            background-color: #020617; /* slate-950, a deeper base */
+            background-image: 
+                /* Subtle radial glow from the bottom */
+                radial-gradient(ellipse 80% 50% at 50% 120%, rgba(16, 185, 129, 0.15), transparent),
+                /* Faint grid pattern for a high-tech feel */
+                linear-gradient(rgba(110, 231, 183, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(110, 231, 183, 0.03) 1px, transparent 1px);
+            background-size: 100% 100%, 40px 40px, 40px 40px; /* Sizing for each layer */
         }
         .animated-gradient-text {
             background: linear-gradient(to right, #4ade80, #06b6d4, #3b82f6, #9333ea); /* green-400, cyan-500, blue-500, purple-600 */
@@ -223,6 +235,30 @@
                 inset 0 0 var(--glow-blur-2) var(--glow-color-2);
             animation: subtleGlowPulse 6s ease-in-out infinite alternate;
             transition: box-shadow 0.8s ease-in-out, opacity 0.8s ease-in-out;
+        }
+        
+        /* New Transition Glow Effect */
+        .glow-transition body::after {
+            animation: multiColorGlow 4s ease-in-out infinite, subtleGlowPulse 6s ease-in-out infinite alternate;
+            opacity: 1;
+        }
+
+        @keyframes multiColorGlow {
+            0%, 100% {
+                box-shadow: 
+                    inset 0 0 25px rgba(74, 222, 128, 0.9),  /* green */
+                    inset 0 0 70px rgba(34, 197, 94, 0.7);
+            }
+            33% {
+                box-shadow: 
+                    inset 0 0 25px rgba(96, 165, 250, 0.9),  /* blue */
+                    inset 0 0 70px rgba(59, 130, 246, 0.7);
+            }
+            66% {
+                box-shadow:
+                    inset 0 0 25px rgba(168, 85, 247, 0.9), /* purple */
+                    inset 0 0 70px rgba(147, 51, 234, 0.7);
+            }
         }
 
         @keyframes subtleGlowPulse {

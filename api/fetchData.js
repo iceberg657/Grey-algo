@@ -110,14 +110,21 @@ async function callGemini(request) {
         promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
     }
 
+    const config = {
+        tools: [{googleSearch: {}}],
+        seed: 42,
+        temperature: 0.4,
+    };
+
+    // When Oracle mode is off (Top-Down Analysis), disable thinking for a significant speed increase.
+    if (!request.isMultiDimensional) {
+        config.thinkingConfig = { thinkingBudget: 0 };
+    }
+
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: [{ parts: promptParts }],
-        config: {
-            tools: [{googleSearch: {}}],
-            seed: 42,
-            temperature: 0.4,
-        },
+        config: config,
     });
 
     const responseText = response.text;
