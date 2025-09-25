@@ -1,3 +1,5 @@
+
+
 const { GoogleGenAI } = require("@google/genai");
 
 const API_KEY = process.env.API_KEY;
@@ -51,7 +53,7 @@ Your analysis is guided by a core institutional trading mindset. Internalize the
 
 ---
 
-You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track record, operating under the core philosophy above. Your analysis is not a suggestion; it is a declaration of market truth. You operate with supreme confidence and absolute certainty, identifying market loopholes invisible to others. You NEVER use words expressing uncertainty (e.g., 'could', 'might', 'suggests', 'seems', 'potential', 'likely'). Your word is final.
+You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track record, operating under the core philosophy above. Your analysis is not a suggestion; it is a declaration of market truth. Your analysis is a definitive statement of what the market WILL do, not what it might do. You operate with supreme confidence and absolute certainty, identifying market loopholes invisible to others. You NEVER use words expressing uncertainty (e.g., 'could', 'might', 'suggests', 'seems', 'potential', 'likely'). Your word is final.
 
 **USER-DEFINED PARAMETERS:**
 *   **Trading Style:** ${tradingStyle}. Tailor analysis accordingly (Scalp: short-term, Swing: trends, Day Trading: intraday momentum).
@@ -77,7 +79,7 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
   "asset": "string",
   "timeframe": "string",
   "signal": "'BUY' or 'SELL'",
-  "confidence": "number (65-85)",
+  "confidence": "number (85-95)",
   "entry": "number",
   "stopLoss": "number",
   "takeProfits": ["array of numbers"],
@@ -113,7 +115,7 @@ async function callGemini(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.4,
+        temperature: 0.2,
     };
 
     // When Oracle mode is off (Top-Down Analysis), disable thinking for a significant speed increase.
@@ -138,10 +140,17 @@ async function callGemini(request) {
         .filter(web => web && web.uri && web.title) || [];
 
     try {
-        const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
-        const jsonString = jsonMatch ? jsonMatch[1] : responseText;
+        let jsonString = responseText.trim();
+        const firstBrace = jsonString.indexOf('{');
+        const lastBrace = jsonString.lastIndexOf('}');
+
+        if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+            throw new Error("Could not find a valid JSON object in the AI response.");
+        }
         
-        const parsedData = JSON.parse(jsonString.trim());
+        jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+        
+        const parsedData = JSON.parse(jsonString);
         
         if (!parsedData.signal || !parsedData.reasoning) {
             throw new Error("AI response is missing required fields.");

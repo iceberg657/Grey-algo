@@ -1,3 +1,5 @@
+
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { NewsArticle } from '../types';
 
@@ -37,7 +39,7 @@ export async function getForexNews(): Promise<NewsArticle[]> {
             contents: NEWS_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],
-                temperature: 0.4,
+                temperature: 0.2,
             },
         });
 
@@ -46,9 +48,16 @@ export async function getForexNews(): Promise<NewsArticle[]> {
             throw new Error("Received an empty response from the AI.");
         }
         
-        // Manually parse the JSON, as responseMimeType is not allowed with tools.
-        const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
-        const jsonString = jsonMatch ? jsonMatch[1] : responseText;
+        let jsonString = responseText;
+        const firstBracket = jsonString.indexOf('[');
+        const lastBracket = jsonString.lastIndexOf(']');
+
+        if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) {
+            console.error("Failed to extract JSON array from response:", responseText);
+            throw new Error("The AI returned an invalid news format.");
+        }
+
+        jsonString = jsonString.substring(firstBracket, lastBracket + 1);
 
         const parsedNews: NewsArticle[] = JSON.parse(jsonString);
         return parsedNews;

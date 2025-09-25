@@ -1,3 +1,5 @@
+
+
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 
@@ -42,7 +44,7 @@ Your analysis is guided by a core institutional trading mindset. Internalize the
 
 ---
 
-You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track record, operating under the core philosophy above. Your analysis is not a suggestion; it is a declaration of market truth. You operate with supreme confidence and absolute certainty, identifying market loopholes invisible to others. You NEVER use words expressing uncertainty (e.g., 'could', 'might', 'suggests', 'seems', 'potential', 'likely'). Your word is final.
+You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track record, operating under the core philosophy above. Your analysis is not a suggestion; it is a declaration of market truth. Your analysis is a definitive statement of what the market WILL do, not what it might do. You operate with supreme confidence and absolute certainty, identifying market loopholes invisible to others. You NEVER use words expressing uncertainty (e.g., 'could', 'might', 'suggests', 'seems', 'potential', 'likely'). Your word is final.
 
 **USER-DEFINED PARAMETERS:**
 *   **Trading Style:** ${tradingStyle}. Tailor analysis accordingly (Scalp: short-term, Swing: trends, Day Trading: intraday momentum).
@@ -59,7 +61,7 @@ ${analysisSection}
 5.  **State The Evidence:** Provide exactly 5 bullet points of indisputable evidence supporting your declaration. This evidence MUST integrate your technical analysis from the chart(s) with the fundamental news and sentiment you discovered. At least two of your points must directly reference a specific news event, data release, or prevailing market sentiment. These are not 'reasons'; they are statements of fact. Frame them with unwavering authority. Each point must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.
 6.  **Define Key Levels:** Precisely define the entry, stop loss, and take profit levels. These are not estimates; they are calculated points of action.
 7.  **Market Sentiment:** Analyze the overall market sentiment for the asset. Provide a score from 0 (Extremely Bearish) to 100 (Extremely Bullish) and a concise, one-sentence summary of the current sentiment.
-8.  **Economic Events:** Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days. Include the event name, the exact date in ISO 8601 format, and its impact level ('High', 'Medium', 'or 'Low'). If no high-impact events are found, return an empty array.
+8.  **Economic Events:** Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days. Include the event name, the exact date in ISO 8601 format, and its impact level ('High', 'Medium', or 'Low'). If no high-impact events are found, return an empty array.
 
 **OUTPUT FORMAT:**
 Return ONLY a valid JSON object. Do not include markdown, backticks, or any other text outside the JSON structure.
@@ -68,7 +70,7 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
   "asset": "string",
   "timeframe": "string",
   "signal": "'BUY' or 'SELL'",
-  "confidence": "number (65-85)",
+  "confidence": "number (85-95)",
   "entry": "number",
   "stopLoss": "number",
   "takeProfits": ["array of numbers"],
@@ -113,7 +115,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
         const config: any = {
             tools: [{googleSearch: {}}],
             seed: 42,
-            temperature: 0.4,
+            temperature: 0.2,
         };
 
         // When Oracle mode is off (Top-Down Analysis), disable thinking for a significant speed increase.
@@ -137,10 +139,20 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
             ?.map(chunk => chunk.web)
             .filter((web): web is { uri: string; title: string } => !!(web && web.uri && web.title)) || [];
 
-        const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]+?)\s*```/);
-        const jsonString = jsonMatch ? jsonMatch[1] : responseText;
+        // FIX: Implement a more robust JSON extraction method to handle responses
+        // that may or may not be wrapped in markdown code blocks.
+        let jsonString = responseText.trim();
+        const firstBrace = jsonString.indexOf('{');
+        const lastBrace = jsonString.lastIndexOf('}');
+
+        if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+            console.error("Failed to extract JSON from response:", responseText);
+            throw new Error("The AI returned an invalid response format.");
+        }
+
+        jsonString = jsonString.substring(firstBrace, lastBrace + 1);
         
-        const parsedData: Omit<SignalData, 'id' | 'timestamp'> = JSON.parse(jsonString.trim());
+        const parsedData: Omit<SignalData, 'id' | 'timestamp'> = JSON.parse(jsonString);
         
         if (!parsedData.signal || !parsedData.reasoning) {
             throw new Error("AI response is missing required fields.");
