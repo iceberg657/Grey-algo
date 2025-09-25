@@ -44,6 +44,14 @@ export interface SignalData {
     }[];
 }
 
+// FIX: Add MarketDataItem interface for use in market data services and components.
+export interface MarketDataItem {
+    symbol: string;
+    price: number;
+    change: number;
+    changePercent: number;
+}
+
 export interface NewsArticle {
     title: string;
     summary: string;

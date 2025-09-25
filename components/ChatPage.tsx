@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance } from '../services/chatService';
@@ -175,9 +176,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
 
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.onend = () => setSpeakingMessageId(null);
-        utterance.onerror = (event) => {
+        utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+            // The 'interrupted' error is expected when the user clicks another speech button.
+            // We should not log this as a critical error.
+            if (event.error !== 'interrupted') {
+                console.error("Speech synthesis error:", event.error);
+            }
             setSpeakingMessageId(null);
-            console.error("Speech synthesis error", event.error);
         };
 
         window.speechSynthesis.speak(utterance);

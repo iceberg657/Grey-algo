@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
 
@@ -129,6 +130,10 @@ export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
             window.speechSynthesis.cancel();
             setIsSpeaking(false);
         } else {
+            // Explicitly cancel any lingering speech before starting a new utterance.
+            // This prevents interruptions if the state is out of sync.
+            window.speechSynthesis.cancel();
+
             const textToSpeak = `
                 Analysis for ${data.asset} on the ${data.timeframe} timeframe.
                 The signal is a ${data.signal} with ${data.confidence}% confidence.
@@ -140,9 +145,13 @@ export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
             `;
             const utterance = new SpeechSynthesisUtterance(textToSpeak.trim().replace(/\s+/g, ' '));
             utterance.onend = () => setIsSpeaking(false);
-            utterance.onerror = () => {
+            utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
+                // The 'interrupted' error is expected when the user stops speech.
+                // We should not log this as a critical error.
+                if (event.error !== 'interrupted') {
+                    console.error("An error occurred during speech synthesis:", event.error);
+                }
                 setIsSpeaking(false);
-                console.error("An error occurred during speech synthesis.");
             };
             
             window.speechSynthesis.speak(utterance);
