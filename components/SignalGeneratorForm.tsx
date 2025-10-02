@@ -100,6 +100,7 @@ interface SignalGeneratorFormProps {
 
 export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
+    const [useOBV, setUseOBV] = useState(true);
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[1]);
     const [images, setImages] = useState<{ higher?: File, primary?: File, entry?: File }>({});
@@ -150,6 +151,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 riskRewardRatio, 
                 tradingStyle,
                 isMultiDimensional,
+                useOBV,
             });
 
         } catch(err) {
@@ -159,21 +161,39 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg">
-                <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Top-Down Analysis</span>
-                <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
-                    <input 
-                        type="checkbox" 
-                        id="analysis-toggle" 
-                        className="sr-only peer"
-                        checked={isMultiDimensional}
-                        onChange={() => setIsMultiDimensional(!isMultiDimensional)}
-                    />
-                    <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                </label>
-                <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
-                    Oracle Multi-Dimensional Analysis
-                </span>
+            <div className="space-y-3">
+                <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Top-Down Analysis</span>
+                    <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            id="analysis-toggle" 
+                            className="sr-only peer"
+                            checked={isMultiDimensional}
+                            onChange={() => setIsMultiDimensional(!isMultiDimensional)}
+                        />
+                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                    </label>
+                    <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
+                        Oracle Multi-Dimensional Analysis
+                    </span>
+                </div>
+                 <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Pure Price Action</span>
+                    <label htmlFor="obv-toggle" className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            id="obv-toggle" 
+                            className="sr-only peer"
+                            checked={useOBV}
+                            onChange={() => setUseOBV(!useOBV)}
+                        />
+                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                    </label>
+                    <span className={`text-sm font-medium transition-colors ${useOBV ? 'text-green-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
+                        Use OBV Indicator
+                    </span>
+                </div>
             </div>
 
             <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'lg:grid-cols-3' : ''}`}>
