@@ -115,6 +115,22 @@ interface ChatPageProps {
     onLogout: () => void;
 }
 
+const OracleLogo: React.FC = () => (
+    <div className="w-24 h-24 mb-4 rounded-full flex items-center justify-center bg-slate-800 border-2 border-slate-700">
+         <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+            <defs>
+                <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#2dd4bf" />
+                    <stop offset="100%" stopColor="#a78bfa" />
+                </linearGradient>
+            </defs>
+            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" stroke="url(#eyeGradient)"/>
+            <circle cx="12" cy="12" r="3" stroke="url(#eyeGradient)"/>
+        </svg>
+    </div>
+);
+
+
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [input, setInput] = useState('');
@@ -130,14 +146,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
     useEffect(() => {
         getChatInstance(); // Initialize on component mount
         setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
-
-        const initialMessageId = `model-${Date.now()}`;
-        const initialMessageText = "Oracle is online. Ask me about any asset, request technical analysis, or inquire about current market sentiment. I will reveal the market's hidden truths.";
-        setMessages([{
-            id: initialMessageId,
-            role: 'model',
-            text: initialMessageText,
-        }]);
 
         // Cleanup speech on unmount
         return () => {
@@ -177,8 +185,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
         utterance.onend = () => setSpeakingMessageId(null);
         utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
-            // The 'interrupted' error is expected when the user clicks another speech button.
-            // We should not log this as a critical error.
             if (event.error !== 'interrupted') {
                 console.error("Speech synthesis error:", event.error);
             }
@@ -264,39 +270,49 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
     }, [input, isLoading, imageFile, imagePreview]);
     
     return (
-        <div className="min-h-screen text-dark-text font-sans p-4 flex flex-col transition-colors duration-300 animate-fade-in">
-             <div className="w-full max-w-3xl mx-auto flex flex-col h-screen">
+        <div className="min-h-screen bg-slate-950 text-dark-text font-sans flex flex-col transition-colors duration-300">
+             <div className="w-full max-w-3xl mx-auto flex flex-col h-screen p-4">
                  <header className="relative mb-4 flex justify-between items-center flex-shrink-0">
-                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-green-400 hover:underline">
+                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-400 hover:text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         Back
                     </button>
-                    <h1 className="text-2xl font-bold text-green-400">Oracle Chat</h1>
-                    <button onClick={onLogout} className="text-green-400 hover:text-green-300 transition-colors text-sm font-medium" aria-label="Logout">
+                    <h1 className="text-xl font-semibold text-gray-200">Oracle AI</h1>
+                    <button onClick={onLogout} className="text-gray-400 hover:text-white transition-colors text-sm font-medium" aria-label="Logout">
                         Logout
                     </button>
                  </header>
 
                 <main
                     ref={chatContainerRef}
-                    className="flex-grow bg-dark-card/60 backdrop-blur-lg p-4 rounded-2xl border border-green-500/20 shadow-2xl space-y-4 overflow-y-auto"
+                    className="flex-grow flex flex-col overflow-y-auto"
                 >
-                    {messages.map((msg) => (
-                        <ChatBubble 
-                            key={msg.id} 
-                            message={msg}
-                            isSpeaking={speakingMessageId === msg.id}
-                            onToggleSpeech={handleToggleSpeech}
-                            canSpeak={canSpeak}
-                        />
-                    ))}
-                    {isLoading && <TypingIndicator />}
-                    {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                    {messages.length === 0 && !isLoading ? (
+                        <div className="flex-grow flex flex-col items-center justify-center text-center">
+                            <OracleLogo />
+                            <h2 className="text-3xl font-bold text-gray-100">Hi, I'm Oracle AI</h2>
+                            <p className="text-gray-400 mt-2">How can I help you today?</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-4 pt-2">
+                             {messages.map((msg) => (
+                                <ChatBubble 
+                                    key={msg.id} 
+                                    message={msg}
+                                    isSpeaking={speakingMessageId === msg.id}
+                                    onToggleSpeech={handleToggleSpeech}
+                                    canSpeak={canSpeak}
+                                />
+                            ))}
+                            {isLoading && <TypingIndicator />}
+                            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                        </div>
+                    )}
                 </main>
 
                 <footer className="mt-4 flex-shrink-0">
                     {imagePreview && (
-                        <div className="p-2 bg-dark-bg/60 rounded-lg mb-2 inline-block relative">
+                        <div className="p-2 bg-slate-800/60 rounded-lg mb-2 inline-block relative">
                             <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
                             <button 
                                 onClick={removeImage}
@@ -307,7 +323,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
                             </button>
                         </div>
                     )}
-                    <form onSubmit={handleSendMessage} className="flex items-center space-x-2">
+                    <form onSubmit={handleSendMessage} className="flex items-center space-x-2 bg-slate-800/80 p-2 rounded-xl border border-slate-700">
                          <input
                             type="file"
                             ref={fileInputRef}
@@ -319,29 +335,31 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isLoading}
-                            className="p-3 text-white bg-green-800/80 rounded-lg hover:bg-green-700 focus:ring-4 focus:outline-none focus:ring-green-600/50 disabled:opacity-50 transition-colors"
+                            className="p-2 text-gray-400 hover:text-white disabled:opacity-50 transition-colors"
                             aria-label="Attach image"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                             </svg>
                         </button>
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask the Oracle..."
+                            placeholder="Message Oracle AI..."
                             disabled={isLoading}
-                            className="flex-grow bg-dark-bg/80 border border-green-500/50 text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-3 placeholder-gray-500 disabled:opacity-50"
+                            className="flex-grow bg-transparent text-gray-200 text-sm focus:outline-none block w-full placeholder-gray-500 disabled:opacity-50"
                             aria-label="Chat input"
                         />
                         <button
                             type="submit"
                             disabled={isLoading || (!input.trim() && !imageFile)}
-                            className="p-3 text-white bg-green-600 rounded-lg hover:bg-green-500 focus:ring-4 focus:outline-none focus:ring-green-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105"
+                            className="p-2 w-8 h-8 flex items-center justify-center text-white bg-gray-500 rounded-full hover:bg-gray-400 focus:outline-none disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
                             aria-label="Send message"
                         >
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7" />
+                           </svg>
                         </button>
                     </form>
                 </footer>
