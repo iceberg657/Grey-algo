@@ -12,7 +12,6 @@ export interface AnalysisRequest {
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
-    useOBV: boolean;
 }
 
 export interface EconomicEvent {

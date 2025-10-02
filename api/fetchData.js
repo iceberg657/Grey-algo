@@ -9,11 +9,11 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, useOBV) => {
+const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional) => {
     let scalpInstructions = '';
     if (tradingStyle === 'Scalp') {
         scalpInstructions = `
-**SCALPING MODE ENGAGED:** Your analysis MUST adapt to a high-frequency scalping strategy.
+**SCALPING MODE ENGAGAGED:** Your analysis MUST adapt to a high-frequency scalping strategy.
 *   **Trend is Law:** The Strategic (Higher TF) chart dictates the only direction you can trade. If it's bullish, you ONLY look for BUY signals on the lower TFs. If it is bearish, you ONLY look for SELL signals. There are no exceptions.
 *   **Precision Zones:** The Tactical (Primary TF) chart is for identifying high-probability zones for entry, such as pullbacks to order blocks or fair value gaps.
 *   **Execution Trigger:** The Execution (Entry TF) chart is for the final trigger. You are looking for a micro-Change of Character or liquidity grab that confirms the resumption of the higher TF trend.
@@ -21,13 +21,14 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, useOBV) => {
 `;
     }
 
-    let corePhilosophy = '';
-    if (useOBV) {
-        corePhilosophy = `
+    let corePhilosophy = `
 **CORE PHILOSOPHY:**
-You are a professional trading assistant. Your task is to analyze charts with price action and the OBV (On-Balance Volume) indicator. Your goal is to filter for accurate moves and highlight A+ setups only. Your analysis is guided by these core OBV analysis rules:
+You are a professional trading assistant. Your task is to analyze the provided chart(s) to identify A+ trading setups. Your primary instruction is to **first detect if the OBV (On-Balance Volume) indicator is present on the charts.** Your entire analysis methodology will adapt based on this detection.
 
-🔑 **OBV ANALYSIS RULES**
+*   **If OBV is detected:** Your analysis MUST be guided by the OBV and Price Action rules below. Your reasoning must explicitly incorporate OBV evidence.
+*   **If OBV is NOT detected:** Your analysis MUST be guided purely by the Price Action rules below. Your reasoning must focus solely on price action.
+
+🔑 **METHODOLOGY 1: OBV + PRICE ACTION (Use if OBV is detected)**
 
 1.  **Trend Confirmation:** If price makes higher highs and OBV also makes higher highs → bullish continuation. If price makes lower lows and OBV also makes lower lows → bearish continuation. If OBV diverges from price → momentum is weakening, possible reversal.
 2.  **Breakout Validation:** A breakout is only valid if OBV also breaks its own level in the same direction. If price breaks but OBV stays flat/weak → false breakout.
@@ -35,13 +36,8 @@ You are a professional trading assistant. Your task is to analyze charts with pr
 4.  **Reversal Signals (Divergence Traps):** Bullish divergence → Price lower low, OBV higher low. Bearish divergence → Price higher high, OBV lower high. Best if seen at liquidity zones, OB, or strong support/resistance.
 5.  **Multi-Timeframe Rule (3-Chart Workflow):** Higher TF (4H/D1) → Defines bias (only long if OBV uptrend, only short if OBV downtrend). Mid TF (1H/30M) → Confirms setup zone (OBV + price align at key levels). Lower TF (15M/5M/1M) → Entry trigger (OBV confirms breakout or rejection candle). Only trade when all three TFs align.
 6.  **A+ Setup Checklist:** OBV trend and price trend align across all TFs. OBV confirms BOS (Break of Structure). OBV leads price into breakout or reversal. Price is at a valid key level (OB, liquidity, S/R). Strong entry candle + OBV confirmation.
-`;
-    } else {
-        corePhilosophy = `
-**CORE PHILOSOPHY:**
-You are a professional trading assistant. Your task is to analyze charts based purely on Price Action. Your goal is to filter for accurate moves and highlight A+ setups only. Your analysis is guided by these core Price Action analysis rules:
 
-🔑 **PRICE ACTION ANALYSIS RULES**
+🔑 **METHODOLOGY 2: PURE PRICE ACTION (Use if OBV is NOT detected)**
 
 1.  **Market Structure is King:** Identify the trend by tracking Breaks of Structure (BOS) and Changes of Character (CHoCH). Higher highs and higher lows signal an uptrend (bullish). Lower lows and lower highs signal a downtrend (bearish). A CHoCH signals a potential reversal.
 2.  **Liquidity is the Fuel:** The market moves to take liquidity. Identify key liquidity pools above old highs (buy-side liquidity) and below old lows (sell-side liquidity). A liquidity sweep is a powerful entry confluence.
@@ -51,7 +47,6 @@ You are a professional trading assistant. Your task is to analyze charts based p
 6.  **Multi-Timeframe Alignment (3-Chart Workflow):** Higher TF (4H/D1) → Defines the overall directional bias and key high-level zones. Mid TF (1H/30M) → Confirms the setup by showing a reaction at a key HTF zone. Lower TF (15M/5M/1M) → Pinpoints the entry trigger, such as a liquidity sweep followed by a CHoCH. Only trade when all three TFs align.
 7.  **A+ Setup Checklist:** Market structure is clear across all TFs. Price is reacting at a valid HTF Point of Interest (Order Block, FVG). A clear liquidity sweep has occurred. An entry trigger (e.g., LTF CHoCH) confirms the move.
 `;
-    }
 
     let analysisSection = '';
     let evidenceInstruction = '';
@@ -65,11 +60,7 @@ You have been provided with up to three charts: a 'Strategic View' (Higher TF), 
 *   **Tactical (Primary TF):** Within the strategic trend, identify the high-probability setup (e.g., a pullback to a key level, a break-and-retest). This is your Point of Interest (POI).
 *   **Execution (Entry TF):** Once price reaches your tactical POI, use this chart to pinpoint the exact entry trigger (e.g., a Change of Character, a micro-breakout). This ensures minimal drawdown.`;
 
-        if (useOBV) {
-            evidenceInstruction = `4.  **State The OBV Evidence:** Provide a 3-part analysis based on the OBV rules, explaining your reasoning in the 'reasoning' array. Frame each point with unwavering authority. Each string must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.`;
-        } else {
-            evidenceInstruction = `4.  **State The Price Action Evidence:** Provide a 3-part analysis based on the Price Action rules, explaining your reasoning in the 'reasoning' array. Frame each point with unwavering authority. Each string must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.`;
-        }
+        evidenceInstruction = `4.  **State The Evidence:** Provide a 3-part analysis based on your detected methodology (OBV or pure Price Action). Explain your reasoning in the 'reasoning' array. Frame each point with unwavering authority. Each string must begin with an emoji: ✅ for BUY evidence or ❌ for SELL evidence.`;
         evidenceInstruction += `
     *   The first string must cover the **Bias (HTF)**.
     *   The second string must cover the **Setup Zone (Mid TF)**.
@@ -86,14 +77,14 @@ You have been provided with a single trading chart. Your analysis MUST be based 
     1.  📏 **Support & Resistance levels** → [Your analysis here]
     2.  📉 **Trendline structure** → [Your analysis here]
     3.  🕯️ **Candlestick behavior** → [Your analysis here]
-    4.  📊 **Volume analysis** → [Your analysis here]
+    4.  📊 **Volume / OBV analysis** → [Your analysis here. **If OBV is present, provide a detailed OBV analysis based on its rules. If not, analyze standard volume or state 'Not clearly visible'.**]
     5.  🔄 **Market structure** → [Your analysis here]
     6.  ⏳ **Short-term consolidation** → [Your analysis here]
     7.  🚩 **Failed breakouts** → [Your analysis here]
     8.  ⛓️ **Micro range levels** → [Your analysis here]
     9.  🔻 **Momentum shift** → [Your analysis here]
     10. 📌 **Intraday context** → [Your analysis here]
-    Frame your analysis with unwavering authority. If a specific point (like volume) is not visible, state "Not clearly visible on the provided chart."
+    Frame your analysis with unwavering authority. If a specific point (like volume) is not visible and OBV is not present, state "Not clearly visible on the provided chart."
 `;
         reasoningJsonFormat = `"array of 10 strings, one for each point of the analysis format"`;
     }
@@ -150,7 +141,7 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
 
 
 async function callGemini(request) {
-    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.useOBV) };
+    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional) };
     const promptParts = [textPart];
 
     if (request.images.higher) {
@@ -226,7 +217,7 @@ module.exports = async (req, res) => {
     try {
         const analysisRequest = req.body;
         
-        if (!analysisRequest || !analysisRequest.images || !analysisRequest.riskRewardRatio || !analysisRequest.tradingStyle || typeof analysisRequest.isMultiDimensional === 'undefined' || typeof analysisRequest.useOBV === 'undefined') {
+        if (!analysisRequest || !analysisRequest.images || !analysisRequest.riskRewardRatio || !analysisRequest.tradingStyle || typeof analysisRequest.isMultiDimensional === 'undefined') {
            return res.status(400).json({ error: "Invalid request body." });
         }
 
