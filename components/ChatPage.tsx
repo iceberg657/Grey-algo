@@ -2,6 +2,8 @@
 
 
 
+
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance } from '../services/chatService';
@@ -117,6 +119,9 @@ const TypingIndicator: React.FC = () => (
 interface ChatPageProps {
     onBack: () => void;
     onLogout: () => void;
+    messages: ChatMessage[];
+    setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
+    onNewChat: () => void;
 }
 
 const OracleLogo: React.FC = () => (
@@ -135,8 +140,7 @@ const OracleLogo: React.FC = () => (
 );
 
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
-    const [messages, setMessages] = useState<ChatMessage[]>([]);
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -271,10 +275,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading, imageFile, imagePreview]);
+    }, [input, isLoading, imageFile, imagePreview, setMessages]);
     
     return (
-        <div className="h-screen bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col">
+        <div className="h-screen bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col relative">
             <header className="flex-shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800">
                 <div className="w-full max-w-7xl mx-auto p-4 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
@@ -375,6 +379,15 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
                     </form>
                 </div>
             </footer>
+            <button
+                onClick={onNewChat}
+                className="absolute bottom-24 right-6 bg-green-600 hover:bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-card focus:ring-green-500"
+                aria-label="Start new chat"
+            >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                </svg>
+            </button>
         </div>
     );
 };

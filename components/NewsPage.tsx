@@ -1,13 +1,17 @@
 
-import React, { useState, useEffect, useCallback } from 'react';
+
+import React from 'react';
 import type { NewsArticle } from '../types';
-import { getForexNews } from '../services/newsService';
 import { ErrorMessage } from './ErrorMessage';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface NewsPageProps {
     onBack: () => void;
     onLogout: () => void;
+    news: NewsArticle[];
+    isLoading: boolean;
+    error: string | null;
+    onFetchNews: () => void;
 }
 
 const NewsItem: React.FC<{ article: NewsArticle }> = ({ article }) => (
@@ -25,30 +29,7 @@ const NewsItem: React.FC<{ article: NewsArticle }> = ({ article }) => (
     </li>
 );
 
-export const NewsPage: React.FC<NewsPageProps> = ({ onBack, onLogout }) => {
-    const [news, setNews] = useState<NewsArticle[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    const fetchNews = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const fetchedNews = await getForexNews();
-            // Sort news by date, newest first
-            fetchedNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setNews(fetchedNews);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch news.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchNews();
-    }, [fetchNews]);
-
+export const NewsPage: React.FC<NewsPageProps> = ({ onBack, onLogout, news, isLoading, error, onFetchNews }) => {
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
@@ -77,7 +58,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onBack, onLogout }) => {
                 <main className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl space-y-4">
                     <div className="flex justify-end">
                         <button
-                            onClick={fetchNews}
+                            onClick={onFetchNews}
                             disabled={isLoading}
                             className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-500 disabled:opacity-50 transition-colors"
                         >

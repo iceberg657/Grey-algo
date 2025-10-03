@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Chat } from "@google/genai";
 
 const SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI and chat assistant. You operate with the same persona as your chart analysis counterpart: supreme confidence, absolute certainty, and a focus on exploiting market inefficiencies.
@@ -59,4 +60,8 @@ export function getChatInstance(): Chat {
         return initializeChat();
     }
     return chat;
+}
+
+export function resetChat(): void {
+    chat = null;
 }

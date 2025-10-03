@@ -1,7 +1,7 @@
 
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PredictedEvent } from '../types';
-import { getPredictedEvents } from '../services/predictorService';
 import { ErrorMessage } from './ErrorMessage';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
@@ -10,6 +10,10 @@ type ActiveTab = 'now' | 'today' | 'future';
 interface PredictorPageProps {
     onBack: () => void;
     onLogout: () => void;
+    events: PredictedEvent[];
+    isLoading: boolean;
+    error: string | null;
+    onFetchPredictions: () => void;
 }
 
 const DateTimeDisplay: React.FC<{ startDate: Date; durationHours: number }> = ({ startDate, durationHours }) => {
@@ -140,28 +144,8 @@ const PredictorLoader: React.FC = () => (
     </div>
 );
 
-export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }) => {
-    const [allEvents, setAllEvents] = useState<PredictedEvent[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout, events, isLoading, error, onFetchPredictions }) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('now');
-
-    const fetchPredictions = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-            const fetchedEvents = await getPredictedEvents();
-            setAllEvents(fetchedEvents);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to fetch predictions.');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchPredictions();
-    }, [fetchPredictions]);
 
     const { eventsNow, eventsToday, eventsFuture } = useMemo(() => {
         const now = new Date();
@@ -174,7 +158,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
         const todayList: PredictedEvent[] = [];
         const futureList: PredictedEvent[] = [];
 
-        allEvents.forEach(event => {
+        events.forEach(event => {
             const startDate = new Date(event.date);
             if (isNaN(startDate.getTime())) return;
 
@@ -193,7 +177,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
         todayList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
         return { eventsNow: nowList, eventsToday: todayList, eventsFuture: futureList };
-    }, [allEvents]);
+    }, [events]);
 
     useEffect(() => {
         if (!isLoading && !error) {
@@ -240,9 +224,9 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
     };
 
     const renderMainContent = () => {
-        if (isLoading) return <PredictorLoader />;
+        if (isLoading && events.length === 0) return <PredictorLoader />;
         if (error) return <div className="p-4"><ErrorMessage message={error} /></div>;
-        if (allEvents.length === 0) {
+        if (events.length === 0 && !isLoading) {
             return (
                 <div className="text-center py-16">
                      <svg xmlns="http://www.w3.org/2000/svg" className="mx-auto h-12 w-12 text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
@@ -303,7 +287,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
                 <main className="bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-green-500/20 shadow-2xl space-y-4">
                     <div className="flex justify-end">
                         <button
-                            onClick={fetchPredictions}
+                            onClick={onFetchPredictions}
                             disabled={isLoading}
                             className="flex items-center px-3 py-1.5 text-xs font-medium text-white bg-green-600 rounded-md hover:bg-green-500 disabled:opacity-50 transition-colors"
                             aria-label="Scan for new catalysts"
