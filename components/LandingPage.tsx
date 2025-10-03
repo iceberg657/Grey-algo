@@ -1,4 +1,6 @@
 import React, { useEffect } from 'react';
+import { useTheme } from '../contexts/ThemeContext';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 const landingPageCss = `
 * {
@@ -8,15 +10,30 @@ const landingPageCss = `
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 :root {
+    /* Dark Theme */
     --primary-red: #ff3c3c;
     --primary-green: #2ecc71;
     --primary-purple: #9b59b6;
     --primary-yellow: #f1c40f;
     --primary-blue: #3498db;
     --dark-bg: #0f172a;
-    --card-bg: rgba(19, 28, 46, 0.8);
+    --card-bg-dark: rgba(19, 28, 46, 0.8);
     --text-light: #f0f9ff;
     --text-gray: #94a3b8;
+    --border-color-dark: rgba(255, 255, 255, 0.1);
+}
+.light {
+    /* Light Theme */
+    --primary-red: #e74c3c;
+    --primary-green: #27ae60;
+    --primary-purple: #8e44ad;
+    --primary-yellow: #f39c12;
+    --primary-blue: #2980b9;
+    --light-bg: #f4f7f9;
+    --card-bg-light: rgba(255, 255, 255, 0.9);
+    --text-dark: #2c3e50;
+    --text-muted: #7f8c8d;
+    --border-color-light: #e0e0e0;
 }
 .landing-body {
     background: linear-gradient(135deg, var(--dark-bg), #1e293b);
@@ -24,6 +41,11 @@ const landingPageCss = `
     overflow-x: hidden;
     scroll-behavior: smooth;
     background-attachment: fixed;
+    transition: background 0.3s ease, color 0.3s ease;
+}
+.light .landing-body {
+    background: var(--light-bg);
+    color: var(--text-dark);
 }
 .landing-body::before {
     content: "";
@@ -37,6 +59,10 @@ const landingPageCss = `
         radial-gradient(circle at 80% 70%, rgba(52, 152, 219, 0.15) 0%, transparent 40%),
         radial-gradient(circle at 30% 80%, rgba(241, 196, 15, 0.15) 0%, transparent 40%);
     z-index: -1;
+    transition: opacity 0.5s ease;
+}
+.light .landing-body::before {
+    opacity: 0.5;
 }
 .landing-container {
     max-width: 1200px;
@@ -50,12 +76,19 @@ const landingPageCss = `
     width: 100%;
     top: 0;
     z-index: 1000;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-color-dark);
     transition: all 0.3s ease;
+}
+.light .landing-header {
+    background: rgba(244, 247, 249, 0.9);
+    border-bottom-color: var(--border-color-light);
 }
 .landing-header.scrolled {
     padding: 5px 0;
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+}
+.light .landing-header.scrolled {
+     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
 }
 .header-container {
     display: flex;
@@ -105,6 +138,9 @@ nav ul li a {
     padding: 5px 0;
     transition: color 0.3s;
 }
+.light nav ul li a {
+    color: var(--text-dark);
+}
 nav ul li a:hover {
     color: var(--primary-blue);
 }
@@ -153,11 +189,20 @@ nav ul li a:hover::after {
     background-clip: text;
     color: transparent;
 }
+.light .hero h1 {
+    background: linear-gradient(90deg, var(--text-dark), var(--primary-blue));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
 .hero p {
     font-size: 1.2rem;
     line-height: 1.6;
     margin-bottom: 30px;
     color: var(--text-gray);
+}
+.light .hero p {
+    color: var(--text-muted);
 }
 .cta-button {
     display: inline-block;
@@ -188,9 +233,13 @@ nav ul li a:hover::after {
     background: rgba(19, 28, 46, 0.9);
     padding: 15px 0;
     overflow: hidden;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-color-dark);
+    border-bottom: 1px solid var(--border-color-dark);
     margin: 40px 0;
+}
+.light .ticker-wrap {
+    background: #fff;
+    border-color: var(--border-color-light);
 }
 .ticker {
     display: flex;
@@ -246,23 +295,35 @@ nav ul li a:hover::after {
     max-width: 600px;
     margin: 0 auto;
 }
+.light .section-title p {
+    color: var(--text-muted);
+}
 .products-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
     gap: 30px;
 }
 .product-card {
-    background: var(--card-bg);
+    background: var(--card-bg-dark);
     border-radius: 15px;
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color-dark);
     backdrop-filter: blur(10px);
+}
+.light .product-card {
+    background: var(--card-bg-light);
+    border: 1px solid var(--border-color-light);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
 .product-card:hover {
     transform: translateY(-10px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
     border-color: rgba(52, 152, 219, 0.3);
+}
+.light .product-card:hover {
+    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
+    border-color: rgba(41, 128, 185, 0.3);
 }
 .product-image {
     height: 200px;
@@ -290,6 +351,9 @@ nav ul li a:hover::after {
     margin-bottom: 20px;
     line-height: 1.6;
 }
+.light .product-content p {
+    color: var(--text-muted);
+}
 .product-features {
     list-style: none;
     margin-bottom: 20px;
@@ -299,6 +363,9 @@ nav ul li a:hover::after {
     align-items: center;
     margin-bottom: 10px;
     color: var(--text-light);
+}
+.light .product-features li {
+    color: var(--text-dark);
 }
 .product-features li i {
     color: var(--primary-green);
@@ -310,18 +377,26 @@ nav ul li a:hover::after {
     gap: 30px;
 }
 .pricing-card {
-    background: var(--card-bg);
+    background: var(--card-bg-dark);
     border-radius: 15px;
     padding: 30px;
     text-align: center;
     transition: transform 0.3s;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color-dark);
     position: relative;
     overflow: hidden;
+}
+.light .pricing-card {
+    background: var(--card-bg-light);
+    border: 1px solid var(--border-color-light);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
 .pricing-card:hover {
     transform: translateY(-10px);
     border-color: rgba(155, 89, 182, 0.3);
+}
+.light .pricing-card:hover {
+    border-color: rgba(142, 68, 173, 0.3);
 }
 .pricing-card.popular::before {
     content: "POPULAR";
@@ -353,14 +428,21 @@ nav ul li a:hover::after {
     font-size: 1rem;
     color: var(--text-gray);
 }
+.light .price span {
+    color: var(--text-muted);
+}
 .pricing-features {
     list-style: none;
     margin-bottom: 30px;
 }
 .pricing-features li {
     padding: 10px 0;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-color-dark);
     color: var(--text-gray);
+}
+.light .pricing-features li {
+    border-bottom-color: var(--border-color-light);
+    color: var(--text-muted);
 }
 .pricing-features li:last-child {
     border-bottom: none;
@@ -371,12 +453,20 @@ nav ul li a:hover::after {
     overflow: hidden;
     display: flex;
     margin-top: 50px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color-dark);
+}
+.light .contact {
+    background: var(--light-bg);
+    border-color: var(--border-color-light);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
 .contact-info {
     flex: 1;
     padding: 50px;
     background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(155, 89, 182, 0.1));
+}
+.light .contact-info {
+    background: #e9ecef;
 }
 .contact-info h3 {
     font-size: 2rem;
@@ -403,12 +493,18 @@ nav ul li a:hover::after {
     margin-right: 15px;
     color: var(--primary-blue);
 }
+.light .contact-item i {
+    background: rgba(41, 128, 185, 0.1);
+}
 .contact-item div h4 {
     font-size: 1.2rem;
     margin-bottom: 5px;
 }
 .contact-item div p {
     color: var(--text-gray);
+}
+.light .contact-item div p {
+    color: var(--text-muted);
 }
 .contact-form {
     flex: 1;
@@ -427,10 +523,16 @@ nav ul li a:hover::after {
     width: 100%;
     padding: 15px;
     background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color-dark);
     border-radius: 8px;
     color: var(--text-light);
     font-size: 1rem;
+}
+.light .form-group input,
+.light .form-group textarea {
+    background: #fff;
+    border-color: var(--border-color-light);
+    color: var(--text-dark);
 }
 .form-group textarea {
     height: 150px;
@@ -440,6 +542,9 @@ footer {
     background: rgba(15, 23, 42, 0.95);
     padding: 50px 0 20px;
     margin-top: 80px;
+}
+.light footer {
+    background: #e9ecef;
 }
 .footer-content {
     display: grid;
@@ -463,22 +568,33 @@ footer {
     text-decoration: none;
     transition: color 0.3s;
 }
+.light .footer-links a {
+    color: var(--text-muted);
+}
 .footer-links a:hover {
     color: var(--primary-blue);
 }
 .copyright {
     text-align: center;
     padding-top: 20px;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-color-dark);
     color: var(--text-gray);
+}
+.light .copyright {
+    border-top-color: var(--border-color-light);
+    color: var(--text-muted);
 }
 .chart-container {
     height: 300px;
     margin: 50px 0;
-    background: var(--card-bg);
+    background: var(--card-bg-dark);
     border-radius: 15px;
     padding: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-color-dark);
+}
+.light .chart-container {
+    background: #fff;
+    border-color: var(--border-color-light);
 }
 .loader {
     position: fixed;
@@ -493,6 +609,9 @@ footer {
     z-index: 9999;
     transition: opacity 0.5s, visibility 0.5s;
 }
+.light .loader {
+    background: var(--light-bg);
+}
 .loader.hidden {
     opacity: 0;
     visibility: hidden;
@@ -504,6 +623,10 @@ footer {
     border-top: 5px solid var(--primary-blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
+}
+.light .loader-spinner {
+    border-color: rgba(0,0,0,0.1);
+    border-top-color: var(--primary-blue);
 }
 @keyframes spin {
     0% { transform: rotate(0deg); }
@@ -548,8 +671,16 @@ footer {
 `;
 
 export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }) => {
+    const { theme } = useTheme();
+
     useEffect(() => {
         document.body.classList.add('landing-body');
+        // Add light/dark class based on theme context
+        if (theme === 'light') {
+            document.body.classList.add('light');
+        } else {
+            document.body.classList.remove('light');
+        }
 
         const Chart = (window as any).Chart;
         if (!Chart) {
@@ -676,12 +807,12 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                     responsive: true,
                     maintainAspectRatio: false,
                     plugins: {
-                        legend: { position: 'top', labels: { color: '#f0f9ff', font: { size: 12 } } },
+                        legend: { position: 'top', labels: { color: theme === 'dark' ? '#f0f9ff' : '#2c3e50', font: { size: 12 } } },
                         tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(19, 28, 46, 0.9)', titleColor: '#f0f9ff', bodyColor: '#f0f9ff', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: 1 }
                     },
                     scales: {
-                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } },
-                        y: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#94a3b8' } }
+                        x: { grid: { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }, ticks: { color: theme === 'dark' ? '#94a3b8' : '#7f8c8d' } },
+                        y: { grid: { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }, ticks: { color: theme === 'dark' ? '#94a3b8' : '#7f8c8d' } }
                     },
                     interaction: { mode: 'nearest', axis: 'x', intersect: false }
                 }
@@ -732,25 +863,26 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
         if(loader) {
             setTimeout(() => {
                 loader.classList.add('hidden');
-                initTicker();
-                createHeroChart();
-                createMarketChart();
             }, 1500);
-        } else {
-            initTicker();
-            createHeroChart();
-            createMarketChart();
         }
+        
+        initTicker();
+        // Destroy existing charts before creating new ones to prevent memory leaks on theme change
+        heroChartInstance?.destroy();
+        marketChartInstance?.destroy();
+        createHeroChart();
+        createMarketChart();
+
 
         return () => {
-            document.body.classList.remove('landing-body');
+            document.body.classList.remove('landing-body', 'light');
             anchors.forEach(anchor => anchor.removeEventListener('click', smoothScrollHandler as EventListener));
             contactForm?.removeEventListener('submit', formSubmitHandler as EventListener);
             window.removeEventListener('scroll', scrollHandler);
             heroChartInstance?.destroy();
             marketChartInstance?.destroy();
         };
-    }, []);
+    }, [theme]);
 
     return (
         <>
@@ -774,6 +906,9 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                                 <li><a href="#products">Products</a></li>
                                 <li><a href="#pricing">Pricing</a></li>
                                 <li><a href="#contact">Contact</a></li>
+                                <li>
+                                    <ThemeToggleButton />
+                                </li>
                                 <li>
                                     <button onClick={onEnterApp} className="cta-button" style={{padding: '8px 20px'}}>
                                         Get Started With Our App
