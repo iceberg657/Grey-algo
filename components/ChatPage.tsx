@@ -271,7 +271,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout }) => {
     
     return (
         <div className="min-h-screen bg-slate-950 text-dark-text font-sans flex flex-col transition-colors duration-300">
-             <div className="w-full max-w-3xl mx-auto flex flex-col h-screen p-4">
+             <div className="w-full max-w-3xl lg:max-w-4xl mx-auto flex flex-col h-screen p-4">
                  <header className="relative mb-4 flex justify-between items-center flex-shrink-0">
                      <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-400 hover:text-white">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>

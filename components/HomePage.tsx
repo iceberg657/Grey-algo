@@ -46,7 +46,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300">
-            <div className="w-full max-w-2xl mx-auto">
+            <div className="w-full max-w-2xl lg:max-w-4xl mx-auto">
                 <header className="text-center mb-8 relative">
                      <div className="absolute top-0 left-0">
                          <button 

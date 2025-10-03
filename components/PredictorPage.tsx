@@ -78,7 +78,7 @@ const PredictionCard: React.FC<{ event: PredictedEvent, index: number }> = ({ ev
 
     return (
         <div 
-            className="bg-dark-bg/40 p-5 rounded-xl border border-green-500/20 shadow-lg space-y-4 animate-fade-in"
+            className="bg-dark-bg/40 p-5 rounded-xl border border-green-500/20 shadow-lg space-y-4 animate-fade-in h-full flex flex-col"
             style={{ animationDelay }}
         >
             <div className="text-center border-b border-green-500/20 pb-3 space-y-2">
@@ -86,7 +86,7 @@ const PredictionCard: React.FC<{ event: PredictedEvent, index: number }> = ({ ev
                 <DateTimeDisplay startDate={startDate} durationHours={event.eventDurationHours} />
             </div>
 
-            <div>
+            <div className="flex-grow">
                 <span className="text-xs text-dark-text/60 uppercase text-center block mb-2">Affected Assets</span>
                 <div className="flex flex-wrap justify-center gap-2">
                     {event.affectedAsset.split(',').map(asset => (
@@ -227,7 +227,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
             );
         }
         return (
-            <ul className="space-y-4">
+            <ul className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 {list.map((event, index) => (
                     <li key={event.date + event.name}>
                         <PredictionCard event={event} index={index} />
@@ -281,7 +281,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
 
     return (
          <div className="min-h-screen text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300 animate-fade-in">
-             <div className="w-full max-w-2xl mx-auto">
+             <div className="w-full max-w-2xl lg:max-w-4xl mx-auto">
                  <header className="relative mb-6 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">

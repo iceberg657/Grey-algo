@@ -24,7 +24,7 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, onBack, onLogo
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300 animate-fade-in">
-            <div className="w-full max-w-2xl mx-auto">
+            <div className="w-full max-w-2xl lg:max-w-4xl mx-auto">
                 <header className="relative mb-6 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
