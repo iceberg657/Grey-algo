@@ -1,6 +1,8 @@
+
 import React, { useState, useEffect } from 'react';
 import type { SignalData } from '../types';
 import { getHistory, clearHistory } from '../services/historyService';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface HistoryPageProps {
     onSelectAnalysis: (data: SignalData) => void;
@@ -93,8 +95,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
     };
     
     return (
-         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300 animate-fade-in">
-             <div className="w-full max-w-7xl mx-auto">
+         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
+             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                  <header className="relative mb-6 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -105,13 +107,16 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
                      <h1 className="text-2xl font-bold text-gray-800 dark:text-green-400">
                         Analysis History
                     </h1>
-                    <button 
-                        onClick={onLogout} 
-                        className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium"
-                        aria-label="Logout"
-                    >
-                        Logout
-                    </button>
+                    <div className="flex items-center space-x-2">
+                        <ThemeToggleButton />
+                        <button 
+                            onClick={onLogout} 
+                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium"
+                            aria-label="Logout"
+                        >
+                            Logout
+                        </button>
+                    </div>
                  </header>
 
                 <main className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl space-y-4">

@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PredictedEvent } from '../types';
 import { getPredictedEvents } from '../services/predictorService';
 import { ErrorMessage } from './ErrorMessage';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 type ActiveTab = 'now' | 'today' | 'future';
 
@@ -280,8 +282,8 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
     };
 
     return (
-         <div className="min-h-screen text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300 animate-fade-in">
-             <div className="w-full max-w-7xl mx-auto">
+         <div className="min-h-screen text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
+             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                  <header className="relative mb-6 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -290,9 +292,12 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout }
                         Back
                     </button>
                     <h1 className="text-2xl font-bold text-green-400">Market Catalyst Predictor</h1>
-                    <button onClick={onLogout} className="text-green-400 hover:text-green-300 text-sm font-medium" aria-label="Logout">
-                        Logout
-                    </button>
+                    <div className="flex items-center space-x-2">
+                        <ThemeToggleButton />
+                        <button onClick={onLogout} className="text-green-400 hover:text-green-300 text-sm font-medium" aria-label="Logout">
+                            Logout
+                        </button>
+                    </div>
                  </header>
 
                 <main className="bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-green-500/20 shadow-2xl space-y-4">
