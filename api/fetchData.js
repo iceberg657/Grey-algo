@@ -108,7 +108,7 @@ ${analysisSection}
 2.  **Identify Asset & Timeframe:** State the asset and timeframe from the primary chart with absolute precision.
 3.  **Declare The Signal:** Based on your comprehensive analysis, declare your single, definitive signal: **BUY or SELL**. You must find an A+ setup. Hesitation is failure. Neutrality is not an option. Find the winning trade.
 ${evidenceInstruction}
-5.  **Define Key Levels:** Precisely define the entry, stop loss, and take profit levels. These are not estimates; they are calculated points of action.
+5.  **Define Key Levels:** Precisely define the stop loss and take profit levels. For the entry, you MUST define a tight **entry price range** (e.g., if analyzing at a price of 4035, a suitable range might be 4033 to 4037). This range represents the optimal zone to enter the trade. The 'start' value should be the lower end of the range and the 'end' value should be the higher end. These are not estimates; they are calculated points of action.
 6.  **Market Sentiment:** Analyze the overall market sentiment for the asset. Provide a score from 0 (Extremely Bearish) to 100 (Extremely Bullish) and a concise, one-sentence summary of the current sentiment.
 7.  **Economic Events:** Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days. Include the event name, the exact date in ISO 8601 format, and its impact level ('High', 'Medium', or 'Low'). If no high-impact events are found, return an empty array.
 
@@ -120,7 +120,10 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
   "timeframe": "string",
   "signal": "'BUY' or 'SELL'",
   "confidence": "number (85-95)",
-  "entry": "number",
+  "entryRange": {
+    "start": "number",
+    "end": "number"
+  },
   "stopLoss": "number",
   "takeProfits": ["array of numbers"],
   "reasoning": [${reasoningJsonFormat}],
@@ -192,7 +195,7 @@ async function callGemini(request) {
         
         const parsedData = JSON.parse(jsonString);
         
-        if (!parsedData.signal || !parsedData.reasoning) {
+        if (!parsedData.signal || !parsedData.reasoning || !parsedData.entryRange) {
             throw new Error("AI response is missing required fields.");
         }
         

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import type { SignalData } from '../types';
 import { getHistory, clearHistory } from '../services/historyService';
@@ -57,7 +58,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
 
         const headers = [
             "Timestamp", "Asset", "Timeframe", "Signal", "Confidence", 
-            "Entry", "Stop Loss", "Take Profits", "Reasoning", 
+            "Entry Range", "Stop Loss", "Take Profits", "Reasoning", 
             "Sources"
         ];
         
@@ -74,10 +75,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
             const takeProfits = row.takeProfits.join(' | ');
             const reasoning = row.reasoning.join(' | ');
             const sources = row.sources ? row.sources.map(s => s.uri).join(' | ') : '';
+            const entryRange = `${row.entryRange.start} - ${row.entryRange.end}`;
 
             return [
                 escapeCsvCell(timestamp), escapeCsvCell(row.asset), escapeCsvCell(row.timeframe),
-                escapeCsvCell(row.signal), row.confidence, row.entry, row.stopLoss,
+                escapeCsvCell(row.signal), row.confidence, escapeCsvCell(entryRange), row.stopLoss,
                 escapeCsvCell(takeProfits), escapeCsvCell(reasoning), 
                 escapeCsvCell(sources)
             ].join(',');

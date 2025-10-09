@@ -137,7 +137,7 @@ export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
             const textToSpeak = `
                 Analysis for ${data.asset} on the ${data.timeframe} timeframe.
                 The signal is a ${data.signal} with ${data.confidence}% confidence.
-                Entry is at ${data.entry}.
+                Entry range is from ${data.entryRange.start} to ${data.entryRange.end}.
                 Stop Loss is at ${data.stopLoss}.
                 Take Profit targets are ${data.takeProfits.join(', ')}.
                 The reasoning is as follows:
@@ -200,8 +200,8 @@ export const SignalDisplay: React.FC<SignalDisplayProps> = ({ data }) => {
                     value={`${data.confidence}%`}
                  />
                  <InfoCard 
-                    label="Entry" 
-                    value={data.entry}
+                    label="Entry Range" 
+                    value={`${data.entryRange.start} - ${data.entryRange.end}`}
                  />
                  <InfoCard 
                     label="Stop Loss" 
