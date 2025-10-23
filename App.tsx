@@ -28,7 +28,7 @@ const CHAT_STORAGE_KEY = 'greyquant_chat';
 const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
-    const [appView, setAppView] = useState<AppView>('landing');
+    const [appView, setAppView] = useState<AppView>(isLoggedIn ? 'home' : 'landing');
     const [analysisData, setAnalysisData] = useState<SignalData | null>(null);
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);

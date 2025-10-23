@@ -1,11 +1,12 @@
-
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { Loader } from './Loader';
 import { ErrorMessage } from './ErrorMessage';
 import { generateTradingSignal } from '../services/geminiService';
 import type { SignalData, AnalysisRequest } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import { MarketOverview } from './MarketOverview';
+import { getAnalysisCount, incrementAnalysisCount, resetAnalysisCount } from '../services/analysisCountService';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -16,9 +17,35 @@ interface HomePageProps {
     onNavigateToPredictor: () => void;
 }
 
+const NavButton: React.FC<{
+    onClick: () => void;
+    'aria-label': string;
+    icon: React.ReactNode;
+    label: string;
+}> = ({ onClick, 'aria-label': ariaLabel, icon, label }) => (
+    <button
+        onClick={onClick}
+        aria-label={ariaLabel}
+        className="group flex items-center justify-center h-14 w-14 md:w-auto md:px-4 md:py-2 rounded-full md:rounded-lg text-green-400 hover:bg-dark-card/80 transition-all duration-300 border-2 border-transparent hover:border-green-500/30 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:ring-offset-2 focus:ring-offset-dark-bg"
+    >
+        {icon}
+        <span className="hidden md:inline md:ml-2 text-sm font-semibold">{label}</span>
+    </button>
+);
+
 export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [analysisCount, setAnalysisCount] = useState<number>(0);
+
+    useEffect(() => {
+        setAnalysisCount(getAnalysisCount());
+    }, []);
+
+    const handleResetAnalysisCount = useCallback(() => {
+        resetAnalysisCount();
+        setAnalysisCount(0);
+    }, []);
 
     const handleGenerateSignal = useCallback(async (request: AnalysisRequest) => {
         setIsLoading(true);
@@ -26,6 +53,8 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
 
         try {
             const data = await generateTradingSignal(request);
+            const newCount = incrementAnalysisCount();
+            setAnalysisCount(newCount);
             onAnalysisComplete(data);
         } catch (err) {
             console.error(err);
@@ -34,11 +63,54 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             setIsLoading(false);
         }
     }, [onAnalysisComplete]);
+    
+    const iconClasses = "h-6 w-6 group-hover:scale-110 transition-transform";
+
+    const navItems = [
+        {
+            onClick: onNavigateToPredictor,
+            label: 'Predictor',
+            ariaLabel: 'Open Catalyst Predictor',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
+        },
+        {
+            onClick: onNavigateToChat,
+            label: 'Chat',
+            ariaLabel: 'Open Oracle Chat',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+        },
+        {
+            onClick: onNavigateToNews,
+            label: 'News',
+            ariaLabel: 'View market news',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h3m-3 4h3m-3 4h3m-3 4h3" /></svg>
+        },
+        {
+            onClick: onNavigateToHistory,
+            label: 'History',
+            ariaLabel: 'View analysis history',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        },
+        {
+            onClick: onLogout,
+            label: 'Logout',
+            ariaLabel: 'Logout',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+        },
+    ];
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300">
+            {isLoading && (
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in">
+                    <Loader />
+                </div>
+            )}
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
-                <header className="text-center mb-8 relative">
+                <header className="text-center mb-6 relative">
+                     <div className="absolute top-0 right-0">
+                        <ThemeToggleButton />
+                    </div>
                     <svg className="h-16 w-16 mx-auto mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <defs>
                             <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">
@@ -89,53 +161,24 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                     <p className="mt-3 text-lg text-gray-600 dark:text-dark-text/80">
                         AI-powered quantitative trading and market analysis.
                     </p>
-                    <div className="absolute top-0 right-0 flex items-center space-x-2">
-                        <ThemeToggleButton />
-                        <button 
-                            onClick={onNavigateToPredictor}
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
-                            aria-label="Open Catalyst Predictor"
-                        >
-                            Predictor
-                        </button>
-                        <button 
-                            onClick={onNavigateToChat}
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
-                            aria-label="Open Oracle Chat"
-                        >
-                            Chat
-                        </button>
-                        <button 
-                            onClick={onNavigateToNews}
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
-                            aria-label="View market news"
-                        >
-                            News
-                        </button>
-                        <button 
-                            onClick={onNavigateToHistory}
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
-                            aria-label="View analysis history"
-                        >
-                            History
-                        </button>
-                        <button 
-                            onClick={onLogout} 
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium p-2"
-                            aria-label="Logout"
-                        >
-                            Logout
-                        </button>
-                    </div>
                 </header>
 
+                <nav className="mb-8 flex justify-center items-center flex-wrap gap-3 sm:gap-4">
+                    {navItems.map(item => (
+                        <NavButton
+                            key={item.label}
+                            onClick={item.onClick}
+                            aria-label={item.ariaLabel}
+                            icon={item.icon}
+                            label={item.label}
+                        />
+                    ))}
+                </nav>
+
                 <main>
+                   <MarketOverview analysisCount={analysisCount} onResetCount={handleResetAnalysisCount} />
                    <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl">
-                        {isLoading ? (
-                            <div className="min-h-[400px] flex items-center justify-center">
-                                <Loader />
-                            </div>
-                        ) : error ? (
+                        {error ? (
                              <div className="min-h-[400px] flex flex-col items-center justify-center">
                                 <ErrorMessage message={error} />
                                 <button

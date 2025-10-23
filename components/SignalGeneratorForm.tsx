@@ -27,19 +27,31 @@ interface ImageUploaderProps {
 }
 
 const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFileChange, required }) => {
-    const [fileName, setFileName] = useState<string | null>(null);
+    const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleFile = (file: File | null) => {
+        if (imagePreview) {
+            URL.revokeObjectURL(imagePreview);
+        }
+
         if (file && file.type.startsWith('image/')) {
-            setFileName(file.name);
+            setImagePreview(URL.createObjectURL(file));
             onFileChange(file);
         } else {
-            setFileName(null);
+            setImagePreview(null);
             onFileChange(null);
         }
     };
+
+    useEffect(() => {
+        return () => {
+            if (imagePreview) {
+                URL.revokeObjectURL(imagePreview);
+            }
+        };
+    }, [imagePreview]);
 
     const handleDrag = (e: React.DragEvent) => {
         e.preventDefault();
@@ -66,6 +78,14 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
         }
     };
 
+    const handleRemoveImage = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        handleFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+    };
+
     return (
         <div 
             onDragEnter={handleDrag} 
@@ -73,9 +93,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
-            className={`flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
+            className={`relative group flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
                 isDragging ? 'border-green-400 bg-dark-card/80' : 'border-gray-300 dark:border-green-500/50 hover:border-green-400 dark:hover:bg-dark-bg/60'
-            }`}
+            } min-h-[160px] overflow-hidden`}
         >
             <input
                 ref={fileInputRef}
@@ -85,10 +105,29 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                 className="hidden"
                 onChange={handleChange}
             />
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-            <p className="font-semibold text-gray-700 dark:text-dark-text">{title} {required && <span className="text-red-500">*</span>}</p>
-            <p className="text-xs text-gray-500 dark:text-dark-text-secondary">{subtitle}</p>
-            {fileName && <p className="mt-2 text-xs text-center text-green-500">{fileName}</p>}
+            {imagePreview ? (
+                <>
+                    <img src={imagePreview} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                        <span className="text-white font-semibold">Change Image</span>
+                    </div>
+                    <button 
+                        onClick={handleRemoveImage}
+                        className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-500 text-white rounded-full p-1 leading-none shadow-lg z-20 opacity-0 group-hover:opacity-100 transition-all"
+                        aria-label={`Remove ${title} image`}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </>
+            ) : (
+                <>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <p className="font-semibold text-gray-700 dark:text-dark-text">{title} {required && <span className="text-red-500">*</span>}</p>
+                    <p className="text-xs text-gray-500 dark:text-dark-text-secondary">{subtitle}</p>
+                </>
+            )}
         </div>
     );
 };
@@ -104,18 +143,6 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[1]);
     const [images, setImages] = useState<{ higher?: File, primary?: File, entry?: File }>({});
     const [error, setError] = useState<string | null>(null);
-
-     useEffect(() => {
-        const root = document.documentElement;
-        if (tradingStyle === 'Scalp') {
-            root.classList.add('glow-sell');
-        } else {
-            root.classList.remove('glow-sell');
-        }
-        return () => {
-            root.classList.remove('glow-sell');
-        };
-    }, [tradingStyle]);
 
     const handleFileChange = (id: 'higher' | 'primary' | 'entry', file: File | null) => {
         setImages(prev => file ? { ...prev, [id]: file } : { ...prev, [id]: undefined });
