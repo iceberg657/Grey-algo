@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 
@@ -200,7 +201,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
         }
 
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-pro',
             contents: [{ parts: promptParts }],
             config,
         });

@@ -200,7 +200,7 @@ async function callGemini(request) {
     }
 
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-2.5-pro',
         contents: [{ parts: promptParts }],
         config: config,
     });
