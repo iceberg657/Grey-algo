@@ -30,7 +30,7 @@ export interface SignalData {
     timestamp: number;
     asset: string;
     timeframe: string;
-    signal: 'BUY' | 'SELL';
+    signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
     entryRange: {
         start: number;
@@ -39,6 +39,8 @@ export interface SignalData {
     stopLoss: number;
     takeProfits: number[];
     reasoning: string[];
+    checklist?: string[];
+    invalidationScenario?: string;
     sentiment?: Sentiment;
     economicEvents?: EconomicEvent[];
     sources?: {

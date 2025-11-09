@@ -15,6 +15,7 @@ const getSignalClasses = (signal: SignalData['signal']) => {
     switch (signal) {
         case 'BUY': return 'text-green-300 bg-green-900/40';
         case 'SELL': return 'text-red-300 bg-red-900/40';
+        case 'NEUTRAL': return 'text-blue-300 bg-blue-900/40';
     }
 };
 
@@ -58,8 +59,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
 
         const headers = [
             "Timestamp", "Asset", "Timeframe", "Signal", "Confidence", 
-            "Entry Range", "Stop Loss", "Take Profits", "Reasoning", 
-            "Sources"
+            "Entry Range", "Stop Loss", "Take Profits", "Reasoning",
+            "Checklist", "Invalidation Scenario", "Sources"
         ];
         
         const escapeCsvCell = (cellData: string | number) => {
@@ -74,6 +75,8 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
             const timestamp = new Date(row.timestamp).toLocaleString();
             const takeProfits = row.takeProfits.join(' | ');
             const reasoning = row.reasoning.join(' | ');
+            const checklist = row.checklist ? row.checklist.join(' | ') : '';
+            const invalidation = row.invalidationScenario || '';
             const sources = row.sources ? row.sources.map(s => s.uri).join(' | ') : '';
             const entryRange = `${row.entryRange.start} - ${row.entryRange.end}`;
 
@@ -81,7 +84,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
                 escapeCsvCell(timestamp), escapeCsvCell(row.asset), escapeCsvCell(row.timeframe),
                 escapeCsvCell(row.signal), row.confidence, escapeCsvCell(entryRange), row.stopLoss,
                 escapeCsvCell(takeProfits), escapeCsvCell(reasoning), 
-                escapeCsvCell(sources)
+                escapeCsvCell(checklist), escapeCsvCell(invalidation), escapeCsvCell(sources)
             ].join(',');
         });
 

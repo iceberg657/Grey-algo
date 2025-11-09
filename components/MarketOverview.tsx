@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 
 // Hook to get current time and session
@@ -19,7 +20,7 @@ const useDateTime = () => {
         const sign = offsetHours >= 0 ? '+' : '-';
         // FIX: Ensure hours are correctly formatted with padding even if they are integers.
         const hours = Math.floor(Math.abs(offsetHours));
-        return `UTC${sign}${String(hours).padStart(1, '0')}`;
+        return `UTC${sign}${String(hours).padStart(2, '0')}`;
     };
 
     const getActiveSessions = () => {
