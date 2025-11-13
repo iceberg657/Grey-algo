@@ -89,6 +89,35 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
 `;
 };
 
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+function getErrorMessage(error: unknown): string {
+    if (error instanceof Error) {
+        let message = error.message;
+        try {
+            const parsedError = JSON.parse(message);
+            if (parsedError.details) { // Vercel backend error format
+                return parsedError.details;
+            }
+            if (parsedError.error && parsedError.error.message) { // Gemini SDK error format
+                return parsedError.error.message;
+            }
+        } catch (e) {
+            // Not a JSON error, use the message as is
+        }
+        return message;
+    }
+    return "An unknown error occurred.";
+}
+
+function isOverloadedError(error: unknown): boolean {
+    if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        return message.includes('503') || message.includes('overloaded');
+    }
+    return false;
+}
+
 
 /**
  * Handles the direct API call to Google Gemini.
@@ -96,113 +125,129 @@ Return ONLY a valid JSON object. Do not include markdown, backticks, or any othe
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
-    try {
-        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional) };
-        // FIX: Explicitly type promptParts to allow both text and image parts to be added.
-        // This resolves the type inference issue where the array was assumed to only contain text parts.
-        const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
-        
-        // Add images in a specific order: higher, primary, entry
-        if (request.images.higher) {
-            promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
-        }
-        promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
-        if (request.images.entry) {
-            promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
-        }
-
-        const config: any = {
-            tools: [{googleSearch: {}}],
-            seed: 42,
-            temperature: 0.2,
-        };
-
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: [{ parts: promptParts }],
-            config,
-        });
-
-        const responseText = response.text;
-        if (!responseText) {
-            throw new Error("Received an empty response from the AI.");
-        }
-        
-        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-        const sources = groundingChunks
-            ?.map(chunk => chunk.web)
-            .filter((web): web is { uri: string; title: string } => !!(web && web.uri && web.title)) || [];
-
-        // FIX: Implement a more robust JSON extraction method to handle responses
-        // that may or may not be wrapped in markdown code blocks.
-        let jsonString = responseText.trim();
-        const firstBrace = jsonString.indexOf('{');
-        const lastBrace = jsonString.lastIndexOf('}');
-
-        if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
-            console.error("Failed to extract JSON from response:", responseText);
-            throw new Error("The AI returned an invalid response format.");
-        }
-
-        jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-        
-        const parsedData: Omit<SignalData, 'id' | 'timestamp'> = JSON.parse(jsonString);
-        
-        if (!parsedData.signal || !parsedData.reasoning || !parsedData.entryRange) {
-            throw new Error("AI response is missing required fields.");
-        }
-        
-        const fullData = { ...parsedData, id: '', timestamp: 0 };
-
-        if (sources.length > 0) {
-            fullData.sources = sources;
-        }
-
-        return fullData;
-    } catch (error) {
-        console.error("Direct Gemini Service Error:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred calling the Gemini API.";
-        throw new Error(`Failed to generate trading signal: ${errorMessage}`);
+    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional) };
+    // FIX: Explicitly type promptParts to allow both text and image parts to be added.
+    // This resolves the type inference issue where the array was assumed to only contain text parts.
+    const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
+    
+    // Add images in a specific order: higher, primary, entry
+    if (request.images.higher) {
+        promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
     }
+    promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
+    if (request.images.entry) {
+        promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
+    }
+
+    const config: any = {
+        tools: [{googleSearch: {}}],
+        seed: 42,
+        temperature: 0.2,
+    };
+
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: [{ parts: promptParts }],
+        config,
+    });
+
+    const responseText = response.text;
+    if (!responseText) {
+        throw new Error("Received an empty response from the AI.");
+    }
+    
+    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    const sources = groundingChunks
+        ?.map(chunk => chunk.web)
+        .filter((web): web is { uri: string; title: string } => !!(web && web.uri && web.title)) || [];
+
+    // FIX: Implement a more robust JSON extraction method to handle responses
+    // that may or may not be wrapped in markdown code blocks.
+    let jsonString = responseText.trim();
+    const firstBrace = jsonString.indexOf('{');
+    const lastBrace = jsonString.lastIndexOf('}');
+
+    if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
+        console.error("Failed to extract JSON from response:", responseText);
+        throw new Error("The AI returned an invalid response format.");
+    }
+
+    jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+    
+    const parsedData: Omit<SignalData, 'id' | 'timestamp'> = JSON.parse(jsonString);
+    
+    if (!parsedData.signal || !parsedData.reasoning || !parsedData.entryRange) {
+        throw new Error("AI response is missing required fields.");
+    }
+    
+    const fullData = { ...parsedData, id: '', timestamp: 0 };
+
+    if (sources.length > 0) {
+        fullData.sources = sources;
+    }
+
+    return fullData;
 }
 
 /**
  * Calls the backend API endpoint (/api/fetchData).
  */
 async function callApiEndpoint(request: AnalysisRequest): Promise<SignalData> {
-     try {
-        const response = await fetch('/api/fetchData', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(request),
-        });
+    const response = await fetch('/api/fetchData', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(request),
+    });
 
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ details: response.statusText }));
-            throw new Error(errorData.details || `Request failed with status ${response.status}`);
-        }
-
-        const data: Omit<SignalData, 'id' | 'timestamp'> = await response.json();
-        return { ...data, id: '', timestamp: 0 };
-    } catch (error) {
-        console.error("Backend API Error:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown network error occurred.";
-        throw new Error(`Failed to generate trading signal: ${errorMessage}`);
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ details: response.statusText }));
+        // The error message will contain the `details` from our backend, which is now user-friendly.
+        // We also include the status code to help our retry logic.
+        const errorMessage = errorData.details || `Request failed with status ${response.status}`;
+        throw new Error(`${response.status}: ${errorMessage}`);
     }
+
+    const data: Omit<SignalData, 'id' | 'timestamp'> = await response.json();
+    return { ...data, id: '', timestamp: 0 };
 }
 
 
 /**
- * Generates a trading signal by determining the environment and calling the appropriate service.
+ * Generates a trading signal by determining the environment and calling the appropriate service,
+ * with retry logic for overload errors.
  */
 export async function generateTradingSignal(request: AnalysisRequest): Promise<SignalData> {
-    if (process.env.API_KEY) {
-        console.log("Using direct Gemini API call (AI Studio environment detected).");
-        return callGeminiDirectly(request);
-    } else {
-        console.log("Using backend API endpoint (Vercel/Web environment detected).");
-        return callApiEndpoint(request);
+    const apiCall = () => {
+        if (process.env.API_KEY) {
+            console.log("Using direct Gemini API call (AI Studio environment detected).");
+            return callGeminiDirectly(request);
+        } else {
+            console.log("Using backend API endpoint (Vercel/Web environment detected).");
+            return callApiEndpoint(request);
+        }
+    };
+
+    const maxRetries = 2;
+    let delay = 2000; // 2 seconds
+
+    for (let i = 0; i <= maxRetries; i++) {
+        try {
+            return await apiCall();
+        } catch (error) {
+            if (isOverloadedError(error) && i < maxRetries) {
+                console.warn(`Model is overloaded. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+                await sleep(delay);
+                delay *= 2; // Exponential backoff
+            } else {
+                console.error("API call failed after retries or with a non-retriable error:", error);
+                const userFriendlyMessage = getErrorMessage(error);
+                throw new Error(userFriendlyMessage); // Throw a clean message for the UI
+            }
+        }
     }
+    
+    // This should not be reachable, but is needed for TypeScript.
+    throw new Error("Failed to generate trading signal after multiple retries.");
 }

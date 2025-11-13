@@ -178,7 +178,30 @@ module.exports = async (req, res) => {
         return res.status(200).json(signalData);
     } catch (error) {
         console.error("API Error:", error);
-        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred on the server.";
-        return res.status(500).json({ error: "API request failed", details: errorMessage });
+        
+        let statusCode = 500;
+        let errorMessage = "An unknown error occurred on the server.";
+
+        if (error instanceof Error) {
+            // Check for specific error content to adjust status code and message
+            if (error.message.includes('503') || error.message.toLowerCase().includes('overloaded')) {
+                statusCode = 503;
+                errorMessage = "The model is currently overloaded. Please try again in a moment.";
+            } else {
+                // Try to parse for a cleaner message from Gemini's response
+                 try {
+                    const parsedError = JSON.parse(error.message);
+                    if (parsedError.error && parsedError.error.message) {
+                        errorMessage = parsedError.error.message;
+                    } else {
+                        errorMessage = error.message;
+                    }
+                } catch (e) {
+                    errorMessage = error.message;
+                }
+            }
+        }
+        
+        return res.status(statusCode).json({ error: "API request failed", details: errorMessage });
     }
 };
