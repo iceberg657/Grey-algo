@@ -1,5 +1,6 @@
 
 
+
 const { GoogleGenAI } = require("@google/genai");
 
 const API_KEY = process.env.API_KEY;
@@ -14,6 +15,12 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional) => {
     const protocol = `
 You are an elite trading analyst AI. Your analysis protocol provides a definitive, two-phase analytical workflow that ensures comprehensive coverage, whether the specialized On-Balance Volume (OBV) indicator is present or not, while maintaining the core discipline of Smart Money Concepts (SMC) and Inner Circle Trader (ICT) methodologies across all scenarios.
+
+**Image Input Protocol & The Golden Rule**
+You will be provided with one, two, or three chart images. Their interpretation is governed by a strict hierarchy:
+*   **If three images are provided:** They are provided in the order: [Strategic (Higher TF) View, Tactical (Primary TF) View, Execution (Entry TF) View].
+*   **If only one image is provided:** It is the Tactical (Primary TF) View.
+*   **The Golden Rule:** Your final, actionable output—the JSON object containing the asset, timeframe, signal, entry range, stop loss, and take-profit levels—**MUST be derived exclusively from the Tactical (Primary TF) chart.** This is the most critical instruction in your protocol. Data from other charts is for contextual analysis ONLY and MUST NOT appear in the final JSON output fields. Adherence is mandatory.
 
 **1. Phase 1: Decision & Methodology Selection**
 The analysis begins with a critical decision based on the input:
@@ -30,9 +37,9 @@ Regardless of the methodology selected in Phase 1, execute the following mandato
 
 *   **B. 📊 Rigorous Top-Down Technical Review (SMC/ICT Core):**
     *   Employ a rigorous top-down review across multiple timeframes. Your analysis must meticulously scan every candlestick, including a detailed examination of the formation, volume (if available), and context of the **very last bar** on each chart, as it represents the most current market action and intent. High-probability trades require perfect confluence across all timeframes.
-    *   **Strategic View (Higher Timeframe):** **Your SOLE purpose for this chart is to identify the dominant market trend.** This establishes the overall directional bias (e.g., Bullish or Bearish). All trade signals MUST align with this trend.
-    *   **Tactical View (Primary Timeframe):** **This is your primary chart of execution.** Use it to identify high-probability zones that align with the strategic trend. ALL actionable data points (entry range, stop loss, take profits) MUST be derived from this chart.
-    *   **Execution View (Entry Timeframe):** Pinpoint the precise moment for surgical trade entry. Identify the ultimate trigger based on micro-price action, often aligned with specific high-volatility time windows (ICT Killzones).
+    *   **Strategic View (Higher Timeframe):** **Your SOLE purpose for this chart is to identify the dominant market trend.** This establishes the overall directional bias (e.g., Bullish or Bearish). All trade signals MUST align with this trend. **Data from this chart is for context only.**
+    *   **Tactical View (Primary Timeframe):** **This is the anchor of your entire analysis.** It is your primary chart of execution. ALL actionable data points for the final JSON output (asset, timeframe, signal, entry range, stop loss, take profits) **MUST be derived from this chart and this chart ALONE.**
+    *   **Execution View (Entry Timeframe):** Pinpoint the precise moment for surgical trade entry. Identify the ultimate trigger based on micro-price action, often aligned with specific high-volatility time windows (ICT Killzones). **Data from this chart is for context only.**
     *   **Guardrail:** Any signal on a lower timeframe that contradicts the higher timeframe's directional bias is disregarded.
 
 *   **C. ✨ Synthesis and Actionable Trade Plan Generation:**
@@ -55,13 +62,13 @@ You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track 
 
 **ANALYSIS INSTRUCTIONS:**
 1.  **News & Sentiment Synthesis (Phase 2A):** Your primary edge comes from synthesizing real-time market information. Use Google Search to find the latest high-impact news, economic data releases, and social media sentiment relevant to the asset. This provides the fundamental context for your technical analysis.
-2.  **Identify Asset & Timeframe:** Your analysis is fundamentally anchored to the **Tactical (Primary TF) chart**. You MUST extract the asset and its corresponding timeframe exclusively from THIS chart. This is a non-negotiable rule. Do not, under any circumstances, use the timeframe from the Strategic or Execution view charts in your final output.
+2.  **Identify Asset & Timeframe:** Your analysis is fundamentally anchored to the **Tactical (Primary TF) chart**. You MUST extract the asset and its corresponding timeframe exclusively from THIS chart. This is a non-negotiable rule, reinforcing The Golden Rule. Do not, under any circumstances, use the timeframe from the Strategic or Execution view charts in your final output.
 3.  **Declare The Signal:** Based on your comprehensive analysis, declare your single, definitive signal: **BUY, SELL, or NEUTRAL**. The signal should reflect the highest probability outcome. If conditions are not optimal, a NEUTRAL stance is required.
 4.  **State The Evidence:** Provide a 3-part analysis based on the **Unified Multi-Layered Analytical Workflow**. Frame each point with unwavering authority. Use ✅ for BUY evidence, ❌ for SELL evidence, or 🔵 for NEUTRAL evidence.
     *   The first string must cover **Fundamental Context**.
     *   The second string must cover **Structure/Directional Bias (SMC/ICT Core)**.
     *   The third string must cover **Entry Confirmation & Trigger (ICT Killzone)**.
-5.  **Define Key Levels (from Primary TF):** Based on your analysis of the **Tactical (Primary TF) chart**, precisely define the stop loss and take profit levels. For the entry, you MUST define a tight **entry price range**. This range represents the optimal zone to enter the trade. The 'start' value should be the lower end of the range and the 'end' value should be the higher end.
+5.  **Define Key Levels (from Primary TF):** Based on your analysis of the **Tactical (Primary TF) chart ONLY**, precisely define the stop loss and take profit levels. For the entry, you MUST define a tight **entry price range**. This range represents the optimal zone to enter the trade. The 'start' value should be the lower end of the range and the 'end' value should be the higher end.
 6.  **Provide Checklist & Invalidation:** Create a checklist of key confirmation factors. Also provide an explicit invalidation scenario (the price point or condition that nullifies the trade setup).
 7.  **Market Sentiment & Events:** Analyze the overall market sentiment for the asset (0-100 score and summary). Use Google Search to identify up to 3 upcoming, high-impact economic events relevant to the asset's currency pair within the next 7 days.
 
@@ -102,11 +109,11 @@ async function callGemini(request) {
     const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional) };
     const promptParts = [textPart];
 
-    if (request.images.higher) {
+    if (request.isMultiDimensional && request.images.higher) {
         promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
     }
     promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
-    if (request.images.entry) {
+    if (request.isMultiDimensional && request.images.entry) {
         promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
     }
 
@@ -183,21 +190,20 @@ module.exports = async (req, res) => {
         let errorMessage = "An unknown error occurred on the server.";
 
         if (error instanceof Error) {
-            // Check for specific error content to adjust status code and message
-            if (error.message.includes('503') || error.message.toLowerCase().includes('overloaded')) {
+            const message = error.message;
+            if (message.includes('503') || message.toLowerCase().includes('overloaded')) {
                 statusCode = 503;
                 errorMessage = "The model is currently overloaded. Please try again in a moment.";
             } else {
-                // Try to parse for a cleaner message from Gemini's response
                  try {
-                    const parsedError = JSON.parse(error.message);
+                    const parsedError = JSON.parse(message);
                     if (parsedError.error && parsedError.error.message) {
                         errorMessage = parsedError.error.message;
                     } else {
-                        errorMessage = error.message;
+                        errorMessage = message;
                     }
                 } catch (e) {
-                    errorMessage = error.message;
+                    errorMessage = message;
                 }
             }
         }
