@@ -62,13 +62,18 @@ const ChatBubble: React.FC<{
                 </div>
             )}
             <div className={`relative group max-w-md lg:max-w-lg p-3 rounded-2xl text-sm ${isUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 dark:bg-dark-bg/60 dark:text-dark-text/90 rounded-bl-none'}`}>
-                 {message.image && (
-                    <img 
-                        src={message.image} 
-                        alt="User upload" 
-                        className="mb-2 rounded-lg max-w-full h-auto"
-                        style={{ maxHeight: '300px' }}
-                    />
+                 {message.images && message.images.length > 0 && (
+                    <div className={`grid gap-2 mb-2 ${message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                        {message.images.map((imgSrc, index) => (
+                             <img 
+                                key={index}
+                                src={imgSrc} 
+                                alt={`User upload ${index + 1}`} 
+                                className="rounded-lg max-w-full h-auto"
+                                style={{ maxHeight: '200px', maxWidth: '200px', objectFit: 'cover' }}
+                            />
+                        ))}
+                    </div>
                  )}
                  <SimpleMarkdown text={message.text} />
                   {!isUser && (
@@ -146,8 +151,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [error, setError] = useState<string | null>(null);
     const [canSpeak, setCanSpeak] = useState(false);
     const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
-    const [imageFile, setImageFile] = useState<File | null>(null);
-    const [imagePreview, setImagePreview] = useState<string | null>(null);
+    const [imageFiles, setImageFiles] = useState<File[]>([]);
+    const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -203,37 +208,51 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         setSpeakingMessageId(message.id);
     }, [canSpeak, speakingMessageId]);
 
-    const removeImage = () => {
-        setImageFile(null);
-        setImagePreview(null);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
+    const handleRemoveImage = (index: number) => {
+        URL.revokeObjectURL(imagePreviews[index]);
+
+        setImageFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
+        setImagePreviews(prevPreviews => prevPreviews.filter((_, i) => i !== index));
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        const file = e.target.files?.[0];
-        if (file && file.type.startsWith('image/')) {
-            setImageFile(file);
-            setImagePreview(URL.createObjectURL(file));
+        const files = e.target.files;
+        if (files) {
+            const newFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            if (newFiles.length > 0) {
+                 const uniqueNewFiles = newFiles.filter(
+                    (file) => !imageFiles.some((f) => f.name === file.name && f.size === file.size)
+                );
+                
+                setImageFiles(prev => [...prev, ...uniqueNewFiles]);
+
+                const newPreviews = uniqueNewFiles.map(file => URL.createObjectURL(file));
+                setImagePreviews(prev => [...prev, ...newPreviews]);
+            }
         }
     };
 
     const handleSendMessage = useCallback(async (e: React.FormEvent) => {
         e.preventDefault();
         const finalInput = input;
-        if ((!finalInput.trim() && !imageFile) || isLoading) return;
+        if ((!finalInput.trim() && imageFiles.length === 0) || isLoading) return;
 
         const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
             text: finalInput,
-            image: imagePreview,
+            images: imagePreviews,
         };
         setMessages(prev => [...prev, userMessage]);
+        
         setInput('');
-        const currentImageFile = imageFile;
-        removeImage();
+        const currentImageFiles = imageFiles;
+        
+        setImageFiles([]);
+        setImagePreviews([]);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
 
         setIsLoading(true);
         setError(null);
@@ -242,9 +261,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             const chat = getChatInstance();
             const messageParts: (({ text: string } | { inlineData: { data: string, mimeType: string } }))[] = [];
 
-            if (currentImageFile) {
-                const imagePart = await fileToImagePart(currentImageFile);
-                messageParts.push({ inlineData: { data: imagePart.data, mimeType: imagePart.mimeType } });
+            if (currentImageFiles.length > 0) {
+                const imageParts = await Promise.all(currentImageFiles.map(file => fileToImagePart(file)));
+                 imageParts.forEach(imagePart => {
+                    messageParts.push({ inlineData: { data: imagePart.data, mimeType: imagePart.mimeType } });
+                });
             }
             messageParts.push({ text: finalInput });
 
@@ -275,7 +296,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading, imageFile, imagePreview, setMessages]);
+    }, [input, isLoading, imageFiles, imagePreviews, setMessages]);
     
     return (
         <div className="h-screen bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col relative">
@@ -326,16 +347,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             <footer className="flex-shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-t border-gray-200 dark:border-slate-800">
                 <div className="w-full max-w-7xl mx-auto px-4 pt-2 pb-4">
-                    {imagePreview && (
-                        <div className="p-2 bg-gray-200 dark:bg-slate-800/60 rounded-lg mb-2 inline-block relative">
-                            <img src={imagePreview} alt="Preview" className="h-20 w-20 object-cover rounded" />
-                            <button 
-                                onClick={removeImage}
-                                className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold leading-none"
-                                aria-label="Remove image"
-                            >
-                                &#x2715;
-                            </button>
+                    {imagePreviews.length > 0 && (
+                        <div className="flex flex-wrap gap-2 p-2 bg-gray-200 dark:bg-slate-800/60 rounded-lg mb-2">
+                            {imagePreviews.map((preview, index) => (
+                                <div key={preview} className="relative">
+                                    <img src={preview} alt={`Preview ${index + 1}`} className="h-20 w-20 object-cover rounded" />
+                                    <button 
+                                        onClick={() => handleRemoveImage(index)}
+                                        className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold leading-none"
+                                        aria-label={`Remove image ${index + 1}`}
+                                    >
+                                        &#x2715;
+                                    </button>
+                                </div>
+                            ))}
                         </div>
                     )}
                     <form onSubmit={handleSendMessage} className="flex items-center space-x-2 bg-white dark:bg-slate-800/80 p-2 rounded-xl border border-gray-300 dark:border-slate-700">
@@ -344,6 +369,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             ref={fileInputRef}
                             className="hidden"
                             accept="image/*"
+                            multiple
                             onChange={handleFileChange}
                         />
                         <button
@@ -354,7 +380,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             aria-label="Attach image"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                             </svg>
                         </button>
                         <input
@@ -368,7 +394,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         />
                         <button
                             type="submit"
-                            disabled={isLoading || (!input.trim() && !imageFile)}
+                            disabled={isLoading || (!input.trim() && imageFiles.length === 0)}
                             className="p-2 w-8 h-8 flex items-center justify-center text-white bg-green-600 rounded-full hover:bg-green-500 focus:outline-none disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
                             aria-label="Send message"
                         >
