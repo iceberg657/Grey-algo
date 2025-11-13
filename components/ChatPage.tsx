@@ -1,13 +1,8 @@
-
-
-
-
-
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance } from '../services/chatService';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
@@ -48,8 +43,7 @@ const ChatBubble: React.FC<{
     message: ChatMessage;
     isSpeaking: boolean;
     onToggleSpeech: (message: ChatMessage) => void;
-    canSpeak: boolean;
-}> = ({ message, isSpeaking, onToggleSpeech, canSpeak }) => {
+}> = ({ message, isSpeaking, onToggleSpeech }) => {
     const isUser = message.role === 'user';
     return (
         <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -79,7 +73,7 @@ const ChatBubble: React.FC<{
                   {!isUser && (
                      <button
                         onClick={() => onToggleSpeech(message)}
-                        disabled={!canSpeak}
+                        disabled={!process.env.API_KEY}
                         className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-300/80 dark:bg-dark-card/80 text-green-600 dark:text-green-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
                         aria-label={isSpeaking ? "Stop reading message" : "Read message aloud"}
                     >
@@ -149,7 +143,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [canSpeak, setCanSpeak] = useState(false);
     const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -158,13 +151,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
     useEffect(() => {
         getChatInstance(); // Initialize on component mount
-        setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
-
+        
         // Cleanup speech on unmount
         return () => {
-            if (window.speechSynthesis && window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-            }
+            stopAudio();
         };
     }, []);
 
@@ -174,39 +164,36 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         }
     }, [messages, isLoading]);
     
-    const handleToggleSpeech = useCallback((message: ChatMessage) => {
-        if (!canSpeak) return;
-
-        // If the clicked message is already speaking, stop it.
+    const handleToggleSpeech = useCallback(async (message: ChatMessage) => {
         if (speakingMessageId === message.id) {
-            window.speechSynthesis.cancel();
+            stopAudio();
             setSpeakingMessageId(null);
             return;
         }
 
-        // If another message is speaking, or to start a new one, cancel any current speech.
-        if (window.speechSynthesis.speaking) {
-            window.speechSynthesis.cancel();
+        // Stop any currently playing audio before starting a new one
+        if (speakingMessageId !== null) {
+            stopAudio();
         }
 
         const textToSpeak = message.text
-            .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold markdown for speech
-            .replace(/(\* )/g, '') // remove list markers for speech
+            .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold markdown
+            .replace(/(\* )/g, '') // remove list markers
+            .replace(/⚠️/g, '') // remove warning emoji
             .trim()
             .replace(/\s+/g, ' ');
 
-        const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.onend = () => setSpeakingMessageId(null);
-        utterance.onerror = (event: SpeechSynthesisErrorEvent) => {
-            if (event.error !== 'interrupted') {
-                console.error("Speech synthesis error:", event.error);
-            }
+        try {
+            setSpeakingMessageId(message.id);
+            await generateAndPlayAudio(textToSpeak, () => {
+                setSpeakingMessageId(null);
+            });
+        } catch (error) {
+            console.error("TTS Error:", error);
             setSpeakingMessageId(null);
-        };
-
-        window.speechSynthesis.speak(utterance);
-        setSpeakingMessageId(message.id);
-    }, [canSpeak, speakingMessageId]);
+            alert("Failed to generate audio. Please check the console for details.");
+        }
+    }, [speakingMessageId]);
 
     const handleRemoveImage = (index: number) => {
         URL.revokeObjectURL(imagePreviews[index]);
@@ -335,7 +322,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                     message={msg}
                                     isSpeaking={speakingMessageId === msg.id}
                                     onToggleSpeech={handleToggleSpeech}
-                                    canSpeak={canSpeak}
                                 />
                             ))}
                             {isLoading && <TypingIndicator />}

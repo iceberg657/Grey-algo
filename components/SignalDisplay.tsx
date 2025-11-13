@@ -1,7 +1,6 @@
-
-
 import React, { useState, useEffect } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
+import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 
 interface InfoCardProps {
     label: string;
@@ -99,22 +98,17 @@ const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.
 
 export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [isSpeaking, setIsSpeaking] = useState(false);
-    const [canSpeak, setCanSpeak] = useState(false);
 
     useEffect(() => {
-        setCanSpeak(typeof window !== 'undefined' && 'speechSynthesis' in window);
+        // Stop audio when component unmounts
         return () => {
-            if (window.speechSynthesis && window.speechSynthesis.speaking) {
-                window.speechSynthesis.cancel();
-            }
+            stopAudio();
         };
     }, []);
     
-    const handleToggleSpeech = () => {
-        if (!canSpeak) return;
-
+    const handleToggleSpeech = async () => {
         if (isSpeaking) {
-            window.speechSynthesis.cancel();
+            stopAudio();
             setIsSpeaking(false);
         } else {
             const { asset, signal, entryRange, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment } = data;
@@ -129,11 +123,17 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 Invalidation Scenario: ${invalidationScenario ?? 'Not available'}.
                 Sentiment score is ${sentiment?.score} percent. Summary: ${sentiment?.summary}.
             `;
-            const utterance = new SpeechSynthesisUtterance(textToSpeak.replace(/✅|❌|🔵/g, ''));
-            utterance.onend = () => setIsSpeaking(false);
-            utterance.onerror = () => setIsSpeaking(false);
-            window.speechSynthesis.speak(utterance);
-            setIsSpeaking(true);
+            
+            try {
+                setIsSpeaking(true);
+                await generateAndPlayAudio(textToSpeak.replace(/✅|❌|🔵/g, ''), () => {
+                    setIsSpeaking(false);
+                });
+            } catch (error) {
+                console.error("TTS Error:", error);
+                alert("Failed to generate audio. Please check the console for details.");
+                setIsSpeaking(false);
+            }
         }
     };
     
@@ -146,7 +146,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </div>
                  <button
                     onClick={handleToggleSpeech}
-                    disabled={!canSpeak}
+                    disabled={!process.env.API_KEY}
                     className="p-2.5 rounded-full bg-gray-200/80 dark:bg-dark-card/80 text-green-600 dark:text-green-400 disabled:opacity-30 disabled:cursor-not-allowed"
                     aria-label={isSpeaking ? "Stop reading analysis" : "Read analysis aloud"}
                 >
