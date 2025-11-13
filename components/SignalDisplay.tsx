@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 
@@ -97,25 +97,35 @@ const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.
 );
 
 export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
-    const [isSpeaking, setIsSpeaking] = useState(false);
+    const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
+    // FIX: Use `ReturnType<typeof setTimeout>` instead of `NodeJS.Timeout` for browser compatibility.
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
-        // Stop audio when component unmounts
+        // Stop audio and clear timeout when component unmounts
         return () => {
             stopAudio();
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
         };
     }, []);
     
     const handleToggleSpeech = async () => {
-        if (isSpeaking) {
+        if (ttsState === 'speaking') {
             stopAudio();
-            setIsSpeaking(false);
-        } else {
-            const { asset, signal, entryRange, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment } = data;
+            setTtsState('idle');
+        } else if (ttsState === 'waiting') {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+            setTtsState('idle');
+        } else { // ttsState is 'idle'
+            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment } = data;
             const textToSpeak = `
                 Analysis for ${asset}.
                 Signal is ${signal}.
-                Entry range is between ${entryRange.start} and ${entryRange.end}.
+                The three entry points are ${entryPoints.join(', ')}.
                 Stop loss is at ${stopLoss}.
                 Take profits are at ${takeProfits.join(', ')}.
                 Reasoning: ${reasoning.join(' ')}.
@@ -124,18 +134,23 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 Sentiment score is ${sentiment?.score} percent. Summary: ${sentiment?.summary}.
             `;
             
-            try {
-                setIsSpeaking(true);
-                await generateAndPlayAudio(textToSpeak.replace(/✅|❌|🔵/g, ''), () => {
-                    setIsSpeaking(false);
-                });
-            } catch (error) {
-                console.error("TTS Error:", error);
-                alert("Failed to generate audio. Please check the console for details.");
-                setIsSpeaking(false);
-            }
+            setTtsState('waiting');
+            timeoutRef.current = setTimeout(async () => {
+                try {
+                    setTtsState('speaking');
+                    await generateAndPlayAudio(textToSpeak.replace(/✅|❌|🔵/g, ''), () => {
+                        setTtsState('idle');
+                    });
+                } catch (error) {
+                    console.error("TTS Error:", error);
+                    alert("Failed to generate audio. Please check the console for details.");
+                    setTtsState('idle');
+                }
+            }, 5000);
         }
     };
+
+    const isBusy = ttsState !== 'idle';
     
     return (
         <div className="animate-fade-in text-sm">
@@ -148,9 +163,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     onClick={handleToggleSpeech}
                     disabled={!process.env.API_KEY}
                     className="p-2.5 rounded-full bg-gray-200/80 dark:bg-dark-card/80 text-green-600 dark:text-green-400 disabled:opacity-30 disabled:cursor-not-allowed"
-                    aria-label={isSpeaking ? "Stop reading analysis" : "Read analysis aloud"}
+                    aria-label={isBusy ? "Stop reading analysis" : "Read analysis aloud"}
                 >
-                    {isSpeaking ? (
+                    {isBusy ? (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" /></svg>
                     ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M4.022 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356zM5.394 9.122a.5.5 0 00-.638.45l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.302-.262zM7.17 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208z" /><path fillRule="evenodd" d="M9.707 3.707a1 1 0 011.414 0l.443.443a1 1 0 010 1.414l-4.25 4.25a1 1 0 01-1.414 0L3.707 7.53a1 1 0 010-1.414l.443-.443a1 1 0 011.414 0l1.293 1.293L9.707 3.707zm5.553 3.53a.5.5 0 00-.45.638l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.49-.45zM13.829 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208zM15.978 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356z" clipRule="evenodd" /><path d="M11 12.333a1.5 1.5 0 01-3 0V7.5a1.5 1.5 0 013 0v4.833z" /></svg>
@@ -158,14 +173,24 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </button>
             </header>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2">
+            <div className="grid grid-cols-3 gap-2">
                 <InfoCard label="Signal" value={data.signal} isSignal signalType={data.signal} />
                 <InfoCard label="Confidence" value={`${data.confidence}%`} />
-                <InfoCard label="Entry" value={`${data.entryRange.start} - ${data.entryRange.end}`} />
                 <InfoCard label="Stop Loss" value={data.stopLoss} valueClassName="text-red-500 dark:text-red-400" />
             </div>
 
-            <div className="mt-2 grid grid-cols-1 gap-2">
+            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50">
+                     <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Entry Points</span>
+                     <div className="flex justify-around items-center">
+                        {data.entryPoints.map((ep, i) => (
+                            <div key={i} className="text-center">
+                                <span className="font-mono text-lg font-semibold text-gray-800 dark:text-dark-text">{ep}</span>
+                                <span className="block text-xs text-gray-500 dark:text-dark-text/60">Entry {i + 1}</span>
+                            </div>
+                        ))}
+                     </div>
+                </div>
                 <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50">
                      <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Take Profit Targets</span>
                      <div className="flex justify-around items-center">

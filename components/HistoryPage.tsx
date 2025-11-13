@@ -78,7 +78,9 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
             const checklist = row.checklist ? row.checklist.join(' | ') : '';
             const invalidation = row.invalidationScenario || '';
             const sources = row.sources ? row.sources.map(s => s.uri).join(' | ') : '';
-            const entryRange = `${row.entryRange.start} - ${row.entryRange.end}`;
+            // FIX: The `entryRange` property does not exist on `SignalData`.
+            // Use `entryPoints` instead and join the array into a string.
+            const entryRange = row.entryPoints.join(' | ');
 
             return [
                 escapeCsvCell(timestamp), escapeCsvCell(row.asset), escapeCsvCell(row.timeframe),

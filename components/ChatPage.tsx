@@ -41,9 +41,9 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
 
 const ChatBubble: React.FC<{
     message: ChatMessage;
-    isSpeaking: boolean;
+    isBusy: boolean;
     onToggleSpeech: (message: ChatMessage) => void;
-}> = ({ message, isSpeaking, onToggleSpeech }) => {
+}> = ({ message, isBusy, onToggleSpeech }) => {
     const isUser = message.role === 'user';
     return (
         <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
@@ -75,18 +75,16 @@ const ChatBubble: React.FC<{
                         onClick={() => onToggleSpeech(message)}
                         disabled={!process.env.API_KEY}
                         className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-300/80 dark:bg-dark-card/80 text-green-600 dark:text-green-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
-                        aria-label={isSpeaking ? "Stop reading message" : "Read message aloud"}
+                        aria-label={isBusy ? "Stop reading message" : "Read message aloud"}
                     >
-                        {isSpeaking ? (
+                        {isBusy ? (
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
                             </svg>
                         ) : (
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                                 <path d="M4.022 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356zM5.394 9.122a.5.5 0 00-.638.45l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.302-.262zM7.17 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208z" />
-                                <path fillRule="evenodd" d="M9.707 3.707a1 1 0 011.414 0l.443.443a1 1 0 010 1.414l-4.25 4.25a1 1 0 01-1.414 0L3.707 7.53a1 1 0 010-1.414l.443-.443a1 1 0 011.414 0l1.293 1.293L9.707 3.707zm5.553 3.53a.5.5 0 00-.45.638l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.49-.45zM13.829 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208zM15.978 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356z" clipRule="evenodd" />
-                                <path d="M11 12.333a1.5 1.5 0 01-3 0V7.5a1.5 1.5 0 013 0v4.833z" />
-                            </svg>
+                                <path fillRule="evenodd" d="M9.707 3.707a1 1 0 011.414 0l.443.443a1 1 0 010 1.414l-4.25 4.25a1 1 0 01-1.414 0L3.707 7.53a1 1 0 010-1.414l.443-.443a1 1 0 011.414 0l1.293 1.293L9.707 3.707zm5.553 3.53a.5.5 0 00-.45.638l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.49-.45zM13.829 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208zM15.978 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356z" clipRule="evenodd" /><path d="M11 12.333a1.5 1.5 0 01-3 0V7.5a1.5 1.5 0 013 0v4.833z" /></svg>
                         )}
                     </button>
                  )}
@@ -144,6 +142,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
+    const [waitingMessageId, setWaitingMessageId] = useState<string | null>(null);
+    // FIX: Use `ReturnType<typeof setTimeout>` instead of `NodeJS.Timeout` for browser compatibility.
+    const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -152,9 +153,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     useEffect(() => {
         getChatInstance(); // Initialize on component mount
         
-        // Cleanup speech on unmount
+        // Cleanup speech and timeout on unmount
         return () => {
             stopAudio();
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
         };
     }, []);
 
@@ -171,10 +175,21 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             return;
         }
 
-        // Stop any currently playing audio before starting a new one
-        if (speakingMessageId !== null) {
-            stopAudio();
+        if (waitingMessageId === message.id) {
+            if (timeoutRef.current) {
+                clearTimeout(timeoutRef.current);
+            }
+            setWaitingMessageId(null);
+            return;
         }
+
+        // If another TTS is active, stop it
+        stopAudio();
+        if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current);
+        }
+        setSpeakingMessageId(null);
+        setWaitingMessageId(null);
 
         const textToSpeak = message.text
             .replace(/\*\*(.*?)\*\*/g, '$1') // remove bold markdown
@@ -183,17 +198,22 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             .trim()
             .replace(/\s+/g, ' ');
 
-        try {
-            setSpeakingMessageId(message.id);
-            await generateAndPlayAudio(textToSpeak, () => {
+        setWaitingMessageId(message.id);
+        timeoutRef.current = setTimeout(async () => {
+            try {
+                setWaitingMessageId(null);
+                setSpeakingMessageId(message.id);
+                await generateAndPlayAudio(textToSpeak, () => {
+                    setSpeakingMessageId(null);
+                });
+            } catch (error) {
+                console.error("TTS Error:", error);
                 setSpeakingMessageId(null);
-            });
-        } catch (error) {
-            console.error("TTS Error:", error);
-            setSpeakingMessageId(null);
-            alert("Failed to generate audio. Please check the console for details.");
-        }
-    }, [speakingMessageId]);
+                setWaitingMessageId(null);
+                alert("Failed to generate audio. Please check the console for details.");
+            }
+        }, 5000);
+    }, [speakingMessageId, waitingMessageId]);
 
     const handleRemoveImage = (index: number) => {
         URL.revokeObjectURL(imagePreviews[index]);
@@ -320,7 +340,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 <ChatBubble 
                                     key={msg.id} 
                                     message={msg}
-                                    isSpeaking={speakingMessageId === msg.id}
+                                    isBusy={speakingMessageId === msg.id || waitingMessageId === msg.id}
                                     onToggleSpeech={handleToggleSpeech}
                                 />
                             ))}

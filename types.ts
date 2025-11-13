@@ -32,10 +32,7 @@ export interface SignalData {
     timeframe: string;
     signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
-    entryRange: {
-        start: number;
-        end: number;
-    };
+    entryPoints: number[];
     stopLoss: number;
     takeProfits: number[];
     reasoning: string[];
