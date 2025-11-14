@@ -225,15 +225,17 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
-            const newFiles = Array.from(files).filter(file => file.type.startsWith('image/'));
+            // FIX: Explicitly type the 'file' parameter in filter callbacks to ensure
+            // TypeScript recognizes it as a File object, resolving property access errors.
+            const newFiles = Array.from(files).filter((file: File) => file.type.startsWith('image/'));
             if (newFiles.length > 0) {
                  const uniqueNewFiles = newFiles.filter(
-                    (file) => !imageFiles.some((f) => f.name === file.name && f.size === file.size)
+                    (file: File) => !imageFiles.some((f) => f.name === file.name && f.size === file.size)
                 );
                 
                 setImageFiles(prev => [...prev, ...uniqueNewFiles]);
 
-                const newPreviews = uniqueNewFiles.map(file => URL.createObjectURL(file));
+                const newPreviews = uniqueNewFiles.map((file: File) => URL.createObjectURL(file));
                 setImagePreviews(prev => [...prev, ...newPreviews]);
             }
         }

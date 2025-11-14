@@ -1,6 +1,4 @@
 
-
-
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 
@@ -60,7 +58,9 @@ You are 'Oracle', an apex-level trading AI with a legendary, near-perfect track 
     *   The first string must cover **Fundamental Context**.
     *   The second string must cover **Structure/Directional Bias (SMC/ICT Core)**.
     *   The third string must cover **Entry Confirmation & Trigger (ICT Killzone)**.
-5.  **Define Entry Points & Key Levels (from Primary TF):** Based on your analysis of the **Tactical (Primary TF) chart ONLY**, precisely define the stop loss and take profit levels. For the entry, you MUST define three distinct entry points. Calculate a reasonable 'X pips' or 'X points' value based on the asset's recent volatility (e.g., using ATR or price action) to set the limit and breakout entries relative to the current price.
+5.  **Define Entry Points & Key Levels (from Primary TF):** Based on your analysis of the **Tactical (Primary TF) chart ONLY**, precisely define the stop loss and take profit levels. For the entry, you MUST define three distinct entry points. Calculate a reasonable 'X pips' or 'X points' value to set the limit and breakout entries relative to the current price.
+    *   **Special Instruction for Currency Pairs (Forex):** When the identified asset is a currency pair, the 'X' value MUST be calculated to create an extremely tight entry range. Your primary goal is surgical precision. For **Scalp** and **Day Trading** styles, 'X' MUST be between **1-4 pips** from the current price. For **Swing trading**, it must be between **5-15 pips**.
+    *   **For other assets (Indices, Commodities, etc.):** The 'X' value should be based on recent volatility (e.g., using ATR or price action).
     *   **For BUY signals:** Provide 3 entries in this order: [Price for a buy-limit below current price (current price - X), Price for market execution (current price), Price for a buy-stop/breakout above current price (current price + X)].
     *   **For SELL signals:** Provide 3 entries in this order: [Price for a sell-limit above current price (current price + X), Price for market execution (current price), Price for a sell-stop/breakout below current price (current price - X)].
 6.  **Provide Checklist & Invalidation:** Create a checklist of key confirmation factors. Also provide an explicit invalidation scenario (the price point or condition that nullifies the trade setup).
