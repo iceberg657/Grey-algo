@@ -182,7 +182,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50">
                      <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Entry Points</span>
-                     <div className="flex justify-around items-center">
+                     <div className="flex justify-center items-center gap-6">
                         {data.entryPoints.map((ep, i) => (
                             <div key={i} className="text-center">
                                 <span className="font-mono text-lg font-semibold text-gray-800 dark:text-dark-text">{ep}</span>

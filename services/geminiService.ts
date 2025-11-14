@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 
@@ -135,6 +136,14 @@ function isOverloadedError(error: unknown): boolean {
     return false;
 }
 
+function isRetryableNetworkError(error: unknown): boolean {
+    if (error instanceof Error) {
+        const message = error.message.toLowerCase();
+        return message.includes('xhr error');
+    }
+    return false;
+}
+
 
 /**
  * Handles the direct API call to Google Gemini.
@@ -253,8 +262,8 @@ export async function generateTradingSignal(request: AnalysisRequest): Promise<S
         try {
             return await apiCall();
         } catch (error) {
-            if (isOverloadedError(error) && i < maxRetries) {
-                console.warn(`Model is overloaded. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
+            if ((isOverloadedError(error) || isRetryableNetworkError(error)) && i < maxRetries) {
+                console.warn(`API call failed with a retryable error. Retrying in ${delay}ms... (Attempt ${i + 1}/${maxRetries})`);
                 await sleep(delay);
                 delay *= 2; // Exponential backoff
             } else {
