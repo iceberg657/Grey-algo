@@ -109,7 +109,7 @@ async function callGemini(request) {
     const promptParts = [textPart];
 
     if (request.isMultiDimensional && request.images.higher) {
-        promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
+        promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.images.higher.mimeType } });
     }
     promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
     if (request.isMultiDimensional && request.images.entry) {
@@ -119,7 +119,7 @@ async function callGemini(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.2,
+        temperature: 0.1,
     };
 
     const response = await ai.models.generateContent({

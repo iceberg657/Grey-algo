@@ -27,67 +27,44 @@ Return ONLY a valid JSON object that is an array of news articles. Do not includ
 ]
 `;
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-function isRetryableError(error: unknown): boolean {
-    if (error instanceof Error) {
-        const message = error.message.toLowerCase();
-        return message.includes('503') || message.includes('overloaded') || message.includes('xhr error');
-    }
-    return false;
-}
-
 /**
  * Fetches the latest Forex news using the Gemini API.
  */
 export async function getForexNews(): Promise<NewsArticle[]> {
-    const maxRetries = 2;
-    let delay = 1000;
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: NEWS_PROMPT,
+            config: {
+                tools: [{googleSearch: {}}],
+                temperature: 0.2,
+            },
+        });
 
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
-                contents: NEWS_PROMPT,
-                config: {
-                    tools: [{googleSearch: {}}],
-                    temperature: 0.2,
-                },
-            });
-
-            const responseText = response.text.trim();
-            if (!responseText) {
-                throw new Error("Received an empty response from the AI.");
-            }
-            
-            let jsonString = responseText;
-            const firstBracket = jsonString.indexOf('[');
-            const lastBracket = jsonString.lastIndexOf(']');
-
-            if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) {
-                console.error("Failed to extract JSON array from response:", responseText);
-                throw new Error("The AI returned an invalid news format.");
-            }
-
-            jsonString = jsonString.substring(firstBracket, lastBracket + 1);
-
-            const parsedNews: NewsArticle[] = JSON.parse(jsonString);
-            return parsedNews;
-
-        } catch (error) {
-            if (isRetryableError(error) && attempt < maxRetries) {
-                console.warn(`Retrying news fetch... (${attempt + 1}/${maxRetries})`);
-                await sleep(delay);
-                delay *= 2;
-            } else {
-                console.error("Gemini News Service Error:", error);
-                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred calling the Gemini API for news.";
-                throw new Error(`Failed to fetch Forex news: ${errorMessage}`);
-            }
+        const responseText = response.text.trim();
+        if (!responseText) {
+            throw new Error("Received an empty response from the AI.");
         }
+        
+        let jsonString = responseText;
+        const firstBracket = jsonString.indexOf('[');
+        const lastBracket = jsonString.lastIndexOf(']');
+
+        if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) {
+            console.error("Failed to extract JSON array from response:", responseText);
+            throw new Error("The AI returned an invalid news format.");
+        }
+
+        jsonString = jsonString.substring(firstBracket, lastBracket + 1);
+
+        const parsedNews: NewsArticle[] = JSON.parse(jsonString);
+        return parsedNews;
+
+    } catch (error) {
+        console.error("Gemini News Service Error:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred calling the Gemini API for news.";
+        throw new Error(`Failed to fetch Forex news: ${errorMessage}`);
     }
-    // This should not be reachable due to the throw in the catch block.
-    throw new Error("Failed to fetch news after multiple retries.");
 }

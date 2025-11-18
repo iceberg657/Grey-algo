@@ -33,16 +33,6 @@ Return ONLY a valid JSON array of objects. Do not include markdown, backticks, o
 ]
 `;
 
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-function isRetryableError(error: unknown): boolean {
-    if (error instanceof Error) {
-        const message = error.message.toLowerCase();
-        return message.includes('503') || message.includes('overloaded') || message.includes('xhr error');
-    }
-    return false;
-}
-
 /**
  * Fetches predicted outcomes for upcoming high-impact news events.
  */
@@ -50,54 +40,41 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
     if (!process.env.API_KEY) {
         throw new Error("API_KEY environment variable is not set.");
     }
-    
-    const maxRetries = 2;
-    let delay = 1000;
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
-    for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        try {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-pro',
-                contents: PREDICTOR_PROMPT,
-                config: {
-                    tools: [{googleSearch: {}}],
-                    temperature: 0.2,
-                },
-            });
-    
-            const responseText = response.text.trim();
-            if (!responseText) {
-                throw new Error("Received an empty response from the AI.");
-            }
-            
-            let jsonString = responseText;
-            const firstBracket = jsonString.indexOf('[');
-            const lastBracket = jsonString.lastIndexOf(']');
-    
-            if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) {
-                console.error("Failed to extract JSON array from response:", responseText);
-                throw new Error("The AI returned an invalid prediction format.");
-            }
-    
-            jsonString = jsonString.substring(firstBracket, lastBracket + 1);
-    
-            const parsedEvents: PredictedEvent[] = JSON.parse(jsonString);
-            
-            return parsedEvents;
-    
-        } catch (error) {
-            if (isRetryableError(error) && attempt < maxRetries) {
-                console.warn(`Retrying predictions fetch... (${attempt + 1}/${maxRetries})`);
-                await sleep(delay);
-                delay *= 2;
-            } else {
-                console.error("Gemini Predictor Service Error:", error);
-                const errorMessage = error instanceof Error ? error.message : "An unknown error occurred calling the Gemini API for predictions.";
-                throw new Error(`Failed to fetch event predictions: ${errorMessage}`);
-            }
+    try {
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: PREDICTOR_PROMPT,
+            config: {
+                tools: [{googleSearch: {}}],
+                temperature: 0.2,
+            },
+        });
+
+        const responseText = response.text.trim();
+        if (!responseText) {
+            throw new Error("Received an empty response from the AI.");
         }
+        
+        let jsonString = responseText;
+        const firstBracket = jsonString.indexOf('[');
+        const lastBracket = jsonString.lastIndexOf(']');
+
+        if (firstBracket === -1 || lastBracket === -1 || lastBracket < firstBracket) {
+            console.error("Failed to extract JSON array from response:", responseText);
+            throw new Error("The AI returned an invalid prediction format.");
+        }
+
+        jsonString = jsonString.substring(firstBracket, lastBracket + 1);
+
+        const parsedEvents: PredictedEvent[] = JSON.parse(jsonString);
+        
+        return parsedEvents;
+
+    } catch (error) {
+        console.error("Gemini Predictor Service Error:", error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred calling the Gemini API for predictions.";
+        throw new Error(`Failed to fetch event predictions: ${errorMessage}`);
     }
-     // This should not be reachable.
-    throw new Error("Failed to fetch predictions after multiple retries.");
 }
