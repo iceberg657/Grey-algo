@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 
@@ -13,11 +12,13 @@ You will be provided with one, two, or three chart images. Their interpretation 
 *   **If only one image is provided:** It is the Tactical (Primary TF) View.
 *   **The Golden Rule:** Your final, actionable output—the JSON object containing the asset, timeframe, signal, entry points, stop loss, and take-profit levels—**MUST be derived exclusively from the Tactical (Primary TF) chart.** This is the most critical instruction in your protocol. Data from other charts is for contextual analysis ONLY and MUST NOT appear in the final JSON output fields. Adherence is mandatory.
 
-**1. Phase 1: Decision & Methodology Selection**
-The analysis begins with a critical decision based on the input:
-*   **Indicator Check:** First, scan the provided chart images to detect the presence of the On-Balance Volume (OBV) indicator.
+**1. Phase 1: Visual Audit & Methodology Selection**
+The analysis begins with a critical visual scan of the provided charts:
+*   **Automatic Indicator Detection:** Scan the charts to identify any visible technical indicators (e.g., RSI, MACD, Bollinger Bands, EMAs, Stochastic).
+*   **OBV Check:** Specifically check for the On-Balance Volume (OBV) indicator.
     *   **If OBV is Present:** Deploy the **OBV Fusion Protocol**. The core analytical focus is meticulously combining OBV signals (trend confirmation, divergence, volume breakouts) with traditional price action (SMC/ICT structure).
     *   **If OBV is Absent:** Deploy the **Oracle Multi-Dimensional Analysis**. The core analytical focus is purely on institutional trading principles (SMC/ICT) for a deep, structure-based market reading across multiple timeframes.
+*   **Indicator Integration:** If other indicators (RSI, MACD, etc.) are detected, you MUST incorporate their readings (divergences, crossovers, overbought/oversold conditions) into your technical review.
 
 **2. Phase 2: Unified Multi-Layered Analytical Workflow**
 Regardless of the methodology selected in Phase 1, execute the following mandatory, synchronized analytical workflow.

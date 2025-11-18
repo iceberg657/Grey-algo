@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import type { AnalysisRequest, ImagePart, TradingStyle } from '../types';
 import { RISK_REWARD_RATIOS, TRADING_STYLES } from '../constants';
@@ -147,7 +148,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     const handleFileChange = (id: 'higher' | 'primary' | 'entry', file: File | null) => {
         setImages(prev => file ? { ...prev, [id]: file } : { ...prev, [id]: undefined });
     };
-
+    
     const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
@@ -186,7 +187,34 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="space-y-3">
+            
+            {/* Pro Tip Card */}
+            <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl">
+                <div className="flex items-start gap-3">
+                    <div className="mt-1 text-blue-400 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 className="font-bold text-blue-400 dark:text-blue-300 mb-1">Optional: Automatic Indicator Detection</h4>
+                        <p className="text-sm text-gray-700 dark:text-blue-100/80 mb-2">
+                            Adding indicators to your chart is <strong>optional</strong>. If you include them, our AI will automatically detect and analyze them for better confluence:
+                        </p>
+                        <ul className="text-sm text-gray-600 dark:text-blue-200/70 list-disc list-inside space-y-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
+                            <li><strong className="text-gray-800 dark:text-blue-200">OBV:</strong> Volume confirmation</li>
+                            <li><strong className="text-gray-800 dark:text-blue-200">RSI:</strong> Momentum divergence</li>
+                            <li><strong className="text-gray-800 dark:text-blue-200">EMAs (50/200):</strong> Trend direction</li>
+                            <li><strong className="text-gray-800 dark:text-blue-200">MACD:</strong> Trend strength</li>
+                            <li><strong className="text-gray-800 dark:text-blue-200">Bollinger Bands:</strong> Volatility</li>
+                            <li><strong className="text-gray-800 dark:text-blue-200">Stochastic:</strong> Momentum oscillator</li>
+                            <li><strong className="text-gray-800 dark:text-blue-200">VWAP:</strong> Intraday value</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg">
                     <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Top-Down Analysis</span>
                     <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">

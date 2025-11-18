@@ -1,3 +1,4 @@
+
 export interface ImagePart {
     data: string; // base64 encoded data
     mimeType: string;
