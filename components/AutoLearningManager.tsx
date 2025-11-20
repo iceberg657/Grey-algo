@@ -4,7 +4,7 @@ import { canLearnMoreToday, performAutoLearning, incrementDailyCount, getDailySt
 
 export const AutoLearningManager: React.FC = () => {
     const [isLearning, setIsLearning] = useState(false);
-    const [notification, setNotification] = useState<{ title: string; message: string } | null>(null);
+    const [notification, setNotification] = useState<{ title: string; message: string; nextUpdate: string } | null>(null);
     
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const sessionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,6 +64,19 @@ export const AutoLearningManager: React.FC = () => {
         const durationMinutes = Math.random() * (9 - 7) + 7; 
         const durationMs = durationMinutes * 60 * 1000;
 
+        // Calculate Next Update Time for display
+        const stats = getDailyStats();
+        let nextUpdateTimeString = "Tomorrow";
+        
+        // Check if we can run again after this session (count + 1)
+        if (stats.count + 1 < stats.maxForDay) {
+             // Next session delay (20-50 mins) + current session duration
+             const nextDelayMinutes = Math.random() * 30 + 20;
+             const totalDelayMs = durationMs + (nextDelayMinutes * 60 * 1000);
+             const nextDate = new Date(Date.now() + totalDelayMs);
+             nextUpdateTimeString = nextDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
         setIsLearning(true);
         document.body.classList.add('learning-mode');
         
@@ -78,14 +91,15 @@ export const AutoLearningManager: React.FC = () => {
                 // Show notification
                 setNotification({
                     title: "Core Memory Upgraded",
-                    message: strategy
+                    message: strategy,
+                    nextUpdate: nextUpdateTimeString
                 });
 
-                // Auto dismiss notification after 8 seconds
+                // Auto dismiss notification after 60 seconds (1 minute)
                 if (notifTimeoutRef.current) clearTimeout(notifTimeoutRef.current);
                 notifTimeoutRef.current = setTimeout(() => {
                     if (mountedRef.current) setNotification(null);
-                }, 8000);
+                }, 60000);
             }
         } catch (e) {
             console.error("Auto-ML Error:", e);
@@ -150,7 +164,10 @@ export const AutoLearningManager: React.FC = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                             <h4 className="text-sm font-bold text-green-400 mb-1">{notification.title}</h4>
-                            <p className="text-xs text-gray-300 leading-relaxed line-clamp-3">{notification.message}</p>
+                            <p className="text-xs text-gray-300 leading-relaxed line-clamp-3 mb-2">{notification.message}</p>
+                            <p className="text-[10px] text-gray-500 font-mono mt-1 border-t border-gray-700 pt-1">
+                                Next Update: <span className="text-green-300 font-bold">{notification.nextUpdate}</span>
+                            </p>
                         </div>
                         <button 
                             onClick={closeNotification}
