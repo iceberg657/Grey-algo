@@ -63,7 +63,7 @@ export interface NewsArticle {
     date: string; // ISO 8601 format
 }
 
-export type TradingStyle = 'Scalp' | 'Swing' | 'Day Trading';
+export type TradingStyle = 'Scalp' | 'Short Term' | 'Day Trading';
 
 export interface ChatMessage {
     id: string;
