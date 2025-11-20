@@ -45,8 +45,8 @@ export const getDailyStats = (): DailyStats => {
         const today = new Date().toISOString().split('T')[0];
 
         if (!stats || stats.date !== today) {
-            // Determine a random max between 5 and 10 for the new day
-            const randomMax = Math.floor(Math.random() * (10 - 5 + 1)) + 5;
+            // Determine a random max between 10 and 15 for the new day
+            const randomMax = Math.floor(Math.random() * (15 - 10 + 1)) + 10;
             stats = {
                 date: today,
                 count: 0,
@@ -57,7 +57,7 @@ export const getDailyStats = (): DailyStats => {
         return stats;
     } catch {
         // Fallback
-        return { date: new Date().toISOString().split('T')[0], count: 0, maxForDay: 5 };
+        return { date: new Date().toISOString().split('T')[0], count: 0, maxForDay: 12 };
     }
 };
 

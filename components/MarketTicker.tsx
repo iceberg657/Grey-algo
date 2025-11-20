@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import type { MarketDataItem } from '../types';
 import { getMarketData } from '../services/marketDataService';
@@ -8,9 +9,9 @@ const TickerItem: React.FC<{ item: MarketDataItem }> = ({ item }) => {
 
     return (
         <div className="flex items-center flex-shrink-0 mr-8 text-sm">
-            <span className="font-semibold text-dark-text/90 mr-3">{item.symbol}</span>
-            <span className="font-mono text-dark-text mr-3">{item.price.toFixed(pricePrecision)}</span>
-            <div className={`flex items-center font-mono ${isPositive ? 'text-green-400' : 'text-red-400'}`}>
+            <span className="font-semibold text-gray-800 dark:text-dark-text/90 mr-3">{item.symbol}</span>
+            <span className="font-mono text-gray-800 dark:text-dark-text mr-3">{item.price.toFixed(pricePrecision)}</span>
+            <div className={`flex items-center font-mono ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                 {isPositive ? (
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -60,7 +61,7 @@ export const MarketTicker: React.FC = () => {
     const tickerItems = [...data, ...data];
 
     return (
-        <div className="w-full bg-dark-card/50 backdrop-blur-sm p-3 rounded-lg border border-green-500/10 shadow-md overflow-hidden">
+        <div className="w-full bg-gray-200/50 dark:bg-dark-card/50 backdrop-blur-sm p-3 rounded-lg border border-gray-300/50 dark:border-green-500/10 shadow-md overflow-hidden">
             <div className="flex animate-marquee whitespace-nowrap">
                 {tickerItems.map((item, index) => (
                     <TickerItem key={`${item.symbol}-${index}`} item={item} />

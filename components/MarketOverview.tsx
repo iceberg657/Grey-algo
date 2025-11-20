@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getOrRefreshGlobalAnalysis } from '../services/globalMarketService';
 import type { GlobalMarketAnalysis } from '../types';
+import { MarketTicker } from './MarketTicker';
 
 // Hook to get current time and session
 const useDateTime = () => {
@@ -20,7 +21,6 @@ const useDateTime = () => {
         const offsetMinutes = -now.getTimezoneOffset();
         const offsetHours = offsetMinutes / 60;
         const sign = offsetHours >= 0 ? '+' : '-';
-        // FIX: Ensure hours are correctly formatted with padding even if they are integers.
         const hours = Math.floor(Math.abs(offsetHours));
         return `UTC${sign}${String(hours).padStart(2, '0')}`;
     };
@@ -186,6 +186,11 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
     return (
         <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-4 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
+            
+            <div className="mb-6">
+                <MarketTicker />
+            </div>
+
             <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" className="block cursor-pointer group">
                 <div className="flex justify-between items-center mb-4">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-dark-text group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Market Overview</h2>
