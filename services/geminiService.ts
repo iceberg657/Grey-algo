@@ -150,7 +150,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
     const config: any = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.4, // Increased to allow for more variability
+        temperature: 0.5, // Set to 0.5 as requested
     };
 
     const response = await ai.models.generateContent({
