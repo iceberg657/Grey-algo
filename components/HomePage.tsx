@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { Loader } from './Loader';
@@ -15,6 +16,7 @@ interface HomePageProps {
     onNavigateToNews: () => void;
     onNavigateToChat: () => void;
     onNavigateToPredictor: () => void;
+    onAssetSelect?: (asset: string) => void;
 }
 
 const NavButton: React.FC<{
@@ -33,7 +35,7 @@ const NavButton: React.FC<{
     </button>
 );
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor, onAssetSelect }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
@@ -176,7 +178,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                 </nav>
 
                 <main>
-                   <MarketOverview analysisCount={analysisCount} onResetCount={handleResetAnalysisCount} />
+                   <MarketOverview 
+                        analysisCount={analysisCount} 
+                        onResetCount={handleResetAnalysisCount} 
+                        onAssetSelect={onAssetSelect}
+                   />
                    <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl">
                         {error ? (
                              <div className="min-h-[400px] flex flex-col items-center justify-center">

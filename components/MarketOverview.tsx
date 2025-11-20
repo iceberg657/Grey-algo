@@ -79,9 +79,10 @@ const generateChartData = () => {
 interface MarketOverviewProps {
     analysisCount: number;
     onResetCount: () => void;
+    onAssetSelect?: (asset: string) => void;
 }
 
-export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount }) => {
+export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect }) => {
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstance = useRef<any>(null); // Using any for Chart.js instance
     const [timeRange, setTimeRange] = useState<'1H' | '1D' | '1W'>('1H');
@@ -188,7 +189,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-4 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
             
             <div className="mb-6">
-                <MarketTicker />
+                <MarketTicker onAssetClick={onAssetSelect} />
             </div>
 
             <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" className="block cursor-pointer group">

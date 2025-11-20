@@ -35,6 +35,9 @@ const App: React.FC = () => {
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
     
+    // State to handle redirects to chat with a prompt
+    const [pendingChatQuery, setPendingChatQuery] = useState<string | null>(null);
+
     // State for NewsPage with localStorage persistence
     const [news, setNews] = useState<NewsArticle[]>(() => {
         try {
@@ -198,6 +201,11 @@ const App: React.FC = () => {
             setIsTransitioning(false);
         }, 2500); // 2.5 second transition for loading effect
     };
+
+    const handleAssetSelect = (asset: string) => {
+        setPendingChatQuery(`Tell me the current update on ${asset}`);
+        setAppView('chat');
+    };
     
     if (isTransitioning) {
         return <TransitionLoader />;
@@ -244,6 +252,8 @@ const App: React.FC = () => {
                     messages={chatMessages}
                     setMessages={setChatMessages}
                     onNewChat={handleNewChat}
+                    initialInput={pendingChatQuery}
+                    onClearInitialInput={() => setPendingChatQuery(null)}
                 />
             </>
         );
@@ -302,6 +312,7 @@ const App: React.FC = () => {
                 onNavigateToNews={handleNavigateToNews}
                 onNavigateToChat={handleNavigateToChat}
                 onNavigateToPredictor={handleNavigateToPredictor}
+                onAssetSelect={handleAssetSelect}
             />
         </>
     );

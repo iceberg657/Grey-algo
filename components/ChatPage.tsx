@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance } from '../services/chatService';
@@ -119,6 +120,8 @@ interface ChatPageProps {
     messages: ChatMessage[];
     setMessages: React.Dispatch<React.SetStateAction<ChatMessage[]>>;
     onNewChat: () => void;
+    initialInput?: string | null;
+    onClearInitialInput?: () => void;
 }
 
 const OracleLogo: React.FC = () => (
@@ -137,13 +140,12 @@ const OracleLogo: React.FC = () => (
 );
 
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat }) => {
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
     const [waitingMessageId, setWaitingMessageId] = useState<string | null>(null);
-    // FIX: Use `ReturnType<typeof setTimeout>` instead of `NodeJS.Timeout` for browser compatibility.
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -225,8 +227,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = e.target.files;
         if (files) {
-            // FIX: Explicitly type the 'file' parameter in filter callbacks to ensure
-            // TypeScript recognizes it as a File object, resolving property access errors.
             const newFiles = Array.from(files).filter((file: File) => file.type.startsWith('image/'));
             if (newFiles.length > 0) {
                  const uniqueNewFiles = newFiles.filter(
@@ -241,28 +241,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         }
     };
 
-    const handleSendMessage = useCallback(async (e: React.FormEvent) => {
-        e.preventDefault();
-        const finalInput = input;
-        if ((!finalInput.trim() && imageFiles.length === 0) || isLoading) return;
+    // Separated logic to execute message sending, allowing it to be called programmatically
+    const executeSendMessage = useCallback(async (text: string, files: File[], previews: string[]) => {
+         if ((!text.trim() && files.length === 0) || isLoading) return;
 
         const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
             role: 'user',
-            text: finalInput,
-            images: imagePreviews,
+            text: text,
+            images: previews,
         };
         setMessages(prev => [...prev, userMessage]);
         
-        setInput('');
-        const currentImageFiles = imageFiles;
-        
-        setImageFiles([]);
-        setImagePreviews([]);
-        if (fileInputRef.current) {
-            fileInputRef.current.value = '';
-        }
-
         setIsLoading(true);
         setError(null);
 
@@ -270,13 +260,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             const chat = getChatInstance();
             const messageParts: (({ text: string } | { inlineData: { data: string, mimeType: string } }))[] = [];
 
-            if (currentImageFiles.length > 0) {
-                const imageParts = await Promise.all(currentImageFiles.map(file => fileToImagePart(file)));
+            if (files.length > 0) {
+                const imageParts = await Promise.all(files.map(file => fileToImagePart(file)));
                  imageParts.forEach(imagePart => {
                     messageParts.push({ inlineData: { data: imagePart.data, mimeType: imagePart.mimeType } });
                 });
             }
-            messageParts.push({ text: finalInput });
+            messageParts.push({ text: text });
 
             const result = await chat.sendMessageStream({ message: messageParts });
 
@@ -305,7 +295,32 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         } finally {
             setIsLoading(false);
         }
-    }, [input, isLoading, imageFiles, imagePreviews, setMessages]);
+    }, [isLoading, setMessages]);
+
+    const handleSendMessage = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const currentText = input;
+        const currentFiles = imageFiles;
+        const currentPreviews = imagePreviews;
+
+        // Clear UI immediately
+        setInput('');
+        setImageFiles([]);
+        setImagePreviews([]);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+        }
+
+        await executeSendMessage(currentText, currentFiles, currentPreviews);
+    };
+
+    // Effect to handle initial input from props (e.g. ticker click)
+    useEffect(() => {
+        if (initialInput) {
+            executeSendMessage(initialInput, [], []);
+            if (onClearInitialInput) onClearInitialInput();
+        }
+    }, [initialInput, executeSendMessage, onClearInitialInput]);
     
     return (
         <div className="h-screen bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col relative">
