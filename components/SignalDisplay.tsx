@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
@@ -9,6 +10,8 @@ interface InfoCardProps {
     isSignal?: boolean;
     signalType?: SignalData['signal'];
     valueClassName?: string;
+    subValue?: string; 
+    subValueClassName?: string;
 }
 
 const getSignalTextClasses = (signal: SignalData['signal']) => {
@@ -20,7 +23,7 @@ const getSignalTextClasses = (signal: SignalData['signal']) => {
     }
 };
 
-const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal = false, signalType, valueClassName }) => (
+const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal = false, signalType, valueClassName, subValue, subValueClassName }) => (
     <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 ${className}`}>
         <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider">{label}</span>
         {isSignal ? (
@@ -30,6 +33,11 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
         ) : (
             <span className={`text-lg font-mono mt-1 font-semibold ${valueClassName || 'text-gray-800 dark:text-dark-text'}`}>
                 {value}
+            </span>
+        )}
+        {subValue && (
+            <span className={`text-[10px] font-bold uppercase mt-1 ${subValueClassName || 'text-gray-500'}`}>
+                {subValue}
             </span>
         )}
     </div>
@@ -98,7 +106,6 @@ const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.
 
 export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
-    // FIX: Use `ReturnType<typeof setTimeout>` instead of `NodeJS.Timeout` for browser compatibility.
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
@@ -121,10 +128,17 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             }
             setTtsState('idle');
         } else { // ttsState is 'idle'
-            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment } = data;
+            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence } = data;
+            
+            // Determine probability level for TTS
+            let probabilityLevel = "Low Probability";
+            if (confidence >= 80) probabilityLevel = "High Probability, A plus setup";
+            else if (confidence >= 65) probabilityLevel = "Medium Probability";
+
             const textToSpeak = `
                 Analysis for ${asset}.
                 Signal is ${signal}.
+                Confidence is ${confidence} percent, classified as ${probabilityLevel}.
                 The three entry points are ${entryPoints.join(', ')}.
                 Stop loss is at ${stopLoss}.
                 Take profits are at ${takeProfits.join(', ')}.
@@ -152,6 +166,15 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
     const isBusy = ttsState !== 'idle';
     
+    // Determine classification display
+    const getConfidenceDetails = (score: number) => {
+        if (score >= 80) return { label: "High Probability", color: "text-green-400" };
+        if (score >= 65) return { label: "Medium Probability", color: "text-yellow-400" };
+        return { label: "Low Probability", color: "text-gray-400" };
+    };
+    
+    const confidenceDetails = getConfidenceDetails(data.confidence);
+
     return (
         <div className="animate-fade-in text-sm">
             <header className="flex justify-between items-center mb-4">
@@ -175,7 +198,12 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
             <div className="grid grid-cols-3 gap-2">
                 <InfoCard label="Signal" value={data.signal} isSignal signalType={data.signal} />
-                <InfoCard label="Confidence" value={`${data.confidence}%`} />
+                <InfoCard 
+                    label="Confidence" 
+                    value={`${data.confidence}%`} 
+                    subValue={confidenceDetails.label}
+                    subValueClassName={confidenceDetails.color}
+                />
                 <InfoCard label="Stop Loss" value={data.stopLoss} valueClassName="text-red-500 dark:text-red-400" />
             </div>
 
