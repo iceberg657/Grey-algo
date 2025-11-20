@@ -13,6 +13,8 @@ export interface AnalysisRequest {
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
+    globalContext?: string;
+    learnedStrategies?: string[];
 }
 
 export interface EconomicEvent {
@@ -53,6 +55,19 @@ export interface MarketDataItem {
     price: number;
     change: number;
     changePercent: number;
+}
+
+export interface GlobalMarketSector {
+    name: string;
+    asset: string;
+    bias: 'Bullish' | 'Bearish' | 'Neutral';
+    reason: string;
+}
+
+export interface GlobalMarketAnalysis {
+    timestamp: number;
+    sectors: GlobalMarketSector[];
+    globalSummary: string;
 }
 
 export interface NewsArticle {

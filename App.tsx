@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
@@ -15,6 +16,7 @@ import { TransitionLoader } from './components/TransitionLoader';
 import { getForexNews } from './services/newsService';
 import { getPredictedEvents } from './services/predictorService';
 import { resetChat as resetChatService } from './services/chatService';
+import { AutoLearningManager } from './components/AutoLearningManager';
 
 
 type AuthPage = 'login' | 'signup';
@@ -201,6 +203,10 @@ const App: React.FC = () => {
         return <TransitionLoader />;
     }
 
+    // Render AutoLearningManager inside the main app container to ensure it runs
+    // whenever the app is mounted, but outside of specific pages so it persists.
+    const autoLearning = isLoggedIn ? <AutoLearningManager /> : null;
+
     if (appView === 'landing') {
         return <LandingPage onEnterApp={handleEnterApp} />;
     }
@@ -213,62 +219,92 @@ const App: React.FC = () => {
     }
 
     if (appView === 'predictor') {
-        return <PredictorPage 
-            onBack={handleNavigateToHome} 
-            onLogout={handleLogout}
-            events={predictedEvents}
-            isLoading={isPredictorLoading}
-            error={predictorError}
-            onFetchPredictions={fetchPredictedEventsData}
-        />;
+        return (
+            <>
+                {autoLearning}
+                <PredictorPage 
+                    onBack={handleNavigateToHome} 
+                    onLogout={handleLogout}
+                    events={predictedEvents}
+                    isLoading={isPredictorLoading}
+                    error={predictorError}
+                    onFetchPredictions={fetchPredictedEventsData}
+                />
+            </>
+        );
     }
 
     if (appView === 'chat') {
-        return <ChatPage 
-            onBack={handleNavigateToHome} 
-            onLogout={handleLogout}
-            messages={chatMessages}
-            setMessages={setChatMessages}
-            onNewChat={handleNewChat}
-        />;
+        return (
+            <>
+                {autoLearning}
+                <ChatPage 
+                    onBack={handleNavigateToHome} 
+                    onLogout={handleLogout}
+                    messages={chatMessages}
+                    setMessages={setChatMessages}
+                    onNewChat={handleNewChat}
+                />
+            </>
+        );
     }
 
     if (appView === 'news') {
-        return <NewsPage 
-            onBack={handleNavigateToHome} 
-            onLogout={handleLogout}
-            news={news}
-            isLoading={isNewsLoading}
-            error={newsError}
-            onFetchNews={fetchNewsData}
-        />;
+        return (
+             <>
+                {autoLearning}
+                <NewsPage 
+                    onBack={handleNavigateToHome} 
+                    onLogout={handleLogout}
+                    news={news}
+                    isLoading={isNewsLoading}
+                    error={newsError}
+                    onFetchNews={fetchNewsData}
+                />
+            </>
+        );
     }
 
     if (appView === 'history') {
-        return <HistoryPage 
-            onSelectAnalysis={(data) => handleNavigateToAnalysis(data, 'history')}
-            onBack={handleNavigateToHome}
-            onLogout={handleLogout}
-        />;
+        return (
+            <>
+                {autoLearning}
+                <HistoryPage 
+                    onSelectAnalysis={(data) => handleNavigateToAnalysis(data, 'history')}
+                    onBack={handleNavigateToHome}
+                    onLogout={handleLogout}
+                />
+            </>
+        );
     }
 
     if (appView === 'analysis' && analysisData) {
-        return <AnalysisPage 
-            data={analysisData} 
-            onBack={handleBackFromAnalysis} 
-            onLogout={handleLogout}
-        />;
+        return (
+            <>
+                {autoLearning}
+                <AnalysisPage 
+                    data={analysisData} 
+                    onBack={handleBackFromAnalysis} 
+                    onLogout={handleLogout}
+                />
+            </>
+        );
     }
 
     // Default to home page if logged in
-    return <HomePage 
-        onLogout={handleLogout} 
-        onAnalysisComplete={handleNewAnalysis} 
-        onNavigateToHistory={handleNavigateToHistory}
-        onNavigateToNews={handleNavigateToNews}
-        onNavigateToChat={handleNavigateToChat}
-        onNavigateToPredictor={handleNavigateToPredictor}
-    />;
+    return (
+        <>
+            {autoLearning}
+            <HomePage 
+                onLogout={handleLogout} 
+                onAnalysisComplete={handleNewAnalysis} 
+                onNavigateToHistory={handleNavigateToHistory}
+                onNavigateToNews={handleNavigateToNews}
+                onNavigateToChat={handleNavigateToChat}
+                onNavigateToPredictor={handleNavigateToPredictor}
+            />
+        </>
+    );
 };
 
 export default App;

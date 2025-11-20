@@ -1,5 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { getOrRefreshGlobalAnalysis } from '../services/globalMarketService';
+import type { GlobalMarketAnalysis } from '../types';
 
 // Hook to get current time and session
 const useDateTime = () => {
@@ -85,6 +87,33 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     const [timeRange, setTimeRange] = useState<'1H' | '1D' | '1W'>('1H');
     const { isOpen, statusText } = useMarketStatus();
     const { day, date, time, utcOffset, activeSessions } = useDateTime();
+    const [globalAnalysis, setGlobalAnalysis] = useState<GlobalMarketAnalysis | null>(null);
+    const [isUpdatingGlobal, setIsUpdatingGlobal] = useState(false);
+
+    // Fetch Global Market Analysis with 1hr auto-refresh logic
+    useEffect(() => {
+        const fetchAnalysis = async () => {
+            if (isUpdatingGlobal) return;
+            setIsUpdatingGlobal(true);
+            try {
+                const data = await getOrRefreshGlobalAnalysis();
+                setGlobalAnalysis(data);
+            } catch (e) {
+                console.error("Failed to load global analysis", e);
+            } finally {
+                setIsUpdatingGlobal(false);
+            }
+        };
+
+        fetchAnalysis();
+        
+        // Check every 1 minute if the 1-hour cache has expired, if so, refresh
+        const interval = setInterval(() => {
+            fetchAnalysis();
+        }, 60000); 
+
+        return () => clearInterval(interval);
+    }, []);
 
     useEffect(() => {
         if (!chartRef.current) return;
@@ -149,6 +178,12 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         }
     };
 
+    const getBiasColor = (bias: string) => {
+        if (bias === 'Bullish') return 'text-green-400 border-green-500/30 bg-green-500/10';
+        if (bias === 'Bearish') return 'text-red-400 border-red-500/30 bg-red-500/10';
+        return 'text-gray-400 border-gray-500/30 bg-gray-500/10';
+    };
+
     return (
         <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-4 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
             <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" className="block cursor-pointer group">
@@ -174,7 +209,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     <canvas ref={chartRef}></canvas>
                 </div>
             </a>
-            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+            
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Market Status Card */}
                 <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[120px]">
                     <div className="flex justify-between items-start">
@@ -245,6 +281,49 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         Reset
                     </button>
                 </div>
+            </div>
+
+            {/* Global Market Structure Section */}
+            <div className="mt-6 pt-6 border-t border-gray-300 dark:border-green-500/20">
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-dark-text">
+                        Global Market Structure
+                        {isUpdatingGlobal && <span className="ml-2 text-xs font-normal text-blue-400 animate-pulse">(Updating...)</span>}
+                    </h3>
+                    <span className="text-xs text-dark-text-secondary bg-dark-bg/40 px-2 py-1 rounded">Auto-Updates Hourly</span>
+                </div>
+                
+                {globalAnalysis ? (
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            {globalAnalysis.sectors.map((sector) => (
+                                <div key={sector.asset} className={`p-3 rounded-xl border flex flex-col justify-between ${getBiasColor(sector.bias)}`}>
+                                    <div className="flex justify-between items-start mb-2">
+                                        <div>
+                                            <span className="text-xs font-bold uppercase opacity-70">{sector.name}</span>
+                                            <h4 className="font-bold text-lg">{sector.asset}</h4>
+                                        </div>
+                                        <span className="text-xs font-bold px-2 py-1 rounded bg-black/20">{sector.bias}</span>
+                                    </div>
+                                    <p className="text-xs opacity-90 leading-tight">{sector.reason}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-xl flex items-start gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <p className="text-sm text-blue-100/90">
+                                <span className="font-bold text-blue-300">Global Context:</span> {globalAnalysis.globalSummary}
+                            </p>
+                        </div>
+                         <p className="text-right text-[10px] text-dark-text-secondary mt-1">Last Updated: {new Date(globalAnalysis.timestamp).toLocaleTimeString()}</p>
+                    </div>
+                ) : (
+                    <div className="flex justify-center py-8">
+                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
+                    </div>
+                )}
             </div>
         </div>
     );

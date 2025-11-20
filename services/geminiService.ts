@@ -1,11 +1,21 @@
 
 import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
+import { getStoredGlobalAnalysis } from './globalMarketService';
+import { getLearnedStrategies } from './learningService';
 
-const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean) => {
+const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
     const styleInstruction = tradingStyle === 'Short Term' 
         ? "Short Term (Intraday Power Shift): Execute as an Intraday strategy focused on MOMENTUM DOMINANCE. Look for specific scenarios where one side is overpowering the other (e.g., Bulls overpowering Bears in a downtrend, or Bears overpowering Bulls in an uptrend). Prioritize entries at these moments of power shift."
         : tradingStyle;
+    
+    const contextSection = globalContext 
+        ? `\n**Global Market Context (Live 1H Update):**\n${globalContext}\n\n**Instruction:** Use the above Global Market Context to weight your probability. If the global structure contradicts the chart signal, lower the confidence score. If it aligns, increase confidence.` 
+        : "";
+
+    const learnedSection = learnedStrategies.length > 0
+        ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
+        : "";
 
     return `
 Act as an expert forex trading analyst. Your primary goal is to provide a clear, actionable trading recommendation (BUY, SELL, or WAIT) based strictly on a multi-timeframe analysis of the provided chart screenshots. You must follow the structured, step-by-step framework below.
@@ -14,6 +24,8 @@ Act as an expert forex trading analyst. Your primary goal is to provide a clear,
 ${isMultiDimensional
 ? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF). Use this hierarchy for your analysis.`
 : `You are provided with a single Tactical View chart. Adapt the multi-step analysis to market structure visible on this single timeframe.`}
+${contextSection}
+${learnedSection}
 
 **Core Analytical Framework:**
 
@@ -121,7 +133,7 @@ function isOverloadedError(error: unknown): boolean {
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
-    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional) };
+    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
     // FIX: Explicitly type promptParts to allow both text and image parts to be added.
     // This resolves the type inference issue where the array was assumed to only contain text parts.
     const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
@@ -215,13 +227,28 @@ async function callApiEndpoint(request: AnalysisRequest): Promise<SignalData> {
  * with retry logic for overload errors.
  */
 export async function generateTradingSignal(request: AnalysisRequest): Promise<SignalData> {
+    // Try to attach global context if available (client-side only)
+    let enhancedRequest = { ...request };
+    
+    if (typeof window !== 'undefined') {
+        const storedAnalysis = getStoredGlobalAnalysis();
+        if (storedAnalysis) {
+            enhancedRequest.globalContext = storedAnalysis.globalSummary;
+        }
+
+        const strategies = getLearnedStrategies();
+        if (strategies.length > 0) {
+            enhancedRequest.learnedStrategies = strategies;
+        }
+    }
+
     const apiCall = () => {
         if (process.env.API_KEY) {
             console.log("Using direct Gemini API call (AI Studio environment detected).");
-            return callGeminiDirectly(request);
+            return callGeminiDirectly(enhancedRequest);
         } else {
             console.log("Using backend API endpoint (Vercel/Web environment detected).");
-            return callApiEndpoint(request);
+            return callApiEndpoint(enhancedRequest);
         }
     };
 

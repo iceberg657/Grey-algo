@@ -10,10 +10,18 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 
-const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional) => {
+const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext, learnedStrategies = []) => {
     const styleInstruction = tradingStyle === 'Short Term' 
         ? "Short Term (Intraday Power Shift): Execute as an Intraday strategy focused on MOMENTUM DOMINANCE. Look for specific scenarios where one side is overpowering the other (e.g., Bulls overpowering Bears in a downtrend, or Bears overpowering Bulls in an uptrend). Prioritize entries at these moments of power shift."
         : tradingStyle;
+
+    const contextSection = globalContext 
+        ? `\n**Global Market Context:**\n${globalContext}\n\n**Instruction:** Use the above Global Market Context to weight your probability. If the global structure contradicts the chart signal, lower the confidence score. If it aligns, increase confidence.` 
+        : "";
+
+    const learnedSection = learnedStrategies.length > 0
+        ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
+        : "";
 
     return `
 Act as an expert forex trading analyst. Your primary goal is to provide a clear, actionable trading recommendation (BUY, SELL, or WAIT) based strictly on a multi-timeframe analysis of the provided chart screenshots. You must follow the structured, step-by-step framework below.
@@ -22,6 +30,8 @@ Act as an expert forex trading analyst. Your primary goal is to provide a clear,
 ${isMultiDimensional
 ? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF). Use this hierarchy for your analysis.`
 : `You are provided with a single Tactical View chart. Adapt the multi-step analysis to market structure visible on this single timeframe.`}
+${contextSection}
+${learnedSection}
 
 **Core Analytical Framework:**
 
@@ -84,7 +94,7 @@ ${isMultiDimensional
 
 
 async function callGemini(request) {
-    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional) };
+    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
     const promptParts = [textPart];
 
     if (request.isMultiDimensional && request.images.higher) {
