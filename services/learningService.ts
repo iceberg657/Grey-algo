@@ -6,16 +6,16 @@ const DAILY_STATS_KEY = 'greyquant_learning_stats';
 
 const LEARNING_PROMPT = `
 You are an autonomous trading AI upgrading your core logic. 
-Using Google Search, find a specific, advanced trading concept, anomaly, or institutional strategy that is currently relevant (e.g., "ICT Silver Bullet", "Wyckoff Spring", "Order Flow Imbalance", "Fair Value Gap Reversion", "Market Maker Buy Model"). 
-Focus on concepts that provide a high-probability statistical edge.
+Your task is to discover a new, high-performance algorithmic trading strategy specifically from the **QuantConnect** ecosystem (quantconnect.com, including forums, tutorials, and documentation).
 
 **Instructions:**
-1. Identify ONE specific advanced strategy or concept.
-2. Summarize it into a single, concise, instructional rule that an AI can use to analyze a chart.
-3. The rule must be actionable (e.g., "Identify x, wait for y, then execute z").
+1. Use Google Search to find a specific, profitable trading strategy or concept discussed or documented on **QuantConnect**.
+2. Focus on strategies with a demonstrable statistical edge (e.g., Mean Reversion, Momentum, Statistical Arbitrage, Machine Learning Alpha, or specific indicator combinations favored by quants).
+3. Summarize this strategy into a single, concise, **instructional rule** that can be applied to technical chart analysis.
+4. The rule must be actionable (e.g., "Identify x, confirm with y, then execute z").
 
 **Output:**
-Return ONLY the text of the rule. Do not include any introductory text or JSON formatting. Just the rule string.
+Return ONLY the text of the rule. Do not include any introductory text, titles, or JSON formatting. Just the rule string.
 `;
 
 interface DailyStats {
