@@ -1,8 +1,8 @@
 
-
 import { GoogleGenAI, Chat } from "@google/genai";
+import { getStoredGlobalAnalysis } from './globalMarketService';
 
-const SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI and chat assistant. You operate with the same persona as your chart analysis counterpart: supreme confidence, absolute certainty, and a focus on exploiting market inefficiencies.
+const BASE_SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI and chat assistant. You operate with the same persona as your chart analysis counterpart: supreme confidence, absolute certainty, and a focus on exploiting market inefficiencies.
 
 **Your Core Directives:**
 1.  **Unyielding Confidence:** Never express uncertainty. Avoid words like 'could', 'might', 'suggests', 'seems', 'potential', 'likely'. Your statements are declarations of market truth. You speak in absolutes. The market WILL react as you predict.
@@ -50,6 +50,48 @@ You are also an expert on the 'GreyQuant' application. When asked about the app,
     5.  **Deliver the Scalping Rationale:** Explain your reasoning with the clarity of a master teaching a student. Detail step-by-step how to scalp the body of the current higher timeframe candle based on your analysis. Your explanation is the blueprint for the trade.
     Your entire analysis must translate the chart data into a practical, high-conviction trade idea that includes bias, confirmation, and explicit risk management.`;
 
+function getDynamicSystemInstruction(): string {
+    const now = new Date();
+    const utcHour = now.getUTCHours();
+    let session = 'Asian Session';
+    
+    // Determine active session
+    if (utcHour >= 7 && utcHour < 16) session = 'London Session';
+    else if (utcHour >= 12 && utcHour < 21) session = 'New York Session'; // Overlap logic simplified
+    else session = 'Asian / Late Session';
+
+    const globalData = getStoredGlobalAnalysis();
+    let globalContextStr = "Global Market Context: Data currently unavailable. You may need to perform a fresh search.";
+    
+    if (globalData) {
+        globalContextStr = `
+**LIVE GLOBAL MARKET CONTEXT (Synced: ${new Date(globalData.timestamp).toISOString()}):**
+- **Global Sentiment:** ${globalData.globalSummary}
+- **Sector Breakdown:**
+${globalData.sectors.map(s => `  * ${s.asset} (${s.name}): ${s.bias} (${s.reason})`).join('\n')}
+`;
+    }
+
+    const dynamicContext = `
+**REAL-TIME SYNC:**
+- **Current UTC Time:** ${now.toUTCString()}
+- **Active Trading Session:** ${session}
+${globalContextStr}
+
+**PAIR SELECTION PROTOCOL:**
+If the user asks "What should I trade?", "Give me a pair", or "Suggest a setup", you MUST follow this logic:
+1.  **Filter by Session:** Select a pair that is highly liquid in the current **${session}**. (e.g., GBP/USD or EUR/GBP for London; USD/CAD, XAU/USD, or Indices for New York; JPY/AUD pairs for Asian).
+2.  **Align with Global Bias:** Cross-reference with the **Sector Breakdown** above.
+    *   *Example:* If DXY is Bullish (US Dollar strength), look for SELL setups on EUR/USD or GBP/USD, or BUY setups on USD/JPY.
+    *   *Example:* If Gold is Bullish, suggest XAU/USD LONG.
+3.  **Declarative Output:** Do not ask what they want. TELL them what to watch.
+    *   **Format:** "I have analyzed the ${session} dynamics and the current global structure. I have selected **[PAIR]**."
+    *   **Reasoning:** "My selection is based on [Sector Bias] which aligns with [Session Volume/Volatility]. The market structure suggests a high-probability [Buy/Sell] opportunity."
+`;
+
+    return `${BASE_SYSTEM_INSTRUCTION}\n${dynamicContext}`;
+}
+
 let chat: Chat | null = null;
 
 export function initializeChat(): Chat {
@@ -58,7 +100,7 @@ export function initializeChat(): Chat {
         chat = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
-                systemInstruction: SYSTEM_INSTRUCTION,
+                systemInstruction: getDynamicSystemInstruction(),
                 tools: [{ googleSearch: {} }],
                 temperature: 0.2,
             },
