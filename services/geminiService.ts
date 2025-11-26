@@ -33,12 +33,21 @@ ${contextSection}
 ${learnedSection}
 
 **NEWS IMPACT GUARDRAIL (CRITICAL):**
-Before issuing a signal, you MUST check for high-impact news events scheduled for this asset within the next **30 to 60 minutes**.
-1. **Alignment Check:**
-   - If High-Impact News is imminent AND aligns with your technical bias -> **BOOST CONFIDENCE**.
-   - If High-Impact News is imminent AND contradicts your bias OR is unpredictable -> **ABORT TRADE**. Set Signal to 'NEUTRAL'.
-2. **Wait Protocol:**
-   - If you abort due to news conflict, you MUST provide an \`estimatedWaitTime\` in the output (e.g., "Wait 45 minutes for news impact to settle").
+Before issuing a signal, you MUST check for high-impact news events scheduled for this asset within the next **60 minutes**.
+
+1. **"PRE-NEWS PROFIT" PROTOCOL (20-60 mins before news):**
+   - **Objective:** Capture the price movement *leading up* to the news event (the "Liquidity Run"). Price often accelerates toward key levels before a release.
+   - **Action:** If a clear trend is visible, issue a **SCALP** signal to capture profit **BEFORE** the event occurs.
+   - **Constraint:** The setup MUST target a quick TP1 that is reachable within the time remaining.
+   - **Mandatory Warning:** You MUST explicitly state in the reasoning: **"Scalp the pre-news run. CLOSE ALL TRADES 5 minutes before the news release."**
+
+2. **"IMMINENT DANGER" PROTOCOL (< 20 mins before news):**
+   - **Scenario:** High-Impact news is less than 20 minutes away.
+   - **Action:** Volatility is too unpredictable. Abort trade. Set Signal to 'NEUTRAL'.
+   - **Output:** Provide \`estimatedWaitTime\` (e.g., "Wait 30 minutes for news impact to settle").
+
+3. **"CLEAR SKIES" PROTOCOL (> 60 mins before news):**
+   - **Action:** Proceed with standard technical analysis.
 
 **CONFIDENCE SCORING PROTOCOL (Strict Enforcement):**
 - **80 - 95 (HIGH PROBABILITY):** The "Perfect Trade". Trend, Momentum, Structure, Global Context, and News Alignment all match. This is a "Sniper Entry".
