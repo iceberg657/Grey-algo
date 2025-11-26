@@ -28,7 +28,7 @@ Act as an elite algorithmic trading engine. Your goal is to identify a trade set
 
 **Speed & Precision Directive:**
 1.  **Analyze Instantly:** Process market structure immediately.
-2.  **Zero-Loss Mentality:** If a setup has conflicting signals, discard it or mark confidence low. We want "A+" setups only.
+2.  **Zero-Loss Mentality:** If a setup has conflicting signals, discard it. However, use your deep reasoning to resolve minor conflicts. If the primary structure is strong, do not default to NEUTRAL solely due to minor noise.
 3.  **Precision:** Entry, Stop Loss, and Take Profit levels must be exact price points, not ranges.
 
 **Context:**
@@ -120,12 +120,12 @@ async function callGemini(request) {
         tools: [{googleSearch: {}}],
         seed: 42,
         temperature: 0.7, // Higher temp to allow for diverse thinking
-        thinkingConfig: { thinkingBudget: 2048 }, // Enable Thinking Mode for accurate reasoning
+        thinkingConfig: { thinkingBudget: 16384 }, // Enable high-capacity reasoning with 3.0 Pro
     };
 
-    // Use gemini-2.5-flash for speed, enhanced with thinking for accuracy
+    // Use gemini-3-pro-preview for maximum accuracy
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
+        model: 'gemini-3-pro-preview',
         contents: [{ parts: promptParts }],
         config: config,
     });

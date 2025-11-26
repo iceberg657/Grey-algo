@@ -6,13 +6,17 @@ const DAILY_STATS_KEY = 'greyquant_learning_stats';
 
 const LEARNING_PROMPT = `
 You are an autonomous trading AI upgrading your core logic. 
-Your task is to discover a new, high-performance algorithmic trading strategy specifically from the **QuantConnect** ecosystem (quantconnect.com, including forums, tutorials, and documentation).
+Your task is to discover a new, high-utility trading concept, strategy, or pattern recognition technique that will improve your ability to **analyze chart screenshots**.
 
 **Instructions:**
-1. Use Google Search to find a specific, profitable trading strategy or concept discussed or documented on **QuantConnect**.
-2. Focus on strategies with a demonstrable statistical edge (e.g., Mean Reversion, Momentum, Statistical Arbitrage, Machine Learning Alpha, or specific indicator combinations favored by quants).
-3. Summarize this strategy into a single, concise, **instructional rule** that can be applied to technical chart analysis.
-4. The rule must be actionable (e.g., "Identify x, confirm with y, then execute z").
+1. Use Google Search to find specific, high-probability trading concepts. Focus on:
+   - **Advanced Chart Patterns:** (e.g., Wyckoff Schematics, Quasimodo patterns, Harmonic patterns, Head and Shoulders failures).
+   - **Institutional Price Action (SMC/ICT):** (e.g., Order Blocks, Fair Value Gaps, Liquidity Sweeps, Breaker Blocks, Killzones).
+   - **Candlestick Psychology:** Hidden rejection, volume-spread analysis (VSA), multi-candle rejection formations.
+   - **Quantitative Strategies:** Mean Reversion, Momentum, Statistical Arbitrage strategies that have visual cues.
+2. Select ONE specific concept.
+3. Summarize this concept into a single, concise, **instructional rule** that you can apply when analyzing a chart image.
+4. The rule must be actionable (e.g., "Identify a liquidity sweep of a previous high, wait for a displacement candle closing below the range, then enter on the retest of the breaker block.").
 
 **Output:**
 Return ONLY the text of the rule. Do not include any introductory text, titles, or JSON formatting. Just the rule string.

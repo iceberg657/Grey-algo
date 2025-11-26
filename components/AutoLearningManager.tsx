@@ -60,8 +60,8 @@ export const AutoLearningManager: React.FC = () => {
     const startLearningSession = useCallback(async () => {
         if (!mountedRef.current) return;
 
-        // Calculate random duration between 7 and 9 minutes
-        const durationMinutes = Math.random() * (9 - 7) + 7; 
+        // Set fixed duration to 2 minutes
+        const durationMinutes = 2; 
         const durationMs = durationMinutes * 60 * 1000;
 
         // Calculate Next Update Time for display
@@ -105,7 +105,7 @@ export const AutoLearningManager: React.FC = () => {
             console.error("Auto-ML Error:", e);
         }
 
-        // The visual effect and state persist for the random duration (7-9 minutes)
+        // The visual effect and state persist for the duration
         if (sessionRef.current) clearTimeout(sessionRef.current);
         sessionRef.current = setTimeout(() => {
             endLearningSession();
@@ -145,7 +145,7 @@ export const AutoLearningManager: React.FC = () => {
                                  <h4 className="font-bold text-sm text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 animate-pulse">
                                     AUTO-MACHINE LEARNING ACTIVE
                                 </h4>
-                                <p className="text-xs text-gray-400 mt-0.5">Upgrading core trading logic...</p>
+                                <p className="text-xs text-gray-400 mt-0.5">Upgrading core pattern recognition...</p>
                             </div>
                         </div>
                         <div className="h-8 w-8 border-2 border-t-red-500 border-r-orange-500 border-b-yellow-500 border-l-transparent rounded-full animate-spin"></div>
