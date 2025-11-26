@@ -47,10 +47,15 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
    - **Constraint:** The setup MUST target a quick TP1 that is reachable within the time remaining.
    - **Mandatory Warning:** You MUST explicitly state in the reasoning: **"Scalp the pre-news run. CLOSE ALL TRADES 5 minutes before the news release."**
 
-2. **"IMMINENT DANGER" PROTOCOL (< 20 mins before news):**
-   - **Scenario:** High-Impact news is less than 20 minutes away.
-   - **Action:** Volatility is too unpredictable. Abort trade. Set Signal to 'NEUTRAL'.
-   - **Output:** Provide \`estimatedWaitTime\` (e.g., "Wait 30 minutes for news impact to settle").
+2. **"NEWS EVENT TECHNICAL ANALYSIS" PROTOCOL (< 20 mins before news):**
+   - **Scenario:** High-Impact news is imminent (less than 20 minutes away).
+   - **Action:** **DO NOT** default to 'NEUTRAL' unless the chart is completely unreadable. Instead, apply **"News Event Technical Analysis"**.
+   - **Logic:** News events often act as catalysts that force price into key liquidity zones or complete existing technical patterns.
+   - **Task:**
+     1. Identify the **Key Liquidity Zone** or **Order Block** the market is likely to target immediately upon release.
+     2. Determine if the dominant technical bias supports a **Breakout** or a **Fake-out (Liquidity Sweep)**.
+     3. Issue a **BUY** or **SELL** signal based on this volatility thesis.
+   - **Mandatory Reasoning:** You MUST include: "News Impact Analysis: Targeting volatility move towards [Price Level]. Use wide stops."
 
 3. **"CLEAR SKIES" PROTOCOL (> 60 mins before news):**
    - **Action:** Proceed with standard technical analysis.
