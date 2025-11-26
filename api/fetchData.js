@@ -38,9 +38,17 @@ ${isMultiDimensional
 ${contextSection}
 ${learnedSection}
 
+**NEWS IMPACT GUARDRAIL (CRITICAL):**
+Before issuing a signal, you MUST check for high-impact news events scheduled for this asset within the next **30 to 60 minutes**.
+1. **Alignment Check:**
+   - If High-Impact News is imminent AND aligns with your technical bias -> **BOOST CONFIDENCE**.
+   - If High-Impact News is imminent AND contradicts your bias OR is unpredictable -> **ABORT TRADE**. Set Signal to 'NEUTRAL'.
+2. **Wait Protocol:**
+   - If you abort due to news conflict, you MUST provide an \`estimatedWaitTime\` in the output (e.g., "Wait 45 minutes for news impact to settle").
+
 **CONFIDENCE SCORING PROTOCOL (Strict Enforcement):**
-- **80 - 95 (HIGH PROBABILITY):** The "Perfect Trade". Trend, Momentum, Structure, and Global Context all align perfectly. This is a "Sniper Entry".
-- **65 - 79 (MEDIUM PROBABILITY):** Good setup with strong potential, but one minor factor (e.g., news risk or minor resistance) suggests caution.
+- **80 - 95 (HIGH PROBABILITY):** The "Perfect Trade". Trend, Momentum, Structure, Global Context, and News Alignment all match. This is a "Sniper Entry".
+- **65 - 79 (MEDIUM PROBABILITY):** Good setup with strong potential, but one minor factor suggests caution.
 - **< 65 (NO TRADE):** If the confidence is below 65, mark the signal as NEUTRAL.
 
 **Analytical Framework:**
@@ -79,6 +87,7 @@ ${learnedSection}
   "reasoning": ["string (Step 1)", "string (Step 2)", "string (Final Verdict)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
+  "estimatedWaitTime": "string (optional, e.g. 'Wait 45 mins')",
   "sentiment": {
     "score": "number (0-100)",
     "summary": "string"
@@ -110,10 +119,11 @@ async function callGemini(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.4, // Optimized for speed and precision
+        temperature: 0.7, // Higher temp to allow for diverse thinking
+        thinkingConfig: { thinkingBudget: 2048 }, // Enable Thinking Mode for accurate reasoning
     };
 
-    // Switch to gemini-2.5-flash for 10x speed
+    // Use gemini-2.5-flash for speed, enhanced with thinking for accuracy
     const response = await ai.models.generateContent({
         model: 'gemini-2.5-flash',
         contents: [{ parts: promptParts }],

@@ -18,7 +18,7 @@ Your task is to discover a new, high-performance algorithmic trading strategy sp
 Return ONLY the text of the rule. Do not include any introductory text, titles, or JSON formatting. Just the rule string.
 `;
 
-interface DailyStats {
+export interface DailyStats {
     date: string;
     count: number;
     maxForDay: number;
