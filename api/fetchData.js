@@ -134,12 +134,12 @@ async function callGemini(request) {
         tools: [{googleSearch: {}}],
         seed: 42,
         temperature: 0.7, // Higher temp to allow for diverse thinking
-        thinkingConfig: { thinkingBudget: 16384 }, // Enable high-capacity reasoning with 3.0 Pro
+        thinkingConfig: { thinkingBudget: 16384 }, // Enable high-capacity reasoning with 2.5 Pro
     };
 
-    // Use gemini-3-pro-preview for maximum accuracy
+    // Use gemini-2.5-pro for maximum accuracy
     const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
+        model: 'gemini-2.5-pro',
         contents: [{ parts: promptParts }],
         config: config,
     });
