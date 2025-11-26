@@ -85,17 +85,34 @@ export const incrementDailyCount = (): void => {
 export const performAutoLearning = async (): Promise<string | null> => {
     if (!process.env.API_KEY) return null;
 
-    try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    
+    const generateWithModel = async (modelName: string, budget: number) => {
+        return await ai.models.generateContent({
+            model: modelName,
             contents: LEARNING_PROMPT,
             config: {
                 tools: [{ googleSearch: {} }],
                 temperature: 0.7, 
-                thinkingConfig: { thinkingBudget: 32768 }, // Max thinking for deep strategy research
+                thinkingConfig: { thinkingBudget: budget },
             },
         });
+    };
+
+    try {
+        let response;
+        try {
+            console.log("Learning: Attempting 3.0 Pro...");
+            response = await generateWithModel('gemini-3-pro-preview', 32000);
+        } catch (error) {
+            console.warn("Learning: 3.0 Pro failed. Fallback to 2.5 Pro.", error);
+            try {
+                response = await generateWithModel('gemini-2.5-pro-preview', 32000);
+            } catch (error2) {
+                console.warn("Learning: 2.5 Pro failed. Fallback to 2.5 Flash.", error2);
+                response = await generateWithModel('gemini-2.5-flash', 16000);
+            }
+        }
 
         const newStrategy = response.text.trim();
         

@@ -26,14 +26,69 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
     return `
 Act as an elite algorithmic trading engine. Your goal is to identify a trade setup that **MAXIMIZES PROFIT** and **ELIMINATES LOSS**. You must be ruthless in your filtering—only pristine setups pass.
 
-**1. RIGID VISUAL ANALYSIS & KEY LEVEL IDENTIFICATION (MANDATORY):**
-You must perform a pixel-perfect analysis of the provided chart screenshots. Do not hallucinate patterns.
-- **Identify Key Levels:** You MUST detect and respect the following levels. If price is not at a key level, the setup is invalid.
-    *   **Institutional Order Blocks (OB):** Specific zones where price previously reversed sharply.
-    *   **Fair Value Gaps (FVG):** Imbalances in the candle structure that price is likely to fill.
-    *   **Liquidity Pools:** Areas with equal highs/lows where stop-losses reside.
-    *   **Market Structure:** Confirm higher-highs/higher-lows (Bullish) or lower-lows/lower-highs (Bearish).
-- **Candlestick Rigidity:** Analyze the *exact* shape of the most recent candles. Look for wicks indicating rejection.
+**0. STRATEGIC ANALYSIS FRAMEWORK:**
+Integrate the following comprehensive workflow to ensure robust reasoning:
+
+1. Price Action & Market Structure Analysis
+· Focus: Pure price movement, swing points, and chart patterns
+· Key Elements:
+  · Identifying higher highs/lows (HH/HL) and lower highs/lows (LH/LL)
+  · Drawing support/resistance levels and trendlines
+  · Recognizing chart patterns (head & shoulders, triangles, double tops/bottoms)
+  · Analyzing candlestick patterns and wick rejection
+
+2. Trend Analysis & Momentum
+· Focus: Directional bias and strength of moves
+· Key Elements:
+  · Multi-timeframe trend alignment
+  · Moving average convergence/divergence
+  · Momentum indicators (RSI, MACD, Stochastic)
+  · Trendline breaks and continuations
+
+3. Mean Reversion & Oscillation
+· Focus: Price returning to statistical averages
+· Key Elements:
+  · Overbought/oversold conditions
+  · Bollinger Bands and standard deviation
+  · Support/resistance bounce plays
+  · Divergence analysis (price vs. indicator)
+
+4. Breakout & Breakdown Trading
+· Focus: Capturing new momentum after consolidation
+· Key Elements:
+  · Range identification and consolidation zones
+  · Volume confirmation on breaks
+  · False break detection (traps)
+  · Retest and continuation patterns
+
+5. Supply & Demand Zone Trading
+· Focus: Institutional order flow and imbalance zones
+· Key Elements:
+  · Identifying fresh supply/demand zones
+  · Base/drop and rally/base structures
+  · Zone quality assessment (strength, freshness)
+  · Rejection from these key areas
+
+6. Statistical & Quantitative Approaches
+· Focus: Probability-based and historical pattern analysis
+· Key Elements:
+  · Seasonal tendencies and calendar effects
+  · Correlation analysis between instruments
+  · Volatility regime assessment
+  · Historical analog pattern matching
+
+**1. MANDATORY 9-STEP TECHNICAL ANALYSIS PROTOCOL:**
+You must execute the following 9 steps precisely to generate the signal. The timeframe values (H4/M15/M5) and indicators (MA) are guides; if specific timeframes or indicators are missing from the image, adapt the logic to the visible data but maintain the *structure* of the steps.
+
+1.  **Set up timeframes:** Analyze H4 (trend/context), M15 (structure / swing), and M5 (entry/confirmation). If fewer charts are provided, treat the highest timeframe as Context and the lowest as Entry.
+2.  **Moving Average Analysis:** Identify the moving average (often a blue line) and note its slope on each timeframe. Is it trending up, down, or flat?
+3.  **Horizontal Levels:** Mark nearby horizontal levels where price has reacted recently (peaks/wicks = resistance, troughs = support).
+4.  **Read Price Action:** At those levels, look for rejections (long wicks), engulfing candles, lower highs (for sells), or higher lows (for buys).
+5.  **Multi-Timeframe Alignment:** Do H4, M15, and M5 show the same directional bias (bearish or bullish)? If not, the setup is lower probability.
+6.  **Define Trade Parameters:** Define Entry, SL, TP using nearest structure: entry at current price or on a trigger candle, SL beyond the recent swing high/low, TP at next structural support/resistance.
+7.  **Confirm Trigger:** Look for a clean trigger on the lowest timeframe (M5) (rejection, strong candle, failure to reclaim MA).
+8.  **Risk & Sizing:** Ensure the setup allows for the requested Risk/Reward ratio of **${riskRewardRatio}**.
+9.  **Invalidation Logic:** Define the specific reaction to the MA or horizontal level that would invalidate the trade (e.g., "If price closes back above the blue MA, exit").
 
 **2. MARKET SYSTEM ADAPTATION:**
 ${contextSection}
@@ -66,21 +121,6 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
 - **65 - 79 (MEDIUM PROBABILITY):** Good setup with strong potential, but one minor factor suggests caution.
 - **< 65 (NO TRADE):** If the confidence is below 65, mark the signal as NEUTRAL.
 
-**Analytical Framework:**
-
-**Step 1: Strategic Trend (HTF)**
-· Identify the dominant Market Structure (Bullish/Bearish).
-· Mark major Support/Resistance.
-
-**Step 2: Tactical Momentum (MTF)**
-· Does shorter-term action align with HTF?
-· Identify the immediate trading range.
-
-**Step 3: Execution Trigger (LTF)**
-· Pinpoint the EXACT entry price.
-· Define the Stop Loss at the invalidation point (Minimize Risk).
-· Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
-
 **Trading Parameters:**
 · **Style:** ${styleInstruction}
 · **Risk Management:** Target R:R of ${riskRewardRatio}.
@@ -89,7 +129,7 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
 1. **Classification:** Rate confidence strictly according to the protocol above (80-95 High, 65-79 Medium).
 2. **Data:** Use Google Search for real-time sentiment/events.
 3. **Output:** Return ONLY a valid JSON object.
-4. **Checklist:** The 'checklist' array MUST include the specific Key Levels identified (e.g., "Reacting off 4H Order Block at 1.0850", "FVG filled at 2030").
+4. **Checklist:** The 'checklist' array MUST include the specific outcomes of the 9-step protocol (e.g., "Step 2: MA Slope is Bearish", "Step 5: All TFs Aligned").
 
 **Output Format:**
 {
@@ -100,7 +140,7 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
   "entryPoints": [number, number, number],
   "stopLoss": "number",
   "takeProfits": [number, number, number],
-  "reasoning": ["string (Step 1)", "string (Step 2)", "string (Final Verdict)"],
+  "reasoning": ["string (Step 1-3)", "string (Step 4-6)", "string (Final Verdict)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
   "estimatedWaitTime": "string (optional, e.g. 'Wait 45 mins for news')",
@@ -132,19 +172,36 @@ async function callGemini(request) {
         promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
     }
 
-    const config = {
-        tools: [{googleSearch: {}}],
-        seed: 42,
-        temperature: 0.7, 
-        thinkingConfig: { thinkingBudget: 32768 }, // Max budget for Gemini 3 Pro
+    const generateWithModel = async (modelName, thinkingBudget) => {
+        const config = {
+            tools: [{googleSearch: {}}],
+            seed: 42,
+            temperature: 0.7, 
+            thinkingConfig: { thinkingBudget: thinkingBudget }, 
+        };
+
+        return await ai.models.generateContent({
+            model: modelName,
+            contents: [{ parts: promptParts }],
+            config: config,
+        });
     };
 
-    // Use gemini-3-pro-preview for maximum reasoning capability
-    const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: [{ parts: promptParts }],
-        config: config,
-    });
+    let response;
+    // Smart Fallback System: 3.0 Pro -> 2.5 Pro -> 2.5 Flash
+    try {
+        console.log("Attempting analysis with Gemini 3.0 Pro...");
+        response = await generateWithModel('gemini-3-pro-preview', 32000);
+    } catch (error30) {
+        console.warn("Gemini 3.0 Pro failed. Attempting fallback to Gemini 2.5 Pro.", error30);
+        try {
+            response = await generateWithModel('gemini-2.5-pro-preview', 32000);
+        } catch (error25Pro) {
+            console.warn("Gemini 2.5 Pro failed. Attempting final fallback to Gemini 2.5 Flash.", error25Pro);
+            // Flash safety net
+            response = await generateWithModel('gemini-2.5-flash', 16000);
+        }
+    }
 
     const responseText = response.text;
     if (!responseText) {
