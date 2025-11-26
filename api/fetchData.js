@@ -16,7 +16,7 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
         : tradingStyle;
 
     const contextSection = globalContext 
-        ? `\n**Global Market Context:**\n${globalContext}\n\n**Instruction:** Use the above Global Market Context to weight your probability. If the global structure contradicts the chart signal, lower the confidence score immediately.` 
+        ? `\n**Global Market Context:**\n${globalContext}\n\n**MANDATORY ADAPTATION:** You MUST cross-reference the chart pattern with this Global Market Context. \n- If the Global Context is **Bearish** (e.g., Risk-Off, Strong USD), you must PENALIZE any **Bullish** chart setups. \n- If the Global Context is **Bullish** (e.g., Risk-On, Weak USD), you must PENALIZE any **Bearish** chart setups.\n- **Constraint:** If the Chart Signal contradicts the Global Context, the Confidence Score CANNOT exceed 70.` 
         : "";
 
     const learnedSection = learnedStrategies.length > 0
@@ -26,19 +26,20 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
     return `
 Act as an elite algorithmic trading engine. Your goal is to identify a trade setup that **MAXIMIZES PROFIT** and **ELIMINATES LOSS**. You must be ruthless in your filtering—only pristine setups pass.
 
-**Speed & Precision Directive:**
-1.  **Analyze Instantly:** Process market structure immediately.
-2.  **Zero-Loss Mentality:** If a setup has conflicting signals, discard it. However, use your deep reasoning to resolve minor conflicts. If the primary structure is strong, do not default to NEUTRAL solely due to minor noise.
-3.  **Precision:** Entry, Stop Loss, and Take Profit levels must be exact price points, not ranges.
+**1. RIGID VISUAL ANALYSIS & KEY LEVEL IDENTIFICATION (MANDATORY):**
+You must perform a pixel-perfect analysis of the provided chart screenshots. Do not hallucinate patterns.
+- **Identify Key Levels:** You MUST detect and respect the following levels. If price is not at a key level, the setup is invalid.
+    *   **Institutional Order Blocks (OB):** Specific zones where price previously reversed sharply.
+    *   **Fair Value Gaps (FVG):** Imbalances in the candle structure that price is likely to fill.
+    *   **Liquidity Pools:** Areas with equal highs/lows where stop-losses reside.
+    *   **Market Structure:** Confirm higher-highs/higher-lows (Bullish) or lower-lows/lower-highs (Bearish).
+- **Candlestick Rigidity:** Analyze the *exact* shape of the most recent candles. Look for wicks indicating rejection.
 
-**Context:**
-${isMultiDimensional
-? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF). Use this hierarchy for your analysis.`
-: `You are provided with a single Tactical View chart. Adapt the multi-step analysis to market structure visible on this single timeframe.`}
+**2. MARKET SYSTEM ADAPTATION:**
 ${contextSection}
 ${learnedSection}
 
-**NEWS IMPACT GUARDRAIL (CRITICAL):**
+**3. NEWS IMPACT GUARDRAIL (CRITICAL):**
 Before issuing a signal, you MUST check for high-impact news events scheduled for this asset within the next **60 minutes**.
 
 1. **"PRE-NEWS PROFIT" PROTOCOL (20-60 mins before news):**
@@ -88,6 +89,7 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
 1. **Classification:** Rate confidence strictly according to the protocol above (80-95 High, 65-79 Medium).
 2. **Data:** Use Google Search for real-time sentiment/events.
 3. **Output:** Return ONLY a valid JSON object.
+4. **Checklist:** The 'checklist' array MUST include the specific Key Levels identified (e.g., "Reacting off 4H Order Block at 1.0850", "FVG filled at 2030").
 
 **Output Format:**
 {
@@ -133,13 +135,13 @@ async function callGemini(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.7, // Higher temp to allow for diverse thinking
-        thinkingConfig: { thinkingBudget: 16384 }, // Enable high-capacity reasoning with 2.5 Pro
+        temperature: 0.7, 
+        thinkingConfig: { thinkingBudget: 32768 }, // Max budget for Gemini 3 Pro
     };
 
-    // Use gemini-2.5-pro for maximum accuracy
+    // Use gemini-3-pro-preview for maximum reasoning capability
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-3-pro-preview',
         contents: [{ parts: promptParts }],
         config: config,
     });

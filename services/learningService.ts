@@ -88,11 +88,12 @@ export const performAutoLearning = async (): Promise<string | null> => {
     try {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: LEARNING_PROMPT,
             config: {
                 tools: [{ googleSearch: {} }],
                 temperature: 0.7, 
+                thinkingConfig: { thinkingBudget: 32768 }, // Max thinking for deep strategy research
             },
         });
 

@@ -1,5 +1,4 @@
 
-
 import { GoogleGenAI } from "@google/genai";
 import type { PredictedEvent } from '../types';
 
@@ -44,11 +43,12 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
 
     try {
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
+            model: 'gemini-3-pro-preview',
             contents: PREDICTOR_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],
                 temperature: 0.2,
+                thinkingConfig: { thinkingBudget: 32768 }, // Max thinking for complex predictions
             },
         });
 
