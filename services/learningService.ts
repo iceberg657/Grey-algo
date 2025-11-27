@@ -85,10 +85,8 @@ export const incrementDailyCount = (): void => {
 export const performAutoLearning = async (): Promise<string | null> => {
     if (!process.env.API_KEY) return null;
 
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    
     try {
-        // Exclusively use Gemini 2.5 Flash for speed and efficiency
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: LEARNING_PROMPT,

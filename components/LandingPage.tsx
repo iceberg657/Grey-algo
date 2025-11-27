@@ -1,8 +1,6 @@
-
 import React, { useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggleButton } from './ThemeToggleButton';
-import { TiltCard } from './TiltCard';
 
 const landingPageCss = `
 * {
@@ -309,18 +307,17 @@ nav ul li a:hover::after {
     background: var(--card-bg-dark);
     border-radius: 15px;
     overflow: hidden;
-    /* Transition handled by TiltCard */
+    transition: transform 0.3s, box-shadow 0.3s;
     border: 1px solid var(--border-color-dark);
     backdrop-filter: blur(10px);
-    height: 100%;
 }
 .light .product-card {
     background: var(--card-bg-light);
     border: 1px solid var(--border-color-light);
     box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
-/* Removed :hover transform to let TiltCard handle it */
 .product-card:hover {
+    transform: translateY(-10px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
     border-color: rgba(52, 152, 219, 0.3);
 }
@@ -384,19 +381,18 @@ nav ul li a:hover::after {
     border-radius: 15px;
     padding: 30px;
     text-align: center;
-    /* Transition handled by TiltCard */
+    transition: transform 0.3s;
     border: 1px solid var(--border-color-dark);
     position: relative;
     overflow: hidden;
-    height: 100%;
 }
 .light .pricing-card {
     background: var(--card-bg-light);
     border: 1px solid var(--border-color-light);
     box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
-/* Removed :hover transform */
 .pricing-card:hover {
+    transform: translateY(-10px);
     border-color: rgba(155, 89, 182, 0.3);
 }
 .light .pricing-card:hover {
@@ -871,6 +867,7 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
         }
         
         initTicker();
+        // Destroy existing charts before creating new ones to prevent memory leaks on theme change
         heroChartInstance?.destroy();
         marketChartInstance?.destroy();
         createHeroChart();
@@ -952,92 +949,82 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                         </div>
                         
                         <div className="products-grid">
-                            <TiltCard>
-                                <div className="product-card">
-                                    <div className="product-image">
-                                        <img src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Volatility AI Scanner" />
-                                    </div>
-                                    <div className="product-content">
-                                        <h3>Volatility AI Scanner</h3>
-                                        <p>Our AI-powered scanner detects volatility patterns and potential breakouts in real-time across multiple markets and timeframes.</p>
-                                        <ul className="product-features">
-                                            <li><i className="fas fa-check-circle"></i> Real-time market scanning</li>
-                                            <li><i className="fas fa-check-circle"></i> Advanced pattern recognition</li>
-                                            <li><i className="fas fa-check-circle"></i> Multi-market coverage</li>
-                                            <li><i className="fas fa-check-circle"></i> Customizable alert system</li>
-                                        </ul>
-                                        <a href="#pricing" className="cta-button">View Pricing</a>
-                                    </div>
+                            <div className="product-card">
+                                <div className="product-image">
+                                    <img src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Volatility AI Scanner" />
                                 </div>
-                            </TiltCard>
+                                <div className="product-content">
+                                    <h3>Volatility AI Scanner</h3>
+                                    <p>Our AI-powered scanner detects volatility patterns and potential breakouts in real-time across multiple markets and timeframes.</p>
+                                    <ul className="product-features">
+                                        <li><i className="fas fa-check-circle"></i> Real-time market scanning</li>
+                                        <li><i className="fas fa-check-circle"></i> Advanced pattern recognition</li>
+                                        <li><i className="fas fa-check-circle"></i> Multi-market coverage</li>
+                                        <li><i className="fas fa-check-circle"></i> Customizable alert system</li>
+                                    </ul>
+                                    <a href="#pricing" className="cta-button">View Pricing</a>
+                                </div>
+                            </div>
                             
-                            <TiltCard>
-                                <div className="product-card">
-                                    <div className="product-image">
-                                        <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Neural Trading Systems" />
-                                    </div>
-                                    <div className="product-content">
-                                        <h3>Neural Trading Systems</h3>
-                                        <p>Deep learning models that adapt to changing market conditions and identify complex patterns for high-probability trades.</p>
-                                        <ul className="product-features">
-                                            <li><i className="fas fa-check-circle"></i> Self-learning algorithms</li>
-                                            <li><i className="fas fa-check-circle"></i> Adaptive market analysis</li>
-                                            <li><i className="fas fa-check-circle"></i> Risk management protocols</li>
-                                            <li><i className="fas fa-check-circle"></i> Performance optimization</li>
-                                        </ul>
-                                        <a href="#pricing" className="cta-button">View Pricing</a>
-                                    </div>
+                            <div className="product-card">
+                                <div className="product-image">
+                                    <img src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Neural Trading Systems" />
                                 </div>
-                            </TiltCard>
+                                <div className="product-content">
+                                    <h3>Neural Trading Systems</h3>
+                                    <p>Deep learning models that adapt to changing market conditions and identify complex patterns for high-probability trades.</p>
+                                    <ul className="product-features">
+                                        <li><i className="fas fa-check-circle"></i> Self-learning algorithms</li>
+                                        <li><i className="fas fa-check-circle"></i> Adaptive market analysis</li>
+                                        <li><i className="fas fa-check-circle"></i> Risk management protocols</li>
+                                        <li><i className="fas fa-check-circle"></i> Performance optimization</li>
+                                    </ul>
+                                    <a href="#pricing" className="cta-button">View Pricing</a>
+                                </div>
+                            </div>
                             
-                            <TiltCard>
-                                <div className="product-card">
-                                    <div className="product-image">
-                                        <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Custom Strategies" />
-                                    </div>
-                                    <div className="product-content">
-                                        <h3>Custom Strategies</h3>
-                                        <p>Tailored trading strategies developed specifically for your risk profile, trading style, and financial goals.</p>
-                                        <ul className="product-features">
-                                            <li><i className="fas fa-check-circle"></i> Personalized strategy development</li>
-                                            <li><i className="fas fa-check-circle"></i> Backtesting and optimization</li>
-                                            <li><i className="fas fa-check-circle"></i> Real-time performance monitoring</li>
-                                            <li><i className="fas fa-check-circle"></i> Ongoing strategy refinement</li>
-                                        </ul>
-                                        <a href="#pricing" className="cta-button">View Pricing</a>
-                                    </div>
+                            <div className="product-card">
+                                <div className="product-image">
+                                    <img src="https://images.unsplash.com/photo-1460925895917-afdab827c52f?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Custom Strategies" />
                                 </div>
-                            </TiltCard>
+                                <div className="product-content">
+                                    <h3>Custom Strategies</h3>
+                                    <p>Tailored trading strategies developed specifically for your risk profile, trading style, and financial goals.</p>
+                                    <ul className="product-features">
+                                        <li><i className="fas fa-check-circle"></i> Personalized strategy development</li>
+                                        <li><i className="fas fa-check-circle"></i> Backtesting and optimization</li>
+                                        <li><i className="fas fa-check-circle"></i> Real-time performance monitoring</li>
+                                        <li><i className="fas fa-check-circle"></i> Ongoing strategy refinement</li>
+                                    </ul>
+                                    <a href="#pricing" className="cta-button">View Pricing</a>
+                                </div>
+                            </div>
                             
-                            <TiltCard>
-                                <div className="product-card">
-                                    <div className="product-image">
-                                        <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Automation Creation" />
-                                    </div>
-                                    <div className="product-content">
-                                        <h3>Automation Creation</h3>
-                                        <p>Build and deploy automated trading systems without coding. Our visual editor makes strategy automation accessible to everyone.</p>
-                                        <ul className="product-features">
-                                            <li><i className="fas fa-check-circle"></i> Visual strategy builder</li>
-                                            <li><i className="fas fa-check-circle"></i> No coding required</li>
-                                            <li><i className="fas fa-check-circle"></i> Multi-broker compatibility</li>
-                                            <li><i className="fas fa-check-circle"></i> Cloud-based execution</li>
-                                        </ul>
-                                        <a href="#pricing" className="cta-button">View Pricing</a>
-                                    </div>
+                            <div className="product-card">
+                                <div className="product-image">
+                                    <img src="https://images.unsplash.com/photo-1553877522-43269d4ea984?ixlib=rb-4.0.3&auto=format&fit=crop&w=600&q=80" alt="Automation Creation" />
                                 </div>
-                            </TiltCard>
+                                <div className="product-content">
+                                    <h3>Automation Creation</h3>
+                                    <p>Build and deploy automated trading systems without coding. Our visual editor makes strategy automation accessible to everyone.</p>
+                                    <ul className="product-features">
+                                        <li><i className="fas fa-check-circle"></i> Visual strategy builder</li>
+                                        <li><i className="fas fa-check-circle"></i> No coding required</li>
+                                        <li><i className="fas fa-check-circle"></i> Multi-broker compatibility</li>
+                                        <li><i className="fas fa-check-circle"></i> Cloud-based execution</li>
+                                    </ul>
+                                    <a href="#pricing" className="cta-button">View Pricing</a>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </section>
 
                 {/* Market Chart */}
                 <div className="landing-container">
-                    <TiltCard intensity={5}>
-                        <div className="chart-container">
-                            <canvas id="marketChart"></canvas>
-                        </div>
-                    </TiltCard>
+                    <div className="chart-container">
+                        <canvas id="marketChart"></canvas>
+                    </div>
                 </div>
 
                 {/* Pricing Section */}
@@ -1049,52 +1036,46 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                         </div>
                         
                         <div className="pricing-grid">
-                            <TiltCard>
-                                <div className="pricing-card">
-                                    <h3>Starter</h3>
-                                    <div className="price">$99<span>/month</span></div>
-                                    <ul className="pricing-features">
-                                        <li>Volatility AI Scanner Basic</li>
-                                        <li>5 Custom Alerts</li>
-                                        <li>Email Support</li>
-                                        <li>Daily Market Reports</li>
-                                        <li>Limited Strategy Backtesting</li>
-                                    </ul>
-                                    <a href="#contact" className="cta-button">Get Started</a>
-                                </div>
-                            </TiltCard>
+                            <div className="pricing-card">
+                                <h3>Starter</h3>
+                                <div className="price">$99<span>/month</span></div>
+                                <ul className="pricing-features">
+                                    <li>Volatility AI Scanner Basic</li>
+                                    <li>5 Custom Alerts</li>
+                                    <li>Email Support</li>
+                                    <li>Daily Market Reports</li>
+                                    <li>Limited Strategy Backtesting</li>
+                                </ul>
+                                <a href="#contact" className="cta-button">Get Started</a>
+                            </div>
                             
-                            <TiltCard intensity={15}>
-                                <div className="pricing-card popular">
-                                    <h3>Professional</h3>
-                                    <div className="price">$249<span>/month</span></div>
-                                    <ul className="pricing-features">
-                                        <li>Full Volatility AI Scanner</li>
-                                        <li>Neural Trading System Access</li>
-                                        <li>Unlimited Custom Alerts</li>
-                                        <li>Priority Support</li>
-                                        <li>Advanced Backtesting</li>
-                                        <li>2 Custom Strategies</li>
-                                    </ul>
-                                    <a href="#contact" className="cta-button">Get Started</a>
-                                </div>
-                            </TiltCard>
+                            <div className="pricing-card popular">
+                                <h3>Professional</h3>
+                                <div className="price">$249<span>/month</span></div>
+                                <ul className="pricing-features">
+                                    <li>Full Volatility AI Scanner</li>
+                                    <li>Neural Trading System Access</li>
+                                    <li>Unlimited Custom Alerts</li>
+                                    <li>Priority Support</li>
+                                    <li>Advanced Backtesting</li>
+                                    <li>2 Custom Strategies</li>
+                                </ul>
+                                <a href="#contact" className="cta-button">Get Started</a>
+                            </div>
                             
-                            <TiltCard>
-                                <div className="pricing-card">
-                                    <h3>Enterprise</h3>
-                                    <div className="price">$499<span>/month</span></div>
-                                    <ul className="pricing-features">
-                                        <li>All Professional Features</li>
-                                        <li>Unlimited Custom Strategies</li>
-                                        <li>Full Automation Suite</li>
-                                        <li>24/7 Dedicated Support</li>
-                                        <li>API Access</li>
-                                        <li>Premium Market Data Feeds</li>
-                                    </ul>
-                                    <a href="#contact" className="cta-button">Get Started</a>
-                                </div>
-                            </TiltCard>
+                            <div className="pricing-card">
+                                <h3>Enterprise</h3>
+                                <div className="price">$499<span>/month</span></div>
+                                <ul className="pricing-features">
+                                    <li>All Professional Features</li>
+                                    <li>Unlimited Custom Strategies</li>
+                                    <li>Full Automation Suite</li>
+                                    <li>24/7 Dedicated Support</li>
+                                    <li>API Access</li>
+                                    <li>Premium Market Data Feeds</li>
+                                </ul>
+                                <a href="#contact" className="cta-button">Get Started</a>
+                            </div>
                         </div>
                     </div>
                 </section>
@@ -1107,69 +1088,67 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                             <p>Have questions or ready to get started? Reach out to our team for more information.</p>
                         </div>
                         
-                        <TiltCard intensity={5}>
-                            <div className="contact">
-                                <div className="contact-info">
-                                    <h3>Get In Touch</h3>
-                                    
-                                    <div className="contact-details">
-                                        <div className="contact-item">
-                                            <i className="fas fa-phone-alt"></i>
-                                            <div>
-                                                <h4>Phone</h4>
-                                                <p>+234 812 379 2862</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="contact-item">
-                                            <i className="fas fa-envelope"></i>
-                                            <div>
-                                                <h4>Email</h4>
-                                                <p>ma8138498@gmail.com</p>
-                                            </div>
-                                        </div>
-                                        
-                                        <div className="contact-item">
-                                            <i className="fas fa-map-marker-alt"></i>
-                                            <div>
-                                                <h4>Headquarters</h4>
-                                                <p>Lagos, Nigeria</p>
-                                            </div>
+                        <div className="contact">
+                            <div className="contact-info">
+                                <h3>Get In Touch</h3>
+                                
+                                <div className="contact-details">
+                                    <div className="contact-item">
+                                        <i className="fas fa-phone-alt"></i>
+                                        <div>
+                                            <h4>Phone</h4>
+                                            <p>+234 812 379 2862</p>
                                         </div>
                                     </div>
                                     
-                                    <h3>About GreyQuant</h3>
-                                    <p>GreyQuant is a leading provider of algorithmic trading solutions. Our team of financial experts, data scientists, and software engineers develop cutting-edge tools that help traders leverage technology for better market performance.</p>
+                                    <div className="contact-item">
+                                        <i className="fas fa-envelope"></i>
+                                        <div>
+                                            <h4>Email</h4>
+                                            <p>ma8138498@gmail.com</p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="contact-item">
+                                        <i className="fas fa-map-marker-alt"></i>
+                                        <div>
+                                            <h4>Headquarters</h4>
+                                            <p>Lagos, Nigeria</p>
+                                        </div>
+                                    </div>
                                 </div>
                                 
-                                <div className="contact-form">
-                                    <h3>Send a Message</h3>
-                                    <form id="contactForm">
-                                        <div className="form-group">
-                                            <label htmlFor="name">Name</label>
-                                            <input type="text" id="name" required />
-                                        </div>
-                                        
-                                        <div className="form-group">
-                                            <label htmlFor="email">Email</label>
-                                            <input type="email" id="email" required />
-                                        </div>
-                                        
-                                        <div className="form-group">
-                                            <label htmlFor="subject">Subject</label>
-                                            <input type="text" id="subject" required />
-                                        </div>
-                                        
-                                        <div className="form-group">
-                                            <label htmlFor="message">Message</label>
-                                            <textarea id="message" required></textarea>
-                                        </div>
-                                        
-                                        <button type="submit" className="cta-button">Send Message</button>
-                                    </form>
-                                </div>
+                                <h3>About GreyQuant</h3>
+                                <p>GreyQuant is a leading provider of algorithmic trading solutions. Our team of financial experts, data scientists, and software engineers develop cutting-edge tools that help traders leverage technology for better market performance.</p>
                             </div>
-                        </TiltCard>
+                            
+                            <div className="contact-form">
+                                <h3>Send a Message</h3>
+                                <form id="contactForm">
+                                    <div className="form-group">
+                                        <label htmlFor="name">Name</label>
+                                        <input type="text" id="name" required />
+                                    </div>
+                                    
+                                    <div className="form-group">
+                                        <label htmlFor="email">Email</label>
+                                        <input type="email" id="email" required />
+                                    </div>
+                                    
+                                    <div className="form-group">
+                                        <label htmlFor="subject">Subject</label>
+                                        <input type="text" id="subject" required />
+                                    </div>
+                                    
+                                    <div className="form-group">
+                                        <label htmlFor="message">Message</label>
+                                        <textarea id="message" required></textarea>
+                                    </div>
+                                    
+                                    <button type="submit" className="cta-button">Send Message</button>
+                                </form>
+                            </div>
+                        </div>
                     </div>
                 </section>
 

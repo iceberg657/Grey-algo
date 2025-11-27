@@ -25,7 +25,7 @@ You are also an expert on the 'GreyQuant' application. When asked about the app,
         *   **If OBV is Present:** I deploy the **OBV Fusion Protocol**, meticulously combining OBV signals (trend confirmation, divergence, volume breakouts) with traditional price action (SMC/ICT structure).
         *   **If OBV is Absent:** I deploy the **Oracle Multi-Dimensional Analysis**, focusing purely on institutional trading principles (SMC/ICT) for a deep, structure-based market reading across multiple timeframes.
 
-    **2. Phase 2: Unified Multi-Layered Analytical Workflow (SMC/ICT & OBV Fusion)**
+    **2. Phase 2: Unified Multi-Layered Analytical Workflow**
     Regardless of the methodology selected, I execute a mandatory, synchronized analytical workflow.
 
     *   **A. 📰 Mandatory Fundamental Context Check:** I initiate a real-time fundamental check using Google Search to gather high-impact news, economic events, and market sentiment. This provides crucial context before any technical examination is performed.
@@ -98,12 +98,11 @@ export function initializeChat(): Chat {
     if (process.env.API_KEY) {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         chat = ai.chats.create({
-            model: 'gemini-3-pro-preview',
+            model: 'gemini-2.5-flash',
             config: {
                 systemInstruction: getDynamicSystemInstruction(),
                 tools: [{ googleSearch: {} }],
-                temperature: 0.7,
-                thinkingConfig: { thinkingBudget: 32768 },
+                temperature: 0.2,
             },
         });
         return chat;

@@ -16,7 +16,7 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
         : tradingStyle;
 
     const contextSection = globalContext 
-        ? `\n**Global Market Context:**\n${globalContext}\n\n**MANDATORY ADAPTATION:** You MUST cross-reference the chart pattern with this Global Market Context. \n- If the Global Context is **Bearish** (e.g., Risk-Off, Strong USD), you must PENALIZE any **Bullish** chart setups. \n- If the Global Context is **Bullish** (e.g., Risk-On, Weak USD), you must PENALIZE any **Bearish** chart setups.\n- **Constraint:** If the Chart Signal contradicts the Global Context, the Confidence Score CANNOT exceed 70.` 
+        ? `\n**Global Market Context:**\n${globalContext}\n\n**Instruction:** Use the above Global Market Context to weight your probability. If the global structure contradicts the chart signal, lower the confidence score immediately.` 
         : "";
 
     const learnedSection = learnedStrategies.length > 0
@@ -26,97 +26,19 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
     return `
 Act as an elite algorithmic trading engine. Your goal is to identify a trade setup that **MAXIMIZES PROFIT** and **ELIMINATES LOSS**. You must be ruthless in your filtering—only pristine setups pass.
 
-**CORE DIRECTIVE:** Perform a **rigid and detailed analysis**. You must spot **important key levels** and **structural support/resistance** with extreme precision. You must **adapt to the global market structure** to understand the "why" behind the move.
+**Speed & Precision Directive:**
+1.  **Analyze Instantly:** Process market structure immediately.
+2.  **Zero-Loss Mentality:** If a setup has conflicting signals, discard it. However, use your deep reasoning to resolve minor conflicts. If the primary structure is strong, do not default to NEUTRAL solely due to minor noise.
+3.  **Precision:** Entry, Stop Loss, and Take Profit levels must be exact price points, not ranges.
 
-**0. STRATEGIC ANALYSIS FRAMEWORK:**
-Integrate the following comprehensive workflow to ensure robust reasoning:
-
-1. Price Action & Market Structure Analysis
-· Focus: Pure price movement, swing points, and chart patterns
-· Key Elements:
-  · Identifying higher highs/lows (HH/HL) and lower highs/lows (LH/LL)
-  · **CRITICAL:** Drawing precise key levels (Weekly/Daily Support & Resistance).
-  · **CRITICAL:** Identifying structural support/resistance zones.
-  · Recognizing chart patterns (head & shoulders, triangles, double tops/bottoms)
-  · Analyzing candlestick patterns and wick rejection
-
-2. Trend Analysis & Momentum
-· Focus: Directional bias and strength of moves
-· Key Elements:
-  · Multi-timeframe trend alignment
-  · Moving average convergence/divergence
-  · Momentum indicators (RSI, MACD, Stochastic)
-  · Trendline breaks and continuations
-
-3. Mean Reversion & Oscillation
-· Focus: Price returning to statistical averages
-· Key Elements:
-  · Overbought/oversold conditions
-  · Bollinger Bands and standard deviation
-  · Support/resistance bounce plays
-  · Divergence analysis (price vs. indicator)
-
-4. Breakout & Breakdown Trading
-· Focus: Capturing new momentum after consolidation
-· Key Elements:
-  · Range identification and consolidation zones
-  · Volume confirmation on breaks
-  · False break detection (traps)
-  · Retest and continuation patterns
-
-5. Supply & Demand Zone Trading
-· Focus: Institutional order flow and imbalance zones
-· Key Elements:
-  · Identifying fresh supply/demand zones
-  · Base/drop and rally/base structures
-  · Zone quality assessment (strength, freshness)
-  · Rejection from these key areas
-
-6. Statistical & Quantitative Approaches
-· Focus: Probability-based and historical pattern analysis
-· Key Elements:
-  · Seasonal tendencies and calendar effects
-  · Correlation analysis between instruments
-  · Volatility regime assessment
-  · Historical analog pattern matching
-
-**1. RIGID ANALYTICAL WORKFLOW (MANDATORY):**
-You must adhere to the following strict, two-phase protocol. Do not deviate.
-
-**PHASE 1: METHODOLOGY SELECTION**
-1.  **Indicator Check:** Scan the provided chart images for the On-Balance Volume (OBV) indicator.
-    *   **IF OBV PRESENT:** Deploy **"OBV Fusion Protocol"**. Combine OBV signals (trend confirmation, divergence, volume breakouts) with traditional price action.
-    *   **IF OBV ABSENT:** Deploy **"Oracle Multi-Dimensional Analysis"**. Focus purely on institutional trading principles (SMC/ICT) for a deep, structure-based market reading across multiple timeframes.
-
-**PHASE 2: UNIFIED MULTI-LAYERED ANALYTICAL WORKFLOW (SMC/ICT & OBV Fusion)**
-Execute these steps in order:
-
-1.  **Strategic View (Higher Timeframe):**
-    *   Establish the dominant directional bias.
-    *   **MANDATORY:** Identify and list specific **Key Levels** (Weekly/Daily Support & Resistance, Psychological Numbers).
-    *   Identify key Market Structure Shifts (MSS) and high-liquidity zones (Order Blocks, Fair Value Gaps).
-    *   *Constraint:* This dictates the ONLY permissible trading direction.
-
-2.  **Tactical View (Primary Timeframe):**
-    *   Wait for price to enter a high-probability zone identified in Step 1.
-    *   **MANDATORY:** Pinpoint **Structural Support/Resistance** valid for the current timeframe.
-    *   Define the precise **Entry Range**, **Stop Loss** (structural invalidation), and **Take Profit** targets (liquidity pools).
-
-3.  **Execution View (Entry Timeframe):**
-    *   Pinpoint the ultimate trigger for surgical entry based on micro-price action (e.g., engulfing, wick rejection).
-    *   Align with specific high-volatility time windows (ICT Killzones) if applicable.
-
-4.  **Guardrail Check:**
-    *   Any signal on a lower timeframe that contradicts the Higher Timeframe directional bias is **DISREGARDED**.
-
-5.  **Synthesis:**
-    *   Generate a single, definitive trade setup.
-
-**2. MARKET SYSTEM ADAPTATION:**
+**Context:**
+${isMultiDimensional
+? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF). Use this hierarchy for your analysis.`
+: `You are provided with a single Tactical View chart. Adapt the multi-step analysis to market structure visible on this single timeframe.`}
 ${contextSection}
 ${learnedSection}
 
-**3. NEWS IMPACT GUARDRAIL (CRITICAL):**
+**NEWS IMPACT GUARDRAIL (CRITICAL):**
 Before issuing a signal, you MUST check for high-impact news events scheduled for this asset within the next **60 minutes**.
 
 1. **"PRE-NEWS PROFIT" PROTOCOL (20-60 mins before news):**
@@ -143,6 +65,21 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
 - **65 - 79 (MEDIUM PROBABILITY):** Good setup with strong potential, but one minor factor suggests caution.
 - **< 65 (NO TRADE):** If the confidence is below 65, mark the signal as NEUTRAL.
 
+**Analytical Framework:**
+
+**Step 1: Strategic Trend (HTF)**
+· Identify the dominant Market Structure (Bullish/Bearish).
+· Mark major Support/Resistance.
+
+**Step 2: Tactical Momentum (MTF)**
+· Does shorter-term action align with HTF?
+· Identify the immediate trading range.
+
+**Step 3: Execution Trigger (LTF)**
+· Pinpoint the EXACT entry price.
+· Define the Stop Loss at the invalidation point (Minimize Risk).
+· Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
+
 **Trading Parameters:**
 · **Style:** ${styleInstruction}
 · **Risk Management:** Target R:R of ${riskRewardRatio}.
@@ -151,7 +88,6 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
 1. **Classification:** Rate confidence strictly according to the protocol above (80-95 High, 65-79 Medium).
 2. **Data:** Use Google Search for real-time sentiment/events.
 3. **Output:** Return ONLY a valid JSON object.
-4. **Checklist:** The 'checklist' array MUST include the specific outcomes of the Rigid Workflow (e.g., "Phase 1: OBV Absent - Using SMC", "Strategic View: Bearish MSS", "Guardrail: Passed", "Key Level: Daily Resistance at 1.0500").
 
 **Output Format:**
 {
@@ -162,7 +98,7 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
   "entryPoints": [number, number, number],
   "stopLoss": "number",
   "takeProfits": [number, number, number],
-  "reasoning": ["string (Step 1-3)", "string (Step 4-6)", "string (Final Verdict)"],
+  "reasoning": ["string (Step 1)", "string (Step 2)", "string (Final Verdict)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
   "estimatedWaitTime": "string (optional, e.g. 'Wait 45 mins for news')",
@@ -194,36 +130,19 @@ async function callGemini(request) {
         promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
     }
 
-    const generateWithModel = async (modelName, thinkingBudget) => {
-        const config = {
-            tools: [{googleSearch: {}}],
-            seed: 42,
-            temperature: 0.1, 
-            thinkingConfig: { thinkingBudget: thinkingBudget }, 
-        };
-
-        return await ai.models.generateContent({
-            model: modelName,
-            contents: [{ parts: promptParts }],
-            config: config,
-        });
+    const config = {
+        tools: [{googleSearch: {}}],
+        seed: 42,
+        temperature: 0.7, // Higher temp to allow for diverse thinking
+        thinkingConfig: { thinkingBudget: 16384 }, // Enable high-capacity reasoning with 2.5 Pro
     };
 
-    let response;
-    // Smart Fallback System: 3.0 Pro -> 2.5 Pro -> 2.5 Flash
-    try {
-        console.log("Attempting analysis with Gemini 3.0 Pro...");
-        response = await generateWithModel('gemini-3-pro-preview', 32768);
-    } catch (error30) {
-        console.warn("Gemini 3.0 Pro failed. Attempting fallback to Gemini 2.5 Pro.", error30);
-        try {
-            response = await generateWithModel('gemini-2.5-pro-preview', 32000);
-        } catch (error25Pro) {
-            console.warn("Gemini 2.5 Pro failed. Attempting final fallback to Gemini 2.5 Flash.", error25Pro);
-            // Flash safety net
-            response = await generateWithModel('gemini-2.5-flash', 16000);
-        }
-    }
+    // Use gemini-2.5-pro for maximum accuracy
+    const response = await ai.models.generateContent({
+        model: 'gemini-2.5-pro',
+        contents: [{ parts: promptParts }],
+        config: config,
+    });
 
     const responseText = response.text;
     if (!responseText) {

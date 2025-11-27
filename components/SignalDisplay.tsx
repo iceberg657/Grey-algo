@@ -47,38 +47,51 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
 );
 
 const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, summary }) => {
-    const circumference = 2 * Math.PI * 45; // 2 * pi * r
-    const offset = circumference - (score / 100) * circumference;
+    const getTrendInfo = (s: number) => {
+        if (s >= 85) return { label: 'Strong Bullish', color: 'text-green-500', bg: 'bg-green-500', icon: '🚀' };
+        if (s >= 60) return { label: 'Bullish', color: 'text-green-400', bg: 'bg-green-400', icon: '↗️' };
+        if (s <= 15) return { label: 'Strong Bearish', color: 'text-red-500', bg: 'bg-red-500', icon: '🔻' };
+        if (s <= 40) return { label: 'Bearish', color: 'text-red-400', bg: 'bg-red-400', icon: '↘️' };
+        return { label: 'Sideways / Neutral', color: 'text-blue-400', bg: 'bg-blue-400', icon: '➡️' };
+    };
 
-    let colorClass = 'text-blue-400';
-    if (score >= 60) colorClass = 'text-green-400';
-    else if (score <= 40) colorClass = 'text-red-400';
+    const trend = getTrendInfo(score);
 
     return (
-        <div className="flex flex-col items-center">
-            <div className="relative w-24 h-24">
-                <svg className="w-full h-full" viewBox="0 0 100 100">
-                    <circle cx="50" cy="50" r="45" className="stroke-current text-gray-300 dark:text-green-500/10" strokeWidth="10" fill="transparent" />
-                    <circle
-                        cx="50"
-                        cy="50"
-                        r="45"
-                        className={`stroke-current ${colorClass}`}
-                        strokeWidth="10"
-                        fill="transparent"
-                        strokeDasharray={circumference}
-                        strokeDashoffset={offset}
-                        strokeLinecap="round"
-                        transform="rotate(-90 50 50)"
-                        style={{ transition: 'stroke-dashoffset 0.5s ease-out' }}
-                    />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <span className={`text-2xl font-bold ${colorClass}`}>{score}</span>
-                    <span className={`text-xs ${colorClass}`}>%</span>
+        <div className="flex flex-col w-full p-2">
+            <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center space-x-3">
+                    <div className={`text-3xl ${trend.color}`}>{trend.icon}</div>
+                    <div>
+                        <div className={`text-lg font-extrabold uppercase ${trend.color} leading-none`}>{trend.label}</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wider mt-1">Detected Trend</div>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <div className={`text-2xl font-bold ${trend.color} leading-none`}>{score}</div>
+                    <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono uppercase mt-1">Score</div>
                 </div>
             </div>
-            <p className="mt-2 text-center text-xs text-gray-600 dark:text-dark-text/80 max-w-[200px]">{summary}</p>
+
+            {/* Progress Bar */}
+            <div className="relative h-2 bg-gray-300 dark:bg-gray-700 rounded-full overflow-hidden mb-1">
+                <div 
+                    className={`absolute top-0 left-0 h-full ${trend.bg} transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(0,0,0,0.5)]`}
+                    style={{ width: `${score}%` }}
+                ></div>
+            </div>
+            <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 font-mono mb-4 opacity-70">
+                <span>Bearish (0)</span>
+                <span>Neutral (50)</span>
+                <span>Bullish (100)</span>
+            </div>
+
+            {/* Summary Box */}
+            <div className="bg-gray-100 dark:bg-black/20 p-3 rounded-lg border-l-2 border-gray-300 dark:border-gray-600">
+                <p className="text-xs text-gray-600 dark:text-gray-300 italic leading-relaxed font-medium">
+                    "{summary}"
+                </p>
+            </div>
         </div>
     );
 };
@@ -286,7 +299,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             {(data.sentiment || (data.economicEvents && data.economicEvents.length > 0)) && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {data.sentiment && (
-                         <Section title="Market Sentiment" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M2 10.5a1.5 1.5 0 113 0v6a1.5 1.5 0 01-3 0v-6zM6 10.333v5.43a2 2 0 001.106 1.79l.05.025A4 4 0 008.943 18h5.416a2 2 0 001.962-1.608l1.2-6A2 2 0 0015.56 8H12V4a2 2 0 00-2-2 1 1 0 00-1 1v.667a4 4 0 01-.8 2.4L6.8 7.933a4 4 0 00-.865.8L2 10.5z" /></svg>}>
+                         <Section title="Market Trend Detector" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>}>
                             <SentimentGauge score={data.sentiment.score} summary={data.sentiment.summary} />
                          </Section>
                     )}

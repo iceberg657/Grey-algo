@@ -1,83 +1,51 @@
 
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, MouseEvent } from 'react';
 
 interface TiltCardProps {
     children: React.ReactNode;
     className?: string;
-    intensity?: number;
-    glareColor?: string;
-    perspective?: number;
 }
 
-export const TiltCard: React.FC<TiltCardProps> = ({ 
-    children, 
-    className = '', 
-    intensity = 10,
-    glareColor = "rgba(255, 255, 255, 0.1)",
-    perspective = 1000
-}) => {
-    const ref = useRef<HTMLDivElement>(null);
-    const [rotation, setRotation] = useState({ x: 0, y: 0 });
-    const [glare, setGlare] = useState({ x: 50, y: 50, opacity: 0 });
-    const [scale, setScale] = useState(1);
+export const TiltCard: React.FC<TiltCardProps> = ({ children, className = '' }) => {
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [style, setStyle] = useState<React.CSSProperties>({
+        transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+        transition: 'transform 0.5s ease-out',
+    });
 
-    const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (!ref.current) return;
+    const handleMouseMove = (e: MouseEvent<HTMLDivElement>) => {
+        if (!cardRef.current) return;
 
-        const rect = ref.current.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
+        const { left, top, width, height } = cardRef.current.getBoundingClientRect();
+        const x = (e.clientX - left) / width;
+        const y = (e.clientY - top) / height;
 
-        const centerX = rect.width / 2;
-        const centerY = rect.height / 2;
+        // Calculate tilt
+        const tiltX = (0.5 - y) * 10; // Max tilt in degrees
+        const tiltY = (x - 0.5) * 10; // Max tilt in degrees
 
-        // Calculate rotation (inverted Y for X rotation to look up/down correctly)
-        const rotateX = ((y - centerY) / centerY) * -intensity;
-        const rotateY = ((x - centerX) / centerX) * intensity;
-
-        // Calculate glare position as percentage
-        const glareX = (x / rect.width) * 100;
-        const glareY = (y / rect.height) * 100;
-
-        setRotation({ x: rotateX, y: rotateY });
-        setGlare({ x: glareX, y: glareY, opacity: 1 });
-        setScale(1.02);
+        setStyle({
+            transform: `perspective(1000px) rotateX(${tiltX}deg) rotateY(${tiltY}deg) scale3d(1.02, 1.02, 1.02)`,
+            transition: 'transform 0.1s ease-out',
+        });
     };
 
     const handleMouseLeave = () => {
-        setRotation({ x: 0, y: 0 });
-        setGlare(prev => ({ ...prev, opacity: 0 }));
-        setScale(1);
-    };
-
-    const style: React.CSSProperties = {
-        transform: `perspective(${perspective}px) rotateX(${rotation.x}deg) rotateY(${rotation.y}deg) scale3d(${scale}, ${scale}, ${scale})`,
-        transition: 'transform 0.1s ease-out',
-        transformStyle: 'preserve-3d',
+        setStyle({
+            transform: 'perspective(1000px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)',
+            transition: 'transform 0.5s ease-out',
+        });
     };
 
     return (
         <div
-            ref={ref}
-            className={`relative transition-all duration-200 ${className}`}
+            ref={cardRef}
+            className={className}
             onMouseMove={handleMouseMove}
             onMouseLeave={handleMouseLeave}
             style={style}
         >
-            <div className="relative z-10" style={{ transform: 'translateZ(20px)' }}>
-                {children}
-            </div>
-            
-            {/* Glare effect */}
-            <div 
-                className="absolute inset-0 w-full h-full pointer-events-none rounded-[inherit] z-20"
-                style={{
-                    background: `radial-gradient(circle at ${glare.x}% ${glare.y}%, ${glareColor}, transparent 80%)`,
-                    opacity: glare.opacity,
-                    transition: 'opacity 0.3s ease',
-                    mixBlendMode: 'overlay',
-                }}
-            />
+            {children}
         </div>
     );
 };

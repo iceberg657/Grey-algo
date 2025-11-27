@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI } from "@google/genai";
 import type { PredictedEvent } from '../types';
 
@@ -42,9 +43,8 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
-        // Exclusively use Gemini 2.5 Flash for speed and efficiency
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-2.5-pro',
             contents: PREDICTOR_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],
