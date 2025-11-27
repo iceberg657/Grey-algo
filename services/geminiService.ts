@@ -32,28 +32,6 @@ ${isMultiDimensional
 ${contextSection}
 ${learnedSection}
 
-**NEWS IMPACT GUARDRAIL (CRITICAL):**
-Before issuing a signal, you MUST check for high-impact news events scheduled for this asset within the next **60 minutes**.
-
-1. **"PRE-NEWS PROFIT" PROTOCOL (20-60 mins before news):**
-   - **Objective:** Capture the price movement *leading up* to the news event (the "Liquidity Run"). Price often accelerates toward key levels before a release.
-   - **Action:** If a clear trend is visible, issue a **SCALP** signal to capture profit **BEFORE** the event occurs.
-   - **Constraint:** The setup MUST target a quick TP1 that is reachable within the time remaining.
-   - **Mandatory Warning:** You MUST explicitly state in the reasoning: **"Scalp the pre-news run. CLOSE ALL TRADES 5 minutes before the news release."**
-
-2. **"NEWS EVENT TECHNICAL ANALYSIS" PROTOCOL (< 20 mins before news):**
-   - **Scenario:** High-Impact news is imminent (less than 20 minutes away).
-   - **Action:** **DO NOT** default to 'NEUTRAL' unless the chart is completely unreadable. Instead, apply **"News Event Technical Analysis"**.
-   - **Logic:** News events often act as catalysts that force price into key liquidity zones or complete existing technical patterns.
-   - **Task:**
-     1. Identify the **Key Liquidity Zone** or **Order Block** the market is likely to target immediately upon release.
-     2. Determine if the dominant technical bias supports a **Breakout** or a **Fake-out (Liquidity Sweep)**.
-     3. Issue a **BUY** or **SELL** signal based on this volatility thesis.
-   - **Mandatory Reasoning:** You MUST include: "News Impact Analysis: Targeting volatility move towards [Price Level]. Use wide stops."
-
-3. **"CLEAR SKIES" PROTOCOL (> 60 mins before news):**
-   - **Action:** Proceed with standard technical analysis.
-
 **CONFIDENCE SCORING PROTOCOL (Strict Enforcement):**
 - **80 - 95 (HIGH PROBABILITY):** The "Perfect Trade". Trend, Momentum, Structure, Global Context, and News Alignment all match. This is a "Sniper Entry".
 - **65 - 79 (MEDIUM PROBABILITY):** Good setup with strong potential, but one minor factor suggests caution.
@@ -71,6 +49,9 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
 
 **Step 3: Execution Trigger (LTF)**
 · Pinpoint the EXACT entry price.
+· **Wait Recommendation Logic:** You must determine if the trade is ready for **IMMEDIATE ENTRY** or requires a **WAIT**.
+    - If price is at the entry zone: Recommend "Enter Immediately".
+    - If price needs to pull back or break a level: Recommend specific wait instructions (e.g., "Wait for pullback to [Price]" or "Wait for candle close above [Price]").
 · Define the Stop Loss at the invalidation point (Minimize Risk).
 · Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
 
@@ -95,7 +76,7 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
   "reasoning": ["string (Step 1)", "string (Step 2)", "string (Final Verdict)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
-  "estimatedWaitTime": "string (optional, e.g. 'Wait 45 mins for news')",
+  "estimatedWaitTime": "string (Mandatory: e.g., 'Enter Immediately', 'Wait for retest of [Price]', 'Wait for 15m candle close')",
   "sentiment": {
     "score": "number (0-100)",
     "summary": "string"
