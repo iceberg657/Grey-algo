@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
+import { TiltCard } from './TiltCard';
 
 interface InfoCardProps {
     label: string;
@@ -24,23 +25,25 @@ const getSignalTextClasses = (signal: SignalData['signal']) => {
 };
 
 const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal = false, signalType, valueClassName, subValue, subValueClassName }) => (
-    <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 ${className}`}>
-        <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider">{label}</span>
-        {isSignal ? (
-            <span className={`mt-1 font-semibold text-2xl ${getSignalTextClasses(signalType ?? 'NEUTRAL')}`}>
-                {value}
-            </span>
-        ) : (
-            <span className={`text-lg font-mono mt-1 font-semibold ${valueClassName || 'text-gray-800 dark:text-dark-text'}`}>
-                {value}
-            </span>
-        )}
-        {subValue && (
-            <span className={`text-[10px] font-bold uppercase mt-1 ${subValueClassName || 'text-gray-500'}`}>
-                {subValue}
-            </span>
-        )}
-    </div>
+    <TiltCard>
+        <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 ${className} h-full`}>
+            <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider">{label}</span>
+            {isSignal ? (
+                <span className={`mt-1 font-semibold text-2xl ${getSignalTextClasses(signalType ?? 'NEUTRAL')}`}>
+                    {value}
+                </span>
+            ) : (
+                <span className={`text-lg font-mono mt-1 font-semibold ${valueClassName || 'text-gray-800 dark:text-dark-text'}`}>
+                    {value}
+                </span>
+            )}
+            {subValue && (
+                <span className={`text-[10px] font-bold uppercase mt-1 ${subValueClassName || 'text-gray-500'}`}>
+                    {subValue}
+                </span>
+            )}
+        </div>
+    </TiltCard>
 );
 
 const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, summary }) => {
@@ -233,28 +236,32 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             </div>
 
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
-                <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50">
-                     <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Entry Points</span>
-                     <div className="flex justify-center items-center gap-6">
-                        {data.entryPoints.map((ep, i) => (
-                            <div key={i} className="text-center">
-                                <span className="font-mono text-lg font-semibold text-gray-800 dark:text-dark-text">{ep}</span>
-                                <span className="block text-xs text-gray-500 dark:text-dark-text/60">Entry {i + 1}</span>
-                            </div>
-                        ))}
-                     </div>
-                </div>
-                <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50">
-                     <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Take Profit Targets</span>
-                     <div className="flex justify-around items-center">
-                        {data.takeProfits.map((tp, i) => (
-                            <div key={i} className="text-center">
-                                <span className="font-mono text-lg font-semibold text-green-600 dark:text-green-400">{tp}</span>
-                                <span className="block text-xs text-gray-500 dark:text-dark-text/60">TP{i + 1}</span>
-                            </div>
-                        ))}
-                     </div>
-                </div>
+                <TiltCard>
+                    <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 h-full">
+                         <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Entry Points</span>
+                         <div className="flex justify-center items-center gap-6">
+                            {data.entryPoints.map((ep, i) => (
+                                <div key={i} className="text-center">
+                                    <span className="font-mono text-lg font-semibold text-gray-800 dark:text-dark-text">{ep}</span>
+                                    <span className="block text-xs text-gray-500 dark:text-dark-text/60">Entry {i + 1}</span>
+                                </div>
+                            ))}
+                         </div>
+                    </div>
+                </TiltCard>
+                <TiltCard>
+                    <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 h-full">
+                         <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Take Profit Targets</span>
+                         <div className="flex justify-around items-center">
+                            {data.takeProfits.map((tp, i) => (
+                                <div key={i} className="text-center">
+                                    <span className="font-mono text-lg font-semibold text-green-600 dark:text-green-400">{tp}</span>
+                                    <span className="block text-xs text-gray-500 dark:text-dark-text/60">TP{i + 1}</span>
+                                </div>
+                            ))}
+                         </div>
+                    </div>
+                </TiltCard>
             </div>
 
             <Section title="Reasoning" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002 2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}>

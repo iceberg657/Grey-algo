@@ -26,6 +26,8 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
     return `
 Act as an elite algorithmic trading engine. Your goal is to identify a trade setup that **MAXIMIZES PROFIT** and **ELIMINATES LOSS**. You must be ruthless in your filtering—only pristine setups pass.
 
+**CORE DIRECTIVE:** Perform a **rigid and detailed analysis**. You must spot **important key levels** and **structural support/resistance** with extreme precision. You must **adapt to the global market structure** to understand the "why" behind the move.
+
 **0. STRATEGIC ANALYSIS FRAMEWORK:**
 Integrate the following comprehensive workflow to ensure robust reasoning:
 
@@ -33,7 +35,8 @@ Integrate the following comprehensive workflow to ensure robust reasoning:
 · Focus: Pure price movement, swing points, and chart patterns
 · Key Elements:
   · Identifying higher highs/lows (HH/HL) and lower highs/lows (LH/LL)
-  · Drawing support/resistance levels and trendlines
+  · **CRITICAL:** Drawing precise key levels (Weekly/Daily Support & Resistance).
+  · **CRITICAL:** Identifying structural support/resistance zones.
   · Recognizing chart patterns (head & shoulders, triangles, double tops/bottoms)
   · Analyzing candlestick patterns and wick rejection
 
@@ -77,18 +80,37 @@ Integrate the following comprehensive workflow to ensure robust reasoning:
   · Volatility regime assessment
   · Historical analog pattern matching
 
-**1. MANDATORY 9-STEP TECHNICAL ANALYSIS PROTOCOL:**
-You must execute the following 9 steps precisely to generate the signal. The timeframe values (H4/M15/M5) and indicators (MA) are guides; if specific timeframes or indicators are missing from the image, adapt the logic to the visible data but maintain the *structure* of the steps.
+**1. RIGID ANALYTICAL WORKFLOW (MANDATORY):**
+You must adhere to the following strict, two-phase protocol. Do not deviate.
 
-1.  **Set up timeframes:** Analyze H4 (trend/context), M15 (structure / swing), and M5 (entry/confirmation). If fewer charts are provided, treat the highest timeframe as Context and the lowest as Entry.
-2.  **Moving Average Analysis:** Identify the moving average (often a blue line) and note its slope on each timeframe. Is it trending up, down, or flat?
-3.  **Horizontal Levels:** Mark nearby horizontal levels where price has reacted recently (peaks/wicks = resistance, troughs = support).
-4.  **Read Price Action:** At those levels, look for rejections (long wicks), engulfing candles, lower highs (for sells), or higher lows (for buys).
-5.  **Multi-Timeframe Alignment:** Do H4, M15, and M5 show the same directional bias (bearish or bullish)? If not, the setup is lower probability.
-6.  **Define Trade Parameters:** Define Entry, SL, TP using nearest structure: entry at current price or on a trigger candle, SL beyond the recent swing high/low, TP at next structural support/resistance.
-7.  **Confirm Trigger:** Look for a clean trigger on the lowest timeframe (M5) (rejection, strong candle, failure to reclaim MA).
-8.  **Risk & Sizing:** Ensure the setup allows for the requested Risk/Reward ratio of **${riskRewardRatio}**.
-9.  **Invalidation Logic:** Define the specific reaction to the MA or horizontal level that would invalidate the trade (e.g., "If price closes back above the blue MA, exit").
+**PHASE 1: METHODOLOGY SELECTION**
+1.  **Indicator Check:** Scan the provided chart images for the On-Balance Volume (OBV) indicator.
+    *   **IF OBV PRESENT:** Deploy **"OBV Fusion Protocol"**. Combine OBV signals (trend confirmation, divergence, volume breakouts) with traditional price action.
+    *   **IF OBV ABSENT:** Deploy **"Oracle Multi-Dimensional Analysis"**. Focus purely on institutional trading principles (SMC/ICT) for a deep, structure-based market reading across multiple timeframes.
+
+**PHASE 2: UNIFIED MULTI-LAYERED ANALYTICAL WORKFLOW (SMC/ICT & OBV Fusion)**
+Execute these steps in order:
+
+1.  **Strategic View (Higher Timeframe):**
+    *   Establish the dominant directional bias.
+    *   **MANDATORY:** Identify and list specific **Key Levels** (Weekly/Daily Support & Resistance, Psychological Numbers).
+    *   Identify key Market Structure Shifts (MSS) and high-liquidity zones (Order Blocks, Fair Value Gaps).
+    *   *Constraint:* This dictates the ONLY permissible trading direction.
+
+2.  **Tactical View (Primary Timeframe):**
+    *   Wait for price to enter a high-probability zone identified in Step 1.
+    *   **MANDATORY:** Pinpoint **Structural Support/Resistance** valid for the current timeframe.
+    *   Define the precise **Entry Range**, **Stop Loss** (structural invalidation), and **Take Profit** targets (liquidity pools).
+
+3.  **Execution View (Entry Timeframe):**
+    *   Pinpoint the ultimate trigger for surgical entry based on micro-price action (e.g., engulfing, wick rejection).
+    *   Align with specific high-volatility time windows (ICT Killzones) if applicable.
+
+4.  **Guardrail Check:**
+    *   Any signal on a lower timeframe that contradicts the Higher Timeframe directional bias is **DISREGARDED**.
+
+5.  **Synthesis:**
+    *   Generate a single, definitive trade setup.
 
 **2. MARKET SYSTEM ADAPTATION:**
 ${contextSection}
@@ -129,7 +151,7 @@ Before issuing a signal, you MUST check for high-impact news events scheduled fo
 1. **Classification:** Rate confidence strictly according to the protocol above (80-95 High, 65-79 Medium).
 2. **Data:** Use Google Search for real-time sentiment/events.
 3. **Output:** Return ONLY a valid JSON object.
-4. **Checklist:** The 'checklist' array MUST include the specific outcomes of the 9-step protocol (e.g., "Step 2: MA Slope is Bearish", "Step 5: All TFs Aligned").
+4. **Checklist:** The 'checklist' array MUST include the specific outcomes of the Rigid Workflow (e.g., "Phase 1: OBV Absent - Using SMC", "Strategic View: Bearish MSS", "Guardrail: Passed", "Key Level: Daily Resistance at 1.0500").
 
 **Output Format:**
 {
@@ -176,7 +198,7 @@ async function callGemini(request) {
         const config = {
             tools: [{googleSearch: {}}],
             seed: 42,
-            temperature: 0.7, 
+            temperature: 0.1, 
             thinkingConfig: { thinkingBudget: thinkingBudget }, 
         };
 
@@ -191,7 +213,7 @@ async function callGemini(request) {
     // Smart Fallback System: 3.0 Pro -> 2.5 Pro -> 2.5 Flash
     try {
         console.log("Attempting analysis with Gemini 3.0 Pro...");
-        response = await generateWithModel('gemini-3-pro-preview', 32000);
+        response = await generateWithModel('gemini-3-pro-preview', 32768);
     } catch (error30) {
         console.warn("Gemini 3.0 Pro failed. Attempting fallback to Gemini 2.5 Pro.", error30);
         try {
