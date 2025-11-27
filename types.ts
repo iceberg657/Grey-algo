@@ -43,7 +43,6 @@ export interface SignalData {
     invalidationScenario?: string;
     sentiment?: Sentiment;
     economicEvents?: EconomicEvent[];
-    estimatedWaitTime?: string;
     sources?: {
         uri: string;
         title: string;

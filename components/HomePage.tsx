@@ -104,7 +104,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300">
             {isLoading && (
-                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-50 animate-fade-in">
+                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-[100] animate-fade-in">
                     <Loader />
                 </div>
             )}

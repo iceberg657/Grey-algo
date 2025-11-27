@@ -9,10 +9,7 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
         ? "Short Term (Intraday Power Shift): Execute as an Intraday strategy focused on MOMENTUM DOMINANCE. Look for specific scenarios where one side is overpowering the other. Prioritize entries at these moments of power shift."
         : tradingStyle;
     
-    const contextSection = globalContext 
-        ? `\n**Global Market Context (Live 1H Update):**\n${globalContext}\n\n**Instruction:** Use the above Global Market Context to weight your probability. If the global structure contradicts the chart signal, lower the confidence score immediately.` 
-        : "";
-
+    // Explicit context injection removed to clear guard rails.
     const learnedSection = learnedStrategies.length > 0
         ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
@@ -29,11 +26,10 @@ Act as an elite algorithmic trading engine. Your goal is to identify a trade set
 ${isMultiDimensional
 ? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF). Use this hierarchy for your analysis.`
 : `You are provided with a single Tactical View chart. Adapt the multi-step analysis to market structure visible on this single timeframe.`}
-${contextSection}
 ${learnedSection}
 
 **CONFIDENCE SCORING PROTOCOL (Strict Enforcement):**
-- **80 - 95 (HIGH PROBABILITY):** The "Perfect Trade". Trend, Momentum, Structure, Global Context, and News Alignment all match. This is a "Sniper Entry".
+- **80 - 95 (HIGH PROBABILITY):** The "Perfect Trade". Trend, Momentum, and Structure align strongly. This is a "Sniper Entry".
 - **65 - 79 (MEDIUM PROBABILITY):** Good setup with strong potential, but one minor factor suggests caution.
 - **< 65 (NO TRADE):** If the confidence is below 65, mark the signal as NEUTRAL.
 
@@ -49,9 +45,6 @@ ${learnedSection}
 
 **Step 3: Execution Trigger (LTF)**
 · Pinpoint the EXACT entry price.
-· **Wait Recommendation Logic:** You must determine if the trade is ready for **IMMEDIATE ENTRY** or requires a **WAIT**.
-    - If price is at the entry zone: Recommend "Enter Immediately".
-    - If price needs to pull back or break a level: Recommend specific wait instructions (e.g., "Wait for pullback to [Price]" or "Wait for candle close above [Price]").
 · Define the Stop Loss at the invalidation point (Minimize Risk).
 · Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
 
@@ -76,7 +69,6 @@ ${learnedSection}
   "reasoning": ["string (Step 1)", "string (Step 2)", "string (Final Verdict)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
-  "estimatedWaitTime": "string (Mandatory: e.g., 'Enter Immediately', 'Wait for retest of [Price]', 'Wait for 15m candle close')",
   "sentiment": {
     "score": "number (0-100)",
     "summary": "string"

@@ -144,7 +144,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             }
             setTtsState('idle');
         } else { // ttsState is 'idle'
-            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence, estimatedWaitTime } = data;
+            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence } = data;
             
             // Determine probability level for TTS
             let probabilityLevel = "Low Probability";
@@ -156,10 +156,6 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 Signal is ${signal}.
             `;
             
-            if (estimatedWaitTime) {
-                textToSpeak += `Wait Recommendation: ${estimatedWaitTime}. `;
-            }
-
             textToSpeak += `
                 Confidence is ${confidence} percent, classified as ${probabilityLevel}.
                 The three entry points are ${entryPoints.join(', ')}.
@@ -218,24 +214,6 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     )}
                 </button>
             </header>
-
-            {data.estimatedWaitTime && (
-                <div className="mb-6 p-4 rounded-lg bg-orange-900/20 border-l-4 border-orange-500 animate-pulse-slow">
-                    <div className="flex">
-                        <div className="flex-shrink-0">
-                            <svg className="h-5 w-5 text-orange-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <div className="ml-3">
-                            <h3 className="text-sm font-bold text-orange-400">Wait Recommended</h3>
-                            <div className="mt-1 text-sm text-orange-300">
-                                <p>{data.estimatedWaitTime}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <div className="grid grid-cols-3 gap-2">
                 <InfoCard label="Signal" value={data.signal} isSignal signalType={data.signal} />
@@ -315,10 +293,11 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
             {data.sources && data.sources.length > 0 && (
                  <Section title="Sources" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>}>
-                    <ul className="list-disc list-inside space-y-1">
+                    <ul className="space-y-1">
                         {data.sources.map((source, i) => (
-                            <li key={i} className="truncate">
-                                <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline">{source.title}</a>
+                            <li key={i} className="flex items-start overflow-hidden">
+                                <span className="mr-2 text-gray-500">•</span>
+                                <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:underline truncate block flex-1">{source.title}</a>
                             </li>
                         ))}
                     </ul>
