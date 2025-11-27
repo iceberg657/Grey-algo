@@ -64,7 +64,7 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                     <div className={`text-3xl ${trend.color}`}>{trend.icon}</div>
                     <div>
                         <div className={`text-lg font-extrabold uppercase ${trend.color} leading-none`}>{trend.label}</div>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wider mt-1">Detected Trend</div>
+                        <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wider mt-1">Market Trend</div>
                     </div>
                 </div>
                 <div className="text-right">
@@ -299,7 +299,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             {(data.sentiment || (data.economicEvents && data.economicEvents.length > 0)) && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {data.sentiment && (
-                         <Section title="Market Trend Detector" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>}>
+                         <Section title="Market Sentiment" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>}>
                             <SentimentGauge score={data.sentiment.score} summary={data.sentiment.summary} />
                          </Section>
                     )}
