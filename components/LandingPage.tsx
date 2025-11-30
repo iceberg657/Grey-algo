@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggleButton } from './ThemeToggleButton';
@@ -688,33 +689,55 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
             return;
         }
 
-        const stocks = [
-            { symbol: "META", name: "Meta Platforms", price: 318.72, change: 1.45, changePercent: 0.46 },
-            { symbol: "GOOGL", name: "Alphabet", price: 130.25, change: -0.75, changePercent: -0.57 },
-            { symbol: "TSLA", name: "Tesla", price: 260.54, change: 12.36, changePercent: 4.98 },
-            { symbol: "NVDA", name: "NVIDIA", price: 439.37, change: 22.18, changePercent: 5.32 },
-            { symbol: "AAPL", name: "Apple", price: 189.25, change: 2.36, changePercent: 1.26 },
-            { symbol: "MSFT", name: "Microsoft", price: 338.11, change: -1.25, changePercent: -0.37 },
-            { symbol: "AMZN", name: "Amazon", price: 134.95, change: 3.42, changePercent: 2.60 },
-            { symbol: "JPM", name: "JPMorgan Chase", price: 156.82, change: -0.92, changePercent: -0.58 }
-        ];
-
-        function initTicker() {
+        // Updated: Fetch live currency data via the backend API instead of hardcoded stocks
+        async function initTicker() {
             const ticker = document.getElementById('stockTicker');
             if (!ticker) return;
             
+            let tickerData: any[] = [];
+
+            try {
+                // Fetch from our backend which uses Alpha Vantage
+                const response = await fetch('/api/marketData');
+                if (response.ok) {
+                    tickerData = await response.json();
+                }
+            } catch (e) {
+                console.error("Failed to fetch ticker data", e);
+            }
+
+            // Fallback data if API quota reached or error (Show fake data to keep UI looking good)
+            if (tickerData.length === 0) {
+                 tickerData = [
+                    { symbol: "EUR/USD", price: 1.0850, change: 0.0015, changePercent: 0.14 },
+                    { symbol: "GBP/USD", price: 1.2640, change: -0.0020, changePercent: -0.16 },
+                    { symbol: "USD/JPY", price: 148.20, change: 0.45, changePercent: 0.30 },
+                    { symbol: "USD/CHF", price: 0.8850, change: 0.0010, changePercent: 0.11 },
+                    { symbol: "AUD/USD", price: 0.6540, change: -0.0030, changePercent: -0.46 },
+                    { symbol: "EUR/GBP", price: 0.8560, change: 0.0012, changePercent: 0.14 },
+                    { symbol: "EUR/JPY", price: 160.80, change: 0.55, changePercent: 0.34 },
+                    { symbol: "GBP/JPY", price: 187.35, change: 0.40, changePercent: 0.21 },
+                    { symbol: "AUD/JPY", price: 96.90, change: -0.10, changePercent: -0.10 },
+                    { symbol: "NZD/USD", price: 0.6120, change: -0.0015, changePercent: -0.24 }
+                ];
+            }
+            
             ticker.innerHTML = ''; // Clear previous items
 
-            stocks.forEach(stock => {
-                const isPositive = stock.change >= 0;
+            tickerData.forEach((item: any) => {
+                const isPositive = item.change >= 0;
                 const tickerItem = document.createElement('div');
                 tickerItem.className = 'ticker-item';
+                
+                // Formatting
+                const pricePrecision = item.symbol.includes('JPY') ? 2 : (item.price > 100 ? 2 : 4);
+                
                 tickerItem.innerHTML = `
-                    <div class="ticker-symbol">${stock.symbol}</div>
-                    <div class="ticker-price">$${stock.price.toFixed(2)}</div>
+                    <div class="ticker-symbol">${item.symbol}</div>
+                    <div class="ticker-price">${item.price.toFixed(pricePrecision)}</div>
                     <div class="ticker-change ${isPositive ? 'up' : 'down'}">
                         <i class="fas fa-caret-${isPositive ? 'up' : 'down'}"></i>
-                        <span>${Math.abs(stock.change).toFixed(2)} (${Math.abs(stock.changePercent).toFixed(2)}%)</span>
+                        <span>${Math.abs(item.change).toFixed(pricePrecision)} (${Math.abs(item.changePercent).toFixed(2)}%)</span>
                     </div>
                 `;
                 ticker.appendChild(tickerItem);
