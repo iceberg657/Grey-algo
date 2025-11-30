@@ -245,7 +245,7 @@ nav ul li a:hover::after {
 .ticker {
     display: flex;
     white-space: nowrap;
-    animation: tickerScroll 25s linear infinite;
+    animation: tickerScroll 20s linear infinite;
 }
 .ticker-item {
     display: flex;
