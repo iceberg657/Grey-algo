@@ -20,7 +20,11 @@ const isSameDay = (d1, d2) => {
 const simulateFluctuations = (data) => {
     return data.map(item => {
         // Use a small volatility for realistic ticks
-        const volatility = item.price * 0.0001; // 0.01% volatility
+        // Higher volatility for Crypto
+        const isCrypto = item.symbol.includes('BTC') || item.symbol.includes('ETH');
+        const baseVolatility = isCrypto ? 0.0005 : 0.0001;
+        
+        const volatility = item.price * baseVolatility;
         const randomFactor = (Math.random() - 0.5) * 2; // -1 to 1
         const priceChange = volatility * randomFactor;
         
@@ -31,7 +35,10 @@ const simulateFluctuations = (data) => {
         const newChange = newPrice - openPrice;
         const newChangePercent = (newChange / openPrice) * 100;
         
-        const pricePrecision = item.symbol.includes('JPY') ? 2 : 4;
+        // Precision logic
+        let pricePrecision = 4;
+        if (item.symbol.includes('JPY')) pricePrecision = 2;
+        if (item.symbol.includes('XAU') || item.symbol.includes('BTC') || item.symbol.includes('ETH')) pricePrecision = 2;
 
         return {
             symbol: item.symbol,
@@ -46,9 +53,11 @@ const simulateFluctuations = (data) => {
 async function fetchFreshData(apiKey) {
     const majorPairs = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'];
     const minorPairs = ['EUR/GBP', 'EUR/JPY', 'GBP/JPY', 'AUD/JPY', 'NZD/USD'];
-    const allPairs = [...majorPairs, ...minorPairs];
+    const cryptoAndMetals = ['BTC/USD', 'ETH/USD', 'XAU/USD'];
     
-    console.warn("Making live API calls to Alpha Vantage. The free tier is limited to 25 calls per day. This function will use 10 calls.");
+    const allPairs = [...majorPairs, ...minorPairs, ...cryptoAndMetals];
+    
+    console.warn(`Making live API calls to Alpha Vantage. This function will use ${allPairs.length} calls (Limit: 25/day).`);
 
     const promises = allPairs.map(pair => {
         const symbol = pair.replace('/', '');

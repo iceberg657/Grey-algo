@@ -245,7 +245,7 @@ nav ul li a:hover::after {
 .ticker {
     display: flex;
     white-space: nowrap;
-    animation: tickerScroll 40s linear infinite;
+    animation: tickerScroll 25s linear infinite;
 }
 .ticker-item {
     display: flex;
@@ -718,7 +718,10 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                     { symbol: "EUR/JPY", price: 160.80, change: 0.55, changePercent: 0.34 },
                     { symbol: "GBP/JPY", price: 187.35, change: 0.40, changePercent: 0.21 },
                     { symbol: "AUD/JPY", price: 96.90, change: -0.10, changePercent: -0.10 },
-                    { symbol: "NZD/USD", price: 0.6120, change: -0.0015, changePercent: -0.24 }
+                    { symbol: "NZD/USD", price: 0.6120, change: -0.0015, changePercent: -0.24 },
+                    { symbol: "BTC/USD", price: 42500.00, change: 120.50, changePercent: 0.28 },
+                    { symbol: "ETH/USD", price: 2300.50, change: 15.20, changePercent: 0.66 },
+                    { symbol: "XAU/USD", price: 2035.40, change: 5.10, changePercent: 0.25 }
                 ];
             }
             
@@ -730,7 +733,9 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                 tickerItem.className = 'ticker-item';
                 
                 // Formatting
-                const pricePrecision = item.symbol.includes('JPY') ? 2 : (item.price > 100 ? 2 : 4);
+                let pricePrecision = 4;
+                if (item.symbol.includes('JPY')) pricePrecision = 2;
+                if (item.symbol.includes('BTC') || item.symbol.includes('ETH') || item.symbol.includes('XAU')) pricePrecision = 2;
                 
                 tickerItem.innerHTML = `
                     <div class="ticker-symbol">${item.symbol}</div>
