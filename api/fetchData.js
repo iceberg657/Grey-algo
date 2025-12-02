@@ -19,6 +19,11 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
         ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
 
+    // Specific instruction for SL/TP sourcing based on style
+    const riskManagementDirective = tradingStyle === 'Scalp'
+        ? "SCALPING PROTOCOL: Derive Entry, Stop Loss, and Take Profit levels PURELY from the Execution View (Lowest Timeframe) market structure to ensure tight risk and quick rotation."
+        : "DAY TRADING PROTOCOL: Derive the precise Entry from the Execution View (Lowest Timeframe) for sniper precision, but base Stop Loss and Take Profit zones on the Tactical View (Primary Timeframe) structure to withstand noise and capture the broader intraday move.";
+
     return `
 Act as an elite algorithmic trading engine. Your goal is to identify a trade setup that **MAXIMIZES PROFIT** and **ELIMINATES LOSS**. You must be ruthless in your filtering—only pristine setups pass.
 
@@ -49,6 +54,7 @@ ${learnedSection}
 · Identify the immediate trading range.
 
 **Step 3: Execution Trigger (LTF)**
+· ${riskManagementDirective}
 · Pinpoint the EXACT entry price.
 · Define the Stop Loss at the invalidation point (Minimize Risk).
 · Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
