@@ -1,7 +1,8 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { getOrRefreshGlobalAnalysis } from '../services/globalMarketService';
-import type { GlobalMarketAnalysis } from '../types';
+import { getOrRefreshSuggestions } from '../services/suggestionService';
+import type { GlobalMarketAnalysis, AssetSuggestion } from '../types';
 import { MarketTicker } from './MarketTicker';
 
 // Hook to get current time and session
@@ -90,6 +91,11 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     const { day, date, time, utcOffset, activeSessions } = useDateTime();
     const [globalAnalysis, setGlobalAnalysis] = useState<GlobalMarketAnalysis | null>(null);
     const [isUpdatingGlobal, setIsUpdatingGlobal] = useState(false);
+    
+    // Suggestion State
+    const [suggestions, setSuggestions] = useState<AssetSuggestion[]>([]);
+    const [suggestionTimer, setSuggestionTimer] = useState<string>('--:--');
+    const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
 
     // Fetch Global Market Analysis with 1hr auto-refresh logic
     useEffect(() => {
@@ -114,6 +120,47 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         }, 60000); 
 
         return () => clearInterval(interval);
+    }, []);
+
+    // Fetch Suggestions logic
+    useEffect(() => {
+        let timerInterval: ReturnType<typeof setInterval>;
+
+        const fetchSuggestions = async () => {
+            if (isUpdatingSuggestions) return;
+            setIsUpdatingSuggestions(true);
+            try {
+                const { suggestions: data, nextUpdate } = await getOrRefreshSuggestions();
+                setSuggestions(data);
+                
+                // Start countdown
+                if (timerInterval) clearInterval(timerInterval);
+                timerInterval = setInterval(() => {
+                    const now = Date.now();
+                    const diff = nextUpdate - now;
+                    if (diff <= 0) {
+                        setSuggestionTimer('Refreshing...');
+                        clearInterval(timerInterval);
+                        fetchSuggestions(); // Recursive call to refresh
+                    } else {
+                        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                        const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                        setSuggestionTimer(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+                    }
+                }, 1000);
+
+            } catch (e) {
+                console.error("Failed to load suggestions", e);
+            } finally {
+                setIsUpdatingSuggestions(false);
+            }
+        };
+
+        fetchSuggestions();
+
+        return () => {
+            if (timerInterval) clearInterval(timerInterval);
+        };
     }, []);
 
     useEffect(() => {
@@ -286,6 +333,61 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     >
                         Reset
                     </button>
+                </div>
+            </div>
+
+             {/* AI Suggestions Section */}
+             <div className="mt-4 p-4 bg-gradient-to-r from-gray-900 to-slate-900 rounded-xl border border-green-500/30 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-32 w-32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                </div>
+                
+                <div className="flex justify-between items-center mb-4 relative z-10">
+                    <div>
+                        <h3 className="text-lg font-bold text-green-400 flex items-center gap-2">
+                             <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                            </span>
+                            AI Asset Suggestions
+                        </h3>
+                        <p className="text-xs text-gray-400">High-probability setups for this session (Low News Risk)</p>
+                    </div>
+                     <div className="text-right">
+                        <span className="text-xs text-gray-500 block">Next Refresh</span>
+                        <span className="font-mono text-green-300 font-bold">{suggestionTimer}</span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
+                    {suggestions.length > 0 ? (
+                        suggestions.map((asset, idx) => (
+                            <div 
+                                key={idx} 
+                                onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
+                                className="bg-white/5 hover:bg-white/10 p-3 rounded-lg border border-white/10 cursor-pointer transition-all flex justify-between items-center"
+                            >
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-bold text-white">{asset.symbol}</span>
+                                        <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 rounded">{asset.type}</span>
+                                    </div>
+                                    <p className="text-xs text-gray-400 mt-1 line-clamp-1">{asset.reason}</p>
+                                </div>
+                                <div className="text-right">
+                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                    </svg>
+                                </div>
+                            </div>
+                        ))
+                    ) : (
+                         <div className="col-span-full py-4 text-center text-gray-500 text-sm italic">
+                            Scanning market for opportunities...
+                        </div>
+                    )}
                 </div>
             </div>
 

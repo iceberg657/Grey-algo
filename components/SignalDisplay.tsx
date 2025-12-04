@@ -144,7 +144,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             }
             setTtsState('idle');
         } else { // ttsState is 'idle'
-            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence } = data;
+            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence, expectedDuration } = data;
             
             // Determine probability level for TTS
             let probabilityLevel = "Low Probability";
@@ -158,6 +158,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             
             textToSpeak += `
                 Confidence is ${confidence} percent, classified as ${probabilityLevel}.
+                Expected duration is ${expectedDuration || 'not specified'}.
                 The three entry points are ${entryPoints.join(', ')}.
                 Stop loss is at ${stopLoss}.
                 Take profits are at ${takeProfits.join(', ')}.
@@ -215,15 +216,21 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </button>
             </header>
 
-            <div className="grid grid-cols-3 gap-2">
-                <InfoCard label="Signal" value={data.signal} isSignal signalType={data.signal} />
-                <InfoCard 
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+                 <InfoCard label="Signal" value={data.signal} isSignal signalType={data.signal} className="col-span-2 md:col-span-1" />
+                 <InfoCard 
                     label="Confidence" 
                     value={`${data.confidence}%`} 
                     subValue={confidenceDetails.label}
                     subValueClassName={confidenceDetails.color}
                 />
-                <InfoCard label="Stop Loss" value={data.stopLoss} valueClassName="text-red-500 dark:text-red-400" />
+                 <InfoCard label="Stop Loss" value={data.stopLoss} valueClassName="text-red-500 dark:text-red-400" />
+                 <InfoCard 
+                    label="Duration" 
+                    value={data.expectedDuration || "N/A"} 
+                    valueClassName="text-blue-500 dark:text-blue-400 text-sm"
+                    subValue="Estimated"
+                 />
             </div>
 
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
@@ -255,7 +262,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </TiltCard>
             </div>
 
-            <Section title="Reasoning" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002 2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}>
+            <Section title="Reasoning" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002 2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}>
                 <ul className="space-y-2">
                     {data.reasoning.map((reason, i) => <li key={i} className="bg-gray-200/30 dark:bg-dark-bg/40 p-3 rounded-md">{reason}</li>)}
                 </ul>

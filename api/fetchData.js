@@ -12,7 +12,7 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 
 const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext, learnedStrategies = []) => {
     const styleInstruction = tradingStyle === 'Short Term' 
-        ? "Short Term (Intraday Power Shift): Execute as an Intraday strategy focused on MOMENTUM DOMINANCE. Look for specific scenarios where one side is overpowering the other. Prioritize entries at these moments of power shift."
+        ? "Short Term (Intraday Power Shift): Execute as an Intraday strategy focused on MOMENTUM DOMINANCE."
         : tradingStyle;
 
     const learnedSection = learnedStrategies.length > 0
@@ -25,12 +25,14 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
         : "DAY TRADING PROTOCOL: Derive the precise Entry from the Execution View (Lowest Timeframe) for sniper precision, but base Stop Loss and Take Profit zones on the Tactical View (Primary Timeframe) structure to withstand noise and capture the broader intraday move.";
 
     return `
-Act as an elite algorithmic trading engine. Your goal is to identify a trade setup that **MAXIMIZES PROFIT** and **ELIMINATES LOSS**. You must be ruthless in your filtering—only pristine setups pass.
+Act as an elite, human-like Master Trader. Your mindset is not that of a machine, but of a veteran market predator who adapts to probabilities.
+**YOUR CORE OBJECTIVE:** MAXIMIZE PROFIT. ZERO MINIMUM LOSSES. 
+You do not trade for the sake of trading. You trade to extract money from the market systematically.
 
-**Speed & Precision Directive:**
-1.  **Analyze Instantly:** Process market structure immediately.
-2.  **Zero-Loss Mentality:** If a setup has conflicting signals, discard it. However, use your deep reasoning to resolve minor conflicts. If the primary structure is strong, do not default to NEUTRAL solely due to minor noise.
-3.  **Precision:** Entry, Stop Loss, and Take Profit levels must be exact price points, not ranges.
+**The Human-AI Hybrid Approach:**
+1.  **Adaptability:** The market changes. If the structure is "choppy" or "ugly", reject it immediately. Do not force a trade.
+2.  **Probability over Certainty:** Trading is a game of odds. Only present setups where the "Edge" is clearly visible.
+3.  **Time Awareness:** You must estimate how long this specific trade will take to play out (Time Duration) based on the volatility and timeframe.
 
 **Context:**
 ${isMultiDimensional
@@ -46,12 +48,10 @@ ${learnedSection}
 **Analytical Framework:**
 
 **Step 1: Strategic Trend (HTF)**
-· Identify the dominant Market Structure (Bullish/Bearish).
-· Mark major Support/Resistance.
+· Identify the dominant Market Structure. Is the Smart Money buying or selling?
 
 **Step 2: Tactical Momentum (MTF)**
 · Does shorter-term action align with HTF?
-· Identify the immediate trading range.
 
 **Step 3: Execution Trigger (LTF)**
 · ${riskManagementDirective}
@@ -59,12 +59,15 @@ ${learnedSection}
 · Define the Stop Loss at the invalidation point (Minimize Risk).
 · Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
 
+**Step 4: Time Duration Estimation**
+· Based on the '${tradingStyle}' style, estimate the time required for this trade to hit TP or SL (e.g., "15-30 Minutes", "2-4 Hours", "1-2 Days").
+
 **Trading Parameters:**
 · **Style:** ${styleInstruction}
 · **Risk Management:** Target R:R of ${riskRewardRatio}.
 
 **Response Requirements:**
-1. **Classification:** Rate confidence strictly according to the protocol above (80-95 High, 65-79 Medium).
+1. **Classification:** Rate confidence strictly according to the protocol above.
 2. **Data:** Use Google Search for real-time sentiment/events.
 3. **Output:** Return ONLY a valid JSON object.
 
@@ -77,6 +80,7 @@ ${learnedSection}
   "entryPoints": [number, number, number],
   "stopLoss": "number",
   "takeProfits": [number, number, number],
+  "expectedDuration": "string (e.g. '45 Minutes')",
   "reasoning": ["string (Step 1)", "string (Step 2)", "string (Final Verdict)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
@@ -111,8 +115,8 @@ async function callGemini(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.7, // Higher temp to allow for diverse thinking
-        thinkingConfig: { thinkingBudget: 16384 }, // Enable high-capacity reasoning with 2.5 Pro
+        temperature: 0.89, // High creativity for human-like pattern recognition
+        thinkingConfig: { thinkingBudget: 16384 },
     };
 
     // Use gemini-2.5-pro for maximum accuracy

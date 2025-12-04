@@ -38,6 +38,7 @@ export interface SignalData {
     entryPoints: number[];
     stopLoss: number;
     takeProfits: number[];
+    expectedDuration: string; // New field for time duration
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;
@@ -47,6 +48,13 @@ export interface SignalData {
         uri: string;
         title: string;
     }[];
+}
+
+export interface AssetSuggestion {
+    symbol: string;
+    type: 'Major' | 'Minor' | 'Crypto' | 'Commodity';
+    reason: string;
+    volatilityWarning: boolean;
 }
 
 // FIX: Add MarketDataItem interface for use in market data services and components.
