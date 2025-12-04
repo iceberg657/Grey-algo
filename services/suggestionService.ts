@@ -7,17 +7,20 @@ const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
 const SUGGESTION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
 const PROMPT = `
-Act as an Elite Hedge Fund Algo with a strict risk filter.
-Your task is to identify **2 to 5 "Sniper" assets** that are currently forming **A+ High Probability Setups** (80% - 90% Win Probability) for the current market session.
+Act as an Elite Hedge Fund Algo with a balanced risk filter.
+Your task is to identify **3 to 5 Tradeable Assets** that are currently forming **A+, A, or B-Grade Setups** (70% - 99% Win Probability) for the current market session.
 
 **CRITICAL CRITERIA:**
-1.  **Win Probability:** You are NOT just suggesting active pairs. You are suggesting specific assets that, if analyzed technically right now, would present a pristine, high-confluence setup (80-90% win rate).
-2.  **The "A+" Filter:** Look for:
-    *   Perfect Trend Alignment (Multi-timeframe confluence).
-    *   Clean Market Structure (No choppy/ranging consolidation).
-    *   Clear Liquidity Sweeps or Order Block interactions.
-3.  **Risk Management:** Ensure there are NO high-impact news events (Red Folder) scheduled in the next 2 hours for these specific assets. The setup must be technical, not fundamental gambling.
-4.  **Session Alignment:** Ensure the asset is highly liquid in the current session (e.g., GBP pairs during London, USD during New York).
+1.  **Setup Quality Classifications:**
+    *   **A+ Setup (Unicorn/High Conviction):** 90%+ Probability. The "Perfect Trade". Trend, Momentum, Structure (SMC/ICT), and Timeframe Alignment are flawless.
+    *   **A-Setup (Sniper):** 80-89% Probability. Excellent structure and trend alignment.
+    *   **B-Setup (Standard):** 70-79% Probability. Strong bias and clear direction, perhaps one minor confluence factor is average.
+2.  **Technical Focus:** Look for:
+    *   Clear Break of Structure (BOS) or Market Structure Shift (MSS).
+    *   Retests of Order Blocks (OB) or Fair Value Gaps (FVG).
+    *   Momentum divergence or clear trend continuation patterns.
+3.  **Risk Management:** Ensure there are NO high-impact news events (Red Folder) scheduled in the next 1 hour for these specific assets.
+4.  **Session Alignment:** Ensure the asset is active in the current session.
 
 **Output Format:**
 Return ONLY a valid JSON array.
@@ -25,7 +28,7 @@ Return ONLY a valid JSON array.
   {
     "symbol": "string (e.g. 'EUR/USD')",
     "type": "'Major' | 'Minor' | 'Crypto' | 'Commodity'",
-    "reason": "Specific technical reason for high probability (e.g. 'Clean H4 Order Block retest aligned with bullish DXY').",
+    "reason": "MUST START WITH LABEL. Ex: 'A+ Setup: Perfect H4/15m alignment with liquidity sweep' or 'B-Setup: Strong uptrend but nearing resistance'.",
     "volatilityWarning": boolean (false)
   }
 ]
