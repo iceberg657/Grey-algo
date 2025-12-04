@@ -8,6 +8,7 @@ import { HistoryPage } from './components/HistoryPage';
 import { NewsPage } from './components/NewsPage';
 import { ChatPage } from './components/ChatPage';
 import { PredictorPage } from './components/PredictorPage';
+import { MarketStatisticsPage } from './components/MarketStatisticsPage'; // Import new page
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, NewsArticle, PredictedEvent, ChatMessage } from './types';
@@ -20,7 +21,7 @@ import { AutoLearningManager } from './components/AutoLearningManager';
 
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'statistics'; // Added statistics
 
 // Storage keys
 const NEWS_STORAGE_KEY = 'greyquant_news';
@@ -189,6 +190,11 @@ const App: React.FC = () => {
         setAppView('predictor');
     };
 
+    // New handler for statistics page
+    const handleNavigateToStatistics = () => {
+        setAppView('statistics');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         setAppView(previousView);
@@ -288,6 +294,18 @@ const App: React.FC = () => {
         );
     }
 
+    if (appView === 'statistics') {
+        return (
+            <>
+                {autoLearning}
+                <MarketStatisticsPage 
+                    onBack={handleNavigateToHome} 
+                    onLogout={handleLogout}
+                />
+            </>
+        );
+    }
+
     if (appView === 'analysis' && analysisData) {
         return (
             <>
@@ -312,6 +330,7 @@ const App: React.FC = () => {
                 onNavigateToNews={handleNavigateToNews}
                 onNavigateToChat={handleNavigateToChat}
                 onNavigateToPredictor={handleNavigateToPredictor}
+                onNavigateToStatistics={handleNavigateToStatistics} // Pass new handler
                 onAssetSelect={handleAssetSelect}
             />
         </>

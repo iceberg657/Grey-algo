@@ -104,3 +104,41 @@ export interface PredictedEvent {
     confidence: number; // 80-100
     reasoning: string;
 }
+
+// --- New Types for Market Statistics ---
+
+export type StatTimeframe = '15m' | '1H' | '4H' | '1D';
+
+export interface TechnicalIndicators {
+    ma50: { value: number; signal: 'Buy' | 'Sell' | 'Neutral' };
+    ma200: { value: number; signal: 'Buy' | 'Sell' | 'Neutral' };
+    stochastic: { k: number; d: number; signal: 'Overbought' | 'Oversold' | 'Neutral' };
+    atr: number;
+    adx: { value: number; trend: 'Strong' | 'Weak' | 'Ranging' };
+    rsi: number;
+}
+
+export interface CandlestickPattern {
+    name: string;
+    signal: 'Bullish' | 'Bearish' | 'Neutral';
+    description: string;
+}
+
+export interface MarketStatsData {
+    symbol: string;
+    timeframe: StatTimeframe;
+    price: number;
+    sentimentScore: number; // 0-100 (0=Strong Sell, 50=Neutral, 100=Strong Buy)
+    sentimentLabel: 'Strong Sell' | 'Sell' | 'Neutral' | 'Buy' | 'Strong Buy';
+    indicators: TechnicalIndicators;
+    supportResistance: {
+        s1: number;
+        s2: number;
+        s3: number;
+        r1: number;
+        r2: number;
+        r3: number;
+    };
+    todaysEvents: EconomicEvent[];
+    patterns: CandlestickPattern[];
+}
