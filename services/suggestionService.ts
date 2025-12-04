@@ -7,16 +7,17 @@ const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
 const SUGGESTION_DURATION_MS = 30 * 60 * 1000; // 30 minutes
 
 const PROMPT = `
-Act as a Human Market Analyst.
-Your task is to identify **2 to 5 high-probability assets** to trade within the current market session.
+Act as an Elite Hedge Fund Algo with a strict risk filter.
+Your task is to identify **2 to 5 "Sniper" assets** that are currently forming **A+ High Probability Setups** (80% - 90% Win Probability) for the current market session.
 
-**Instructions:**
-1.  **Analyze Time:** Check the current UTC time. Determine if it is Asian, London, or New York session.
-2.  **Filter Assets:** 
-    *   Select Major or Minor Forex pairs (e.g., EUR/USD, GBP/JPY) or key Commodities (Gold) that are liquid *right now*.
-    *   **CRITICAL:** Use Google Search to check the economic calendar for the next 4 hours. **EXCLUDE** any pair that has "High Impact" news pending (e.g., NFP, CPI, Rate Decisions) to avoid gambling. If news is present, select a safe-haven or non-affected pair.
-3.  **Selection Criteria:** Choose pairs showing clear technical structure or session momentum.
-4.  **Limit:** Provide exactly 2, 3, 4, or 5 suggestions. No more.
+**CRITICAL CRITERIA:**
+1.  **Win Probability:** You are NOT just suggesting active pairs. You are suggesting specific assets that, if analyzed technically right now, would present a pristine, high-confluence setup (80-90% win rate).
+2.  **The "A+" Filter:** Look for:
+    *   Perfect Trend Alignment (Multi-timeframe confluence).
+    *   Clean Market Structure (No choppy/ranging consolidation).
+    *   Clear Liquidity Sweeps or Order Block interactions.
+3.  **Risk Management:** Ensure there are NO high-impact news events (Red Folder) scheduled in the next 2 hours for these specific assets. The setup must be technical, not fundamental gambling.
+4.  **Session Alignment:** Ensure the asset is highly liquid in the current session (e.g., GBP pairs during London, USD during New York).
 
 **Output Format:**
 Return ONLY a valid JSON array.
@@ -24,8 +25,8 @@ Return ONLY a valid JSON array.
   {
     "symbol": "string (e.g. 'EUR/USD')",
     "type": "'Major' | 'Minor' | 'Crypto' | 'Commodity'",
-    "reason": "Short, human-like reason (e.g. 'London open breakout expected, news clear').",
-    "volatilityWarning": boolean (true if moderate news exists, false if clear)
+    "reason": "Specific technical reason for high probability (e.g. 'Clean H4 Order Block retest aligned with bullish DXY').",
+    "volatilityWarning": boolean (false)
   }
 ]
 `;
@@ -41,7 +42,7 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
             contents: PROMPT,
             config: {
                 tools: [{googleSearch: {}}],
-                temperature: 0.89, // Creative selection
+                temperature: 0.89, // High creativity to find unique confluence
             },
         });
 
