@@ -52,7 +52,7 @@ export interface SignalData {
 
 export interface AssetSuggestion {
     symbol: string;
-    type: 'Major' | 'Minor' | 'Crypto' | 'Commodity';
+    type: 'Major' | 'Minor' | 'Crypto' | 'Commodity' | 'Index' | 'Stock';
     reason: string;
     volatilityWarning: boolean;
 }

@@ -96,6 +96,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     const [suggestions, setSuggestions] = useState<AssetSuggestion[]>([]);
     const [suggestionTimer, setSuggestionTimer] = useState<string>('--:--');
     const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
+    const [hasInitialLoad, setHasInitialLoad] = useState(false);
 
     // Fetch Global Market Analysis with 1hr auto-refresh logic
     useEffect(() => {
@@ -132,6 +133,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
             try {
                 const { suggestions: data, nextUpdate } = await getOrRefreshSuggestions();
                 setSuggestions(data);
+                setHasInitialLoad(true);
                 
                 // Start countdown
                 if (timerInterval) clearInterval(timerInterval);
@@ -139,7 +141,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     const now = Date.now();
                     const diff = nextUpdate - now;
                     if (diff <= 0) {
-                        setSuggestionTimer('Refreshing...');
+                        setSuggestionTimer('Rescanning...');
                         clearInterval(timerInterval);
                         fetchSuggestions(); // Recursive call to refresh
                     } else {
@@ -356,13 +358,17 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         <p className="text-xs text-gray-400">High-probability setups for this session (Low News Risk)</p>
                     </div>
                      <div className="text-right">
-                        <span className="text-xs text-gray-500 block">Next Refresh</span>
+                        <span className="text-xs text-gray-500 block">Next Scan</span>
                         <span className="font-mono text-green-300 font-bold">{suggestionTimer}</span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
-                    {suggestions.length > 0 ? (
+                    {isUpdatingSuggestions ? (
+                         <div className="col-span-full py-4 text-center text-gray-500 text-sm italic animate-pulse">
+                            Active Scan In Progress (Gemini Flash)...
+                        </div>
+                    ) : suggestions.length > 0 ? (
                         suggestions.map((asset, idx) => (
                             <div 
                                 key={idx} 
@@ -383,9 +389,17 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                                 </div>
                             </div>
                         ))
+                    ) : hasInitialLoad ? (
+                         <div className="col-span-full py-6 text-center text-gray-400 text-sm bg-white/5 rounded-lg border border-white/5">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-semibold block text-gray-300">No available setup at the moment.</span>
+                            <span className="text-xs mt-1 block opacity-70">Rescanning market for 80%+ probability setups shortly.</span>
+                        </div>
                     ) : (
                          <div className="col-span-full py-4 text-center text-gray-500 text-sm italic">
-                            Scanning market for opportunities...
+                            Initializing Scanner...
                         </div>
                     )}
                 </div>
