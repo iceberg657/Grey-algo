@@ -1,6 +1,7 @@
+
 // A robust service worker for caching assets and handling updates.
 
-const CACHE_VERSION = 2; // Increment this version number when you deploy updates.
+const CACHE_VERSION = 4; // Increment this version number when you deploy updates.
 const CACHE_NAME = `greyquant-cache-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
@@ -8,7 +9,7 @@ const urlsToCache = [
   './#/', // Match the PWA start_url from manifest.json
   '/icon.svg',
   'https://cdn.tailwindcss.com',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap',
+  'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap',
 ];
 
 // On install, cache the core assets and take control immediately.

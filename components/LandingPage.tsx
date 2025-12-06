@@ -8,7 +8,7 @@ const landingPageCss = `
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Inter', sans-serif;
 }
 :root {
     /* Dark Theme */
@@ -255,9 +255,11 @@ nav ul li a:hover::after {
 .ticker-symbol {
     font-weight: 700;
     margin-right: 10px;
+    font-family: 'JetBrains Mono', monospace;
 }
 .ticker-price {
     margin-right: 5px;
+    font-family: 'JetBrains Mono', monospace;
 }
 .ticker-change {
     display: flex;

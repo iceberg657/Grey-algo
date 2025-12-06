@@ -91,13 +91,9 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
 
         const data: MarketStatsData = JSON.parse(jsonString);
         
-        // Double check symbol match to prevent hallucination
-        if (data.symbol && !symbol.includes(data.symbol) && !data.symbol.includes(symbol)) {
-             // If AI returned wrong symbol, force overwrite the label so UI stays consistent,
-             // though data might be slightly off, usually Gemini respects the prompt if specific enough.
-             console.warn(`Symbol mismatch warning: Requested ${symbol}, got ${data.symbol}`);
-             data.symbol = symbol; 
-        }
+        // HARDCODE: Force the returned symbol to match the requested symbol exactly.
+        // This prevents the UI from momentarily showing "EUR/USD" if the AI hallucinations the wrong label.
+        data.symbol = symbol;
 
         return data;
     } catch (e) {

@@ -6,30 +6,43 @@ const SUGGESTION_STORAGE_KEY = 'greyquant_asset_suggestions';
 const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
 const SUGGESTION_DURATION_MS = 30 * 60 * 1000; // 30 minutes total cycle
 
-const SUGGESTION_PROMPT = `
-Act as an Elite Hedge Fund Algo.
-Your task is to **ACTIVELY SCAN** global markets (Forex, Commodities, Indices, Stocks) to identify **3 to 5 Tradeable Assets** that offer a **high probability of profit (80% - 90%)** within the current market session.
+const getSuggestionPrompt = () => {
+    const now = new Date();
+    const timeString = now.toUTCString();
+    
+    return `
+Act as an Elite Prop Firm Algo Scanner.
+Your task is to **ACTIVELY SCAN** global markets to identify **3 to 5 Tradeable Assets** that offer a **high probability of profit (80% - 90%)** RIGHT NOW.
 
-**CRITICAL CRITERIA:**
-1.  **EXCLUDE CRYPTO:** Do NOT suggest Bitcoin, Ethereum, or any cryptocurrency. Focus ONLY on Forex (Majors/Minors), Commodities (Gold, Oil, Silver), Indices (US30, NAS100, SPX500, GER40), and Major Stocks (NVDA, TSLA, AAPL, etc).
-2.  **Win Probability (80% - 90%):** Scan for assets where the technical edge is distinct and immediate.
-    *   Do not list "watch and wait" setups. List "execution ready" setups.
-    *   Look for strong alignment of Trend, Structure (SMC/ICT), and Momentum.
-3.  **Active Execution:** The asset must be ready to trade NOW (e.g., retesting a level, breaking out, or rejecting a supply/demand zone).
-4.  **Risk Management:** Verify no impending high-impact news (Red Folder) in the next hour for the specific asset.
-5.  **No Results Protocol:** If ABSOLUTELY NO assets meet the 80%-90% criteria, return an empty array \`[]\`. Do not force a low-quality setup.
+**REAL-TIME CONTEXT:**
+- **Current Server Time (UTC):** ${timeString}
+- **Mission:** 24/5 Market Readiness. Find the active flow.
+
+**CRITICAL CRITERIA (STRICT ENFORCEMENT):**
+1.  **NO CRYPTO:** Do NOT suggest Bitcoin, Ethereum, or any cryptocurrency.
+2.  **LIQUIDITY FILTER (Time-Based):**
+    *   **Asian Session (UTC 22:00 - 07:00):** Prioritize **JPY, AUD, NZD** pairs. Look for retests of yesterdays highs/lows.
+    *   **London Session (UTC 07:00 - 16:00):** Prioritize **EUR, GBP, CHF** pairs. Look for "Judas Swings" (sweeps of Asian range).
+    *   **New York Session (UTC 12:00 - 21:00):** Prioritize **USD, CAD, Gold (XAUUSD), Indices (US30, NAS100)**. Look for reversals at London highs/lows.
+    *   **Rollover Hour (UTC 21:00 - 22:00):** **DO NOT TRADE.** Spreads are too high. Return empty list if currently in this hour.
+3.  **Win Probability (80% - 90%):**
+    *   Scan for "A+ Setups" ONLY.
+    *   **KEY ZONE REQUIREMENT:** The asset MUST be approaching or reacting to a Key Zone (Order Block, FVG, Support/Resistance). Do not suggest assets in the middle of a range.
+4.  **Active Execution:** The asset must be ready to trade **NOW**. Not "watch list", but "execution ready".
+5.  **No Results Protocol:** If NO assets meet the 80%-90% criteria or liquidity is too low, return an empty array \`[]\`.
 
 **Output Format:**
 Return ONLY a valid JSON array.
 [
   {
-    "symbol": "string (e.g. 'EUR/USD', 'XAU/USD', 'US30', 'NVDA')",
+    "symbol": "string (e.g. 'EUR/USD', 'US30', 'NVDA')",
     "type": "'Major' | 'Minor' | 'Commodity' | 'Index' | 'Stock'",
-    "reason": "Start with probability label. Ex: '88% Prob: Clean retest of H4 order block' or '82% Prob: Bullish breakout with volume confirmation'.",
+    "reason": "Start with probability. Ex: '88% Prob: [Session] Volume spike + H1 Order Block retest.'",
     "volatilityWarning": boolean (false)
   }
 ]
 `;
+};
 
 export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
     if (!process.env.API_KEY) return [];
@@ -40,10 +53,10 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
         // Using gemini-2.5-flash for high-speed scanning
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: SUGGESTION_PROMPT,
+            contents: getSuggestionPrompt(),
             config: {
                 tools: [{googleSearch: {}}],
-                temperature: 0.85, // Slightly high to ensure it finds creative technical matches
+                temperature: 0.7, 
             },
         });
 
@@ -55,7 +68,6 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
         if (firstBracket !== -1 && lastBracket !== -1) {
             jsonString = jsonString.substring(firstBracket, lastBracket + 1);
         } else {
-            // If no JSON array found, assume no results
             return [];
         }
 
@@ -95,7 +107,6 @@ export async function getOrRefreshSuggestions(): Promise<{ suggestions: AssetSug
     const suggestions = await fetchAssetSuggestions();
     const now = Date.now();
     
-    // Store even if empty, so we don't spam the API. Empty means "No setup found".
     localStorage.setItem(SUGGESTION_STORAGE_KEY, JSON.stringify(suggestions));
     localStorage.setItem(SUGGESTION_TIMESTAMP_KEY, now.toString());
 

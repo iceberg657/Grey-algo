@@ -181,19 +181,22 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
     }, [selectedCategory]);
 
     useEffect(() => {
+        let isMounted = true;
         const loadData = async () => {
-            setData(null); // Clear previous data immediately to avoid confusion
+            if (!isMounted) return;
+            setData(null); // Clear previous data immediately to avoid stale renders
             setLoading(true);
             try {
                 const stats = await fetchMarketStatistics(selectedAsset, timeframe);
-                setData(stats);
+                if (isMounted) setData(stats);
             } catch (error) {
                 console.error(error);
             } finally {
-                setLoading(false);
+                if (isMounted) setLoading(false);
             }
         };
         loadData();
+        return () => { isMounted = false; };
     }, [selectedAsset, timeframe]);
 
     return (
@@ -260,7 +263,9 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                             <Loader />
                         </div>
                     ) : data ? (
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
+                        // Using key={selectedAsset} ensures a complete re-render when switching assets,
+                        // preventing animation glitches or stale data display.
+                        <div key={selectedAsset} className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
                             {/* Left Col: Sentiment & Support/Resistance */}
                             <div className="space-y-6">
                                 <div className="text-center md:text-left">
@@ -332,7 +337,7 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                                 <div className="bg-gray-50/50 dark:bg-dark-bg/40 p-5 rounded-xl border border-gray-200 dark:border-green-500/10">
                                     <h3 className="text-lg font-bold text-gray-800 dark:text-green-400 mb-4 flex items-center">
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h3m-3 4h3m-3 4h3" />
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3h3m-3 4h3m-3 4h3m-3 4h3" />
                                         </svg>
                                         Today's Events
                                     </h3>

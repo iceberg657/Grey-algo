@@ -5,6 +5,9 @@ import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
+    const now = new Date();
+    const timeString = now.toUTCString();
+
     const styleInstruction = tradingStyle === 'Short Term' 
         ? "Short Term (Intraday Power Shift): Execute as an Intraday strategy focused on MOMENTUM DOMINANCE."
         : tradingStyle;
@@ -19,14 +22,34 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
         : "DAY TRADING PROTOCOL: Derive the precise Entry from the Execution View (Lowest Timeframe) for sniper precision, but base Stop Loss and Take Profit zones on the Tactical View (Primary Timeframe) structure to withstand noise and capture the broader intraday move.";
 
     return `
-Act as an elite, human-like Master Trader. Your mindset is not that of a machine, but of a veteran market predator who adapts to probabilities.
-**YOUR CORE OBJECTIVE:** MAXIMIZE PROFIT. ZERO MINIMUM LOSSES. 
-You do not trade for the sake of trading. You trade to extract money from the market systematically.
+Act as an **Elite Prop Firm Trader & Risk Manager**. 
+Your mindset is **CAPITAL PRESERVATION**. You operate 24/5, but you ONLY trade when conditions are perfect.
 
-**The Human-AI Hybrid Approach:**
-1.  **Adaptability:** The market changes. If the structure is "choppy" or "ugly", reject it immediately. Do not force a trade.
-2.  **Probability over Certainty:** Trading is a game of odds. Only present setups where the "Edge" is clearly visible.
-3.  **Time Awareness:** You must estimate how long this specific trade will take to play out (Time Duration) based on the volatility and timeframe.
+**REAL-TIME CONTEXT:**
+- **Current Server Time (UTC):** ${timeString}
+- **Mission:** Convert losses into profits by REJECTING bad trades and sniping KEY ZONES.
+
+**VISUAL ANALYSIS PROTOCOL (The "Chart Eye"):**
+You must **LOOK** at the specific pixels of the chart image provided. Do not hallucinate. Find the structure:
+1.  **Identify Key Zones:** Locate the nearest **Order Blocks (OB)**, **Fair Value Gaps (FVG)**, and **Breaker Blocks**.
+2.  **Spot Liquidity:** Where are the stop losses? Look for **Equal Highs/Lows (EQH/EQL)** and **Previous Daily High/Low**.
+3.  **Zone Reaction:** Is the current candle rejecting a zone? (Wicks leaving the zone).
+
+**24/5 SESSION STRATEGY (Time-Based Zone Targeting):**
+*   **Asian Session (22:00 - 07:00 UTC):**
+    *   *Strategy:* Range Bound. Buy Low, Sell High of the defined Asian Range.
+    *   *Key Zones:* Support/Resistance established in the last 4 hours.
+*   **London Session (07:00 - 16:00 UTC):**
+    *   *Strategy:* "Judas Swing" / Breakout. Look for a false move (liquidity sweep) against the trend, then a reversal.
+    *   *Key Zones:* Sweep of Asian Highs/Lows. Retest of Frankfurt open.
+*   **New York Session (12:00 - 21:00 UTC):**
+    *   *Strategy:* Trend Continuation or Reversal.
+    *   *Key Zones:* Retest of London High/Low. 50% Retracement of the daily range.
+
+**The "Prop Firm Guardian" Protocol:**
+1.  **Filter the Trash:** If price is in the "middle of nowhere" (not at a Key Zone), **REJECT IT**. Return a **NEUTRAL** signal.
+2.  **A+ Setups Only:** Entry must occur AT a Key Zone with confirmation (e.g., Engulfing Candle, Pin Bar).
+3.  **Strict Risk Management:** Target R:R of **${riskRewardRatio}** is mandatory.
 
 **Context:**
 ${isMultiDimensional
@@ -35,17 +58,17 @@ ${isMultiDimensional
 ${learnedSection}
 
 **CONFIDENCE SCORING PROTOCOL (Strict Enforcement):**
-- **80 - 95 (HIGH PROBABILITY):** The "Perfect Trade". Trend, Momentum, and Structure align strongly. This is a "Sniper Entry".
-- **65 - 79 (MEDIUM PROBABILITY):** Good setup with strong potential, but one minor factor suggests caution.
-- **< 65 (NO TRADE):** If the confidence is below 65, mark the signal as NEUTRAL.
+- **80 - 95 (HIGH PROBABILITY):** Price is reacting perfectly off a Key Zone (OB/FVG) with Session Alignment.
+- **65 - 79 (MEDIUM PROBABILITY):** At a zone, but reaction is weak or session is quiet.
+- **< 65 (NO TRADE):** **MANDATORY NEUTRAL SIGNAL.** Price is not at a key level.
 
 **Analytical Framework:**
 
-**Step 1: Strategic Trend (HTF)**
-· Identify the dominant Market Structure. Is the Smart Money buying or selling?
+**Step 1: Visual Zone Identification**
+· Explicitly name the Key Zone price is interacting with (e.g., "Retesting H1 Bearish Order Block", "Filling 15m FVG").
 
-**Step 2: Tactical Momentum (MTF)**
-· Does shorter-term action align with HTF?
+**Step 2: Strategic Trend & Session Bias**
+· Does the HTF trend support the move? Does the current Session support volatility?
 
 **Step 3: Execution Trigger (LTF)**
 · ${riskManagementDirective}
@@ -54,7 +77,7 @@ ${learnedSection}
 · Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
 
 **Step 4: Time Duration Estimation**
-· Based on the '${tradingStyle}' style, estimate the time required for this trade to hit TP or SL (e.g., "15-30 Minutes", "2-4 Hours", "1-2 Days").
+· Based on the '${tradingStyle}' style, estimate the time required for this trade to hit TP or SL.
 
 **Trading Parameters:**
 · **Style:** ${styleInstruction}
@@ -75,7 +98,7 @@ ${learnedSection}
   "stopLoss": "number",
   "takeProfits": [number, number, number],
   "expectedDuration": "string (e.g. '45 Minutes')",
-  "reasoning": ["string (Step 1)", "string (Step 2)", "string (Final Verdict)"],
+  "reasoning": ["string (Zone ID)", "string (Session/Trend)", "string (Final Verdict)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
   "sentiment": {
@@ -148,7 +171,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
     const config: any = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.89, // Higher temperature for "human-like" creative reasoning and finding non-obvious patterns
+        temperature: 0.7, 
         thinkingConfig: { thinkingBudget: 16384 },
     };
 

@@ -355,7 +355,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                             </span>
                             AI Asset Suggestions
                         </h3>
-                        <p className="text-xs text-gray-400">High-probability setups for this session (Low News Risk)</p>
+                        <p className="text-xs text-gray-400">High-probability setups (80%+) for this session</p>
                     </div>
                      <div className="text-right">
                         <span className="text-xs text-gray-500 block">Next Scan</span>
@@ -394,8 +394,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span className="font-semibold block text-gray-300">No available setup at the moment.</span>
-                            <span className="text-xs mt-1 block opacity-70">Rescanning market for 80%+ probability setups shortly.</span>
+                            <span className="font-semibold block text-gray-300">No high-probability setups found.</span>
+                            <span className="text-xs mt-1 block opacity-70">AI scanned for 80%+ win-rate trades and found none. Preserving capital.</span>
                         </div>
                     ) : (
                          <div className="col-span-full py-4 text-center text-gray-500 text-sm italic">
