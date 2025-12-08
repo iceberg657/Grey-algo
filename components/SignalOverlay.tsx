@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { getHistory } from '../services/historyService';
 import type { SignalData } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
@@ -11,6 +11,7 @@ interface SignalOverlayProps {
 export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) => {
     const [latestAnalysis, setLatestAnalysis] = useState<SignalData | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         // Refresh analysis whenever the component mounts or re-renders
@@ -26,12 +27,28 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
         setTimeout(() => setCopiedId(null), 2000);
     };
 
+    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                if (event.target?.result && onAnalyzeClick) {
+                    onAnalyzeClick(event.target.result as string);
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+        // Reset input so the same file can be selected again if needed
+        if (fileInputRef.current) fileInputRef.current.value = '';
+    };
+
     const handleCapture = async () => {
         if (!onAnalyzeClick) return;
 
         // Check if getDisplayMedia is supported (desktop + https/localhost)
+        // If NOT supported (e.g., Mobile), trigger file input fallback
         if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-            alert("Screen capture is not supported on this device or browser. Please try using a desktop browser.");
+            fileInputRef.current?.click();
             return;
         }
 
@@ -108,7 +125,8 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
             console.error("Screen capture failed:", err);
             // Don't alert if the user cancelled the selection
             if (err instanceof Error && err.name !== 'NotAllowedError') {
-                alert("Could not capture chart. Please ensure you allow screen sharing permission.");
+                alert("Could not capture screen. Please try uploading a screenshot manually.");
+                fileInputRef.current?.click();
             }
         }
     };
@@ -120,6 +138,15 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
 
     return (
         <div className="w-full h-14 bg-white dark:bg-[#0C0F1A] border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 z-40 relative shadow-md transition-colors duration-300">
+            {/* Hidden Input for Mobile Fallback */}
+            <input 
+                type="file" 
+                ref={fileInputRef} 
+                className="hidden" 
+                accept="image/*" 
+                onChange={handleFileSelect} 
+            />
+
             {/* Left: Identity */}
             <div className="flex items-center space-x-4">
                 {latestAnalysis ? (
@@ -174,7 +201,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
                 <button 
                     onClick={handleCapture}
                     className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-purple-600 dark:text-purple-400 transition-colors flex items-center gap-2" 
-                    title="Analyze This Chart (Screen Capture)"
+                    title="Analyze Chart (Capture or Upload)"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
