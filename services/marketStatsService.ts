@@ -12,43 +12,12 @@ const ASSETS = {
 
 const STATS_PROMPT = (symbol: string, timeframe: string) => `
 Act as a Real-Time Technical Analysis Engine. 
-**CRITICAL INSTRUCTION: You are analyzing **${symbol}**. Do NOT analyze any other asset. If you analyze EUR/USD when I asked for ${symbol}, you will fail.**
+**CRITICAL INSTRUCTION: You are analyzing **${symbol}**. Do NOT analyze any other asset.**
 
 **Task:**
-Generate a real-time technical snapshot for **${symbol}** based on the **${timeframe}** chart. Use the 'googleSearch' tool to find the LATEST LIVE PRICE and INDICATOR VALUES for **${symbol}**.
+Generate a real-time technical snapshot for **${symbol}** based on the **${timeframe}** chart. Use Google Search for LIVE PRICE and INDICATORS.
 
-**1. Real-Time Data Extraction (Use Google Search):**
-*   **Price:** Find the exact current market price for ${symbol}.
-*   **RSI (14):** Find the current Relative Strength Index value.
-*   **Moving Averages:** Find the current level of the 50-period and 200-period Simple Moving Averages (SMA).
-*   **ATR (14):** Find the current Average True Range (volatility).
-*   **Stochastic (14,3,3):** Find current %K and %D values.
-*   **ADX (14):** Find current Trend Strength value.
-
-**2. Support & Resistance (Pivot Points / Key Levels):**
-*   Identify the 3 closest Support levels (S1, S2, S3) and 3 closest Resistance levels (R1, R2, R3) specifically for **${symbol}** on the **${timeframe}** timeframe.
-
-**3. Candlestick Patterns:**
-*   Identify up to 3 significant candlestick patterns visible on the **${symbol} ${timeframe}** chart.
-*   Determine if each pattern is Bullish, Bearish, or Neutral.
-
-**4. Sentiment Analysis (Community Vote):**
-*   Based on the technicals retrieved above, calculate a "Community Vote" score (0-100).
-    *   0-39: Sell / Strong Sell (Red)
-    *   40-59: Neutral (Blue)
-    *   60-100: Buy / Strong Buy (Green)
-
-**5. Economic Calendar:**
-*   Search for economic events scheduled for **TODAY ONLY** that directly impact **${symbol}**.
-
-**6. Order Book (Simulated):**
-*   Create a realistic 5-level order book structure around the current price.
-*   **Asks:** 5 levels slightly above price.
-*   **Bids:** 5 levels slightly below price.
-*   **Volume:** Random realistic lots/sizes relative to the asset.
-
-**Output Format:**
-Return ONLY a valid JSON object:
+**Output Format (JSON Only):**
 {
   "symbol": "${symbol}",
   "timeframe": "${timeframe}",
@@ -68,7 +37,7 @@ Return ONLY a valid JSON object:
     "r1": number, "r2": number, "r3": number
   },
   "patterns": [
-    { "name": "string", "signal": "Bullish|Bearish|Neutral", "description": "string (short description)" }
+    { "name": "string", "signal": "Bullish|Bearish|Neutral", "description": "string" }
   ],
   "todaysEvents": [
     { "name": "string", "date": "string (ISO 8601)", "impact": "High|Medium|Low" }
@@ -86,12 +55,13 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
+        // Using Pro model for accurate technical extraction
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+            model: 'gemini-3-pro-preview',
             contents: STATS_PROMPT(symbol, timeframe),
             config: {
                 tools: [{ googleSearch: {} }],
-                temperature: 0.1 // Keep low for factual data extraction
+                temperature: 0.1 
             }
         });
 
@@ -102,10 +72,7 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
         if (first !== -1 && last !== -1) jsonString = jsonString.substring(first, last + 1);
 
         const data: MarketStatsData = JSON.parse(jsonString);
-        
-        // HARDCODE: Force the returned symbol to match the requested symbol exactly.
-        // This prevents the UI from momentarily showing "EUR/USD" if the AI hallucinations the wrong label.
-        data.symbol = symbol;
+        data.symbol = symbol; // Enforce symbol match
 
         return data;
     } catch (e) {

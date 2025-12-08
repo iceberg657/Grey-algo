@@ -22,74 +22,44 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
         ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
 
-    // Specific instruction for SL/TP sourcing based on style
-    const riskManagementDirective = tradingStyle === 'Scalp'
-        ? "SCALPING PROTOCOL: Derive Entry, Stop Loss, and Take Profit levels PURELY from the Execution View (Lowest Timeframe) market structure to ensure tight risk and quick rotation."
-        : "DAY TRADING PROTOCOL: Derive the precise Entry from the Execution View (Lowest Timeframe) for sniper precision, but base Stop Loss and Take Profit zones on the Tactical View (Primary Timeframe) structure to withstand noise and capture the broader intraday move.";
-
     return `
-Act as an **Aggressive Institutional Trader**. 
-Your mindset is **OPPORTUNITY CAPTURE**. You operate 24/5, and you believe there is always a profitable move to be found.
+Act as an **Elite Prop Firm Trader** managing a **$100,000 Funded Account**.
+Your Daily Profit Target is **$1,500 - $4,000**.
+Your Daily Drawdown Limit is **$4,000 (4%)**.
 
 **REAL-TIME CONTEXT:**
 - **Current Server Time (UTC):** ${timeString}
-- **Mission:** Identify the immediate directional bias and EXECUTE. Do not sit on the sidelines.
+- **Mission:** You MUST Identify a trade execution (BUY or SELL). Standing aside is not an option. We need to hit the daily target.
 
-**VISUAL ANALYSIS PROTOCOL (The "Chart Eye"):**
-You must **LOOK** at the specific pixels of the chart image provided. Do not hallucinate. Find the structure:
-1.  **Identify Key Zones:** Locate the nearest **Order Blocks (OB)**, **Fair Value Gaps (FVG)**, and **Breaker Blocks**.
-2.  **Spot Liquidity:** Where are the stop losses? Look for **Equal Highs/Lows (EQH/EQL)** and **Previous Daily High/Low**.
-3.  **Zone Reaction:** Is the current candle rejecting a zone? (Wicks leaving the zone).
+**PROP FIRM SAFETY PROTOCOLS (MANDATORY):**
+Since you are forced to trade 24/5 to meet quota, you must protect the capital with **Surgical Precision**:
+1.  **Blast Radius Control:** Your Stop Loss must be based on strict invalidation of the immediate micro-structure. Do not use wide stops.
+2.  **Dynamic Sizing:** You adhere to a strict **1% Risk Per Trade ($1,000)**.
+3.  **Aggressive Scaling:** You aim for a minimum **${riskRewardRatio}** Risk/Reward to ensure one win covers two losses.
+4.  **Duration Constraint:** To maximize session volatility and reduce swap/carry risk, look for setups that resolve within **30 Minutes to 3 Hours**.
 
-**24/5 SESSION STRATEGY (Time-Based Zone Targeting):**
-*   **Asian Session (22:00 - 07:00 UTC):**
-    *   *Strategy:* Range Bound. Buy Low, Sell High of the defined Asian Range.
-    *   *Key Zones:* Support/Resistance established in the last 4 hours.
-*   **London Session (07:00 - 16:00 UTC):**
-    *   *Strategy:* "Judas Swing" / Breakout. Look for a false move (liquidity sweep) against the trend, then a reversal.
-    *   *Key Zones:* Sweep of Asian Highs/Lows. Retest of Frankfurt open.
-*   **New York Session (12:00 - 21:00 UTC):**
-    *   *Strategy:* Trend Continuation or Reversal.
-    *   *Key Zones:* Retest of London High/Low. 50% Retracement of the daily range.
+**VISUAL ANALYSIS PROTOCOL:**
+1.  **Identify Key Zones:** Locate the nearest Order Blocks, FVGs, and Liquidity Pools.
+2.  **Determine Direction:** Based on the *immediate* momentum, which way is the market pushing? Trade with the flow.
 
 **The "Action" Protocol:**
-1.  **Take a Stance:** You MUST provide a **BUY** or **SELL** signal. Neutrality is failure. Even if the market is ranging, trade the edges.
-2.  **Find The Setup:** Locate the best possible entry setup currently available on the chart.
-3.  **Risk Management:** Target R:R of **${riskRewardRatio}**. Define the invalidation point clearly.
+1.  **Take a Stance:** You MUST provide a **BUY** or **SELL** signal.
+2.  **Execution:** Pinpoint the entry.
+3.  **Safety Fallback:** If the market is choppy, tighten the Stop Loss to the nearest candle wick to minimize potential loss while attempting to capture the move.
 
 **Context:**
 ${isMultiDimensional
-? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF). Use this hierarchy for your analysis.`
-: `You are provided with a single Tactical View chart. Adapt the multi-step analysis to market structure visible on this single timeframe.`}
+? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF).`
+: `You are provided with a single Tactical View chart.`}
 ${learnedSection}
-
-**CONFIDENCE SCORING:**
-- **80 - 100 (HIGH CONVICTION):** Perfect setup at a key level (OB/FVG) with Session Alignment.
-- **50 - 79 (STANDARD TRADE):** Valid setup identified. Trend alignment present.
-
-**Analytical Framework:**
-
-**Step 1: Visual Zone Identification**
-· Explicitly name the Key Zone price is interacting with (e.g., "Retesting H1 Bearish Order Block", "Filling 15m FVG").
-
-**Step 2: Strategic Trend & Session Bias**
-· Does the HTF trend support the move? Does the current Session support volatility?
-
-**Step 3: Execution Trigger (LTF)**
-· ${riskManagementDirective}
-· Pinpoint the EXACT entry price.
-· Define the Stop Loss at the invalidation point (Minimize Risk).
-· Define 3 Take Profit targets based on **${riskRewardRatio}** Risk/Reward.
-
-**Step 4: Time Duration Estimation**
-· Based on the '${tradingStyle}' style, estimate the time required for this trade to hit TP or SL (e.g., "15-30 Minutes", "2-4 Hours", "1-2 Days").
 
 **Trading Parameters:**
 · **Style:** ${styleInstruction}
-· **Risk Management:** Target R:R of ${riskRewardRatio}.
+· **Time Horizon:** 30 Minutes - 3 Hours
+· **Risk Management:** Target R:R of ${riskRewardRatio}. Risk $1,000 (1%) per trade.
 
 **Response Requirements:**
-1. **Classification:** Rate confidence based on setup quality, but always provide a trade.
+1. **Classification:** Rate confidence based on setup quality (80-100% = A+ Setup, 50-79% = B Setup).
 2. **Data:** Use Google Search for real-time sentiment/events.
 3. **Output:** Return ONLY a valid JSON object.
 
@@ -102,25 +72,25 @@ ${learnedSection}
   "entryPoints": [number, number, number],
   "stopLoss": "number",
   "takeProfits": [number, number, number],
-  "expectedDuration": "string (e.g. '45 Minutes')",
-  "reasoning": ["string (Zone ID)", "string (Session/Trend)", "string (Final Verdict)"],
+  "expectedDuration": "string (e.g. '45 Minutes', '2 Hours')",
+  "reasoning": ["string", "string", "string"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
+  "riskAnalysis": {
+    "riskPerTrade": "$1,000 (1%)",
+    "suggestedLotSize": "string (e.g. '2.5 Lots')",
+    "safetyScore": "number (0-100)"
+  },
   "sentiment": {
     "score": "number (0-100)",
     "summary": "string"
   },
   "economicEvents": [
-    {
-      "name": "string",
-      "date": "string (ISO 8601 format)",
-      "impact": "'High', 'Medium', or 'Low'"
-    }
+    { "name": "string", "date": "string", "impact": "High/Medium/Low" }
   ]
 }
 `;
 };
-
 
 async function callGemini(request) {
     const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
@@ -137,16 +107,29 @@ async function callGemini(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.7, // Lower temperature to match client-side strictness
-        // Removed thinkingConfig to reduce token usage on Flash for free tier stability
+        temperature: 0.5,
     };
 
-    // Use gemini-2.5-flash for higher rate limits on free tier
-    const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: [{ parts: promptParts }],
-        config: config,
-    });
+    // SAFETY FALLBACK MECHANISM
+    // Primary: gemini-3-pro-preview (Deep Analysis)
+    // Fallback: gemini-2.5-flash (Speed/Quota Saver)
+    
+    let response;
+    try {
+        console.log("Attempting analysis with Primary Model: gemini-3-pro-preview");
+        response = await ai.models.generateContent({
+            model: 'gemini-3-pro-preview',
+            contents: [{ parts: promptParts }],
+            config: config,
+        });
+    } catch (error) {
+        console.warn("Primary model failed or rate limited. Switching to Fallback: gemini-2.5-flash", error.message);
+        response = await ai.models.generateContent({
+            model: 'gemini-2.5-flash',
+            contents: [{ parts: promptParts }],
+            config: config,
+        });
+    }
 
     const responseText = response.text;
     if (!responseText) {
@@ -171,7 +154,7 @@ async function callGemini(request) {
         
         const parsedData = JSON.parse(jsonString);
         
-        if (!parsedData.signal || !parsedData.reasoning || !parsedData.entryPoints) {
+        if (!parsedData.signal || !parsedData.entryPoints) {
             throw new Error("AI response is missing required fields.");
         }
         
@@ -186,7 +169,6 @@ async function callGemini(request) {
     }
 }
 
-
 module.exports = async (req, res) => {
     if (req.method !== 'POST') {
         res.setHeader('Allow', ['POST']);
@@ -196,7 +178,7 @@ module.exports = async (req, res) => {
     try {
         const analysisRequest = req.body;
         
-        if (!analysisRequest || !analysisRequest.images || !analysisRequest.riskRewardRatio || !analysisRequest.tradingStyle || typeof analysisRequest.isMultiDimensional === 'undefined') {
+        if (!analysisRequest || !analysisRequest.images) {
            return res.status(400).json({ error: "Invalid request body." });
         }
 
@@ -204,32 +186,6 @@ module.exports = async (req, res) => {
         return res.status(200).json(signalData);
     } catch (error) {
         console.error("API Error:", error);
-        
-        let statusCode = 500;
-        let errorMessage = "An unknown error occurred on the server.";
-
-        if (error instanceof Error) {
-            const message = error.message;
-            if (message.includes('503') || message.toLowerCase().includes('overloaded')) {
-                statusCode = 503;
-                errorMessage = "The model is currently overloaded. Please try again in a moment.";
-            } else if (message.includes('429') || message.toLowerCase().includes('quota') || message.toLowerCase().includes('limit')) {
-                statusCode = 429;
-                errorMessage = "API Rate Limit Exceeded. Please wait a minute and try again.";
-            } else {
-                 try {
-                    const parsedError = JSON.parse(message);
-                    if (parsedError.error && parsedError.error.message) {
-                        errorMessage = parsedError.error.message;
-                    } else {
-                        errorMessage = message;
-                    }
-                } catch (e) {
-                    errorMessage = message;
-                }
-            }
-        }
-        
-        return res.status(statusCode).json({ error: "API request failed", details: errorMessage });
+        return res.status(500).json({ error: "API request failed", details: error.message });
     }
 };

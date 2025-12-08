@@ -28,6 +28,12 @@ export interface Sentiment {
     summary: string;
 }
 
+export interface RiskAnalysis {
+    riskPerTrade: string;
+    suggestedLotSize: string;
+    safetyScore: number;
+}
+
 export interface SignalData {
     id: string;
     timestamp: number;
@@ -42,6 +48,7 @@ export interface SignalData {
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;
+    riskAnalysis?: RiskAnalysis;
     sentiment?: Sentiment;
     economicEvents?: EconomicEvent[];
     sources?: {
