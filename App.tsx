@@ -21,7 +21,7 @@ import { AutoLearningManager } from './components/AutoLearningManager';
 import { TradingViewWidget } from './components/TradingViewWidget';
 import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
-import { Loader } from './components/Loader'; // Import Loader for chart analysis
+import { Loader } from './components/Loader'; 
 
 
 type AuthPage = 'login' | 'signup';
@@ -369,42 +369,41 @@ const App: React.FC = () => {
             }
             break;
         case 'charting':
-            // Render nothing for 'content' when charting is active, 
-            // as the persistent layer handles it. We just need a Back button functionality usually,
-            // but in this persistent architecture, we can overlay a custom back button if needed 
-            // inside the chart layer or assume standard browser nav (or add a back button to the HUD).
-            // For now, let's keep content null so the chart layer is the only thing visible (aside from AutoLearning)
+            // Content handled by persistent chartLayer
             break;
         default:
             content = null;
     }
 
     // Persistent Chart Layer
-    // We keep this mounted but control visibility.
-    // We add a back button specific to this view to escape it.
+    // We changed this to display: block and use absolute positioning for children to ensure full screen map-like feel
     const isCharting = appView === 'charting';
     const chartLayer = (
         <div 
-            className="fixed inset-0 z-[50] flex flex-col bg-white dark:bg-[#0f172a] transition-colors duration-300"
+            className="fixed inset-0 z-[50] bg-white dark:bg-[#0f172a] transition-opacity duration-300"
             style={{ 
                 visibility: isCharting ? 'visible' : 'hidden', 
                 opacity: isCharting ? 1 : 0,
                 pointerEvents: isCharting ? 'auto' : 'none',
-                overscrollBehavior: 'none' // Enforce rigid container
             }}
         >
-            {/* Chart Analysis Loading Overlay */}
-            {isAnalyzingChart && (
-                <div className="absolute inset-0 z-[70] bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center">
-                    <Loader />
-                    <p className="mt-4 text-green-400 font-bold animate-pulse">Analyzing Live Chart Data...</p>
-                </div>
-            )}
+            {/* Chart fills the entire container */}
+            <div className="absolute inset-0 z-0">
+                <TradingViewWidget />
+            </div>
 
+            {/* Floating HUD Layer - Positioned absolutely on top of chart */}
+            <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+                <div className="pointer-events-auto">
+                    <SignalOverlay onAnalyzeClick={handleChartAnalysis} />
+                </div>
+            </div>
+
+            {/* Floating Close Button - Top Right */}
             {isCharting && (
                 <button 
                     onClick={handleNavigateToHome}
-                    className="absolute top-16 right-4 z-[60] bg-white/80 dark:bg-gray-800/80 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 transition-colors"
+                    className="absolute top-4 right-4 z-[60] bg-white/10 dark:bg-black/40 hover:bg-white/20 dark:hover:bg-black/60 text-white p-2.5 rounded-full shadow-lg border border-white/20 backdrop-blur-md transition-all transform hover:scale-105"
                     title="Close Chart"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -412,10 +411,14 @@ const App: React.FC = () => {
                     </svg>
                 </button>
             )}
-            <SignalOverlay onAnalyzeClick={handleChartAnalysis} />
-            <div className="flex-1 w-full h-full relative">
-                <TradingViewWidget />
-            </div>
+
+            {/* Chart Analysis Loading Overlay */}
+            {isAnalyzingChart && (
+                <div className="absolute inset-0 z-[70] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <Loader />
+                    <p className="mt-4 text-green-400 font-bold animate-pulse">Analyzing Live Chart Data...</p>
+                </div>
+            )}
         </div>
     );
 
