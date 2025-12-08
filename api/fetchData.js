@@ -139,12 +139,12 @@ async function callGemini(request) {
         tools: [{googleSearch: {}}],
         seed: 42,
         temperature: 0.7, // Lower temperature to match client-side strictness
-        thinkingConfig: { thinkingBudget: 16384 },
+        // Removed thinkingConfig to reduce token usage on Flash for free tier stability
     };
 
-    // Use gemini-2.5-pro for maximum accuracy
+    // Use gemini-2.5-flash for higher rate limits on free tier
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-2.5-flash',
         contents: [{ parts: promptParts }],
         config: config,
     });
@@ -214,6 +214,9 @@ module.exports = async (req, res) => {
             if (message.includes('503') || message.toLowerCase().includes('overloaded')) {
                 statusCode = 503;
                 errorMessage = "The model is currently overloaded. Please try again in a moment.";
+            } else if (message.includes('429') || message.toLowerCase().includes('quota') || message.toLowerCase().includes('limit')) {
+                statusCode = 429;
+                errorMessage = "API Rate Limit Exceeded. Please wait a minute and try again.";
             } else {
                  try {
                     const parsedError = JSON.parse(message);

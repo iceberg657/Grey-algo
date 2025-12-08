@@ -139,6 +139,11 @@ function getErrorMessage(error: unknown): string {
         } catch (e) {
             // Not a JSON error, use the message as is
         }
+        
+        if (message.includes('429') || message.includes('quota') || message.includes('limit')) {
+            return "Usage limit exceeded. Switching to backup model or please wait a moment.";
+        }
+        
         return message;
     }
     return "An unknown error occurred.";
@@ -172,12 +177,12 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
         tools: [{googleSearch: {}}],
         seed: 42,
         temperature: 0.7, 
-        thinkingConfig: { thinkingBudget: 16384 },
+        // Removed thinkingConfig to avoid quota issues on Free Tier
     };
 
-    // Use gemini-2.5-pro for maximum accuracy
+    // Use gemini-2.5-flash for higher limits
     const response = await ai.models.generateContent({
-        model: 'gemini-2.5-pro',
+        model: 'gemini-2.5-flash',
         contents: [{ parts: promptParts }],
         config,
     });
