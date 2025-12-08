@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { getHistory } from '../services/historyService';
 import type { SignalData } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
@@ -11,7 +11,6 @@ interface SignalOverlayProps {
 export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) => {
     const [latestAnalysis, setLatestAnalysis] = useState<SignalData | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
-    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         // Refresh analysis whenever the component mounts or re-renders
@@ -27,110 +26,6 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
         setTimeout(() => setCopiedId(null), 2000);
     };
 
-    const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0];
-            const reader = new FileReader();
-            reader.onload = (event) => {
-                if (event.target?.result && onAnalyzeClick) {
-                    onAnalyzeClick(event.target.result as string);
-                }
-            };
-            reader.readAsDataURL(file);
-        }
-        // Reset input so the same file can be selected again if needed
-        if (fileInputRef.current) fileInputRef.current.value = '';
-    };
-
-    const handleCapture = async () => {
-        if (!onAnalyzeClick) return;
-
-        // Check if getDisplayMedia is supported (desktop + https/localhost)
-        // If NOT supported (e.g., Mobile), trigger file input fallback
-        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
-            fileInputRef.current?.click();
-            return;
-        }
-
-        try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    displaySurface: "browser", // Prefer current tab/window
-                } as any,
-                audio: false
-            });
-
-            const track = stream.getVideoTracks()[0];
-            
-            // Function to capture from video element (fallback for Firefox/Safari or if ImageCapture fails)
-            const captureFromVideo = async () => {
-                const video = document.createElement('video');
-                video.srcObject = stream;
-                video.muted = true;
-                video.playsInline = true;
-                
-                await new Promise<void>((resolve) => {
-                    video.onloadedmetadata = () => {
-                        video.play().then(() => resolve());
-                    };
-                });
-
-                // Wait a moment for the frame to render
-                await new Promise(r => setTimeout(r, 100));
-
-                const canvas = document.createElement('canvas');
-                canvas.width = video.videoWidth;
-                canvas.height = video.videoHeight;
-                const ctx = canvas.getContext('2d');
-                
-                if (ctx) {
-                    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const dataUrl = canvas.toDataURL('image/png');
-                    onAnalyzeClick(dataUrl);
-                }
-                
-                // Cleanup
-                track.stop();
-                video.remove();
-            };
-
-            // Try experimental ImageCapture API first (Chrome/Edge)
-            if ('ImageCapture' in window) {
-                try {
-                    // ImageCapture is an experimental API and typescript definitions might be missing
-                    const imageCapture = new (window as any).ImageCapture(track);
-                    const bitmap = await imageCapture.grabFrame();
-                    
-                    const canvas = document.createElement('canvas');
-                    canvas.width = bitmap.width;
-                    canvas.height = bitmap.height;
-                    const ctx = canvas.getContext('2d');
-                    
-                    if (ctx) {
-                        ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-                        const dataUrl = canvas.toDataURL('image/png');
-                        onAnalyzeClick(dataUrl);
-                    }
-                    track.stop();
-                } catch (err) {
-                    console.warn("ImageCapture failed, falling back to video element:", err);
-                    await captureFromVideo();
-                }
-            } else {
-                // Fallback for browsers without ImageCapture
-                await captureFromVideo();
-            }
-
-        } catch (err) {
-            console.error("Screen capture failed:", err);
-            // Don't alert if the user cancelled the selection
-            if (err instanceof Error && err.name !== 'NotAllowedError') {
-                alert("Could not capture screen. Please try uploading a screenshot manually.");
-                fileInputRef.current?.click();
-            }
-        }
-    };
-
     const isBuy = latestAnalysis?.signal === 'BUY';
     const signalColor = isBuy ? 'text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-500/10 border-green-200 dark:border-green-500/30' : 
                         latestAnalysis?.signal === 'SELL' ? 'text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-500/10 border-red-200 dark:border-red-500/30' : 
@@ -138,15 +33,6 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
 
     return (
         <div className="w-full h-14 bg-white dark:bg-[#0C0F1A] border-b border-gray-200 dark:border-gray-800 flex items-center justify-between px-4 z-40 relative shadow-md transition-colors duration-300">
-            {/* Hidden Input for Mobile Fallback */}
-            <input 
-                type="file" 
-                ref={fileInputRef} 
-                className="hidden" 
-                accept="image/*" 
-                onChange={handleFileSelect} 
-            />
-
             {/* Left: Identity */}
             <div className="flex items-center space-x-4">
                 {latestAnalysis ? (
@@ -198,18 +84,6 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
 
             {/* Right: Tools */}
             <div className="flex items-center space-x-2">
-                <button 
-                    onClick={handleCapture}
-                    className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-purple-600 dark:text-purple-400 transition-colors flex items-center gap-2" 
-                    title="Analyze Chart (Capture or Upload)"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    <span className="hidden sm:inline text-xs font-bold">Analyze</span>
-                </button>
-                <div className="h-6 w-px bg-gray-300 dark:bg-gray-700 mx-2"></div>
                 <button className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 transition-colors" title="Long Position Tool">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 10l7-7m0 0l7 7m-7-7v18" />
