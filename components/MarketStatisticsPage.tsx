@@ -4,6 +4,7 @@ import type { MarketStatsData, StatTimeframe } from '../types';
 import { fetchMarketStatistics, getAvailableAssets } from '../services/marketStatsService';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { Loader } from './Loader';
+import { MarketDepth } from './MarketDepth';
 
 interface MarketStatisticsPageProps {
     onBack: () => void;
@@ -266,7 +267,7 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                         // Using key={selectedAsset} ensures a complete re-render when switching assets,
                         // preventing animation glitches or stale data display.
                         <div key={selectedAsset} className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in">
-                            {/* Left Col: Sentiment & Support/Resistance */}
+                            {/* Left Col: Sentiment & Support/Resistance & Depth */}
                             <div className="space-y-6">
                                 <div className="text-center md:text-left">
                                     <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{data.symbol}</h2>
@@ -278,6 +279,10 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                                 
                                 {data.supportResistance && (
                                     <SupportResistanceLevels currentPrice={data.price} levels={data.supportResistance} />
+                                )}
+
+                                {data.orderBook && (
+                                    <MarketDepth orderBook={data.orderBook} />
                                 )}
                             </div>
 

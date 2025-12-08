@@ -5,7 +5,9 @@ import type { MarketStatsData, StatTimeframe } from '../types';
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
     Minors: ['EUR/GBP', 'EUR/JPY', 'GBP/JPY', 'AUD/JPY', 'NZD/USD'],
-    Commodities: ['XAU/USD'] // Gold
+    Commodities: ['XAU/USD', 'XAG/USD', 'USOIL', 'UKOIL'],
+    Indices: ['US30', 'NAS100', 'SPX500', 'GER40', 'UK100'],
+    Crypto: ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'BNB/USD']
 };
 
 const STATS_PROMPT = (symbol: string, timeframe: string) => `
@@ -39,6 +41,12 @@ Generate a real-time technical snapshot for **${symbol}** based on the **${timef
 **5. Economic Calendar:**
 *   Search for economic events scheduled for **TODAY ONLY** that directly impact **${symbol}**.
 
+**6. Order Book (Simulated):**
+*   Create a realistic 5-level order book structure around the current price.
+*   **Asks:** 5 levels slightly above price.
+*   **Bids:** 5 levels slightly below price.
+*   **Volume:** Random realistic lots/sizes relative to the asset.
+
 **Output Format:**
 Return ONLY a valid JSON object:
 {
@@ -64,7 +72,11 @@ Return ONLY a valid JSON object:
   ],
   "todaysEvents": [
     { "name": "string", "date": "string (ISO 8601)", "impact": "High|Medium|Low" }
-  ]
+  ],
+  "orderBook": {
+    "bids": [{ "price": number, "volume": number }],
+    "asks": [{ "price": number, "volume": number }]
+  }
 }
 `;
 

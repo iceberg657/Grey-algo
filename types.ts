@@ -124,6 +124,16 @@ export interface CandlestickPattern {
     description: string;
 }
 
+export interface OrderBookLevel {
+    price: number;
+    volume: number;
+}
+
+export interface OrderBook {
+    bids: OrderBookLevel[];
+    asks: OrderBookLevel[];
+}
+
 export interface MarketStatsData {
     symbol: string;
     timeframe: StatTimeframe;
@@ -141,4 +151,5 @@ export interface MarketStatsData {
     };
     todaysEvents: EconomicEvent[];
     patterns: CandlestickPattern[];
+    orderBook?: OrderBook;
 }

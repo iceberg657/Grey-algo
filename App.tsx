@@ -8,20 +8,24 @@ import { HistoryPage } from './components/HistoryPage';
 import { NewsPage } from './components/NewsPage';
 import { ChatPage } from './components/ChatPage';
 import { PredictorPage } from './components/PredictorPage';
-import { MarketStatisticsPage } from './components/MarketStatisticsPage'; // Import new page
+import { MarketStatisticsPage } from './components/MarketStatisticsPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
-import type { SignalData, NewsArticle, PredictedEvent, ChatMessage } from './types';
+import type { SignalData, NewsArticle, PredictedEvent, ChatMessage, AnalysisRequest } from './types';
 import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
 import { getForexNews } from './services/newsService';
 import { getPredictedEvents } from './services/predictorService';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
+import { TradingViewWidget } from './components/TradingViewWidget';
+import { SignalOverlay } from './components/SignalOverlay';
+import { generateTradingSignal } from './services/geminiService';
+import { Loader } from './components/Loader'; // Import Loader for chart analysis
 
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'statistics'; // Added statistics
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'statistics' | 'charting';
 
 // Storage keys
 const NEWS_STORAGE_KEY = 'greyquant_news';
@@ -35,6 +39,9 @@ const App: React.FC = () => {
     const [analysisData, setAnalysisData] = useState<SignalData | null>(null);
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+    
+    // State for chart analysis from the charting view
+    const [isAnalyzingChart, setIsAnalyzingChart] = useState(false);
     
     // State to handle redirects to chat with a prompt
     const [pendingChatQuery, setPendingChatQuery] = useState<string | null>(null);
@@ -102,6 +109,21 @@ const App: React.FC = () => {
             console.error(`Could not save chat messages to localStorage: ${error}`);
         }
     }, [chatMessages]);
+
+    // Lock body scroll when in Charting view to prevent rubber-banding and scroll interference
+    useEffect(() => {
+        if (appView === 'charting') {
+            document.body.style.overflow = 'hidden';
+            document.body.style.overscrollBehavior = 'none';
+        } else {
+            document.body.style.overflow = '';
+            document.body.style.overscrollBehavior = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+            document.body.style.overscrollBehavior = '';
+        };
+    }, [appView]);
 
     const fetchNewsData = useCallback(async () => {
         setIsNewsLoading(true);
@@ -190,9 +212,12 @@ const App: React.FC = () => {
         setAppView('predictor');
     };
 
-    // New handler for statistics page
     const handleNavigateToStatistics = () => {
         setAppView('statistics');
+    };
+
+    const handleNavigateToCharting = () => {
+        setAppView('charting');
     };
 
     const handleBackFromAnalysis = () => {
@@ -212,14 +237,41 @@ const App: React.FC = () => {
         setPendingChatQuery(`Tell me the current update on ${asset}`);
         setAppView('chat');
     };
+
+    // New handler for chart analysis from the overlay
+    const handleChartAnalysis = useCallback(async (imageData: string) => {
+        setIsAnalyzingChart(true);
+        try {
+            // Strip data URL prefix
+            const base64Data = imageData.split(',')[1];
+            
+            const request: AnalysisRequest = {
+                images: {
+                    primary: {
+                        data: base64Data,
+                        mimeType: 'image/png'
+                    }
+                },
+                riskRewardRatio: '1:3', // Default for quick analysis
+                tradingStyle: 'Day Trading', // Default
+                isMultiDimensional: false
+            };
+
+            const data = await generateTradingSignal(request);
+            const savedData = saveAnalysis(data);
+            
+            setIsAnalyzingChart(false);
+            handleNavigateToAnalysis(savedData, 'charting'); // Return to charting when "Back" is pressed
+        } catch (error) {
+            console.error("Chart Analysis Failed:", error);
+            setIsAnalyzingChart(false);
+            alert("Analysis failed. Please try again.");
+        }
+    }, []);
     
     if (isTransitioning) {
         return <TransitionLoader />;
     }
-
-    // Render AutoLearningManager inside the main app container to ensure it runs
-    // whenever the app is mounted, but outside of specific pages so it persists.
-    const autoLearning = isLoggedIn ? <AutoLearningManager /> : null;
 
     if (appView === 'landing') {
         return <LandingPage onEnterApp={handleEnterApp} />;
@@ -232,10 +284,27 @@ const App: React.FC = () => {
         return <LoginPage onLogin={handleLogin} onNavigateToSignUp={() => setAuthPage('signup')} />;
     }
 
-    if (appView === 'predictor') {
-        return (
-            <>
-                {autoLearning}
+    // Determine the main content based on the view
+    let content: React.ReactNode = null;
+
+    switch (appView) {
+        case 'home':
+            content = (
+                <HomePage 
+                    onLogout={handleLogout} 
+                    onAnalysisComplete={handleNewAnalysis} 
+                    onNavigateToHistory={handleNavigateToHistory}
+                    onNavigateToNews={handleNavigateToNews}
+                    onNavigateToChat={handleNavigateToChat}
+                    onNavigateToPredictor={handleNavigateToPredictor}
+                    onNavigateToStatistics={handleNavigateToStatistics}
+                    onNavigateToCharting={handleNavigateToCharting}
+                    onAssetSelect={handleAssetSelect}
+                />
+            );
+            break;
+        case 'predictor':
+            content = (
                 <PredictorPage 
                     onBack={handleNavigateToHome} 
                     onLogout={handleLogout}
@@ -244,14 +313,10 @@ const App: React.FC = () => {
                     error={predictorError}
                     onFetchPredictions={fetchPredictedEventsData}
                 />
-            </>
-        );
-    }
-
-    if (appView === 'chat') {
-        return (
-            <>
-                {autoLearning}
+            );
+            break;
+        case 'chat':
+            content = (
                 <ChatPage 
                     onBack={handleNavigateToHome} 
                     onLogout={handleLogout}
@@ -261,14 +326,10 @@ const App: React.FC = () => {
                     initialInput={pendingChatQuery}
                     onClearInitialInput={() => setPendingChatQuery(null)}
                 />
-            </>
-        );
-    }
-
-    if (appView === 'news') {
-        return (
-             <>
-                {autoLearning}
+            );
+            break;
+        case 'news':
+            content = (
                 <NewsPage 
                     onBack={handleNavigateToHome} 
                     onLogout={handleLogout}
@@ -277,62 +338,94 @@ const App: React.FC = () => {
                     error={newsError}
                     onFetchNews={fetchNewsData}
                 />
-            </>
-        );
-    }
-
-    if (appView === 'history') {
-        return (
-            <>
-                {autoLearning}
+            );
+            break;
+        case 'history':
+            content = (
                 <HistoryPage 
                     onSelectAnalysis={(data) => handleNavigateToAnalysis(data, 'history')}
                     onBack={handleNavigateToHome}
                     onLogout={handleLogout}
                 />
-            </>
-        );
-    }
-
-    if (appView === 'statistics') {
-        return (
-            <>
-                {autoLearning}
+            );
+            break;
+        case 'statistics':
+            content = (
                 <MarketStatisticsPage 
                     onBack={handleNavigateToHome} 
                     onLogout={handleLogout}
                 />
-            </>
-        );
+            );
+            break;
+        case 'analysis':
+            if (analysisData) {
+                content = (
+                    <AnalysisPage 
+                        data={analysisData} 
+                        onBack={handleBackFromAnalysis} 
+                        onLogout={handleLogout}
+                    />
+                );
+            }
+            break;
+        case 'charting':
+            // Render nothing for 'content' when charting is active, 
+            // as the persistent layer handles it. We just need a Back button functionality usually,
+            // but in this persistent architecture, we can overlay a custom back button if needed 
+            // inside the chart layer or assume standard browser nav (or add a back button to the HUD).
+            // For now, let's keep content null so the chart layer is the only thing visible (aside from AutoLearning)
+            break;
+        default:
+            content = null;
     }
 
-    if (appView === 'analysis' && analysisData) {
-        return (
-            <>
-                {autoLearning}
-                <AnalysisPage 
-                    data={analysisData} 
-                    onBack={handleBackFromAnalysis} 
-                    onLogout={handleLogout}
-                />
-            </>
-        );
-    }
+    // Persistent Chart Layer
+    // We keep this mounted but control visibility.
+    // We add a back button specific to this view to escape it.
+    const isCharting = appView === 'charting';
+    const chartLayer = (
+        <div 
+            className="fixed inset-0 z-[50] flex flex-col bg-white dark:bg-[#0f172a] transition-colors duration-300"
+            style={{ 
+                visibility: isCharting ? 'visible' : 'hidden', 
+                opacity: isCharting ? 1 : 0,
+                pointerEvents: isCharting ? 'auto' : 'none',
+                overscrollBehavior: 'none' // Enforce rigid container
+            }}
+        >
+            {/* Chart Analysis Loading Overlay */}
+            {isAnalyzingChart && (
+                <div className="absolute inset-0 z-[70] bg-black/70 backdrop-blur-sm flex flex-col items-center justify-center">
+                    <Loader />
+                    <p className="mt-4 text-green-400 font-bold animate-pulse">Analyzing Live Chart Data...</p>
+                </div>
+            )}
 
-    // Default to home page if logged in
+            {isCharting && (
+                <button 
+                    onClick={handleNavigateToHome}
+                    className="absolute top-16 right-4 z-[60] bg-white/80 dark:bg-gray-800/80 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-white p-2 rounded-full shadow-lg border border-gray-200 dark:border-gray-600 transition-colors"
+                    title="Close Chart"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            )}
+            <SignalOverlay onAnalyzeClick={handleChartAnalysis} />
+            <div className="flex-1 w-full h-full relative">
+                <TradingViewWidget />
+            </div>
+        </div>
+    );
+
     return (
         <>
-            {autoLearning}
-            <HomePage 
-                onLogout={handleLogout} 
-                onAnalysisComplete={handleNewAnalysis} 
-                onNavigateToHistory={handleNavigateToHistory}
-                onNavigateToNews={handleNavigateToNews}
-                onNavigateToChat={handleNavigateToChat}
-                onNavigateToPredictor={handleNavigateToPredictor}
-                onNavigateToStatistics={handleNavigateToStatistics} // Pass new handler
-                onAssetSelect={handleAssetSelect}
-            />
+            <AutoLearningManager />
+            {chartLayer}
+            <div style={{ display: isCharting ? 'none' : 'block' }}>
+                {content}
+            </div>
         </>
     );
 };
