@@ -1,7 +1,9 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { NewsArticle } from '../types';
-import { runWithRetry } from './retryUtils';
+import { runWithModelFallback } from './retryUtils';
+
+const MODELS = ['gemini-2.5-flash', 'gemini-flash-lite-latest'];
 
 const NEWS_PROMPT = `
 Find the top 10 most impactful Forex news articles from MyFxBook and Investing.com.
@@ -12,8 +14,8 @@ export async function getForexNews(): Promise<NewsArticle[]> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
     try {
-        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash', // Flash for fast summarization
+        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            model: modelId,
             contents: NEWS_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],

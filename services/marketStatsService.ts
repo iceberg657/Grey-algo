@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { MarketStatsData, StatTimeframe } from '../types';
-import { runWithRetry } from './retryUtils';
+import { runWithModelFallback } from './retryUtils';
 
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
@@ -10,6 +10,8 @@ const ASSETS = {
     Indices: ['US30', 'NAS100', 'SPX500', 'GER40', 'UK100'],
     Crypto: ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'BNB/USD']
 };
+
+const MODELS = ['gemini-2.5-flash', 'gemini-flash-lite-latest'];
 
 const STATS_PROMPT = (symbol: string, timeframe: string) => `
 Act as a Real-Time Technical Analysis Engine. 
@@ -56,9 +58,8 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
-        // Using Pro model for accurate technical extraction
-        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            model: modelId,
             contents: STATS_PROMPT(symbol, timeframe),
             config: {
                 tools: [{ googleSearch: {} }],

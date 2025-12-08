@@ -9,7 +9,6 @@ export async function runWithRetry<T>(
     } catch (error: any) {
         if (retries <= 0) throw error;
 
-        // Check for common rate limit / quota exhaustion indicators
         const errorMessage = error.message || '';
         const isQuotaError = 
             errorMessage.includes('429') || 
@@ -20,23 +19,42 @@ export async function runWithRetry<T>(
 
         if (isQuotaError) {
             let delay = baseDelay;
-            // Try to parse "retry in X s" from error message to be precise
             const match = errorMessage.match(/retry in ([\d.]+)s/);
             if (match && match[1]) {
-                // Add a small buffer (500ms) to the requested wait time
                 delay = Math.ceil(parseFloat(match[1]) * 1000) + 1000;
             } else {
-                // Exponential backoff if no specific time is provided
-                // 1st retry: 2000ms, 2nd: 4000ms, 3rd: 8000ms
                 delay = baseDelay * 2;
             }
 
             console.warn(`[Gemini API] Quota limit hit. Retrying in ${delay}ms... (${retries} attempts left)`);
             
             await new Promise(resolve => setTimeout(resolve, delay));
-            return runWithRetry(operation, retries - 1, delay); // Recurse with potentially updated delay
+            return runWithRetry(operation, retries - 1, delay); 
         }
 
         throw error;
     }
+}
+
+export async function runWithModelFallback<T>(
+    modelIds: string[],
+    operationFactory: (modelId: string) => Promise<T>
+): Promise<T> {
+    let lastError: any;
+    for (const model of modelIds) {
+        try {
+            console.log(`[Attempting Model] ${model}`);
+            // We use runWithRetry with fewer retries for the first models to failover faster
+            // If it's the last model, we might retry more.
+            const retries = model === modelIds[modelIds.length - 1] ? 3 : 0; 
+            return await runWithRetry(() => operationFactory(model), retries);
+        } catch (error: any) {
+            console.warn(`[Model Failed] ${model}:`, error.message);
+            lastError = error;
+            
+            // If strictly a quota error, we move to next model immediately (due to 0 retries above)
+            // If it's another error (like 500), we also move to next model.
+        }
+    }
+    throw lastError;
 }

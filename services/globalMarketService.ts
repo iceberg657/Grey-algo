@@ -1,10 +1,13 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithRetry } from './retryUtils';
+import { runWithModelFallback } from './retryUtils';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
+
+// Fallback chain: Primary -> Lite -> Pro (if desperate, but usually Lite is better for quota)
+const MODELS = ['gemini-2.5-flash', 'gemini-flash-lite-latest'];
 
 const GLOBAL_MARKET_PROMPT = `
 Act as a chief market strategist. Your task is to perform a high-level, real-time analysis of the current global market structure to determine the prevailing bias.
@@ -41,8 +44,8 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
-        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash',
+        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            model: modelId,
             contents: GLOBAL_MARKET_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],
@@ -69,7 +72,6 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
             globalSummary: data.globalSummary
         };
 
-        // Cache the result
         localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis));
         
         return analysis;

@@ -1,7 +1,9 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { PredictedEvent } from '../types';
-import { runWithRetry } from './retryUtils';
+import { runWithModelFallback } from './retryUtils';
+
+const MODELS = ['gemini-2.5-flash', 'gemini-flash-lite-latest'];
 
 const PREDICTOR_PROMPT = `
 You are 'Oracle', an apex-level trading AI.
@@ -29,9 +31,9 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
-        // Using Pro model for deeper reasoning on economic impact
-        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+        // Using Flash models per user request for prediction speed/cost
+        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            model: modelId,
             contents: PREDICTOR_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],

@@ -1,9 +1,9 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
-import { runWithRetry } from './retryUtils';
+import { runWithModelFallback } from './retryUtils';
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
     const now = new Date();
@@ -87,6 +87,9 @@ ${learnedSection}
 `;
 };
 
+// Expanded model list including Pro for quality but Flash for fallback/reliability
+const MODELS = ['gemini-3-pro-preview', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
+
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
@@ -107,27 +110,16 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
         temperature: 0.5, 
     };
 
-    // SAFETY FALLBACK MECHANISM
-    // Primary: gemini-3-pro-preview (Best Analysis)
-    // Fallback: gemini-2.5-flash (Reliability)
-    
-    let response;
+    let response: GenerateContentResponse;
     try {
-        console.log("Analyzing with Primary Model: gemini-3-pro-preview");
-        // Apply retry logic to the primary call as well
-        response = await runWithRetry(() => ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
+        // Use the fallback utility to iterate through models
+        response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            model: modelId,
             contents: [{ parts: promptParts }],
             config,
-        }), 2); // Less retries for primary to failover faster
+        }));
     } catch (error) {
-        console.warn("Primary model failed/rate-limited. Switching to Fallback: gemini-2.5-flash");
-        // Apply retry logic to the fallback call
-        response = await runWithRetry(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ parts: promptParts }],
-            config,
-        }), 3);
+        throw new Error("All AI models failed to generate analysis. Please try again later.");
     }
 
     const responseText = response.text;
