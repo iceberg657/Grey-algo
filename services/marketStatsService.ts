@@ -1,6 +1,7 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { MarketStatsData, StatTimeframe } from '../types';
+import { runWithRetry } from './retryUtils';
 
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
@@ -56,16 +57,18 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
 
     try {
         // Using Pro model for accurate technical extraction
-        const response = await ai.models.generateContent({
+        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: STATS_PROMPT(symbol, timeframe),
             config: {
                 tools: [{ googleSearch: {} }],
                 temperature: 0.1 
             }
-        });
+        }));
 
-        const text = response.text.trim();
+        const text = response.text?.trim();
+        if (!text) throw new Error("Empty response");
+
         let jsonString = text;
         const first = jsonString.indexOf('{');
         const last = jsonString.lastIndexOf('}');

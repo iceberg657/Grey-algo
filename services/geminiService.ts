@@ -3,6 +3,7 @@ import { GoogleGenAI } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
+import { runWithRetry } from './retryUtils';
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
     const now = new Date();
@@ -113,18 +114,20 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
     let response;
     try {
         console.log("Analyzing with Primary Model: gemini-3-pro-preview");
-        response = await ai.models.generateContent({
+        // Apply retry logic to the primary call as well
+        response = await runWithRetry(() => ai.models.generateContent({
             model: 'gemini-3-pro-preview',
             contents: [{ parts: promptParts }],
             config,
-        });
+        }), 2); // Less retries for primary to failover faster
     } catch (error) {
         console.warn("Primary model failed/rate-limited. Switching to Fallback: gemini-2.5-flash");
-        response = await ai.models.generateContent({
+        // Apply retry logic to the fallback call
+        response = await runWithRetry(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: [{ parts: promptParts }],
             config,
-        });
+        }), 3);
     }
 
     const responseText = response.text;

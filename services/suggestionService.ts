@@ -1,6 +1,7 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AssetSuggestion } from '../types';
+import { runWithRetry } from './retryUtils';
 
 const SUGGESTION_STORAGE_KEY = 'greyquant_asset_suggestions';
 const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
@@ -51,16 +52,18 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
 
     try {
         // Using gemini-2.5-flash for high-speed scanning
-        const response = await ai.models.generateContent({
+        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: getSuggestionPrompt(),
             config: {
                 tools: [{googleSearch: {}}],
                 temperature: 0.7, 
             },
-        });
+        }));
 
-        const text = response.text.trim();
+        const text = response.text?.trim();
+        if (!text) return [];
+
         let jsonString = text;
         const firstBracket = jsonString.indexOf('[');
         const lastBracket = jsonString.lastIndexOf(']');

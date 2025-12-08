@@ -1,6 +1,7 @@
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
+import { runWithRetry } from './retryUtils';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
@@ -40,16 +41,18 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
     try {
-        const response = await ai.models.generateContent({
+        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
             model: 'gemini-2.5-flash',
             contents: GLOBAL_MARKET_PROMPT,
             config: {
                 tools: [{googleSearch: {}}],
                 temperature: 0.1,
             },
-        });
+        }));
 
-        const responseText = response.text.trim();
+        const responseText = response.text?.trim();
+        if (!responseText) throw new Error("Empty response from AI");
+
         let jsonString = responseText;
         const firstBrace = jsonString.indexOf('{');
         const lastBrace = jsonString.lastIndexOf('}');
