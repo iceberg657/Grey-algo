@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage, ImagePart } from '../types';
-import { getChatInstance } from '../services/chatService';
+import { getChatInstance, sendMessageStreamWithRetry } from '../services/chatService';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 
@@ -241,7 +241,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         }
     };
 
-    // Separated logic to execute message sending, allowing it to be called programmatically
     const executeSendMessage = useCallback(async (text: string, files: File[], previews: string[]) => {
          if ((!text.trim() && files.length === 0) || isLoading) return;
 
@@ -257,7 +256,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         setError(null);
 
         try {
-            const chat = getChatInstance();
             const messageParts: (({ text: string } | { inlineData: { data: string, mimeType: string } }))[] = [];
 
             if (files.length > 0) {
@@ -268,7 +266,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             }
             messageParts.push({ text: text });
 
-            const result = await chat.sendMessageStream({ message: messageParts });
+            // Use the new retry-enabled service function
+            const result = await sendMessageStreamWithRetry(messageParts);
 
             let responseText = '';
             const streamMessageId = `model-stream-${Date.now()}`;
@@ -288,9 +287,15 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-            setError(`Oracle Error: ${errorMessage}`);
+            // If we've exhausted all retries and models, show a user-friendly message
+            if (errorMessage.includes("503") || errorMessage.includes("Overloaded") || errorMessage.includes("Quota")) {
+                setError("Oracle is currently overloaded. Please wait a moment and try again.");
+            } else {
+                setError(`Oracle Error: ${errorMessage}`);
+            }
+            
             const errorId = `model-error-${Date.now()}`;
-            const errorText = `A system anomaly has occurred. Please try again. \n\nDetails: ${errorMessage}`;
+            const errorText = `Connection interrupted. Please try again. \n\nDetails: ${errorMessage}`;
             setMessages(prev => [...prev, { id: errorId, role: 'model', text: errorText }]);
         } finally {
             setIsLoading(false);
@@ -314,7 +319,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         await executeSendMessage(currentText, currentFiles, currentPreviews);
     };
 
-    // Effect to handle initial input from props (e.g. ticker click)
     useEffect(() => {
         if (initialInput) {
             executeSendMessage(initialInput, [], []);

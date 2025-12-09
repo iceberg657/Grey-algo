@@ -87,8 +87,8 @@ ${learnedSection}
 `;
 };
 
-// Expanded model list including Pro for quality but Flash for fallback/reliability
-const MODELS = ['gemini-3-pro-preview', 'gemini-2.5-flash', 'gemini-flash-lite-latest'];
+// Strict Pro models for high-quality chart analysis
+const MODELS = ['gemini-3-pro-preview', 'gemini-1.5-pro'];
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });

@@ -16,8 +16,15 @@ export async function runWithRetry<T>(
             errorMessage.includes('Quota exceeded') ||
             errorMessage.includes('RESOURCE_EXHAUSTED') ||
             errorMessage.includes('Too Many Requests');
+            
+        const isServerOverloaded = 
+            errorMessage.includes('503') || 
+            error.status === 503 ||
+            errorMessage.toLowerCase().includes('overloaded') ||
+            errorMessage.toLowerCase().includes('busy') ||
+            errorMessage.toLowerCase().includes('internal error');
 
-        if (isQuotaError) {
+        if (isQuotaError || isServerOverloaded) {
             let delay = baseDelay;
             const match = errorMessage.match(/retry in ([\d.]+)s/);
             if (match && match[1]) {
@@ -26,7 +33,7 @@ export async function runWithRetry<T>(
                 delay = baseDelay * 2;
             }
 
-            console.warn(`[Gemini API] Quota limit hit. Retrying in ${delay}ms... (${retries} attempts left)`);
+            console.warn(`[Gemini API] ${isQuotaError ? 'Quota limit' : 'Server overloaded'}. Retrying in ${delay}ms... (${retries} attempts left)`);
             
             await new Promise(resolve => setTimeout(resolve, delay));
             return runWithRetry(operation, retries - 1, delay); 
@@ -45,15 +52,14 @@ export async function runWithModelFallback<T>(
         try {
             console.log(`[Attempting Model] ${model}`);
             // We use runWithRetry with fewer retries for the first models to failover faster
-            // If it's the last model, we might retry more.
-            const retries = model === modelIds[modelIds.length - 1] ? 3 : 0; 
+            // If it's the last model, we retry more aggressively.
+            const retries = model === modelIds[modelIds.length - 1] ? 3 : 1; 
             return await runWithRetry(() => operationFactory(model), retries);
         } catch (error: any) {
             console.warn(`[Model Failed] ${model}:`, error.message);
             lastError = error;
             
-            // If strictly a quota error, we move to next model immediately (due to 0 retries above)
-            // If it's another error (like 500), we also move to next model.
+            // Proceed to next model in loop
         }
     }
     throw lastError;

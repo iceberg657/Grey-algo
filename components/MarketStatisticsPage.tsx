@@ -274,7 +274,12 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                                     <p className="text-xl font-mono text-gray-600 dark:text-green-400 mt-1">${data.price}</p>
                                 </div>
                                 <div className="p-4 bg-white/50 dark:bg-dark-card/40 rounded-xl border border-gray-200 dark:border-green-500/10">
-                                    <SentimentCircle score={data.sentimentScore} label={data.sentimentLabel} size="lg" />
+                                    <SentimentCircle 
+                                        score={data.sentimentScore} 
+                                        label={data.sentimentLabel} 
+                                        size="lg" 
+                                        displayValue={`${data.sentimentScore}%`} 
+                                    />
                                 </div>
                                 
                                 {data.supportResistance && (

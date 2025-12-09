@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
@@ -18,7 +18,7 @@ const landingPageCss = `
     --primary-yellow: #f1c40f;
     --primary-blue: #3498db;
     --dark-bg: #0f172a;
-    --card-bg-dark: rgba(19, 28, 46, 0.8);
+    --card-bg-dark: rgba(15, 23, 42, 0.3); /* High transparency */
     --text-light: #f0f9ff;
     --text-gray: #94a3b8;
     --border-color-dark: rgba(255, 255, 255, 0.1);
@@ -31,47 +31,45 @@ const landingPageCss = `
     --primary-yellow: #f39c12;
     --primary-blue: #2980b9;
     --light-bg: #f4f7f9;
-    --card-bg-light: rgba(255, 255, 255, 0.9);
+    --card-bg-light: rgba(255, 255, 255, 0.3); /* High transparency */
     --text-dark: #2c3e50;
     --text-muted: #7f8c8d;
     --border-color-light: #e0e0e0;
 }
 .landing-body {
-    background: linear-gradient(135deg, var(--dark-bg), #1e293b);
+    background: var(--dark-bg);
     color: var(--text-light);
     overflow-x: hidden;
     scroll-behavior: smooth;
-    background-attachment: fixed;
     transition: background 0.3s ease, color 0.3s ease;
+    position: relative;
 }
 .light .landing-body {
     background: var(--light-bg);
     color: var(--text-dark);
 }
-.landing-body::before {
-    content: "";
+
+/* Global Background Animation Container */
+.neural-bg {
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
-    background: 
-        radial-gradient(circle at 20% 30%, rgba(155, 89, 182, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 80% 70%, rgba(52, 152, 219, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 30% 80%, rgba(241, 196, 15, 0.15) 0%, transparent 40%);
-    z-index: -1;
-    transition: opacity 0.5s ease;
+    width: 100vw;
+    height: 100vh;
+    z-index: 0;
+    pointer-events: none;
 }
-.light .landing-body::before {
-    opacity: 0.5;
-}
+
 .landing-container {
     max-width: 1200px;
     margin: 0 auto;
     padding: 0 20px;
+    position: relative;
+    z-index: 2; /* Content above bg */
 }
+
 .landing-header {
-    background: rgba(15, 23, 42, 0.95);
+    background: rgba(15, 23, 42, 0.2); /* Very Transparent Header */
     backdrop-filter: blur(10px);
     position: fixed;
     width: 100%;
@@ -81,16 +79,15 @@ const landingPageCss = `
     transition: all 0.3s ease;
 }
 .light .landing-header {
-    background: rgba(244, 247, 249, 0.9);
+    background: rgba(244, 247, 249, 0.2);
     border-bottom-color: var(--border-color-light);
 }
 .landing-header.scrolled {
     padding: 5px 0;
+    background: rgba(15, 23, 42, 0.5);
     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
 }
-.light .landing-header.scrolled {
-     box-shadow: 0 5px 20px rgba(0, 0, 0, 0.05);
-}
+
 .header-container {
     display: flex;
     justify-content: space-between;
@@ -112,16 +109,10 @@ const landingPageCss = `
     color: transparent;
     transition: all 0.3s ease;
 }
-.logo.scrolled {
-    font-size: 1.5rem;
-}
 .logo i {
     margin-right: 10px;
     font-size: 2rem;
-    transition: all 0.3s ease;
-}
-.logo.scrolled i {
-    font-size: 1.6rem;
+    color: var(--primary-blue);
 }
 nav ul {
     display: flex;
@@ -145,43 +136,27 @@ nav ul li a {
 nav ul li a:hover {
     color: var(--primary-blue);
 }
-nav ul li a::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 0;
-    height: 2px;
-    background: linear-gradient(90deg, var(--primary-blue), var(--primary-purple));
-    transition: width 0.3s;
-}
-nav ul li a:hover::after {
-    width: 100%;
-}
+
 .hero {
-    min-height: 100vh;
+    min-height: 80vh;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    padding-top: 80px;
+    justify-content: center;
+    padding-top: 120px; /* Space for fixed header */
+    padding-bottom: 50px;
     position: relative;
-    overflow: hidden;
+    text-align: center;
 }
-.hero::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: 
-        radial-gradient(circle at 10% 20%, rgba(46, 204, 113, 0.1) 0%, transparent 30%),
-        radial-gradient(circle at 90% 80%, rgba(255, 60, 60, 0.1) 0%, transparent 30%);
-    z-index: -1;
-}
+
 .hero-content {
-    max-width: 600px;
-    z-index: 2;
+    max-width: 900px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
+
 .hero h1 {
     font-size: 3.5rem;
     margin-bottom: 20px;
@@ -189,6 +164,8 @@ nav ul li a:hover::after {
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
+    line-height: 1.2;
+    text-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
 }
 .light .hero h1 {
     background: linear-gradient(90deg, var(--text-dark), var(--primary-blue));
@@ -197,14 +174,16 @@ nav ul li a:hover::after {
     color: transparent;
 }
 .hero p {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     line-height: 1.6;
-    margin-bottom: 30px;
+    margin-bottom: 40px;
     color: var(--text-gray);
+    max-width: 700px;
 }
 .light .hero p {
     color: var(--text-muted);
 }
+
 .cta-button {
     display: inline-block;
     padding: 12px 30px;
@@ -216,71 +195,60 @@ nav ul li a:hover::after {
     transition: transform 0.3s, box-shadow 0.3s;
     border: none;
     cursor: pointer;
+    box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
 }
 .cta-button:hover {
     transform: translateY(-3px);
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 20px rgba(59, 130, 246, 0.6);
 }
-.hero-image {
-    position: absolute;
-    right: -50px;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 50%;
-    max-width: 600px;
-    z-index: 1;
-}
+
+/* Ticker Section */
 .ticker-wrap {
-    background: rgba(19, 28, 46, 0.9);
+    width: 100%;
+    background: rgba(15, 23, 42, 0.2); /* Transparent */
     padding: 15px 0;
     overflow: hidden;
-    border-top: 1px solid var(--border-color-dark);
+    margin-top: 40px;
     border-bottom: 1px solid var(--border-color-dark);
-    margin: 40px 0;
+    backdrop-filter: blur(5px);
 }
 .light .ticker-wrap {
-    background: #fff;
-    border-color: var(--border-color-light);
+    background: rgba(255, 255, 255, 0.2);
+    border-bottom-color: var(--border-color-light);
 }
 .ticker {
     display: flex;
     white-space: nowrap;
-    animation: tickerScroll 20s linear infinite;
+    animation: tickerScroll 30s linear infinite;
 }
 .ticker-item {
     display: flex;
     align-items: center;
-    margin-right: 40px;
-}
-.ticker-symbol {
-    font-weight: 700;
-    margin-right: 10px;
+    margin-right: 50px;
     font-family: 'JetBrains Mono', monospace;
+    font-size: 0.9rem;
 }
-.ticker-price {
-    margin-right: 5px;
-    font-family: 'JetBrains Mono', monospace;
+.up { color: var(--primary-green); }
+.down { color: var(--primary-red); }
+
+.bottom-text {
+    text-align: center;
+    color: var(--text-gray);
+    font-size: 0.9rem;
+    max-width: 800px;
+    margin: 40px auto 20px;
 }
-.ticker-change {
-    display: flex;
-    align-items: center;
+.light .bottom-text {
+    color: var(--text-muted);
 }
-.up {
-    color: var(--primary-green);
+
+/* Sections */
+.section { 
+    padding: 80px 0; 
+    background: transparent; /* Fully transparent to see neural net */
+    margin-bottom: 1px; 
 }
-.down {
-    color: var(--primary-red);
-}
-.ticker-change i {
-    margin-right: 5px;
-}
-@keyframes tickerScroll {
-    0% { transform: translateX(0); }
-    100% { transform: translateX(-100%); }
-}
-.section {
-    padding: 80px 0;
-}
+
 .section-title {
     text-align: center;
     margin-bottom: 50px;
@@ -301,84 +269,38 @@ nav ul li a:hover::after {
 .light .section-title p {
     color: var(--text-muted);
 }
-.products-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 30px;
-}
+
+.products-grid { display: grid; gap: 30px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
 .product-card {
     background: var(--card-bg-dark);
     border-radius: 15px;
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s;
     border: 1px solid var(--border-color-dark);
-    backdrop-filter: blur(10px);
+    backdrop-filter: blur(5px); /* Glassmorphism */
 }
 .light .product-card {
     background: var(--card-bg-light);
     border: 1px solid var(--border-color-light);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
 }
 .product-card:hover {
     transform: translateY(-10px);
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
     border-color: rgba(52, 152, 219, 0.3);
 }
-.light .product-card:hover {
-    box-shadow: 0 15px 30px rgba(0,0,0,0.1);
-    border-color: rgba(41, 128, 185, 0.3);
-}
-.product-image {
-    height: 200px;
-    overflow: hidden;
-}
-.product-image img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s;
-}
-.product-card:hover .product-image img {
-    transform: scale(1.05);
-}
-.product-content {
-    padding: 25px;
-}
-.product-content h3 {
-    font-size: 1.5rem;
-    margin-bottom: 15px;
-    color: var(--primary-blue);
-}
-.product-content p {
-    color: var(--text-gray);
-    margin-bottom: 20px;
-    line-height: 1.6;
-}
-.light .product-content p {
-    color: var(--text-muted);
-}
-.product-features {
-    list-style: none;
-    margin-bottom: 20px;
-}
-.product-features li {
-    display: flex;
-    align-items: center;
-    margin-bottom: 10px;
-    color: var(--text-light);
-}
-.light .product-features li {
-    color: var(--text-dark);
-}
-.product-features li i {
-    color: var(--primary-green);
-    margin-right: 10px;
-}
-.pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 30px;
-}
+.product-image { height: 200px; overflow: hidden; }
+.product-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s; }
+.product-card:hover .product-image img { transform: scale(1.05); }
+.product-content { padding: 25px; }
+.product-content h3 { font-size: 1.5rem; margin-bottom: 15px; color: var(--primary-blue); }
+.product-content p { color: var(--text-gray); margin-bottom: 20px; line-height: 1.6; }
+.product-features { list-style: none; margin-bottom: 20px; }
+.product-features li { display: flex; align-items: center; margin-bottom: 10px; color: var(--text-light); }
+.light .product-features li { color: var(--text-dark); }
+.product-features li i { color: var(--primary-green); margin-right: 10px; }
+
+/* Pricing */
+.pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 30px; }
 .pricing-card {
     background: var(--card-bg-dark);
     border-radius: 15px;
@@ -388,19 +310,10 @@ nav ul li a:hover::after {
     border: 1px solid var(--border-color-dark);
     position: relative;
     overflow: hidden;
+    backdrop-filter: blur(5px);
 }
-.light .pricing-card {
-    background: var(--card-bg-light);
-    border: 1px solid var(--border-color-light);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
-.pricing-card:hover {
-    transform: translateY(-10px);
-    border-color: rgba(155, 89, 182, 0.3);
-}
-.light .pricing-card:hover {
-    border-color: rgba(142, 68, 173, 0.3);
-}
+.light .pricing-card { background: var(--card-bg-light); border: 1px solid var(--border-color-light); }
+.pricing-card:hover { transform: translateY(-10px); border-color: rgba(155, 89, 182, 0.3); }
 .pricing-card.popular::before {
     content: "POPULAR";
     position: absolute;
@@ -413,11 +326,7 @@ nav ul li a:hover::after {
     font-weight: 700;
     transform: rotate(45deg);
 }
-.pricing-card h3 {
-    font-size: 1.8rem;
-    margin-bottom: 20px;
-    color: var(--primary-yellow);
-}
+.pricing-card h3 { font-size: 1.8rem; margin-bottom: 20px; color: var(--primary-yellow); }
 .price {
     font-size: 3rem;
     font-weight: 700;
@@ -427,63 +336,26 @@ nav ul li a:hover::after {
     background-clip: text;
     color: transparent;
 }
-.price span {
-    font-size: 1rem;
-    color: var(--text-gray);
-}
-.light .price span {
-    color: var(--text-muted);
-}
-.pricing-features {
-    list-style: none;
-    margin-bottom: 30px;
-}
-.pricing-features li {
-    padding: 10px 0;
-    border-bottom: 1px solid var(--border-color-dark);
-    color: var(--text-gray);
-}
-.light .pricing-features li {
-    border-bottom-color: var(--border-color-light);
-    color: var(--text-muted);
-}
-.pricing-features li:last-child {
-    border-bottom: none;
-}
+.price span { font-size: 1rem; color: var(--text-gray); }
+.pricing-features { list-style: none; margin-bottom: 30px; }
+.pricing-features li { padding: 10px 0; border-bottom: 1px solid var(--border-color-dark); color: var(--text-gray); }
+.pricing-features li:last-child { border-bottom: none; }
+
+/* Contact */
 .contact {
-    background: linear-gradient(135deg, rgba(19, 28, 46, 0.9), rgba(15, 23, 42, 0.9));
+    background: var(--card-bg-dark);
     border-radius: 15px;
     overflow: hidden;
     display: flex;
     margin-top: 50px;
     border: 1px solid var(--border-color-dark);
+    backdrop-filter: blur(5px);
 }
-.light .contact {
-    background: var(--light-bg);
-    border-color: var(--border-color-light);
-    box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-}
-.contact-info {
-    flex: 1;
-    padding: 50px;
-    background: linear-gradient(135deg, rgba(52, 152, 219, 0.1), rgba(155, 89, 182, 0.1));
-}
-.light .contact-info {
-    background: #e9ecef;
-}
-.contact-info h3 {
-    font-size: 2rem;
-    margin-bottom: 30px;
-    color: var(--primary-blue);
-}
-.contact-details {
-    margin-bottom: 40px;
-}
-.contact-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 20px;
-}
+.light .contact { background: var(--card-bg-light); border-color: var(--border-color-light); }
+.contact-info { flex: 1; padding: 50px; background: rgba(52, 152, 219, 0.05); }
+.light .contact-info { background: rgba(0,0,0,0.02); }
+.contact-info h3 { font-size: 2rem; margin-bottom: 30px; color: var(--primary-blue); }
+.contact-item { display: flex; align-items: center; margin-bottom: 20px; }
 .contact-item i {
     font-size: 1.5rem;
     width: 50px;
@@ -496,33 +368,10 @@ nav ul li a:hover::after {
     margin-right: 15px;
     color: var(--primary-blue);
 }
-.light .contact-item i {
-    background: rgba(41, 128, 185, 0.1);
-}
-.contact-item div h4 {
-    font-size: 1.2rem;
-    margin-bottom: 5px;
-}
-.contact-item div p {
-    color: var(--text-gray);
-}
-.light .contact-item div p {
-    color: var(--text-muted);
-}
-.contact-form {
-    flex: 1;
-    padding: 50px;
-}
-.form-group {
-    margin-bottom: 20px;
-}
-.form-group label {
-    display: block;
-    margin-bottom: 8px;
-    font-weight: 500;
-}
-.form-group input,
-.form-group textarea {
+.contact-form { flex: 1; padding: 50px; }
+.form-group { margin-bottom: 20px; }
+.form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+.form-group input, .form-group textarea {
     width: 100%;
     padding: 15px;
     background: rgba(255, 255, 255, 0.05);
@@ -531,62 +380,24 @@ nav ul li a:hover::after {
     color: var(--text-light);
     font-size: 1rem;
 }
-.light .form-group input,
-.light .form-group textarea {
+.light .form-group input, .light .form-group textarea {
     background: #fff;
     border-color: var(--border-color-light);
     color: var(--text-dark);
 }
-.form-group textarea {
-    height: 150px;
-    resize: vertical;
-}
-footer {
-    background: rgba(15, 23, 42, 0.95);
-    padding: 50px 0 20px;
-    margin-top: 80px;
-}
-.light footer {
-    background: #e9ecef;
-}
-.footer-content {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 30px;
-    margin-bottom: 40px;
-}
-.footer-column h4 {
-    font-size: 1.3rem;
-    margin-bottom: 20px;
-    color: var(--primary-blue);
-}
-.footer-links {
-    list-style: none;
-}
-.footer-links li {
-    margin-bottom: 10px;
-}
-.footer-links a {
-    color: var(--text-gray);
-    text-decoration: none;
-    transition: color 0.3s;
-}
-.light .footer-links a {
-    color: var(--text-muted);
-}
-.footer-links a:hover {
-    color: var(--primary-blue);
-}
-.copyright {
-    text-align: center;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-color-dark);
-    color: var(--text-gray);
-}
-.light .copyright {
-    border-top-color: var(--border-color-light);
-    color: var(--text-muted);
-}
+.form-group textarea { height: 150px; resize: vertical; }
+
+/* Footer */
+footer { background: rgba(15, 23, 42, 0.2); padding: 50px 0 20px; margin-top: 0; backdrop-filter: blur(5px); }
+.light footer { background: rgba(233, 236, 239, 0.2); }
+.footer-content { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin-bottom: 40px; }
+.footer-column h4 { font-size: 1.3rem; margin-bottom: 20px; color: var(--primary-blue); }
+.footer-links { list-style: none; }
+.footer-links li { margin-bottom: 10px; }
+.footer-links a { color: var(--text-gray); text-decoration: none; transition: color 0.3s; }
+.footer-links a:hover { color: var(--primary-blue); }
+.copyright { text-align: center; padding-top: 20px; border-top: 1px solid var(--border-color-dark); color: var(--text-gray); }
+
 .chart-container {
     height: 300px;
     margin: 50px 0;
@@ -594,207 +405,179 @@ footer {
     border-radius: 15px;
     padding: 20px;
     border: 1px solid var(--border-color-dark);
+    backdrop-filter: blur(5px);
 }
-.light .chart-container {
-    background: #fff;
-    border-color: var(--border-color-light);
+.light .chart-container { background: #fff; border-color: var(--border-color-light); }
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-100%); }
 }
-.loader {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: var(--dark-bg);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    transition: opacity 0.5s, visibility 0.5s;
-}
-.light .loader {
-    background: var(--light-bg);
-}
-.loader.hidden {
-    opacity: 0;
-    visibility: hidden;
-}
-.loader-spinner {
-    width: 50px;
-    height: 50px;
-    border: 5px solid rgba(255, 255, 255, 0.1);
-    border-top: 5px solid var(--primary-blue);
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-}
-.light .loader-spinner {
-    border-color: rgba(0,0,0,0.1);
-    border-top-color: var(--primary-blue);
-}
-@keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-}
-@media (max-width: 992px) {
-    .hero-image {
-        display: none;
-    }
-    
-    .hero-content {
-        max-width: 100%;
-        text-align: center;
-    }
-    
-    .contact {
-        flex-direction: column;
-    }
-}
+
+@media (max-width: 992px) { .contact { flex-direction: column; } }
 @media (max-width: 768px) {
-    .header-container {
-        flex-direction: column;
-    }
-    
-    nav ul {
-        margin-top: 20px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    nav ul li {
-        margin: 5px 10px;
-    }
-    
-    .hero h1 {
-        font-size: 2.5rem;
-    }
-    .section {
-        padding: 50px 0;
-    }
+    .hero h1 { font-size: 2.5rem; }
+    .header-container { flex-direction: column; }
+    nav ul { margin-top: 15px; flex-wrap: wrap; justify-content: center; }
 }
 `;
+
+const NeuralNetworkAnimation = () => {
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const { theme } = useTheme();
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        // Resize handler
+        const handleResize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', handleResize);
+        handleResize(); // Initial size
+
+        let animationFrameId: number;
+
+        interface Particle {
+            x: number;
+            y: number;
+            vx: number;
+            vy: number;
+            size: number;
+        }
+
+        const particles: Particle[] = [];
+        // Calculate particle count based on screen area to maintain density
+        const particleCount = Math.floor((window.innerWidth * window.innerHeight) / 12000);
+
+        const initParticles = () => {
+            particles.length = 0;
+            for (let i = 0; i < particleCount; i++) {
+                particles.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    size: Math.random() * 2 + 1
+                });
+            }
+        };
+
+        initParticles();
+
+        const animate = () => {
+            if (!ctx || !canvas) return;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const isDark = theme === 'dark';
+            // Brighter particles for dark mode
+            const particleFill = isDark ? 'rgba(34, 211, 238, 0.8)' : 'rgba(14, 165, 233, 0.8)'; // Cyan
+            const lineBase = isDark ? '34, 211, 238' : '14, 165, 233';
+
+            particles.forEach((p, i) => {
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Wrap around edges
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = particleFill;
+                ctx.fill();
+
+                // Connections
+                for (let j = i + 1; j < particles.length; j++) {
+                    const p2 = particles[j];
+                    const dx = p.x - p2.x;
+                    const dy = p.y - p2.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist < 150) {
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(${lineBase}, ${0.2 * (1 - dist / 150)})`;
+                        ctx.lineWidth = 1;
+                        ctx.moveTo(p.x, p.y);
+                        ctx.lineTo(p2.x, p2.y);
+                        ctx.stroke();
+                    }
+                }
+            });
+
+            animationFrameId = requestAnimationFrame(animate);
+        };
+
+        animate();
+
+        return () => {
+            window.removeEventListener('resize', handleResize);
+            cancelAnimationFrame(animationFrameId);
+        };
+    }, [theme]);
+
+    return <canvas ref={canvasRef} className="neural-bg" />;
+};
 
 export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }) => {
     const { theme } = useTheme();
 
     useEffect(() => {
         document.body.classList.add('landing-body');
-        // Add light/dark class based on theme context
         if (theme === 'light') {
             document.body.classList.add('light');
         } else {
             document.body.classList.remove('light');
         }
 
-        const Chart = (window as any).Chart;
-        if (!Chart) {
-            console.error("Chart.js is not loaded");
-            return;
-        }
-
-        // Updated: Fetch live currency data via the backend API instead of hardcoded stocks
+        // Ticker Logic
         async function initTicker() {
             const ticker = document.getElementById('stockTicker');
             if (!ticker) return;
             
             let tickerData: any[] = [];
-
             try {
-                // Fetch from our backend which uses Alpha Vantage
                 const response = await fetch('/api/marketData');
-                if (response.ok) {
-                    tickerData = await response.json();
-                }
-            } catch (e) {
-                console.error("Failed to fetch ticker data", e);
-            }
+                if (response.ok) tickerData = await response.json();
+            } catch (e) { console.error(e); }
 
-            // Fallback data if API quota reached or error (Show fake data to keep UI looking good)
             if (tickerData.length === 0) {
                  tickerData = [
                     { symbol: "EUR/USD", price: 1.0850, change: 0.0015, changePercent: 0.14 },
                     { symbol: "GBP/USD", price: 1.2640, change: -0.0020, changePercent: -0.16 },
                     { symbol: "USD/JPY", price: 148.20, change: 0.45, changePercent: 0.30 },
-                    { symbol: "USD/CHF", price: 0.8850, change: 0.0010, changePercent: 0.11 },
-                    { symbol: "AUD/USD", price: 0.6540, change: -0.0030, changePercent: -0.46 },
-                    { symbol: "EUR/GBP", price: 0.8560, change: 0.0012, changePercent: 0.14 },
-                    { symbol: "EUR/JPY", price: 160.80, change: 0.55, changePercent: 0.34 },
-                    { symbol: "GBP/JPY", price: 187.35, change: 0.40, changePercent: 0.21 },
-                    { symbol: "AUD/JPY", price: 96.90, change: -0.10, changePercent: -0.10 },
-                    { symbol: "NZD/USD", price: 0.6120, change: -0.0015, changePercent: -0.24 },
-                    { symbol: "BTC/USD", price: 42500.00, change: 120.50, changePercent: 0.28 },
-                    { symbol: "ETH/USD", price: 2300.50, change: 15.20, changePercent: 0.66 },
-                    { symbol: "XAU/USD", price: 2035.40, change: 5.10, changePercent: 0.25 }
+                    { symbol: "BTC/USD", price: 64500.00, change: 1200.50, changePercent: 1.90 },
+                    { symbol: "ETH/USD", price: 3450.50, change: 85.20, changePercent: 2.53 },
+                    { symbol: "XAU/USD", price: 2150.40, change: 12.10, changePercent: 0.56 }
                 ];
             }
             
-            ticker.innerHTML = ''; // Clear previous items
+            ticker.innerHTML = ''; 
+            // Duplicate for smooth loop
+            const displayData = [...tickerData, ...tickerData, ...tickerData];
 
-            tickerData.forEach((item: any) => {
+            displayData.forEach((item: any) => {
                 const isPositive = item.change >= 0;
                 const tickerItem = document.createElement('div');
                 tickerItem.className = 'ticker-item';
                 
-                // Formatting
                 let pricePrecision = 4;
-                if (item.symbol.includes('JPY')) pricePrecision = 2;
-                if (item.symbol.includes('BTC') || item.symbol.includes('ETH') || item.symbol.includes('XAU')) pricePrecision = 2;
+                if (item.symbol.includes('JPY') || item.symbol.includes('BTC') || item.symbol.includes('ETH') || item.symbol.includes('XAU')) pricePrecision = 2;
                 
                 tickerItem.innerHTML = `
-                    <div class="ticker-symbol">${item.symbol}</div>
-                    <div class="ticker-price">${item.price.toFixed(pricePrecision)}</div>
-                    <div class="ticker-change ${isPositive ? 'up' : 'down'}">
-                        <i class="fas fa-caret-${isPositive ? 'up' : 'down'}"></i>
-                        <span>${Math.abs(item.change).toFixed(pricePrecision)} (${Math.abs(item.changePercent).toFixed(2)}%)</span>
-                    </div>
+                    <span style="font-weight:700; margin-right:8px; color:${theme === 'light'?'#333':'#fff'}">${item.symbol}</span>
+                    <span style="margin-right:8px; color:${theme === 'light'?'#555':'#ccc'}">${item.price.toFixed(pricePrecision)}</span>
+                    <span class="${isPositive ? 'up' : 'down'}" style="display:flex; align-items:center">
+                        ${isPositive ? '▲' : '▼'} ${Math.abs(item.change).toFixed(pricePrecision)} (${Math.abs(item.changePercent).toFixed(2)}%)
+                    </span>
                 `;
                 ticker.appendChild(tickerItem);
-            });
-            
-            const tickerWrap = document.querySelector('.ticker-wrap');
-            if (tickerWrap && tickerWrap.children[1]) {
-                tickerWrap.removeChild(tickerWrap.children[1]);
-            }
-            const clone = ticker.cloneNode(true);
-            if (tickerWrap) {
-                tickerWrap.appendChild(clone);
-            }
-        }
-
-        let heroChartInstance: any = null;
-        function createHeroChart() {
-            const canvas = document.getElementById('heroChart') as HTMLCanvasElement;
-            if (!canvas) return;
-            const ctx = canvas.getContext('2d');
-            if (!ctx) return;
-            
-            const data: number[] = [];
-            let value = 100;
-            for (let i = 0; i < 100; i++) {
-                value += (Math.random() - 0.4) * 10;
-                data.push(value);
-            }
-            
-            heroChartInstance = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: Array(100).fill(''),
-                    datasets: [{
-                        data: data,
-                        borderColor: '#3498db',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        borderWidth: 2,
-                        pointRadius: 0,
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    animation: { duration: 2000, easing: 'easeOutQuart' },
-                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                    scales: { x: { display: false }, y: { display: false } }
-                }
             });
         }
 
@@ -804,6 +587,9 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
             if (!canvas) return;
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
+            
+            const Chart = (window as any).Chart;
+            if (!Chart) return;
 
             const assets = [
                 { name: 'S&P 500', color: '#3498db', data: [] as number[] },
@@ -838,79 +624,26 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                     maintainAspectRatio: false,
                     plugins: {
                         legend: { position: 'top', labels: { color: theme === 'dark' ? '#f0f9ff' : '#2c3e50', font: { size: 12 } } },
-                        tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(19, 28, 46, 0.9)', titleColor: '#f0f9ff', bodyColor: '#f0f9ff', borderColor: 'rgba(255, 255, 255, 0.1)', borderWidth: 1 }
+                        tooltip: { mode: 'index', intersect: false }
                     },
                     scales: {
-                        x: { grid: { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }, ticks: { color: theme === 'dark' ? '#94a3b8' : '#7f8c8d' } },
-                        y: { grid: { color: theme === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.05)' }, ticks: { color: theme === 'dark' ? '#94a3b8' : '#7f8c8d' } }
+                        x: { display: false },
+                        y: { display: false }
                     },
                     interaction: { mode: 'nearest', axis: 'x', intersect: false }
                 }
             });
         }
 
-        const smoothScrollHandler = (e: Event) => {
-            e.preventDefault();
-            const targetId = (e.currentTarget as HTMLAnchorElement).getAttribute('href');
-            if (!targetId) return;
-            const target = document.querySelector(targetId);
-            if (target) {
-                window.scrollTo({
-                    top: (target as HTMLElement).offsetTop - 80,
-                    behavior: 'smooth'
-                });
-            }
-        };
-
-        const anchors = document.querySelectorAll('a[href^="#"]');
-        anchors.forEach(anchor => anchor.addEventListener('click', smoothScrollHandler as EventListener));
-
-        const formSubmitHandler = (e: Event) => {
-            e.preventDefault();
-            alert('Thank you for your message! We will contact you soon.');
-            (e.currentTarget as HTMLFormElement).reset();
-        };
-        const contactForm = document.getElementById('contactForm');
-        contactForm?.addEventListener('submit', formSubmitHandler as EventListener);
-
-        const scrollHandler = () => {
-            const header = document.getElementById('header');
-            const logo = document.getElementById('logo');
-            const headerContainer = document.querySelector('.header-container');
-            if (window.scrollY > 50) {
-                header?.classList.add('scrolled');
-                logo?.classList.add('scrolled');
-                headerContainer?.classList.add('scrolled');
-            } else {
-                header?.classList.remove('scrolled');
-                logo?.classList.remove('scrolled');
-                headerContainer?.classList.remove('scrolled');
-            }
-        };
-        window.addEventListener('scroll', scrollHandler);
+        initTicker();
+        setTimeout(createMarketChart, 500); // Slight delay to ensure DOM is ready
 
         const loader = document.getElementById('loader');
-        if(loader) {
-            setTimeout(() => {
-                loader.classList.add('hidden');
-            }, 1500);
-        }
-        
-        initTicker();
-        // Destroy existing charts before creating new ones to prevent memory leaks on theme change
-        heroChartInstance?.destroy();
-        marketChartInstance?.destroy();
-        createHeroChart();
-        createMarketChart();
-
+        if(loader) setTimeout(() => loader.classList.add('hidden'), 1000);
 
         return () => {
             document.body.classList.remove('landing-body', 'light');
-            anchors.forEach(anchor => anchor.removeEventListener('click', smoothScrollHandler as EventListener));
-            contactForm?.removeEventListener('submit', formSubmitHandler as EventListener);
-            window.removeEventListener('scroll', scrollHandler);
-            heroChartInstance?.destroy();
-            marketChartInstance?.destroy();
+            if (marketChartInstance) marketChartInstance.destroy();
         };
     }, [theme]);
 
@@ -918,15 +651,17 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
         <>
             <style>{landingPageCss}</style>
             <div>
-                {/* Loading Animation */}
                 <div className="loader" id="loader">
                     <div className="loader-spinner"></div>
                 </div>
 
+                {/* Global Background Animation */}
+                <NeuralNetworkAnimation />
+
                 {/* Header */}
-                <header id="header" className="landing-header">
+                <header className="landing-header">
                     <div className="landing-container header-container">
-                        <div className="logo" id="logo">
+                        <div className="logo">
                             <i className="fas fa-chart-line"></i>
                             <span>GreyQuant</span>
                         </div>
@@ -936,11 +671,9 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                                 <li><a href="#products">Products</a></li>
                                 <li><a href="#pricing">Pricing</a></li>
                                 <li><a href="#contact">Contact</a></li>
+                                <li><ThemeToggleButton /></li>
                                 <li>
-                                    <ThemeToggleButton />
-                                </li>
-                                <li>
-                                    <button onClick={onEnterApp} className="cta-button" style={{padding: '8px 20px'}}>
+                                    <button onClick={onEnterApp} className="cta-button" style={{padding: '8px 20px', fontSize: '0.9rem'}}>
                                         Get Started With Our App
                                     </button>
                                 </li>
@@ -953,22 +686,22 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                 <section className="hero" id="home">
                     <div className="landing-container">
                         <div className="hero-content">
-                            <h1>GreyQuant: AI-Powered Quantitative Trading</h1>
-                            <p>Unleash our cutting-edge AI to navigate financial markets with precision and confidence. Our advanced algorithms analyze market data in real-time to identify your next high-probability trade.</p>
+                            <h1>Unleash our cutting-edge AI to navigate financial markets with precision and confidence.</h1>
+                            <p>Our advanced algorithms analyze market data in real-time to identify your next high-probability trade.</p>
                             <a href="#products" className="cta-button">Explore Our Products</a>
                         </div>
                     </div>
-                    <div className="hero-image">
-                        <canvas id="heroChart"></canvas>
+                    
+                    {/* Data Ticker Strip */}
+                    <div className="ticker-wrap">
+                        <div className="ticker" id="stockTicker"></div>
                     </div>
-                </section>
 
-                {/* Stock Ticker */}
-                <div className="ticker-wrap">
-                    <div className="ticker" id="stockTicker">
-                        {/* Ticker items will be populated by JavaScript */}
-                    </div>
-                </div>
+                    {/* Footer Text */}
+                    <p className="bottom-text">
+                        Discover our suite of advanced trading tools designed to give you the competitive edge in financial markets.
+                    </p>
+                </section>
 
                 {/* Products Section */}
                 <section className="section" id="products">
@@ -990,7 +723,6 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                                         <li><i className="fas fa-check-circle"></i> Real-time market scanning</li>
                                         <li><i className="fas fa-check-circle"></i> Advanced pattern recognition</li>
                                         <li><i className="fas fa-check-circle"></i> Multi-market coverage</li>
-                                        <li><i className="fas fa-check-circle"></i> Customizable alert system</li>
                                     </ul>
                                     <a href="#pricing" className="cta-button">View Pricing</a>
                                 </div>
@@ -1007,7 +739,6 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                                         <li><i className="fas fa-check-circle"></i> Self-learning algorithms</li>
                                         <li><i className="fas fa-check-circle"></i> Adaptive market analysis</li>
                                         <li><i className="fas fa-check-circle"></i> Risk management protocols</li>
-                                        <li><i className="fas fa-check-circle"></i> Performance optimization</li>
                                     </ul>
                                     <a href="#pricing" className="cta-button">View Pricing</a>
                                 </div>
@@ -1024,7 +755,6 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                                         <li><i className="fas fa-check-circle"></i> Personalized strategy development</li>
                                         <li><i className="fas fa-check-circle"></i> Backtesting and optimization</li>
                                         <li><i className="fas fa-check-circle"></i> Real-time performance monitoring</li>
-                                        <li><i className="fas fa-check-circle"></i> Ongoing strategy refinement</li>
                                     </ul>
                                     <a href="#pricing" className="cta-button">View Pricing</a>
                                 </div>
@@ -1041,7 +771,6 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                                         <li><i className="fas fa-check-circle"></i> Visual strategy builder</li>
                                         <li><i className="fas fa-check-circle"></i> No coding required</li>
                                         <li><i className="fas fa-check-circle"></i> Multi-broker compatibility</li>
-                                        <li><i className="fas fa-check-circle"></i> Cloud-based execution</li>
                                     </ul>
                                     <a href="#pricing" className="cta-button">View Pricing</a>
                                 </div>
@@ -1154,7 +883,7 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                             
                             <div className="contact-form">
                                 <h3>Send a Message</h3>
-                                <form id="contactForm">
+                                <form id="contactForm" onSubmit={(e) => e.preventDefault()}>
                                     <div className="form-group">
                                         <label htmlFor="name">Name</label>
                                         <input type="text" id="name" required />
