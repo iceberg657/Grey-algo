@@ -22,6 +22,7 @@ import { TradingViewWidget } from './components/TradingViewWidget';
 import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
+import { NeuralBackground } from './components/NeuralBackground';
 
 
 type AuthPage = 'login' | 'signup';
@@ -380,13 +381,14 @@ const App: React.FC = () => {
     const isCharting = appView === 'charting';
     const chartLayer = (
         <div 
-            className="fixed inset-0 z-[50] bg-white dark:bg-[#0f172a] transition-opacity duration-300"
+            className="fixed inset-0 z-[50] bg-[#f4f7f9] dark:bg-[#0f172a] transition-opacity duration-300"
             style={{ 
                 visibility: isCharting ? 'visible' : 'hidden', 
                 opacity: isCharting ? 1 : 0,
                 pointerEvents: isCharting ? 'auto' : 'none',
             }}
         >
+            <NeuralBackground />
             {/* Chart fills the entire container */}
             <div className="absolute inset-0 z-0">
                 <TradingViewWidget />

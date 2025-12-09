@@ -1,8 +1,8 @@
 
 export async function runWithRetry<T>(
     operation: () => Promise<T>,
-    retries: number = 3,
-    baseDelay: number = 2000
+    retries: number = 5, // Increased from 3 to 5 to handle strict limits
+    baseDelay: number = 4000 // Increased from 2s to 4s to allow quota refill (5 RPM = 12s/req)
 ): Promise<T> {
     try {
         return await operation();
@@ -28,15 +28,17 @@ export async function runWithRetry<T>(
             let delay = baseDelay;
             const match = errorMessage.match(/retry in ([\d.]+)s/);
             if (match && match[1]) {
+                // If the API tells us how long to wait, wait that amount + buffer
                 delay = Math.ceil(parseFloat(match[1]) * 1000) + 1000;
             } else {
-                delay = baseDelay * 2;
+                // Exponential backoff with jitter
+                delay = baseDelay * Math.pow(1.5, 5 - retries) + (Math.random() * 1000);
             }
 
-            console.warn(`[Gemini API] ${isQuotaError ? 'Quota limit' : 'Server overloaded'}. Retrying in ${delay}ms... (${retries} attempts left)`);
+            console.warn(`[Gemini API] ${isQuotaError ? 'Quota limit hit' : 'Server overloaded'}. Retrying in ${(delay/1000).toFixed(1)}s... (${retries} attempts left)`);
             
             await new Promise(resolve => setTimeout(resolve, delay));
-            return runWithRetry(operation, retries - 1, delay); 
+            return runWithRetry(operation, retries - 1, baseDelay); 
         }
 
         throw error;
@@ -51,9 +53,8 @@ export async function runWithModelFallback<T>(
     for (const model of modelIds) {
         try {
             console.log(`[Attempting Model] ${model}`);
-            // We use runWithRetry with fewer retries for the first models to failover faster
-            // If it's the last model, we retry more aggressively.
-            const retries = model === modelIds[modelIds.length - 1] ? 3 : 1; 
+            // Use strict retries for the first models, but try harder on the last fallback
+            const retries = model === modelIds[modelIds.length - 1] ? 5 : 2; 
             return await runWithRetry(() => operationFactory(model), retries);
         } catch (error: any) {
             console.warn(`[Model Failed] ${model}:`, error.message);

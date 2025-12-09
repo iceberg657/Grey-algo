@@ -87,8 +87,16 @@ ${learnedSection}
 `;
 };
 
-// Strict Pro models for high-quality chart analysis
-const MODELS = ['gemini-3-pro-preview', 'gemini-1.5-pro'];
+// Fallback Chain: 
+// 1. Pro Models (Best logic, but low limit)
+// 2. Flash Models (Good logic, medium limit)
+// 3. Flash-Lite (Fastest, highest limit - 10 RPM)
+const MODELS = [
+    'gemini-3-pro-preview', 
+    'gemini-1.5-pro',
+    'gemini-2.5-flash', 
+    'gemini-flash-lite-latest'
+];
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });

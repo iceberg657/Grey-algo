@@ -20,9 +20,10 @@ export const TradingViewWidget: React.FC = memo(() => {
     script.async = true;
 
     // Define colors based on current theme
-    const backgroundColor = theme === 'dark' ? "rgba(15, 23, 42, 1)" : "rgba(255, 255, 255, 1)";
+    // Set background to transparent to show the neural network
+    const backgroundColor = "rgba(0, 0, 0, 0)"; 
     const gridColor = theme === 'dark' ? "rgba(30, 41, 59, 0.5)" : "rgba(240, 240, 240, 1)";
-    const toolbarBg = theme === 'dark' ? "#1e293b" : "#f1f5f9";
+    const toolbarBg = theme === 'dark' ? "rgba(30, 41, 59, 0.8)" : "rgba(241, 245, 249, 0.8)";
 
     script.innerHTML = `
       {
@@ -67,9 +68,9 @@ export const TradingViewWidget: React.FC = memo(() => {
   }, [theme]);
 
   return (
-    <div className="relative w-full h-full bg-white dark:bg-[#0f172a]">
+    <div className="relative w-full h-full bg-transparent">
         {isLoading && (
-            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white dark:bg-[#0f172a]">
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/10 dark:bg-black/10 backdrop-blur-sm">
                 <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
             </div>
         )}

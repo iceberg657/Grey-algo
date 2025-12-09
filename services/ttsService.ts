@@ -1,4 +1,6 @@
+
 import { GoogleGenAI, Modality } from "@google/genai";
+import { runWithRetry } from './retryUtils';
 
 // Audio context for playback
 let audioContext: AudioContext | null = null;
@@ -47,48 +49,56 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
 
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-preview-tts",
-      contents: [{ parts: [{ text }] }],
-      config: {
-        responseModalities: [Modality.AUDIO],
-        speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: { voiceName: 'Kore' }, // A neutral, professional male voice
-            },
-        },
-      },
-    });
+    try {
+        // Wrapped in runWithRetry to handle strict 3 RPM limits
+        const response = await runWithRetry(async () => {
+            return await ai.models.generateContent({
+              model: "gemini-2.5-flash-preview-tts",
+              contents: [{ parts: [{ text }] }],
+              config: {
+                responseModalities: [Modality.AUDIO],
+                speechConfig: {
+                    voiceConfig: {
+                      prebuiltVoiceConfig: { voiceName: 'Kore' }, // A neutral, professional male voice
+                    },
+                },
+              },
+            });
+        }, 5, 5000); // More retries, longer delay for TTS specifically
 
-    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
-    if (base64Audio) {
-        const ctx = getAudioContext();
-        await ctx.resume(); // Ensure context is running
-        
-        const audioBuffer = await decodeAudioData(
-            decode(base64Audio),
-            ctx,
-            24000,
-            1,
-        );
-        
-        stopAudio(); // Stop any currently playing audio
+        if (base64Audio) {
+            const ctx = getAudioContext();
+            await ctx.resume(); // Ensure context is running
+            
+            const audioBuffer = await decodeAudioData(
+                decode(base64Audio),
+                ctx,
+                24000,
+                1,
+            );
+            
+            stopAudio(); // Stop any currently playing audio
 
-        const source = ctx.createBufferSource();
-        source.buffer = audioBuffer;
-        source.connect(ctx.destination);
-        source.start();
-        
-        currentSource = source;
-        source.onended = () => {
-            if (currentSource === source) {
-                currentSource = null;
-            }
-            onEnded();
-        };
-    } else {
-        throw new Error("Could not generate audio from text.");
+            const source = ctx.createBufferSource();
+            source.buffer = audioBuffer;
+            source.connect(ctx.destination);
+            source.start();
+            
+            currentSource = source;
+            source.onended = () => {
+                if (currentSource === source) {
+                    currentSource = null;
+                }
+                onEnded();
+            };
+        } else {
+            throw new Error("Could not generate audio from text.");
+        }
+    } catch (e) {
+        console.error("TTS generation failed after retries", e);
+        throw e;
     }
 }
 
