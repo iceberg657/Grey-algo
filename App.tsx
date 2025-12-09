@@ -397,22 +397,12 @@ const App: React.FC = () => {
             {/* Floating HUD Layer - Positioned absolutely on top of chart */}
             <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
                 <div className="pointer-events-auto">
-                    <SignalOverlay onAnalyzeClick={handleChartAnalysis} />
+                    <SignalOverlay 
+                        onAnalyzeClick={handleChartAnalysis} 
+                        onBack={handleNavigateToHome}
+                    />
                 </div>
             </div>
-
-            {/* Floating Close Button - Top Right */}
-            {isCharting && (
-                <button 
-                    onClick={handleNavigateToHome}
-                    className="absolute top-4 right-4 z-[60] bg-white/10 dark:bg-black/40 hover:bg-white/20 dark:hover:bg-black/60 text-white p-2.5 rounded-full shadow-lg border border-white/20 backdrop-blur-md transition-all transform hover:scale-105"
-                    title="Close Chart"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            )}
 
             {/* Chart Analysis Loading Overlay */}
             {isAnalyzingChart && (

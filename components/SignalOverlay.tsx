@@ -6,9 +6,10 @@ import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface SignalOverlayProps {
     onAnalyzeClick?: (imageData: string) => void;
+    onBack?: () => void;
 }
 
-export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) => {
+export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, onBack }) => {
     const [latestAnalysis, setLatestAnalysis] = useState<SignalData | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
     const [isExpanded, setIsExpanded] = useState(true);
@@ -49,7 +50,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
             {/* Main HUD Card */}
             <div className="bg-white/90 dark:bg-[#0f172a]/80 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl p-3 flex flex-col md:flex-row items-start md:items-center gap-4 transition-all duration-300">
                 
-                {/* Header / Minimize */}
+                {/* Header */}
                 <div className="flex items-center justify-between w-full md:w-auto gap-3">
                     <div className="flex items-center gap-3">
                         <div className="flex flex-col">
@@ -66,14 +67,6 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
                             )}
                         </div>
                     </div>
-                    <button 
-                        onClick={() => setIsExpanded(false)}
-                        className="md:hidden text-gray-400 hover:text-white"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                            <path fillRule="evenodd" d="M5 10a1 1 0 011-1h8a1 1 0 110 2H6a1 1 0 01-1-1z" clipRule="evenodd" />
-                        </svg>
-                    </button>
                 </div>
 
                 {/* Separator */}
@@ -81,7 +74,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
 
                 {/* Data Points */}
                 {latestAnalysis && (
-                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start">
+                    <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start overflow-x-auto">
                         <DataPoint 
                             label="ENTRY" 
                             value={latestAnalysis.entryPoints[0]} 
@@ -106,18 +99,29 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
                     </div>
                 )}
 
-                {/* Tools */}
-                <div className="hidden md:flex items-center gap-2 border-l border-gray-300 dark:border-white/10 pl-4">
+                {/* Tools (Visible on Mobile & Desktop) */}
+                <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-gray-300 dark:border-white/10 pt-2 md:pt-0 md:pl-4 w-full md:w-auto justify-end">
+                    {onBack && (
+                        <button 
+                            onClick={onBack}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
+                            title="Back"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                            </svg>
+                        </button>
+                    )}
+                    <ThemeToggleButton />
                     <button 
                         onClick={() => setIsExpanded(false)}
                         className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
                         title="Minimize HUD"
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
                         </svg>
                     </button>
-                    <ThemeToggleButton />
                 </div>
             </div>
         </div>
@@ -127,7 +131,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick }) 
 const DataPoint: React.FC<{ label: string; value: number | string; color: string; onCopy: () => void; isCopied: boolean }> = ({ label, value, color, onCopy, isCopied }) => (
     <div 
         onClick={onCopy}
-        className="flex flex-col cursor-pointer group relative"
+        className="flex flex-col cursor-pointer group relative min-w-[60px]"
     >
         <span className="text-[9px] text-gray-400 font-mono tracking-wider mb-0.5 uppercase">{label}</span>
         <div className="flex items-center bg-gray-100 dark:bg-black/20 px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
