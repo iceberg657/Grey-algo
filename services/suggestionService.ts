@@ -7,7 +7,7 @@ const SUGGESTION_STORAGE_KEY = 'greyquant_asset_suggestions';
 const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
 const SUGGESTION_DURATION_MS = 30 * 60 * 1000; // 30 minutes total cycle
 
-const MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+const MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash'];
 
 const getSuggestionPrompt = () => {
     const now = new Date();

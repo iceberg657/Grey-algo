@@ -93,7 +93,6 @@ ${learnedSection}
 // 3. Flash-Lite (Fastest, highest limit - 10 RPM)
 const MODELS = [
     'gemini-3-pro-preview', 
-    'gemini-1.5-pro',
     'gemini-2.5-flash', 
     'gemini-flash-lite-latest'
 ];

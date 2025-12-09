@@ -31,8 +31,8 @@ function getDynamicSystemInstruction(): string {
 let chat: Chat | null = null;
 let currentChatModel = 'gemini-flash-lite-latest';
 
-// Prioritize Flash Lite -> 2.5 Flash -> 2.0 Flash -> 1.5 Flash
-export const CHAT_MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-1.5-flash'];
+// Prioritize Flash Lite -> 2.5 Flash
+export const CHAT_MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash'];
 
 export function initializeChat(model: string = 'gemini-flash-lite-latest'): Chat {
     if (process.env.API_KEY) {
