@@ -87,13 +87,8 @@ ${learnedSection}
 `;
 };
 
-// High-Tier Models for Deep Analysis
-// 1. Gemini 3.0 Pro Preview (Highest Intelligence)
-// 2. Gemini 2.5 Flash (High Intelligence fallback)
-const MODELS = [
-    'gemini-3-pro-preview', 
-    'gemini-2.5-flash'
-];
+// STRICTLY use gemini-2.5-flash for Chart Analysis
+const MODELS = ['gemini-2.5-flash'];
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
@@ -123,7 +118,16 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
             contents: [{ parts: promptParts }],
             config,
         }));
-    } catch (error) {
+    } catch (error: any) {
+        // Handle Limit Reached specifically
+        if (
+            error.message?.includes('429') || 
+            error.status === 429 || 
+            error.message?.toLowerCase().includes('quota') ||
+            error.message?.toLowerCase().includes('resource_exhausted')
+        ) {
+            throw new Error("Limit reached please try after some times");
+        }
         throw new Error("All AI models failed to generate analysis. Please try again later.");
     }
 
