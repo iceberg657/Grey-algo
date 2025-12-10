@@ -235,14 +235,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     };
 
     return (
-        <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-4 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
+        <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-3 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
             
             <div className="mb-6">
                 <MarketTicker onAssetClick={onAssetSelect} />
             </div>
 
             <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" className="block cursor-pointer group">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-dark-text group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Market Overview</h2>
                     <div className="flex space-x-1 p-1 bg-gray-200/50 dark:bg-dark-bg/50 rounded-md text-xs">
                         {['1H', '1D', '1W'].map(range => (
@@ -267,8 +267,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
             
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                 {/* Market Status Card */}
-                <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[120px]">
-                    <div className="flex justify-between items-start">
+                <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[auto] md:min-h-[120px]">
+                    <div className="flex justify-between items-start mb-2 md:mb-0">
                         <span className="text-xs uppercase font-semibold text-dark-text-secondary tracking-wider">Market Status</span>
                         <div className="bg-blue-500/20 p-1.5 rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -277,7 +277,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         </div>
                     </div>
                     <div>
-                        <h3 className="text-3xl font-bold text-white">{statusText}</h3>
+                        <h3 className="text-2xl sm:text-3xl font-bold text-white">{statusText}</h3>
                         <div className="flex items-center mt-1">
                             <div className="relative flex items-center justify-center w-3 h-3 mr-2">
                                 {isOpen && <span className="absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75 animate-ping"></span>}
@@ -289,8 +289,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 </div>
 
                 {/* Current Day Card */}
-                <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[120px]">
-                    <div className="flex justify-between items-start">
+                <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[auto] md:min-h-[120px]">
+                    <div className="flex justify-between items-start mb-2 md:mb-0">
                         <span className="text-xs uppercase font-semibold text-dark-text-secondary tracking-wider">Current Day</span>
                          <div className="bg-blue-500/20 p-1.5 rounded-lg">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -299,13 +299,13 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         </div>
                     </div>
                     <div className="flex-grow flex flex-col justify-center">
-                        <h3 className="text-3xl font-bold text-white">{day}</h3>
+                        <h3 className="text-2xl sm:text-3xl font-bold text-white">{day}</h3>
                         <div className="flex items-center mt-1">
                              <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
                              <p className="text-sm text-dark-text-secondary">{date}</p>
                         </div>
                     </div>
-                    <div className="flex items-end justify-between mt-1">
+                    <div className="flex flex-wrap items-end justify-between mt-1 gap-2">
                         <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-semibold rounded-full">{activeSessions}</span>
                         <div className="text-right">
                            <span className="font-mono text-base text-dark-text">{time}</span>
@@ -315,8 +315,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 </div>
                 
                  {/* Analysis Count Card */}
-                <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[120px] relative group">
-                    <div className="flex justify-between items-start">
+                <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[auto] md:min-h-[120px] relative group">
+                    <div className="flex justify-between items-start mb-2 md:mb-0">
                         <span className="text-xs uppercase font-semibold text-dark-text-secondary tracking-wider">Session Analysis</span>
                         <div className="bg-blue-500/20 p-1.5 rounded-lg">
                              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -324,13 +324,13 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                             </svg>
                         </div>
                     </div>
-                    <div className="flex-grow flex flex-col items-center justify-center">
-                        <h3 className="text-5xl font-bold text-white tracking-tighter">{analysisCount}</h3>
+                    <div className="flex-grow flex flex-col items-center justify-center py-2">
+                        <h3 className="text-4xl sm:text-5xl font-bold text-white tracking-tighter">{analysisCount}</h3>
                         <p className="text-sm text-dark-text-secondary mt-1">Analyses performed</p>
                     </div>
                     <button 
                         onClick={onResetCount} 
-                        className="absolute bottom-2 right-2 text-xs font-medium text-blue-400 hover:underline focus:outline-none opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute bottom-2 right-2 text-xs font-medium text-blue-400 hover:underline focus:outline-none md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                         aria-label="Reset analysis count"
                     >
                         Reset
@@ -346,7 +346,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     </svg>
                 </div>
                 
-                <div className="flex justify-between items-center mb-4 relative z-10">
+                <div className="flex flex-wrap justify-between items-center mb-4 relative z-10 gap-2">
                     <div>
                         <h3 className="text-lg font-bold text-green-400 flex items-center gap-2">
                              <span className="relative flex h-3 w-3">

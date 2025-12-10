@@ -87,14 +87,12 @@ ${learnedSection}
 `;
 };
 
-// Fallback Chain: 
-// 1. Pro Models (Best logic, but low limit)
-// 2. Flash Models (Good logic, medium limit)
-// 3. Flash-Lite (Fastest, highest limit - 10 RPM)
+// High-Tier Models for Deep Analysis
+// 1. Gemini 3.0 Pro Preview (Highest Intelligence)
+// 2. Gemini 2.5 Flash (High Intelligence fallback)
 const MODELS = [
     'gemini-3-pro-preview', 
-    'gemini-2.5-flash', 
-    'gemini-flash-lite-latest'
+    'gemini-2.5-flash'
 ];
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {

@@ -37,7 +37,7 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
         return { __html: html };
     };
 
-    return <div dangerouslySetInnerHTML={formatText(text)} />;
+    return <div className="break-words" dangerouslySetInnerHTML={formatText(text)} />;
 };
 
 const ChatBubble: React.FC<{
@@ -47,7 +47,7 @@ const ChatBubble: React.FC<{
 }> = ({ message, isBusy, onToggleSpeech }) => {
     const isUser = message.role === 'user';
     return (
-        <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}>
+        <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
             {!isUser && (
                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 flex items-center justify-center">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600 dark:text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -56,7 +56,7 @@ const ChatBubble: React.FC<{
                     </svg>
                 </div>
             )}
-            <div className={`relative group max-w-md lg:max-w-lg p-3 rounded-2xl text-sm ${isUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 dark:bg-dark-bg/60 dark:text-dark-text/90 rounded-bl-none'}`}>
+            <div className={`relative group max-w-[85%] lg:max-w-lg p-3 rounded-2xl text-sm shadow-sm ${isUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 dark:bg-dark-bg/60 dark:text-dark-text/90 rounded-bl-none'}`}>
                  {message.images && message.images.length > 0 && (
                     <div className={`grid gap-2 mb-2 ${message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {message.images.map((imgSrc, index) => (
@@ -64,8 +64,8 @@ const ChatBubble: React.FC<{
                                 key={index}
                                 src={imgSrc} 
                                 alt={`User upload ${index + 1}`} 
-                                className="rounded-lg max-w-full h-auto"
-                                style={{ maxHeight: '200px', maxWidth: '200px', objectFit: 'cover' }}
+                                className="rounded-lg max-w-full h-auto object-cover"
+                                style={{ maxHeight: '200px' }}
                             />
                         ))}
                     </div>
@@ -75,7 +75,7 @@ const ChatBubble: React.FC<{
                      <button
                         onClick={() => onToggleSpeech(message)}
                         disabled={!process.env.API_KEY}
-                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-300/80 dark:bg-dark-card/80 text-green-600 dark:text-green-400 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-300/90 dark:bg-dark-card/90 text-green-600 dark:text-green-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed shadow-sm z-10"
                         aria-label={isBusy ? "Stop reading message" : "Read message aloud"}
                     >
                         {isBusy ? (
@@ -125,7 +125,7 @@ interface ChatPageProps {
 }
 
 const OracleLogo: React.FC = () => (
-    <div className="w-24 h-24 mb-4 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700">
+    <div className="w-24 h-24 mb-4 rounded-full flex items-center justify-center bg-white dark:bg-slate-800 border-2 border-gray-200 dark:border-slate-700 shadow-lg">
          <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
             <defs>
                 <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -327,17 +327,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     }, [initialInput, executeSendMessage, onClearInitialInput]);
     
     return (
-        <div className="h-screen bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col relative">
-            <header className="flex-shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800">
-                <div className="w-full max-w-7xl mx-auto p-4 flex justify-between items-center">
-                    <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        // Changed h-screen to h-[100dvh] for better mobile viewport support
+        <div className="h-[100dvh] bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col relative overflow-hidden">
+            <header className="flex-shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 z-10">
+                <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 flex justify-between items-center">
+                    <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         Back
                     </button>
-                    <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-200">Oracle AI</h1>
-                    <div className="flex items-center space-x-2">
+                    <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-200 truncate mx-2">Oracle AI</h1>
+                    <div className="flex items-center space-x-1 sm:space-x-2">
                         <ThemeToggleButton />
-                        <button onClick={onLogout} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-sm font-medium" aria-label="Logout">
+                        <button onClick={onLogout} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-xs sm:text-sm font-medium p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Logout">
                             Logout
                         </button>
                     </div>
@@ -346,17 +347,17 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             <main
                 ref={chatContainerRef}
-                className="flex-grow overflow-y-auto"
+                className="flex-grow overflow-y-auto overflow-x-hidden scroll-smooth"
             >
-                <div className="w-full max-w-7xl mx-auto px-4 h-full">
+                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-full">
                     {messages.length === 0 && !isLoading ? (
-                        <div className="flex-grow flex flex-col items-center justify-center text-center h-full">
+                        <div className="flex-grow flex flex-col items-center justify-center text-center h-full pb-20">
                             <OracleLogo />
-                            <h2 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Hi, I'm Oracle AI</h2>
-                            <p className="text-gray-500 dark:text-gray-400 mt-2">How can I help you today?</p>
+                            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Hi, I'm Oracle AI</h2>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 px-4">Analyze markets, predict trends, and get trading insights.</p>
                         </div>
                     ) : (
-                        <div className="space-y-4 pt-2 pb-4">
+                        <div className="space-y-6 pt-4 pb-4">
                              {messages.map((msg) => (
                                 <ChatBubble 
                                     key={msg.id} 
@@ -366,22 +367,22 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 />
                             ))}
                             {isLoading && <TypingIndicator />}
-                            {error && <p className="text-red-400 text-sm text-center">{error}</p>}
+                            {error && <p className="text-red-400 text-sm text-center p-2 bg-red-500/10 rounded-lg mx-4">{error}</p>}
                         </div>
                     )}
                 </div>
             </main>
 
-            <footer className="flex-shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-t border-gray-200 dark:border-slate-800">
-                <div className="w-full max-w-7xl mx-auto px-4 pt-2 pb-4">
+            <footer className="flex-shrink-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm border-t border-gray-200 dark:border-slate-800 z-10 pb-[env(safe-area-inset-bottom)]">
+                <div className="w-full max-w-7xl mx-auto px-3 py-2 sm:p-4">
                     {imagePreviews.length > 0 && (
-                        <div className="flex flex-wrap gap-2 p-2 bg-gray-200 dark:bg-slate-800/60 rounded-lg mb-2">
+                        <div className="flex flex-wrap gap-2 p-2 bg-gray-100 dark:bg-slate-800/60 rounded-lg mb-2 mx-1">
                             {imagePreviews.map((preview, index) => (
-                                <div key={preview} className="relative">
-                                    <img src={preview} alt={`Preview ${index + 1}`} className="h-20 w-20 object-cover rounded" />
+                                <div key={preview} className="relative group">
+                                    <img src={preview} alt={`Preview ${index + 1}`} className="h-16 w-16 object-cover rounded border border-gray-300 dark:border-slate-600" />
                                     <button 
                                         onClick={() => handleRemoveImage(index)}
-                                        className="absolute -top-2 -right-2 bg-red-600 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold leading-none"
+                                        className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold leading-none shadow-md hover:bg-red-600 transition-colors"
                                         aria-label={`Remove image ${index + 1}`}
                                     >
                                         &#x2715;
@@ -390,7 +391,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             ))}
                         </div>
                     )}
-                    <form onSubmit={handleSendMessage} className="flex items-center space-x-2 bg-white dark:bg-slate-800/80 p-2 rounded-xl border border-gray-300 dark:border-slate-700">
+                    <form onSubmit={handleSendMessage} className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-300 dark:border-slate-700 shadow-sm focus-within:ring-2 focus-within:ring-green-500/50 transition-all">
                          <input
                             type="file"
                             ref={fileInputRef}
@@ -403,41 +404,48 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
                             disabled={isLoading}
-                            className="p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white disabled:opacity-50 transition-colors"
+                            className="p-2 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 disabled:opacity-50 transition-colors flex-shrink-0 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
                             aria-label="Attach image"
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                              <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
                         </button>
                         <input
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Message Oracle AI..."
+                            placeholder="Ask Oracle..."
                             disabled={isLoading}
-                            className="flex-grow bg-transparent text-gray-900 dark:text-gray-200 text-sm focus:outline-none block w-full placeholder-gray-500 disabled:opacity-50"
+                            // Using text-base on mobile prevents auto-zoom on iOS
+                            className="flex-grow bg-transparent text-gray-900 dark:text-gray-100 text-base md:text-sm focus:outline-none block w-full placeholder-gray-500 dark:placeholder-gray-600 disabled:opacity-50 py-1"
                             aria-label="Chat input"
                         />
                         <button
                             type="submit"
                             disabled={isLoading || (!input.trim() && imageFiles.length === 0)}
-                            className="p-2 w-8 h-8 flex items-center justify-center text-white bg-green-600 rounded-full hover:bg-green-500 focus:outline-none disabled:bg-gray-300 dark:disabled:bg-gray-700 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors"
+                            className="p-2 w-10 h-10 flex items-center justify-center text-white bg-green-600 rounded-full hover:bg-green-500 focus:outline-none disabled:bg-gray-200 dark:disabled:bg-slate-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
                             aria-label="Send message"
                         >
-                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 10l7-7m0 0l7 7" />
-                           </svg>
+                           {isLoading ? (
+                                <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                           ) : (
+                               <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                               </svg>
+                           )}
                         </button>
                     </form>
                 </div>
             </footer>
+            {/* New Chat Button - Positioned above footer */}
             <button
                 onClick={onNewChat}
-                className="absolute bottom-24 right-6 bg-green-600 hover:bg-green-500 text-white w-14 h-14 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-card focus:ring-green-500"
+                className="absolute bottom-24 right-4 sm:right-8 bg-green-600 hover:bg-green-500 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-green-500/30 z-20"
                 aria-label="Start new chat"
+                title="New Chat"
             >
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
             </button>

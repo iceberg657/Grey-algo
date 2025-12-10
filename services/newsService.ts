@@ -3,7 +3,8 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { NewsArticle } from '../types';
 import { runWithModelFallback } from './retryUtils';
 
-const MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash'];
+// Lesser Model: Flash Lite (High Speed, Low Cost)
+const MODELS = ['gemini-flash-lite-latest'];
 
 const NEWS_PROMPT = `
 Find the top 10 most impactful Forex news articles from MyFxBook and Investing.com.

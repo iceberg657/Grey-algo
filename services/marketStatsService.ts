@@ -11,7 +11,8 @@ const ASSETS = {
     Crypto: ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'BNB/USD']
 };
 
-const MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash'];
+// Lesser Model: Flash Lite (High Speed, Low Cost)
+const MODELS = ['gemini-flash-lite-latest'];
 
 const STATS_PROMPT = (symbol: string, timeframe: string) => `
 Act as a Real-Time Technical Analysis Engine. 

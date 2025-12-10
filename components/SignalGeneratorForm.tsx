@@ -114,7 +114,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                     </div>
                     <button 
                         onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-500 text-white rounded-full p-1 leading-none shadow-lg z-20 opacity-0 group-hover:opacity-100 transition-all"
+                        className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-500 text-white rounded-full p-1 leading-none shadow-lg z-20 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
                         aria-label={`Remove ${title} image`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -125,8 +125,8 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
             ) : (
                 <>
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <p className="font-semibold text-gray-700 dark:text-dark-text">{title} {required && <span className="text-red-500">*</span>}</p>
-                    <p className="text-xs text-gray-500 dark:text-dark-text-secondary">{subtitle}</p>
+                    <p className="font-semibold text-gray-700 dark:text-dark-text text-center">{title} {required && <span className="text-red-500">*</span>}</p>
+                    <p className="text-xs text-gray-500 dark:text-dark-text-secondary text-center">{subtitle}</p>
                 </>
             )}
         </div>
@@ -233,7 +233,8 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 </div>
             </div>
 
-            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'lg:grid-cols-3' : ''}`}>
+            {/* Changed from lg:grid-cols-3 to md:grid-cols-2 lg:grid-cols-3 for better tablet support */}
+            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-2 lg:grid-cols-3' : ''}`}>
                 {isMultiDimensional && (
                      <ImageUploader 
                         id="higher" 

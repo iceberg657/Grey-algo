@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import type { PredictedEvent } from '../types';
 import { ErrorMessage } from './ErrorMessage';
@@ -88,7 +87,7 @@ const PredictionCard: React.FC<{ event: PredictedEvent, index: number }> = ({ ev
             style={{ animationDelay }}
         >
             <div className="text-center border-b border-green-500/20 pb-3 space-y-2">
-                <h3 className="font-bold text-lg text-green-400">{event.name}</h3>
+                <h3 className="font-bold text-lg text-green-400 break-words">{event.name}</h3>
                 <DateTimeDisplay startDate={startDate} durationHours={event.eventDurationHours} />
             </div>
 
@@ -96,7 +95,7 @@ const PredictionCard: React.FC<{ event: PredictedEvent, index: number }> = ({ ev
                 <span className="text-xs text-dark-text/60 uppercase text-center block mb-2">Affected Assets</span>
                 <div className="flex flex-wrap justify-center gap-2">
                     {event.affectedAsset.split(',').map(asset => (
-                        <span key={asset.trim()} className="px-2 py-1 bg-green-500/20 text-green-300 text-sm font-mono rounded-md shadow-sm">
+                        <span key={asset.trim()} className="px-2 py-1 bg-green-500/20 text-green-300 text-sm font-mono rounded-md shadow-sm whitespace-nowrap">
                             {asset.trim()}
                         </span>
                     ))}
@@ -104,7 +103,7 @@ const PredictionCard: React.FC<{ event: PredictedEvent, index: number }> = ({ ev
             </div>
 
             <div className="flex justify-around items-center pt-2">
-                <div className={`flex flex-col items-center justify-center text-4xl font-extrabold ${isBuy ? 'animate-glowing-text-green' : 'animate-glowing-text-red'}`}>
+                <div className={`flex flex-col items-center justify-center text-3xl sm:text-4xl font-extrabold ${isBuy ? 'animate-glowing-text-green' : 'animate-glowing-text-red'}`}>
                     {event.predictedDirection}
                 </div>
                 <div className="flex flex-col items-center justify-center">
@@ -190,7 +189,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout, 
     const TabButton: React.FC<{ tab: ActiveTab; label: string; count: number }> = ({ tab, label, count }) => (
         <button
             onClick={() => setActiveTab(tab)}
-            className={`flex-1 px-3 py-2 text-sm font-semibold rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-card focus:ring-green-500/80 ${
+            className={`flex-1 px-3 py-2 text-xs sm:text-sm font-semibold rounded-md transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-dark-card focus:ring-green-500/80 whitespace-nowrap ${
                 activeTab === tab
                     ? 'bg-green-600 text-white shadow-md'
                     : 'bg-transparent text-dark-text-secondary hover:bg-dark-bg/80'
@@ -297,7 +296,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout, 
 
         return (
             <>
-                <div className="flex justify-center space-x-2 p-1 bg-dark-bg/40 rounded-lg mb-4">
+                <div className="flex overflow-x-auto space-x-2 p-1 bg-dark-bg/40 rounded-lg mb-4 no-scrollbar">
                     <TabButton tab="now" label="In Progress" count={eventsNow.length} />
                     <TabButton tab="today" label="Later Today" count={eventsToday.length} />
                     <TabButton tab="future" label="Tomorrow & Beyond" count={eventsFuture.length} />
@@ -308,8 +307,8 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout, 
     };
 
     return (
-         <div className="min-h-screen text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
-             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
+         <div className="min-h-screen text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in overflow-hidden">
+             <div className="w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 flex-grow flex flex-col">
                  <header className="relative mb-6 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -317,7 +316,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout, 
                         </svg>
                         Back
                     </button>
-                    <h1 className="text-2xl font-bold text-green-400">Market Catalyst Predictor</h1>
+                    <h1 className="text-xl sm:text-2xl font-bold text-green-400 truncate">Catalyst Predictor</h1>
                     <div className="flex items-center space-x-2">
                         <ThemeToggleButton />
                         <button onClick={onLogout} className="text-green-400 hover:text-green-300 text-sm font-medium" aria-label="Logout">
@@ -326,7 +325,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout, 
                     </div>
                  </header>
 
-                <main className="bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-green-500/20 shadow-2xl space-y-4">
+                <main className="bg-dark-card/60 backdrop-blur-lg p-3 sm:p-6 rounded-2xl border border-green-500/20 shadow-2xl space-y-4">
                     <div className="flex justify-end">
                         <button
                             onClick={onFetchPredictions}
@@ -339,7 +338,7 @@ export const PredictorPage: React.FC<PredictorPageProps> = ({ onBack, onLogout, 
                             ) : (
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.898 2.186l-1.42.355a5.002 5.002 0 00-8.48-1.852l-1.332.333A1.01 1.01 0 014 5V3a1 1 0 01-1-1H2a1 1 0 01-1-1V1a1 1 0 011-1h2zm12 16a1 1 0 01-1-1v-2.101a7.002 7.002 0 01-11.898-2.186l1.42-.355a5.002 5.002 0 008.48 1.852l1.332-.333A1.01 1.01 0 0116 15v2a1 1 0 011 1h1a1 1 0 01-1 1h-2z" clipRule="evenodd" /></svg>
                             )}
-                            Scan for Catalysts
+                            Scan
                         </button>
                     </div>
                     <div className="max-h-[65vh] overflow-y-auto pr-2">

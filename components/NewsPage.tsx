@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import type { NewsArticle } from '../types';
 import { ErrorMessage } from './ErrorMessage';
@@ -16,14 +15,14 @@ interface NewsPageProps {
 
 const NewsItem: React.FC<{ article: NewsArticle }> = ({ article }) => (
     <li className="bg-gray-200/30 dark:bg-dark-bg/40 p-4 rounded-lg transition-all duration-200">
-        <h3 className="font-bold text-gray-900 dark:text-green-400">
+        <h3 className="font-bold text-gray-900 dark:text-green-400 text-sm sm:text-base leading-tight">
             <a href={article.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                 {article.title}
             </a>
         </h3>
-        <p className="text-sm text-gray-600 dark:text-dark-text/80 mt-2">{article.summary}</p>
-        <div className="text-xs text-gray-500 dark:text-dark-text/60 mt-3 flex justify-between items-center">
-            <span>{article.source}</span>
+        <p className="text-xs sm:text-sm text-gray-600 dark:text-dark-text/80 mt-2">{article.summary}</p>
+        <div className="text-[10px] sm:text-xs text-gray-500 dark:text-dark-text/60 mt-3 flex justify-between items-center">
+            <span className="bg-black/10 dark:bg-black/30 px-2 py-0.5 rounded">{article.source}</span>
             <span>{new Date(article.date).toLocaleString()}</span>
         </div>
     </li>
@@ -31,8 +30,8 @@ const NewsItem: React.FC<{ article: NewsArticle }> = ({ article }) => (
 
 export const NewsPage: React.FC<NewsPageProps> = ({ onBack, onLogout, news, isLoading, error, onFetchNews }) => {
     return (
-        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
-            <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
+        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in overflow-hidden">
+            <div className="w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 flex-grow flex flex-col">
                 <header className="relative mb-6 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -40,8 +39,8 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onBack, onLogout, news, isLo
                         </svg>
                         Back
                     </button>
-                    <h1 className="text-2xl font-bold text-gray-800 dark:text-green-400">
-                        Forex Market News
+                    <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-green-400">
+                        Market News
                     </h1>
                     <div className="flex items-center space-x-2">
                         <ThemeToggleButton />
@@ -55,7 +54,7 @@ export const NewsPage: React.FC<NewsPageProps> = ({ onBack, onLogout, news, isLo
                     </div>
                 </header>
 
-                <main className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl space-y-4">
+                <main className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-3 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl space-y-4">
                     <div className="flex justify-end">
                         <button
                             onClick={onFetchNews}

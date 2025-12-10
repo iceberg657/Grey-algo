@@ -15,12 +15,12 @@ const TimeframeSelector: React.FC<{
     selected: StatTimeframe;
     onSelect: (tf: StatTimeframe) => void;
 }> = ({ selected, onSelect }) => (
-    <div className="flex bg-gray-200/50 dark:bg-dark-bg/60 p-1 rounded-lg">
+    <div className="flex bg-gray-200/50 dark:bg-dark-bg/60 p-1 rounded-lg w-full md:w-auto">
         {(['15m', '1H', '4H', '1D'] as StatTimeframe[]).map((tf) => (
             <button
                 key={tf}
                 onClick={() => onSelect(tf)}
-                className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition-all ${
+                className={`flex-1 px-3 py-1.5 text-xs font-semibold rounded-md transition-all whitespace-nowrap ${
                     selected === tf
                         ? 'bg-white dark:bg-dark-card text-green-600 dark:text-green-400 shadow-sm'
                         : 'text-gray-500 hover:text-gray-900 dark:text-dark-text-secondary dark:hover:text-white'
@@ -50,33 +50,33 @@ const SentimentCircle: React.FC<{
         strokeClass = 'stroke-green-500';
     }
 
-    // Size Configuration
-    let radius = 40;
-    let strokeWidth = 8;
-    let textSize = 'text-3xl';
-    let widthClass = 'w-32';
-    let heightClass = 'h-32';
-    let labelSize = 'text-lg';
-    let containerPad = 'p-4';
+    // Size Configuration - Slightly reduced for better mobile fit
+    let radius = 35;
+    let strokeWidth = 7;
+    let textSize = 'text-2xl';
+    let widthClass = 'w-28';
+    let heightClass = 'h-28';
+    let labelSize = 'text-base';
+    let containerPad = 'p-3';
 
     if (size === 'sm') {
-        radius = 28;
+        radius = 24;
+        strokeWidth = 4;
+        textSize = 'text-lg';
+        widthClass = 'w-16';
+        heightClass = 'h-16';
+        labelSize = 'text-xs';
+        containerPad = 'p-1';
+    } else if (size === 'md') {
+        radius = 30;
         strokeWidth = 5;
         textSize = 'text-xl';
-        widthClass = 'w-20';
-        heightClass = 'h-20';
-        labelSize = 'text-xs';
+        widthClass = 'w-24';
+        heightClass = 'h-24';
+        labelSize = 'text-xs sm:text-sm';
         containerPad = 'p-2';
-    } else if (size === 'md') {
-        radius = 36;
-        strokeWidth = 6;
-        textSize = 'text-2xl';
-        widthClass = 'w-28';
-        heightClass = 'h-28';
-        labelSize = 'text-sm';
-        containerPad = 'p-3';
     }
-    // lg uses defaults (w-32, etc)
+    // lg uses defaults
 
     const circumference = 2 * Math.PI * radius;
     const offset = circumference - (score / 100) * circumference;
@@ -85,13 +85,13 @@ const SentimentCircle: React.FC<{
     const valueToShow = displayValue !== undefined ? displayValue : score;
     const valueStr = String(valueToShow);
     if (valueStr.length > 5) {
-        if (size === 'lg') textSize = 'text-2xl';
+        if (size === 'lg') textSize = 'text-xl';
         else if (size === 'md') textSize = 'text-sm';
         else textSize = 'text-[10px]';
     }
 
     return (
-        <div className={`flex flex-col items-center justify-center ${containerPad}`}>
+        <div className={`flex flex-col items-center justify-center ${containerPad} w-full`}>
             <div className={`relative ${widthClass} ${heightClass}`}>
                 <svg className="w-full h-full transform -rotate-90" viewBox={`0 0 ${radius * 2 + strokeWidth * 2} ${radius * 2 + strokeWidth * 2}`}>
                     <circle
@@ -121,8 +121,8 @@ const SentimentCircle: React.FC<{
                     <span className={`${textSize} font-bold ${colorClass} transition-all duration-300`}>{valueToShow}</span>
                 </div>
             </div>
-            <h3 className={`mt-2 font-bold ${labelSize} uppercase ${colorClass} text-center`}>{label}</h3>
-            {size === 'lg' && <p className="text-xs text-gray-500 dark:text-dark-text-secondary text-center">Community Vote</p>}
+            <h3 className={`mt-2 font-bold ${labelSize} uppercase ${colorClass} text-center leading-tight`}>{label}</h3>
+            {size === 'lg' && <p className="text-xs text-gray-500 dark:text-dark-text-secondary text-center mt-1">Community Vote</p>}
         </div>
     );
 };
@@ -201,8 +201,8 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
     }, [selectedAsset, timeframe]);
 
     return (
-        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
-            <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
+        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in overflow-hidden">
+            <div className="w-full max-w-7xl mx-auto p-3 sm:p-6 lg:p-8 flex-grow flex flex-col">
                 <header className="relative mb-6 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -210,7 +210,7 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                         </svg>
                         Back
                     </button>
-                    <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-green-400">
+                    <h1 className="text-lg md:text-2xl font-bold text-gray-800 dark:text-green-400 truncate">
                         Market Statistics
                     </h1>
                     <div className="flex items-center space-x-2">
@@ -221,42 +221,46 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                     </div>
                 </header>
 
-                <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl flex-grow flex flex-col">
+                <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-4 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl flex-grow flex flex-col">
                     {/* Controls */}
-                    <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6">
-                        <div className="flex space-x-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-                            {(Object.keys(assets) as Array<keyof typeof assets>).map(cat => (
-                                <button
-                                    key={cat}
-                                    onClick={() => setSelectedCategory(cat)}
-                                    className={`px-4 py-2 text-sm font-bold rounded-full whitespace-nowrap transition-colors ${
-                                        selectedCategory === cat
-                                            ? 'bg-green-600 text-white'
-                                            : 'bg-gray-200 dark:bg-dark-bg/60 text-gray-600 dark:text-dark-text-secondary hover:bg-gray-300 dark:hover:bg-dark-bg'
-                                    }`}
-                                >
-                                    {cat}
-                                </button>
-                            ))}
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+                        <div className="w-full md:w-auto overflow-x-auto pb-1 no-scrollbar">
+                            <div className="flex space-x-2">
+                                {(Object.keys(assets) as Array<keyof typeof assets>).map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => setSelectedCategory(cat)}
+                                        className={`px-4 py-2 text-sm font-bold rounded-full whitespace-nowrap transition-colors flex-shrink-0 ${
+                                            selectedCategory === cat
+                                                ? 'bg-green-600 text-white'
+                                                : 'bg-gray-200 dark:bg-dark-bg/60 text-gray-600 dark:text-dark-text-secondary hover:bg-gray-300 dark:hover:bg-dark-bg'
+                                        }`}
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                         <TimeframeSelector selected={timeframe} onSelect={setTimeframe} />
                     </div>
 
                     {/* Asset Selection */}
-                    <div className="flex flex-wrap gap-2 mb-8">
-                        {assets[selectedCategory].map(asset => (
-                            <button
-                                key={asset}
-                                onClick={() => setSelectedAsset(asset)}
-                                className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                                    selectedAsset === asset
-                                        ? 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400'
-                                        : 'border-gray-300 dark:border-gray-700 text-gray-500 dark:text-dark-text-secondary hover:border-gray-400 dark:hover:border-gray-500'
-                                }`}
-                            >
-                                {asset}
-                            </button>
-                        ))}
+                    <div className="w-full overflow-x-auto pb-2 mb-6 no-scrollbar">
+                        <div className="flex gap-2">
+                            {assets[selectedCategory].map(asset => (
+                                <button
+                                    key={asset}
+                                    onClick={() => setSelectedAsset(asset)}
+                                    className={`px-3 py-1.5 text-xs font-semibold rounded-lg border whitespace-nowrap transition-all flex-shrink-0 ${
+                                        selectedAsset === asset
+                                            ? 'border-green-500 bg-green-500/10 text-green-600 dark:text-green-400'
+                                            : 'border-gray-300 dark:border-gray-700 text-gray-500 dark:text-dark-text-secondary hover:border-gray-400 dark:hover:border-gray-500'
+                                    }`}
+                                >
+                                    {asset}
+                                </button>
+                            ))}
+                        </div>
                     </div>
 
                     {loading ? (
@@ -270,7 +274,7 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                             {/* Left Col: Sentiment & Support/Resistance & Depth */}
                             <div className="space-y-6">
                                 <div className="text-center md:text-left">
-                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white">{data.symbol}</h2>
+                                    <h2 className="text-3xl font-bold text-gray-900 dark:text-white break-words">{data.symbol}</h2>
                                     <p className="text-xl font-mono text-gray-600 dark:text-green-400 mt-1">${data.price}</p>
                                 </div>
                                 <div className="p-4 bg-white/50 dark:bg-dark-card/40 rounded-xl border border-gray-200 dark:border-green-500/10">
@@ -292,7 +296,7 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                             </div>
 
                             {/* Middle Col: Technical Indicators */}
-                            <div className="bg-gray-50/50 dark:bg-dark-bg/40 p-5 rounded-xl border border-gray-200 dark:border-green-500/10">
+                            <div className="bg-gray-50/50 dark:bg-dark-bg/40 p-3 sm:p-5 rounded-xl border border-gray-200 dark:border-green-500/10">
                                 <h3 className="text-lg font-bold text-gray-800 dark:text-green-400 mb-4 flex items-center">
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -301,7 +305,7 @@ export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBa
                                 </h3>
                                 
                                 {/* Gauge Grid: RSI, Stoch, SMA50, SMA200 */}
-                                <div className="grid grid-cols-2 gap-4 mb-6">
+                                <div className="grid grid-cols-2 gap-2 sm:gap-4 mb-6">
                                     <div className="bg-white/40 dark:bg-dark-card/30 p-2 rounded-lg border border-gray-200 dark:border-gray-700/50 flex justify-center">
                                         <SentimentCircle score={data.indicators.rsi} label="RSI (14)" size="md" />
                                     </div>

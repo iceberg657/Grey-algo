@@ -3,7 +3,8 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { PredictedEvent } from '../types';
 import { runWithModelFallback } from './retryUtils';
 
-const MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash'];
+// Lesser Model: Flash Lite (High Speed, Low Cost)
+const MODELS = ['gemini-flash-lite-latest'];
 
 const PREDICTOR_PROMPT = `
 You are 'Oracle', an apex-level trading AI.

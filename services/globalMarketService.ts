@@ -6,8 +6,8 @@ import { runWithModelFallback } from './retryUtils';
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
 
-// Fallback chain: Flash Lite -> 2.5 Flash
-const MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash'];
+// Lesser Model: Flash Lite (High Speed, Low Cost)
+const MODELS = ['gemini-flash-lite-latest'];
 
 const GLOBAL_MARKET_PROMPT = `
 Act as a chief market strategist. Your task is to perform a high-level, real-time analysis of the current global market structure to determine the prevailing bias.

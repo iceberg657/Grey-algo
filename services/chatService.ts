@@ -29,12 +29,14 @@ function getDynamicSystemInstruction(): string {
 }
 
 let chat: Chat | null = null;
-let currentChatModel = 'gemini-flash-lite-latest';
+let currentChatModel = 'gemini-2.5-flash';
 
-// Prioritize Flash Lite -> 2.5 Flash
-export const CHAT_MODELS = ['gemini-flash-lite-latest', 'gemini-2.5-flash'];
+// High-Tier Models for Chat (Fast & Smart)
+// 1. Gemini 2.5 Flash (Best balance for chat)
+// 2. Gemini 3.0 Pro Preview (Fallback for complex reasoning)
+export const CHAT_MODELS = ['gemini-2.5-flash', 'gemini-3-pro-preview'];
 
-export function initializeChat(model: string = 'gemini-flash-lite-latest'): Chat {
+export function initializeChat(model: string = 'gemini-2.5-flash'): Chat {
     if (process.env.API_KEY) {
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         currentChatModel = model;
