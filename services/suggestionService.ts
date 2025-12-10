@@ -7,8 +7,8 @@ const SUGGESTION_STORAGE_KEY = 'greyquant_asset_suggestions';
 const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
 const SUGGESTION_DURATION_MS = 30 * 60 * 1000; // 30 minutes total cycle
 
-// Lesser Model: Flash Lite (High Speed, Low Cost)
-const MODELS = ['gemini-flash-lite-latest'];
+// Upgraded Model: Standard Flash for better instruction following and reasoning
+const MODELS = ['gemini-2.5-flash'];
 
 const getSuggestionPrompt = () => {
     const now = new Date();
@@ -16,33 +16,26 @@ const getSuggestionPrompt = () => {
     
     return `
 Act as an Elite Prop Firm Algo Scanner.
-Your task is to **ACTIVELY SCAN** global markets to identify **3 to 5 Tradeable Assets** that offer a **high probability of profit (80% - 90%)** RIGHT NOW.
+Your task is to **ACTIVELY SCAN** global markets to identify **3 High-Potential Assets** RIGHT NOW.
 
 **REAL-TIME CONTEXT:**
 - **Current Server Time (UTC):** ${timeString}
-- **Mission:** 24/5 Market Readiness. Find the active flow.
 
-**CRITICAL CRITERIA (STRICT ENFORCEMENT):**
-1.  **NO CRYPTO:** Do NOT suggest Bitcoin, Ethereum, or any cryptocurrency.
-2.  **LIQUIDITY FILTER (Time-Based):**
-    *   **Asian Session (UTC 22:00 - 07:00):** Prioritize **JPY, AUD, NZD** pairs. Look for retests of yesterdays highs/lows.
-    *   **London Session (UTC 07:00 - 16:00):** Prioritize **EUR, GBP, CHF** pairs. Look for "Judas Swings" (sweeps of Asian range).
-    *   **New York Session (UTC 12:00 - 21:00):** Prioritize **USD, CAD, Gold (XAUUSD), Indices (US30, NAS100)**. Look for reversals at London highs/lows.
-    *   **Rollover Hour (UTC 21:00 - 22:00):** **DO NOT TRADE.** Spreads are too high. Return empty list if currently in this hour.
-3.  **Win Probability (80% - 90%):**
-    *   Scan for "A+ Setups" ONLY.
-    *   **KEY ZONE REQUIREMENT:** The asset MUST be approaching or reacting to a Key Zone (Order Block, FVG, Support/Resistance). Do not suggest assets in the middle of a range.
-4.  **Active Execution:** The asset must be ready to trade **NOW**. Not "watch list", but "execution ready".
-5.  **No Results Protocol:** If NO assets meet the 80%-90% criteria or liquidity is too low, return an empty array \`[]\`.
+**MANDATORY OUTPUT REQUIREMENT:**
+You **MUST** return exactly 3 assets. Do NOT return an empty list. Even if the market is choppy, identify the 3 best "Watchlist" candidates.
 
-**Output Format:**
-Return ONLY a valid JSON array.
+**Scanning Logic:**
+1.  **Session Focus:** Prioritize assets active in the current session (Asian: JPY/AUD, London: GBP/EUR, NY: USD/CAD).
+2.  **Technical Pattern:** Look for Liquidity Sweeps, FVG fills, or Breakouts.
+3.  **Diversity:** Mix Majors, Indices, and Commodities if possible. Avoid Crypto unless major volatility is detected.
+
+**Output Format (Strict JSON Array):**
 [
   {
-    "symbol": "string (e.g. 'EUR/USD', 'US30', 'NVDA')",
+    "symbol": "string (e.g. 'EUR/USD', 'US30', 'XAU/USD')",
     "type": "'Major' | 'Minor' | 'Commodity' | 'Index' | 'Stock'",
-    "reason": "Start with probability. Ex: '88% Prob: [Session] Volume spike + H1 Order Block retest.'",
-    "volatilityWarning": boolean (false)
+    "reason": "Start with signal. Ex: 'Bullish: H1 Order Block retest with volume.'",
+    "volatilityWarning": boolean (true if news is pending or spread is high)
   }
 ]
 `;
@@ -59,7 +52,7 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
                 contents: getSuggestionPrompt(),
                 config: {
                     tools: [{googleSearch: {}}],
-                    temperature: 0.7, 
+                    temperature: 0.6, // Slightly creative to find setups
                 },
             }));
         }, PRIORITY_KEY_3);
@@ -74,11 +67,13 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
         if (firstBracket !== -1 && lastBracket !== -1) {
             jsonString = jsonString.substring(firstBracket, lastBracket + 1);
         } else {
+            console.warn("Invalid JSON format from Suggestions AI");
             return [];
         }
 
         const suggestions: AssetSuggestion[] = JSON.parse(jsonString);
-        return suggestions;
+        // Ensure we limit to 3 just in case
+        return suggestions.slice(0, 5);
 
     } catch (e) {
         console.error("Failed to fetch asset suggestions", e);
@@ -113,8 +108,11 @@ export async function getOrRefreshSuggestions(): Promise<{ suggestions: AssetSug
     const suggestions = await fetchAssetSuggestions();
     const now = Date.now();
     
-    localStorage.setItem(SUGGESTION_STORAGE_KEY, JSON.stringify(suggestions));
-    localStorage.setItem(SUGGESTION_TIMESTAMP_KEY, now.toString());
+    // Only save if we actually got results
+    if (suggestions.length > 0) {
+        localStorage.setItem(SUGGESTION_STORAGE_KEY, JSON.stringify(suggestions));
+        localStorage.setItem(SUGGESTION_TIMESTAMP_KEY, now.toString());
+    }
 
     return {
         suggestions,

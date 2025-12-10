@@ -139,6 +139,12 @@ const OracleLogo: React.FC = () => (
     </div>
 );
 
+const SUGGESTED_PROMPTS = [
+    "Analyze the current trend of XAU/USD",
+    "What key economic events are today?",
+    "Give me a scalping strategy for GBP/JPY",
+    "Summarize the latest forex news"
+];
 
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput }) => {
     const [input, setInput] = useState('');
@@ -319,6 +325,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         await executeSendMessage(currentText, currentFiles, currentPreviews);
     };
 
+    // Handle clicking on a suggested prompt
+    const handleSuggestionClick = async (suggestion: string) => {
+        setInput(''); // Clear any partial input
+        await executeSendMessage(suggestion, [], []);
+    };
+
     useEffect(() => {
         if (initialInput) {
             executeSendMessage(initialInput, [], []);
@@ -354,7 +366,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         <div className="flex-grow flex flex-col items-center justify-center text-center h-full pb-20">
                             <OracleLogo />
                             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Hi, I'm Oracle AI</h2>
-                            <p className="text-gray-500 dark:text-gray-400 mt-2 px-4">Analyze markets, predict trends, and get trading insights.</p>
+                            <p className="text-gray-500 dark:text-gray-400 mt-2 px-4 mb-8">Analyze markets, predict trends, and get trading insights.</p>
+                            
+                            {/* Suggestions Grid */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
+                                {SUGGESTED_PROMPTS.map((prompt, idx) => (
+                                    <button
+                                        key={idx}
+                                        onClick={() => handleSuggestionClick(prompt)}
+                                        className="text-sm text-left p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors shadow-sm text-gray-700 dark:text-gray-300"
+                                    >
+                                        {prompt}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     ) : (
                         <div className="space-y-6 pt-4 pb-4">
