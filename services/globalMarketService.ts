@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithModelFallback } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
@@ -37,21 +37,19 @@ Return ONLY a valid JSON object matching this structure:
 `;
 
 export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis> {
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY not set");
-    }
-
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
     try {
-        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
-            model: modelId,
-            contents: GLOBAL_MARKET_PROMPT,
-            config: {
-                tools: [{googleSearch: {}}],
-                temperature: 0.1,
-            },
-        }));
+        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+            const ai = new GoogleGenAI({ apiKey });
+            
+            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+                model: modelId,
+                contents: GLOBAL_MARKET_PROMPT,
+                config: {
+                    tools: [{googleSearch: {}}],
+                    temperature: 0.1,
+                },
+            }));
+        });
 
         const responseText = response.text?.trim();
         if (!responseText) throw new Error("Empty response from AI");

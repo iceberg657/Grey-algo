@@ -3,7 +3,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
-import { runWithModelFallback } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
     const now = new Date();
@@ -91,52 +91,36 @@ ${learnedSection}
 const MODELS = ['gemini-2.5-flash'];
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
-    const startTime = Date.now();
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-
-    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
-    const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
     
-    if (request.isMultiDimensional && request.images.higher) {
-        promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
-    }
-    promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
-    if (request.isMultiDimensional && request.images.entry) {
-        promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
-    }
+    // Execute call with key fallback logic
+    const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
+        const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
+        
+        if (request.isMultiDimensional && request.images.higher) {
+            promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
+        }
+        promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
+        if (request.isMultiDimensional && request.images.entry) {
+            promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
+        }
 
-    const config: any = {
-        tools: [{googleSearch: {}}],
-        seed: 42,
-        temperature: 0.5, 
-    };
+        const config: any = {
+            tools: [{googleSearch: {}}],
+            seed: 42,
+            temperature: 0.5, 
+        };
 
-    let response: GenerateContentResponse;
-    try {
-        // Use the fallback utility to iterate through models
-        response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+        // runWithModelFallback is nested inside; if a model fails 500, it switches models.
+        // if it fails 429, executeGeminiCall catches it and switches keys.
+        return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
             model: modelId,
             contents: [{ parts: promptParts }],
             config,
         }));
-    } catch (error: any) {
-        // Handle Limit Reached specifically
-        if (
-            error.message?.includes('429') || 
-            error.status === 429 || 
-            error.message?.toLowerCase().includes('quota') ||
-            error.message?.toLowerCase().includes('resource_exhausted')
-        ) {
-            // ENFORCE MINIMUM 30 SECOND DELAY before showing error
-            const elapsed = Date.now() - startTime;
-            const remaining = 30000 - elapsed;
-            if (remaining > 0) {
-                await new Promise(resolve => setTimeout(resolve, remaining));
-            }
-            throw new Error("Limit reached please try after some times");
-        }
-        throw new Error("All AI models failed to generate analysis. Please try again later.");
-    }
+    });
 
     const responseText = response.text;
     if (!responseText) {
@@ -207,7 +191,8 @@ export async function generateTradingSignal(request: AnalysisRequest): Promise<S
         }
     }
 
-    if (process.env.API_KEY) {
+    // Check if we have *any* API keys available on frontend
+    if (process.env.API_KEY || process.env.API_KEY_1 || process.env.API_KEY_2) {
         return callGeminiDirectly(enhancedRequest);
     } else {
         return callApiEndpoint(enhancedRequest);

@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Chat, Content } from "@google/genai";
 import { getStoredGlobalAnalysis } from './globalMarketService';
-import { runWithModelFallback } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 const BASE_SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI.
 **Core Directives:**
@@ -28,96 +28,66 @@ function getDynamicSystemInstruction(): string {
     return `${BASE_SYSTEM_INSTRUCTION}\nTime: ${now.toUTCString()}\n${globalContextStr}`;
 }
 
+// Chat instance storage must be keyed by API Key to ensure we don't try to use a chat created with Key A on Key B
+// However, SDK doesn't expose getting the key back easily.
+// Strategy: We will re-create the chat session if we switch keys.
 let chat: Chat | null = null;
 let currentChatModel = 'gemini-2.5-flash';
+let currentApiKey = '';
 
 // STRICTLY use gemini-2.5-flash for Chat
 export const CHAT_MODELS = ['gemini-2.5-flash'];
 
-export function initializeChat(model: string = 'gemini-2.5-flash'): Chat {
-    if (process.env.API_KEY) {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        currentChatModel = model;
-        chat = ai.chats.create({
-            model: model,
-            config: {
-                systemInstruction: getDynamicSystemInstruction(),
-                tools: [{ googleSearch: {} }],
-                temperature: 0.2,
-            },
-        });
-        return chat;
-    }
-    throw new Error("API_KEY is not available.");
+export function initializeChat(apiKey: string, model: string = 'gemini-2.5-flash'): Chat {
+    const ai = new GoogleGenAI({ apiKey });
+    currentChatModel = model;
+    currentApiKey = apiKey;
+    chat = ai.chats.create({
+        model: model,
+        config: {
+            systemInstruction: getDynamicSystemInstruction(),
+            tools: [{ googleSearch: {} }],
+            temperature: 0.2,
+        },
+    });
+    return chat;
 }
 
 export function getChatInstance(): Chat {
-    if (!chat) return initializeChat();
+    // For initial UI render, we might not have a key picked yet. 
+    // Just grab the first available key to return an instance for structure,
+    // but actual calls will go through sendMessageStreamWithRetry which handles rotation.
+    const key = process.env.API_KEY_1 || process.env.API_KEY_2 || process.env.API_KEY;
+    if (!key) throw new Error("No API Key available");
+    
+    if (!chat) return initializeChat(key);
     return chat;
 }
 
 export function resetChat(): void {
     chat = null;
+    currentApiKey = '';
 }
 
 /**
- * Sends a message using a robust fallback mechanism.
- * If the current model fails, it recreates the chat with a fallback model,
- * preserving the conversation history.
+ * Sends a message using robust key and model fallback.
  */
 export async function sendMessageStreamWithRetry(messageParts: any) {
-    if (!process.env.API_KEY) throw new Error("API Key missing");
-    const startTime = Date.now();
-
-    try {
-        // We use runWithModelFallback to find a working model
+    
+    // This wrapper handles switching keys on 429 error and waiting 30s if all fail
+    return await executeGeminiCall(async (apiKey) => {
+        
         return await runWithModelFallback(CHAT_MODELS, async (modelId) => {
             
-            // If we need to switch models (or if chat is null), we must recreate the chat instance
-            if (!chat || currentChatModel !== modelId) {
-                 let history: Content[] = [];
-                 
-                 // Try to rescue history from the existing chat instance if it exists
-                 if (chat) {
-                     try {
-                        // Accessing private/internal history if available, or using standard method
-                     } catch (e) {
-                        console.warn("Could not retrieve history from previous chat instance", e);
-                     }
-                 }
-                 
-                 console.log(`[Chat] Switching to model: ${modelId}`);
-                 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-                 
-                 chat = ai.chats.create({
-                    model: modelId,
-                    config: {
-                        systemInstruction: getDynamicSystemInstruction(),
-                        tools: [{ googleSearch: {} }],
-                        temperature: 0.2,
-                    },
-                 });
-                 currentChatModel = modelId;
+            // If we switched keys OR models, we must recreate the chat instance.
+            // Note: This does lose 'history' in the AI's internal memory for this specific turn 
+            // if we fail over mid-conversation, but it's better than crashing.
+            if (!chat || currentChatModel !== modelId || currentApiKey !== apiKey) {
+                 console.log(`[Chat] Initializing session with Model: ${modelId} (Key ends in ...${apiKey.slice(-4)})`);
+                 initializeChat(apiKey, modelId);
             }
             
-            return await chat.sendMessageStream({ message: messageParts });
+            return await chat!.sendMessageStream({ message: messageParts });
         });
-    } catch (error: any) {
-        // Handle Limit Reached specifically
-        if (
-            error.message?.includes('429') || 
-            error.status === 429 || 
-            error.message?.toLowerCase().includes('quota') ||
-            error.message?.toLowerCase().includes('resource_exhausted')
-        ) {
-            // ENFORCE MINIMUM 30 SECOND DELAY before showing error
-            const elapsed = Date.now() - startTime;
-            const remaining = 30000 - elapsed;
-            if (remaining > 0) {
-                await new Promise(resolve => setTimeout(resolve, remaining));
-            }
-            throw new Error("Limit reached please try after some times");
-        }
-        throw error;
-    }
+    });
 }

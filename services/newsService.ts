@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { NewsArticle } from '../types';
-import { runWithModelFallback } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 // Lesser Model: Flash Lite (High Speed, Low Cost)
 const MODELS = ['gemini-flash-lite-latest'];
@@ -12,17 +12,19 @@ Return strictly as a JSON array of objects: { "title": string, "summary": string
 `;
 
 export async function getForexNews(): Promise<NewsArticle[]> {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
-
     try {
-        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
-            model: modelId,
-            contents: NEWS_PROMPT,
-            config: {
-                tools: [{googleSearch: {}}],
-                temperature: 0.2,
-            },
-        }));
+        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+            const ai = new GoogleGenAI({ apiKey });
+            
+            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+                model: modelId,
+                contents: NEWS_PROMPT,
+                config: {
+                    tools: [{googleSearch: {}}],
+                    temperature: 0.2,
+                },
+            }));
+        });
 
         const responseText = response.text?.trim();
         if (!responseText) return [];

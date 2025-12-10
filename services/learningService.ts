@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { runWithRetry } from './retryUtils';
+import { executeGeminiCall, runWithRetry } from './retryUtils';
 
 const STRATEGIES_STORAGE_KEY = 'greyquant_learned_strategies';
 const DAILY_STATS_KEY = 'greyquant_learning_stats';
@@ -84,18 +84,19 @@ export const incrementDailyCount = (): void => {
 };
 
 export const performAutoLearning = async (): Promise<string | null> => {
-    if (!process.env.API_KEY) return null;
-
     try {
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-        const response = await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: LEARNING_PROMPT,
-            config: {
-                tools: [{ googleSearch: {} }],
-                temperature: 0.7, 
-            },
-        }));
+        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+            const ai = new GoogleGenAI({ apiKey });
+            
+            return await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: LEARNING_PROMPT,
+                config: {
+                    tools: [{ googleSearch: {} }],
+                    temperature: 0.7, 
+                },
+            }));
+        });
 
         const newStrategy = response.text?.trim();
         

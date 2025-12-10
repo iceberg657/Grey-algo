@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { PredictedEvent } from '../types';
-import { runWithModelFallback } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 // Lesser Model: Flash Lite (High Speed, Low Cost)
 const MODELS = ['gemini-flash-lite-latest'];
@@ -26,21 +26,19 @@ You are 'Oracle', an apex-level trading AI.
 `;
 
 export async function getPredictedEvents(): Promise<PredictedEvent[]> {
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable is not set.");
-    }
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
     try {
-        // Using Flash models per user request for prediction speed/cost
-        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
-            model: modelId,
-            contents: PREDICTOR_PROMPT,
-            config: {
-                tools: [{googleSearch: {}}],
-                temperature: 0.2,
-            },
-        }));
+        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+            const ai = new GoogleGenAI({ apiKey });
+
+            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+                model: modelId,
+                contents: PREDICTOR_PROMPT,
+                config: {
+                    tools: [{googleSearch: {}}],
+                    temperature: 0.2,
+                },
+            }));
+        });
 
         const responseText = response.text?.trim();
         if (!responseText) return [];

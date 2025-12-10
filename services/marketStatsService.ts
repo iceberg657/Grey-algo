@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { MarketStatsData, StatTimeframe } from '../types';
-import { runWithModelFallback } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
@@ -54,19 +54,19 @@ Generate a real-time technical snapshot for **${symbol}** based on the **${timef
 `;
 
 export async function fetchMarketStatistics(symbol: string, timeframe: StatTimeframe): Promise<MarketStatsData> {
-    if (!process.env.API_KEY) throw new Error("API Key missing");
-
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-
     try {
-        const response = await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
-            model: modelId,
-            contents: STATS_PROMPT(symbol, timeframe),
-            config: {
-                tools: [{ googleSearch: {} }],
-                temperature: 0.1 
-            }
-        }));
+        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+            const ai = new GoogleGenAI({ apiKey });
+            
+            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+                model: modelId,
+                contents: STATS_PROMPT(symbol, timeframe),
+                config: {
+                    tools: [{ googleSearch: {} }],
+                    temperature: 0.1 
+                }
+            }));
+        });
 
         const text = response.text?.trim();
         if (!text) throw new Error("Empty response");

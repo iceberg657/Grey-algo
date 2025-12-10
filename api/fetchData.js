@@ -1,14 +1,12 @@
 
 const { GoogleGenAI } = require("@google/genai");
 
-const API_KEY = process.env.API_KEY;
-
-if (!API_KEY) {
-    console.error("API_KEY environment variable not set");
-    throw new Error("Server configuration error: API_KEY is missing.");
-}
-
-const ai = new GoogleGenAI({ apiKey: API_KEY });
+// Define available keys from backend environment
+const KEYS = [
+    process.env.API_KEY_1,
+    process.env.API_KEY_2,
+    process.env.API_KEY
+].filter(key => !!key && key.trim() !== '');
 
 const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext, learnedStrategies = []) => {
     const now = new Date();
@@ -92,7 +90,11 @@ ${learnedSection}
 `;
 };
 
-async function callGemini(request) {
+async function callGeminiWithKeyRotation(request) {
+    if (KEYS.length === 0) {
+        throw new Error("Server configuration error: No Gemini API Keys configured.");
+    }
+
     const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
     const promptParts = [textPart];
 
@@ -110,27 +112,68 @@ async function callGemini(request) {
         temperature: 0.5,
     };
 
-    // SAFETY FALLBACK MECHANISM
-    // Primary: gemini-3-pro-preview (Deep Analysis)
-    // Fallback: gemini-2.5-flash (Speed/Quota Saver)
-    
-    let response;
-    try {
-        console.log("Attempting analysis with Primary Model: gemini-3-pro-preview");
-        response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
-            contents: [{ parts: promptParts }],
-            config: config,
-        });
-    } catch (error) {
-        console.warn("Primary model failed or rate limited. Switching to Fallback: gemini-2.5-flash", error.message);
-        response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: [{ parts: promptParts }],
-            config: config,
-        });
+    const startTime = Date.now();
+    let lastError;
+
+    // Retry Logic with Key Rotation
+    for (const apiKey of KEYS) {
+        try {
+            const ai = new GoogleGenAI({ apiKey: apiKey });
+            let response;
+            
+            // Try Primary Model (Pro) then Fallback Model (Flash)
+            try {
+                console.log(`Attempting analysis with gemini-3-pro-preview (Key ending in ...${apiKey.slice(-4)})`);
+                response = await ai.models.generateContent({
+                    model: 'gemini-3-pro-preview',
+                    contents: [{ parts: promptParts }],
+                    config: config,
+                });
+            } catch (modelError) {
+                console.warn(`Primary model failed. Switching to Fallback: gemini-2.5-flash (Key ending in ...${apiKey.slice(-4)})`, modelError.message);
+                
+                // If model failure is actually a QUOTA failure, throw up to key rotation loop
+                const msg = modelError.message || '';
+                if (msg.includes('429') || msg.includes('Quota') || msg.includes('RESOURCE_EXHAUSTED')) {
+                    throw modelError; 
+                }
+
+                // Otherwise, try fallback model on same key
+                response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: [{ parts: promptParts }],
+                    config: config,
+                });
+            }
+
+            // If we are here, we got a response
+            return processResponse(response);
+
+        } catch (error) {
+            lastError = error;
+            const msg = error.message || '';
+            const isQuotaError = msg.includes('429') || msg.includes('Quota') || msg.includes('RESOURCE_EXHAUSTED');
+
+            if (isQuotaError) {
+                console.warn(`Quota exceeded on key ending in ...${apiKey.slice(-4)}. Rotating key...`);
+                continue; // Try next key
+            } else {
+                throw error; // Unknown error, abort
+            }
+        }
     }
 
+    // If all keys failed with quota errors, wait for the 30s rule then throw
+    const elapsed = Date.now() - startTime;
+    const remaining = 30000 - elapsed;
+    if (remaining > 0) {
+        await new Promise(resolve => setTimeout(resolve, remaining));
+    }
+
+    throw new Error("Limit reached please try after some times");
+}
+
+function processResponse(response) {
     const responseText = response.text;
     if (!responseText) {
         throw new Error("Received an empty response from the AI.");
@@ -182,7 +225,7 @@ module.exports = async (req, res) => {
            return res.status(400).json({ error: "Invalid request body." });
         }
 
-        const signalData = await callGemini(analysisRequest);
+        const signalData = await callGeminiWithKeyRotation(analysisRequest);
         return res.status(200).json(signalData);
     } catch (error) {
         console.error("API Error:", error);
