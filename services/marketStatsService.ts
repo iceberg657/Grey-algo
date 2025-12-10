@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { MarketStatsData, StatTimeframe } from '../types';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
 
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
@@ -55,6 +55,7 @@ Generate a real-time technical snapshot for **${symbol}** based on the **${timef
 
 export async function fetchMarketStatistics(symbol: string, timeframe: StatTimeframe): Promise<MarketStatsData> {
     try {
+        // Prioritize Key 2 for Stats
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -66,7 +67,7 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
                     temperature: 0.1 
                 }
             }));
-        });
+        }, PRIORITY_KEY_2);
 
         const text = response.text?.trim();
         if (!text) throw new Error("Empty response");

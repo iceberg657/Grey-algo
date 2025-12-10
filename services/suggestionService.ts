@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AssetSuggestion } from '../types';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_3 } from './retryUtils';
 
 const SUGGESTION_STORAGE_KEY = 'greyquant_asset_suggestions';
 const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
@@ -50,6 +50,7 @@ Return ONLY a valid JSON array.
 
 export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
     try {
+        // Prioritize Key 3 for Suggestions
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -61,7 +62,7 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
                     temperature: 0.7, 
                 },
             }));
-        });
+        }, PRIORITY_KEY_3);
 
         const text = response.text?.trim();
         if (!text) return [];

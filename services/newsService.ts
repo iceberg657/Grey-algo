@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { NewsArticle } from '../types';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_1 } from './retryUtils';
 
 // Lesser Model: Flash Lite (High Speed, Low Cost)
 const MODELS = ['gemini-flash-lite-latest'];
@@ -13,6 +13,7 @@ Return strictly as a JSON array of objects: { "title": string, "summary": string
 
 export async function getForexNews(): Promise<NewsArticle[]> {
     try {
+        // Prioritize Key 1 for News
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -24,7 +25,7 @@ export async function getForexNews(): Promise<NewsArticle[]> {
                     temperature: 0.2,
                 },
             }));
-        });
+        }, PRIORITY_KEY_1);
 
         const responseText = response.text?.trim();
         if (!responseText) return [];

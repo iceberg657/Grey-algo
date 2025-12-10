@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { PredictedEvent } from '../types';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_1 } from './retryUtils';
 
 // Lesser Model: Flash Lite (High Speed, Low Cost)
 const MODELS = ['gemini-flash-lite-latest'];
@@ -27,6 +27,7 @@ You are 'Oracle', an apex-level trading AI.
 
 export async function getPredictedEvents(): Promise<PredictedEvent[]> {
     try {
+        // Prioritize Key 1 for Predictor
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
 
@@ -38,7 +39,7 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
                     temperature: 0.2,
                 },
             }));
-        });
+        }, PRIORITY_KEY_1);
 
         const responseText = response.text?.trim();
         if (!responseText) return [];

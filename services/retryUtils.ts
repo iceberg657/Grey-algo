@@ -1,33 +1,51 @@
 
-// Gather keys from environment variables. 
-// We prioritize API_KEY_1, API_KEY_2, API_KEY_3, falling back to API_KEY if others aren't set.
-const AVAILABLE_KEYS = [
+// Gather keys from environment variables.
+const RAW_KEYS = [
     process.env.API_KEY_1, 
     process.env.API_KEY_2,
     process.env.API_KEY_3, 
     process.env.API_KEY
 ].filter((key): key is string => !!key && key.trim() !== '');
 
+// Export Key Indices for clarity
+export const PRIORITY_KEY_1 = 0; // Charts, News, Predictor
+export const PRIORITY_KEY_2 = 1; // Stats, Chat, Global
+export const PRIORITY_KEY_3 = 2; // Rest (Suggestions, Learning, TTS)
+
 /**
  * A wrapper to execute a Gemini API operation with:
- * 1. Automatic Key Rotation (Primary -> Secondary -> etc.)
- * 2. Model Fallback (via runWithModelFallback inside)
- * 3. 30-Second Minimum Wait on Total Failure
+ * 1. Intelligent Key Selection (Prioritize specific key based on task)
+ * 2. Automatic Key Rotation (Primary -> Secondary -> etc.)
+ * 3. Model Fallback (via runWithModelFallback inside)
+ * 4. 30-Second Minimum Wait on Total Failure
+ * 
+ * @param operationFactory The function performing the API call
+ * @param priorityIndex The index of the key to try FIRST (0 = Key 1, 1 = Key 2, etc.)
  */
 export async function executeGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>
+    operationFactory: (apiKey: string) => Promise<T>,
+    priorityIndex: number = 0
 ): Promise<T> {
     const startTime = Date.now();
     
     // If no keys are configured, throw immediately
-    if (AVAILABLE_KEYS.length === 0) {
+    if (RAW_KEYS.length === 0) {
         throw new Error("No API Keys configured in Vercel.");
+    }
+
+    // Reorder keys based on priority
+    // If priority is 1 (Key 2), order becomes: [Key2, Key3, Key1, Default]
+    // This ensures we try the assigned key first, but still have backups.
+    const reorderedKeys = [...RAW_KEYS];
+    if (priorityIndex > 0 && priorityIndex < reorderedKeys.length) {
+        const preferred = reorderedKeys.splice(priorityIndex, 1)[0];
+        reorderedKeys.unshift(preferred);
     }
 
     let lastError: any = null;
 
     // Iterate through available keys
-    for (const apiKey of AVAILABLE_KEYS) {
+    for (const apiKey of reorderedKeys) {
         try {
             // Attempt the operation with the current key
             return await operationFactory(apiKey);

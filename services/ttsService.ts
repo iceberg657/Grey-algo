@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality } from "@google/genai";
-import { executeGeminiCall, runWithRetry } from './retryUtils';
+import { executeGeminiCall, runWithRetry, PRIORITY_KEY_3 } from './retryUtils';
 
 // Audio context for playback
 let audioContext: AudioContext | null = null;
@@ -44,6 +44,7 @@ async function decodeAudioData(
 
 export async function generateAndPlayAudio(text: string, onEnded: () => void): Promise<void> {
     try {
+        // Prioritize Key 3 for TTS
         // Wrapped in executeGeminiCall for key rotation
         const response = await executeGeminiCall(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
@@ -63,7 +64,7 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
                   },
                 });
             }, 3, 3000); 
-        });
+        }, PRIORITY_KEY_3);
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 

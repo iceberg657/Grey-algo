@@ -1,7 +1,7 @@
 
 const { GoogleGenAI } = require("@google/genai");
 
-// Define available keys from backend environment
+// Backend Priority: Chart Analysis is primary function here, so prioritize API_KEY_1
 const KEYS = [
     process.env.API_KEY_1,
     process.env.API_KEY_2,
@@ -114,6 +114,7 @@ async function callGeminiWithKeyRotation(request) {
     let lastError;
 
     // Retry Logic with Key Rotation
+    // Note: This backend code uses the pre-sorted KEYS array which prioritizes API_KEY_1
     for (const apiKey of KEYS) {
         try {
             const ai = new GoogleGenAI({ apiKey: apiKey });

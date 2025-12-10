@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeGeminiCall, runWithRetry } from './retryUtils';
+import { executeGeminiCall, runWithRetry, PRIORITY_KEY_3 } from './retryUtils';
 
 const STRATEGIES_STORAGE_KEY = 'greyquant_learned_strategies';
 const DAILY_STATS_KEY = 'greyquant_learning_stats';
@@ -85,6 +85,7 @@ export const incrementDailyCount = (): void => {
 
 export const performAutoLearning = async (): Promise<string | null> => {
     try {
+        // Prioritize Key 3 for Auto-Learning
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -96,7 +97,7 @@ export const performAutoLearning = async (): Promise<string | null> => {
                     temperature: 0.7, 
                 },
             }));
-        });
+        }, PRIORITY_KEY_3);
 
         const newStrategy = response.text?.trim();
         

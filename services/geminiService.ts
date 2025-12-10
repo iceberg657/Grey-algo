@@ -3,7 +3,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
 import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_1 } from './retryUtils';
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
     const now = new Date();
@@ -88,9 +88,8 @@ ${learnedSection}
 const MODELS = ['gemini-2.5-flash'];
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
-    const startTime = Date.now();
     
-    // Execute call with key fallback logic
+    // Execute call with key fallback logic, prioritizing KEY 1 for Chart Analysis
     const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
@@ -111,21 +110,18 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
             temperature: 0.4, 
         };
 
-        // runWithModelFallback is nested inside; if a model fails 500, it switches models.
-        // if it fails 429, executeGeminiCall catches it and switches keys.
         return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
             model: modelId,
             contents: [{ parts: promptParts }],
             config,
         }));
-    });
+    }, PRIORITY_KEY_1); // Priority 0 (Key 1)
 
     const responseText = response.text;
     if (!responseText) {
         throw new Error("Received an empty response from the AI.");
     }
     
-    // Extract sources if any
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     const sources = groundingChunks
         ?.map(chunk => chunk.web)
@@ -143,7 +139,6 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
     
     const parsedData: Omit<SignalData, 'id' | 'timestamp'> = JSON.parse(jsonString);
     
-    // Ensure critical fields exist
     if (!parsedData.signal || !parsedData.entryPoints) {
         throw new Error("AI response is missing required fields.");
     }
@@ -190,7 +185,6 @@ export async function generateTradingSignal(request: AnalysisRequest): Promise<S
         }
     }
 
-    // Check if we have *any* API keys available on frontend
     if (process.env.API_KEY || process.env.API_KEY_1 || process.env.API_KEY_2 || process.env.API_KEY_3) {
         return callGeminiDirectly(enhancedRequest);
     } else {

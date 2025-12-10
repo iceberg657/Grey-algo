@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Chat, Content } from "@google/genai";
 import { getStoredGlobalAnalysis } from './globalMarketService';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
 
 const BASE_SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI.
 **Core Directives:**
@@ -74,7 +74,7 @@ export function resetChat(): void {
  */
 export async function sendMessageStreamWithRetry(messageParts: any) {
     
-    // This wrapper handles switching keys on 429 error and waiting 30s if all fail
+    // Prioritize Key 2 for Chat
     return await executeGeminiCall(async (apiKey) => {
         
         return await runWithModelFallback(CHAT_MODELS, async (modelId) => {
@@ -89,5 +89,5 @@ export async function sendMessageStreamWithRetry(messageParts: any) {
             
             return await chat!.sendMessageStream({ message: messageParts });
         });
-    });
+    }, PRIORITY_KEY_2);
 }

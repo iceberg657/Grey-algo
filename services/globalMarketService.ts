@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
@@ -38,6 +38,7 @@ Return ONLY a valid JSON object matching this structure:
 
 export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis> {
     try {
+        // Prioritize Key 2 for Global Analysis
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -49,7 +50,7 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
                     temperature: 0.1,
                 },
             }));
-        });
+        }, PRIORITY_KEY_2);
 
         const responseText = response.text?.trim();
         if (!responseText) throw new Error("Empty response from AI");
