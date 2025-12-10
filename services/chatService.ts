@@ -67,6 +67,7 @@ export function resetChat(): void {
  */
 export async function sendMessageStreamWithRetry(messageParts: any) {
     if (!process.env.API_KEY) throw new Error("API Key missing");
+    const startTime = Date.now();
 
     try {
         // We use runWithModelFallback to find a working model
@@ -109,6 +110,12 @@ export async function sendMessageStreamWithRetry(messageParts: any) {
             error.message?.toLowerCase().includes('quota') ||
             error.message?.toLowerCase().includes('resource_exhausted')
         ) {
+            // ENFORCE MINIMUM 30 SECOND DELAY before showing error
+            const elapsed = Date.now() - startTime;
+            const remaining = 30000 - elapsed;
+            if (remaining > 0) {
+                await new Promise(resolve => setTimeout(resolve, remaining));
+            }
             throw new Error("Limit reached please try after some times");
         }
         throw error;

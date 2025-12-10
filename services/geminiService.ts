@@ -91,6 +91,7 @@ ${learnedSection}
 const MODELS = ['gemini-2.5-flash'];
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
+    const startTime = Date.now();
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY! });
 
     const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
@@ -126,6 +127,12 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
             error.message?.toLowerCase().includes('quota') ||
             error.message?.toLowerCase().includes('resource_exhausted')
         ) {
+            // ENFORCE MINIMUM 30 SECOND DELAY before showing error
+            const elapsed = Date.now() - startTime;
+            const remaining = 30000 - elapsed;
+            if (remaining > 0) {
+                await new Promise(resolve => setTimeout(resolve, remaining));
+            }
             throw new Error("Limit reached please try after some times");
         }
         throw new Error("All AI models failed to generate analysis. Please try again later.");
