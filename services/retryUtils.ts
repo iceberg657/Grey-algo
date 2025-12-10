@@ -1,9 +1,10 @@
 
 // Gather keys from environment variables. 
-// We prioritize API_KEY_1 and API_KEY_2, falling back to API_KEY if others aren't set.
+// We prioritize API_KEY_1, API_KEY_2, API_KEY_3, falling back to API_KEY if others aren't set.
 const AVAILABLE_KEYS = [
     process.env.API_KEY_1, 
-    process.env.API_KEY_2, 
+    process.env.API_KEY_2,
+    process.env.API_KEY_3, 
     process.env.API_KEY
 ].filter((key): key is string => !!key && key.trim() !== '');
 

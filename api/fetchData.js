@@ -5,6 +5,7 @@ const { GoogleGenAI } = require("@google/genai");
 const KEYS = [
     process.env.API_KEY_1,
     process.env.API_KEY_2,
+    process.env.API_KEY_3,
     process.env.API_KEY
 ].filter(key => !!key && key.trim() !== '');
 
@@ -37,13 +38,13 @@ Since you are forced to trade 24/5 to meet quota, you must protect the capital w
 4.  **Duration Constraint:** To maximize session volatility and reduce swap/carry risk, look for setups that resolve within **30 Minutes to 3 Hours**.
 
 **VISUAL ANALYSIS PROTOCOL:**
-1.  **Identify Key Zones:** Locate the nearest Order Blocks, FVGs, and Liquidity Pools.
+1.  **Identify Key Zones:** Locate the nearest Order Blocks, FVGs, and Liquidity Pools based on visual price action.
 2.  **Determine Direction:** Based on the *immediate* momentum, which way is the market pushing? Trade with the flow.
 
 **The "Action" Protocol:**
 1.  **Take a Stance:** You MUST provide a **BUY** or **SELL** signal.
 2.  **Execution:** Pinpoint the entry.
-3.  **Safety Fallback:** If the market is choppy, tighten the Stop Loss to the nearest candle wick to minimize potential loss while attempting to capture the move.
+3.  **Safety Fallback:** If the market is choppy, tighten the Stop Loss to the nearest candle wick.
 
 **Context:**
 ${isMultiDimensional
@@ -58,7 +59,7 @@ ${learnedSection}
 
 **Response Requirements:**
 1. **Classification:** Rate confidence based on setup quality (80-100% = A+ Setup, 50-79% = B Setup).
-2. **Data:** Use Google Search for real-time sentiment/events.
+2. **Speed & Data:** Be concise. Use Google Search **strictly** for a quick check of current news/sentiment. Do not perform deep research.
 3. **Output:** Return ONLY a valid JSON object.
 
 **Output Format:**
@@ -71,7 +72,7 @@ ${learnedSection}
   "stopLoss": "number",
   "takeProfits": [number, number, number],
   "expectedDuration": "string (e.g. '45 Minutes', '2 Hours')",
-  "reasoning": ["string", "string", "string"],
+  "reasoning": ["string (Concise technical reason 1)", "string (Concise technical reason 2)", "string (Concise technical reason 3)"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
   "riskAnalysis": {
@@ -82,10 +83,7 @@ ${learnedSection}
   "sentiment": {
     "score": "number (0-100)",
     "summary": "string"
-  },
-  "economicEvents": [
-    { "name": "string", "date": "string", "impact": "High/Medium/Low" }
-  ]
+  }
 }
 `;
 };
@@ -109,7 +107,7 @@ async function callGeminiWithKeyRotation(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.5,
+        temperature: 0.4,
     };
 
     const startTime = Date.now();
@@ -179,6 +177,7 @@ function processResponse(response) {
         throw new Error("Received an empty response from the AI.");
     }
     
+    // Extract sources if present (grounding chunks might be empty if search disabled)
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     const sources = groundingChunks
         ?.map(chunk => chunk.web)
