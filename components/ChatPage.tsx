@@ -95,23 +95,67 @@ const ChatBubble: React.FC<{
 };
 
 
-const TypingIndicator: React.FC = () => (
-    <div className="flex items-end gap-2 justify-start">
-        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 flex items-center justify-center">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600 dark:text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                <circle cx="12" cy="12" r="3"/>
-            </svg>
-        </div>
-        <div className="max-w-md lg:max-w-lg p-3 rounded-2xl bg-gray-200 dark:bg-dark-bg/60 text-gray-800 dark:text-dark-text/90 rounded-bl-none">
-            <div className="flex items-center space-x-1">
-                <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
-                <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
-                <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse"></div>
+const TypingIndicator: React.FC = () => {
+    const [showThinking, setShowThinking] = useState(false);
+    const [thoughtIndex, setThoughtIndex] = useState(0);
+
+    const thoughts = [
+        "Connecting to Neural Network...",
+        "Analyzing market context...",
+        "Checking historical patterns...",
+        "Synthesizing strategy...",
+        "Verifying risk constraints...",
+        "Finalizing response..."
+    ];
+
+    useEffect(() => {
+        // Show detailed thinking after 5 seconds to distinguish latency from heavy lifting
+        const timer = setTimeout(() => {
+            setShowThinking(true);
+        }, 5000);
+
+        return () => clearTimeout(timer);
+    }, []);
+
+    useEffect(() => {
+        if (!showThinking) return;
+        // Rotate thoughts every 2.5 seconds
+        const interval = setInterval(() => {
+            setThoughtIndex((prev) => (prev + 1) % thoughts.length);
+        }, 2500);
+        return () => clearInterval(interval);
+    }, [showThinking]);
+
+    return (
+        <div className="flex items-end gap-2 justify-start animate-fade-in">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 flex items-center justify-center">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600 dark:text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </div>
+            <div className="max-w-md lg:max-w-lg p-3 rounded-2xl bg-gray-200 dark:bg-dark-bg/60 text-gray-800 dark:text-dark-text/90 rounded-bl-none">
+                {!showThinking ? (
+                    <div className="flex items-center space-x-1 h-5 px-1">
+                        <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
+                        <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
+                        <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse"></div>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-3 px-1 animate-fade-in">
+                        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                        </span>
+                        <span className="text-xs sm:text-sm font-medium italic text-gray-500 dark:text-gray-400 animate-pulse">
+                            {thoughts[thoughtIndex]}
+                        </span>
+                    </div>
+                )}
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 interface ChatPageProps {

@@ -169,7 +169,8 @@ const getSignalScore = (signal?: string) => {
 
 export const MarketStatisticsPage: React.FC<MarketStatisticsPageProps> = ({ onBack, onLogout }) => {
     const assets = getAvailableAssets();
-    const [selectedCategory, setSelectedCategory] = useState<'Majors' | 'Minors' | 'Commodities'>('Majors');
+    // FIX: Update state type to include all asset categories (Majors, Minors, Commodities, Indices, Crypto)
+    const [selectedCategory, setSelectedCategory] = useState<keyof typeof assets>('Majors');
     const [selectedAsset, setSelectedAsset] = useState<string>(assets.Majors[0]);
     const [timeframe, setTimeframe] = useState<StatTimeframe>('1H');
     const [data, setData] = useState<MarketStatsData | null>(null);
