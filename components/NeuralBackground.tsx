@@ -40,8 +40,8 @@ export const NeuralBackground: React.FC = () => {
                 particles.push({
                     x: Math.random() * canvas.width,
                     y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 0.5,
-                    vy: (Math.random() - 0.5) * 0.5,
+                    vx: (Math.random() - 0.5) * 1.5, // Increased speed from 0.5 to 1.5
+                    vy: (Math.random() - 0.5) * 1.5, // Increased speed from 0.5 to 1.5
                     size: Math.random() * 2 + 1
                 });
             }

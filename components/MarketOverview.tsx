@@ -366,7 +366,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
                     {isUpdatingSuggestions ? (
                          <div className="col-span-full py-4 text-center text-gray-500 text-sm italic animate-pulse">
-                            Active Scan In Progress (Gemini Flash)...
+                            Scanning global markets...
                         </div>
                     ) : suggestions.length > 0 ? (
                         suggestions.map((asset, idx) => (
