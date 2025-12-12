@@ -9,7 +9,7 @@ const KEYS = [
     process.env.API_KEY
 ].filter(key => !!key && key.trim() !== '');
 
-const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext, learnedStrategies = []) => {
+const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, profitMode, globalContext, learnedStrategies = []) => {
     const now = new Date();
     const timeString = now.toUTCString();
 
@@ -21,6 +21,18 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, globalContext
         ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
 
+    const profitModeInstructions = profitMode ? `
+**⚠️ PROFIT MODE ENABLED (STRICTEST FILTERING):**
+You are operating under **Profit Mode** protocols. Your goal is **Capital Preservation** and **High Precision**.
+**CRITERIA FOR SIGNAL GENERATION (ALL MUST BE TRUE):**
+1. **Trend Alignment:** The trade MUST align with the higher timeframe trend. No counter-trend scalping.
+2. **Liquidity:** The entry MUST occur immediately after a clear Liquidity Sweep (Stop Hunt) of a previous high or low.
+3. **News Filter:** Ensure no High-Impact news events are imminent (within 60 mins).
+4. **Time Window:** Prefer optimal volume sessions (London/NY Killzones). If volume is thin, DO NOT trade.
+5. **Calm Structure:** Avoid erratic/choppy markets.
+**OUTPUT RULE:** If conditions are **NOT optimal** based on these filters, return a **NEUTRAL** signal with reasoning explaining which filter failed. ONLY issue a BUY/SELL for **A+ Setups**.
+` : "";
+
     return `
 Act as an **Elite Prop Firm Trader** managing a **$100,000 Funded Account**.
 Your Daily Profit Target is **$1,500 - $4,000**.
@@ -28,7 +40,7 @@ Your Daily Drawdown Limit is **$4,000 (4%)**.
 
 **REAL-TIME CONTEXT:**
 - **Current Server Time (UTC):** ${timeString}
-- **Mission:** You MUST Identify a trade execution (BUY or SELL). Standing aside is not an option. We need to hit the daily target.
+- **Mission:** Identify a high-probability trade execution.
 
 **PROP FIRM SAFETY PROTOCOLS (MANDATORY):**
 Since you are forced to trade 24/5 to meet quota, you must protect the capital with **Surgical Precision**:
@@ -41,8 +53,10 @@ Since you are forced to trade 24/5 to meet quota, you must protect the capital w
 1.  **Identify Key Zones:** Locate the nearest Order Blocks, FVGs, and Liquidity Pools based on visual price action.
 2.  **Determine Direction:** Based on the *immediate* momentum, which way is the market pushing? Trade with the flow.
 
+${profitModeInstructions}
+
 **The "Action" Protocol:**
-1.  **Take a Stance:** You MUST provide a **BUY** or **SELL** signal.
+1.  **Take a Stance:** Provide a **BUY**, **SELL**, or **NEUTRAL** signal.
 2.  **Execution:** Pinpoint the entry.
 3.  **Safety Fallback:** If the market is choppy, tighten the Stop Loss to the nearest candle wick.
 
@@ -66,7 +80,7 @@ ${learnedSection}
 {
   "asset": "string",
   "timeframe": "string",
-  "signal": "'BUY' or 'SELL'",
+  "signal": "'BUY' or 'SELL' or 'NEUTRAL'",
   "confidence": "number (0-100)",
   "entryPoints": [number, number, number],
   "stopLoss": "number",
@@ -93,7 +107,7 @@ async function callGeminiWithKeyRotation(request) {
         throw new Error("Server configuration error: No Gemini API Keys configured.");
     }
 
-    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
+    const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies) };
     const promptParts = [textPart];
 
     if (request.isMultiDimensional && request.images.higher) {
@@ -107,46 +121,56 @@ async function callGeminiWithKeyRotation(request) {
     const config = {
         tools: [{googleSearch: {}}],
         seed: 42,
-        temperature: 0.4,
+        temperature: request.profitMode ? 0.2 : 0.4,
     };
 
     const startTime = Date.now();
     let lastError;
 
+    // Determine models to try based on Profit Mode
+    const modelsToTry = request.profitMode 
+        ? ['gemini-3-pro-preview', 'gemini-2.5-flash'] 
+        : ['gemini-2.5-flash'];
+
     // Retry Logic with Key Rotation
-    // Note: This backend code uses the pre-sorted KEYS array which prioritizes API_KEY_1
     for (const apiKey of KEYS) {
         try {
             const ai = new GoogleGenAI({ apiKey: apiKey });
             let response;
-            
-            // Try Primary Model (Pro) then Fallback Model (Flash)
-            try {
-                console.log(`Attempting analysis with gemini-3-pro-preview (Key ending in ...${apiKey.slice(-4)})`);
-                response = await ai.models.generateContent({
-                    model: 'gemini-3-pro-preview',
-                    contents: [{ parts: promptParts }],
-                    config: config,
-                });
-            } catch (modelError) {
-                console.warn(`Primary model failed. Switching to Fallback: gemini-2.5-flash (Key ending in ...${apiKey.slice(-4)})`, modelError.message);
-                
-                // If model failure is actually a QUOTA failure, throw up to key rotation loop
-                const msg = modelError.message || '';
-                if (msg.includes('429') || msg.includes('Quota') || msg.includes('RESOURCE_EXHAUSTED')) {
-                    throw modelError; 
-                }
+            let modelError = null;
 
-                // Otherwise, try fallback model on same key
-                response = await ai.models.generateContent({
-                    model: 'gemini-2.5-flash',
-                    contents: [{ parts: promptParts }],
-                    config: config,
-                });
+            // Iterate through models for the current key
+            for (const model of modelsToTry) {
+                try {
+                    console.log(`Attempting analysis with ${model} (Key ending in ...${apiKey.slice(-4)})`);
+                    response = await ai.models.generateContent({
+                        model: model,
+                        contents: [{ parts: promptParts }],
+                        config: config,
+                    });
+                    
+                    // If we get here, success! Break the model loop
+                    break;
+                } catch (e) {
+                    modelError = e;
+                    const msg = e.message || '';
+                    // Check if this is a Quota/Rate Limit error
+                    const isQuotaError = msg.includes('429') || msg.includes('Quota') || msg.includes('RESOURCE_EXHAUSTED');
+
+                    if (isQuotaError) {
+                        // If quota error, break model loop immediately to rotate key
+                        throw e; 
+                    }
+                    console.warn(`Model ${model} failed on key ...${apiKey.slice(-4)}, trying next model if available...`, msg);
+                }
             }
 
-            // If we are here, we got a response
-            return processResponse(response);
+            if (response) {
+                return processResponse(response);
+            }
+            
+            // If we ran out of models without a quota error (e.g. 500s or internal errors), throw to continue key rotation
+            if (modelError) throw modelError;
 
         } catch (error) {
             lastError = error;
@@ -157,12 +181,14 @@ async function callGeminiWithKeyRotation(request) {
                 console.warn(`Quota exceeded on key ending in ...${apiKey.slice(-4)}. Rotating key...`);
                 continue; // Try next key
             } else {
-                throw error; // Unknown error, abort
+                // If it's a critical error not related to quota, we still rotate keys as a failsafe
+                console.warn(`Error on key ...${apiKey.slice(-4)}: ${msg}. Rotating...`);
+                continue;
             }
         }
     }
 
-    // If all keys failed with quota errors, wait for the 30s rule then throw
+    // If all keys failed
     const elapsed = Date.now() - startTime;
     const remaining = 30000 - elapsed;
     if (remaining > 0) {
@@ -182,7 +208,7 @@ function processResponse(response) {
     const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
     const sources = groundingChunks
         ?.map(chunk => chunk.web)
-        .filter(web => web && web.uri && web.title) || [];
+        .filter((web) => web && web.uri && web.title) || [];
 
     try {
         let jsonString = responseText.trim();

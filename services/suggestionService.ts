@@ -5,15 +5,44 @@ import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_3 } from './retry
 
 const SUGGESTION_STORAGE_KEY = 'greyquant_asset_suggestions';
 const SUGGESTION_TIMESTAMP_KEY = 'greyquant_suggestion_timestamp';
+const SUGGESTION_STORAGE_KEY_PROFIT = 'greyquant_asset_suggestions_profit';
+const SUGGESTION_TIMESTAMP_KEY_PROFIT = 'greyquant_suggestion_timestamp_profit';
+
 const SUGGESTION_DURATION_MS = 30 * 60 * 1000; // 30 minutes total cycle
 
-// Upgraded Model: Standard Flash for better instruction following and reasoning
-const MODELS = ['gemini-2.5-flash'];
-
-const getSuggestionPrompt = () => {
+const getSuggestionPrompt = (profitMode: boolean) => {
     const now = new Date();
     const timeString = now.toUTCString();
     
+    if (profitMode) {
+        return `
+Act as an Elite Prop Firm Algo Scanner operating in **PROFIT MODE**.
+Your task is to **ACTIVELY SCAN** global markets to identify **3 A+ HIGH-PROBABILITY SETUPS** RIGHT NOW.
+
+**REAL-TIME CONTEXT:**
+- **Current Server Time (UTC):** ${timeString}
+
+**PROFIT MODE CRITERIA (STRICT):**
+1.  **Trend Alignment:** Assets MUST be trending on H4/Daily. No counter-trend trades.
+2.  **Liquidity:** Look for recent liquidity sweeps (Stop Hunts) followed by displacement.
+3.  **Volatility:** Avoid assets with low volume. Focus on London/NY session movers.
+4.  **No News:** Ensure no high-impact news is expected in the next hour.
+
+**MANDATORY OUTPUT REQUIREMENT:**
+Return exactly 3 assets. If the market is choppy, find the "safest" setups at major HTF support/resistance.
+
+**Output Format (Strict JSON Array):**
+[
+  {
+    "symbol": "string (e.g. 'EUR/USD', 'US30', 'XAU/USD')",
+    "type": "'Major' | 'Minor' | 'Commodity' | 'Index' | 'Stock'",
+    "reason": "Start with 'PROFIT MODE:'. Ex: 'PROFIT MODE: Bullish sweep of H1 lows, aligned with D1 trend.'",
+    "volatilityWarning": boolean
+  }
+]
+`;
+    }
+
     return `
 Act as an Elite Prop Firm Algo Scanner.
 Your task is to **ACTIVELY SCAN** global markets to identify **3 High-Potential Assets** RIGHT NOW.
@@ -41,18 +70,23 @@ You **MUST** return exactly 3 assets. Do NOT return an empty list. Even if the m
 `;
 };
 
-export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
+export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetSuggestion[]> {
     try {
+        // Profit Mode uses Pro model for better reasoning; Standard uses Flash for speed.
+        const models = profitMode 
+            ? ['gemini-3-pro-preview', 'gemini-2.5-flash'] 
+            : ['gemini-2.5-flash'];
+
         // Prioritize Key 3 for Suggestions
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            return await runWithModelFallback<GenerateContentResponse>(models, (modelId) => ai.models.generateContent({
                 model: modelId,
-                contents: getSuggestionPrompt(),
+                contents: getSuggestionPrompt(profitMode),
                 config: {
                     tools: [{googleSearch: {}}],
-                    temperature: 0.6, // Slightly creative to find setups
+                    temperature: profitMode ? 0.2 : 0.6, // Lower temperature for Profit Mode (Strictness)
                 },
             }));
         }, PRIORITY_KEY_3);
@@ -81,10 +115,13 @@ export async function fetchAssetSuggestions(): Promise<AssetSuggestion[]> {
     }
 }
 
-export function getStoredSuggestions(): { suggestions: AssetSuggestion[], nextUpdate: number } | null {
+export function getStoredSuggestions(profitMode: boolean): { suggestions: AssetSuggestion[], nextUpdate: number } | null {
     try {
-        const stored = localStorage.getItem(SUGGESTION_STORAGE_KEY);
-        const timestamp = localStorage.getItem(SUGGESTION_TIMESTAMP_KEY);
+        const storageKey = profitMode ? SUGGESTION_STORAGE_KEY_PROFIT : SUGGESTION_STORAGE_KEY;
+        const timeKey = profitMode ? SUGGESTION_TIMESTAMP_KEY_PROFIT : SUGGESTION_TIMESTAMP_KEY;
+
+        const stored = localStorage.getItem(storageKey);
+        const timestamp = localStorage.getItem(timeKey);
         
         if (!stored || !timestamp) return null;
 
@@ -101,17 +138,20 @@ export function getStoredSuggestions(): { suggestions: AssetSuggestion[], nextUp
     }
 }
 
-export async function getOrRefreshSuggestions(): Promise<{ suggestions: AssetSuggestion[], nextUpdate: number }> {
-    const stored = getStoredSuggestions();
+export async function getOrRefreshSuggestions(profitMode: boolean = false): Promise<{ suggestions: AssetSuggestion[], nextUpdate: number }> {
+    const stored = getStoredSuggestions(profitMode);
     if (stored) return stored;
 
-    const suggestions = await fetchAssetSuggestions();
+    const suggestions = await fetchAssetSuggestions(profitMode);
     const now = Date.now();
     
     // Only save if we actually got results
     if (suggestions.length > 0) {
-        localStorage.setItem(SUGGESTION_STORAGE_KEY, JSON.stringify(suggestions));
-        localStorage.setItem(SUGGESTION_TIMESTAMP_KEY, now.toString());
+        const storageKey = profitMode ? SUGGESTION_STORAGE_KEY_PROFIT : SUGGESTION_STORAGE_KEY;
+        const timeKey = profitMode ? SUGGESTION_TIMESTAMP_KEY_PROFIT : SUGGESTION_TIMESTAMP_KEY;
+
+        localStorage.setItem(storageKey, JSON.stringify(suggestions));
+        localStorage.setItem(timeKey, now.toString());
     }
 
     return {

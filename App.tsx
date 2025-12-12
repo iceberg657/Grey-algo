@@ -255,7 +255,8 @@ const App: React.FC = () => {
                 },
                 riskRewardRatio: '1:3', // Default for quick analysis
                 tradingStyle: 'Day Trading', // Default
-                isMultiDimensional: false
+                isMultiDimensional: false,
+                profitMode: false // Default to false for quick overlay analysis
             };
 
             const data = await generateTradingSignal(request);

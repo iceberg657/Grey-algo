@@ -5,7 +5,7 @@ import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
 import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_1 } from './retryUtils';
 
-const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
+const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
     const now = new Date();
     const timeString = now.toUTCString();
 
@@ -17,6 +17,18 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
         ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
 
+    const profitModeInstructions = profitMode ? `
+**⚠️ PROFIT MODE ENABLED (STRICTEST FILTERING):**
+You are operating under **Profit Mode** protocols. Your goal is **Capital Preservation** and **High Precision**.
+**CRITERIA FOR SIGNAL GENERATION (ALL MUST BE TRUE):**
+1. **Trend Alignment:** The trade MUST align with the higher timeframe trend. No counter-trend scalping.
+2. **Liquidity:** The entry MUST occur immediately after a clear Liquidity Sweep (Stop Hunt) of a previous high or low.
+3. **News Filter:** Ensure no High-Impact news events are imminent (within 60 mins).
+4. **Time Window:** Prefer optimal volume sessions (London/NY Killzones). If volume is thin, DO NOT trade.
+5. **Calm Structure:** Avoid erratic/choppy markets.
+**OUTPUT RULE:** If conditions are **NOT optimal** based on these filters, return a **NEUTRAL** signal with reasoning explaining which filter failed. ONLY issue a BUY/SELL for **A+ Setups**.
+` : "";
+
     return `
 Act as an **Elite Prop Firm Trader** managing a **$100,000 Funded Account**.
 Your Daily Profit Target is **$1,500 - $4,000**.
@@ -24,23 +36,24 @@ Your Daily Drawdown Limit is **$4,000 (4%)**.
 
 **REAL-TIME CONTEXT:**
 - **Current Server Time (UTC):** ${timeString}
-- **Mission:** You MUST Identify a trade execution (BUY or SELL). Standing aside is not an option. We need to hit the daily target.
+- **Mission:** Identify a high-probability trade execution.
 
 **PROP FIRM SAFETY PROTOCOLS (MANDATORY):**
-Since you are forced to trade 24/5 to meet quota, you must protect the capital with **Surgical Precision**:
-1.  **Blast Radius Control:** Your Stop Loss must be based on strict invalidation of the immediate micro-structure. Do not use wide stops.
-2.  **Dynamic Sizing:** You adhere to a strict **1% Risk Per Trade ($1,000)**.
-3.  **Aggressive Scaling:** You aim for a minimum **${riskRewardRatio}** Risk/Reward to ensure one win covers two losses.
-4.  **Duration Constraint:** To maximize session volatility and reduce swap/carry risk, look for setups that resolve within **30 Minutes to 3 Hours**.
+1.  **Blast Radius Control:** Stop Loss must be based on strict invalidation of the immediate micro-structure.
+2.  **Dynamic Sizing:** Adhere to a strict **1% Risk Per Trade ($1,000)**.
+3.  **Aggressive Scaling:** Aim for a minimum **${riskRewardRatio}** Risk/Reward.
+4.  **Duration Constraint:** Look for setups that resolve within **30 Minutes to 3 Hours**.
 
 **VISUAL ANALYSIS PROTOCOL:**
-1.  **Identify Key Zones:** Locate the nearest Order Blocks, FVGs, and Liquidity Pools based on visual price action.
-2.  **Determine Direction:** Based on the *immediate* momentum, which way is the market pushing? Trade with the flow.
+1.  **Identify Key Zones:** Locate Order Blocks, FVGs, and Liquidity Pools.
+2.  **Determine Direction:** Based on the *immediate* momentum, which way is the market pushing?
+
+${profitModeInstructions}
 
 **The "Action" Protocol:**
-1.  **Take a Stance:** You MUST provide a **BUY** or **SELL** signal.
+1.  **Take a Stance:** Provide a **BUY**, **SELL**, or **NEUTRAL** signal.
 2.  **Execution:** Pinpoint the entry.
-3.  **Safety Fallback:** If the market is choppy, tighten the Stop Loss to the nearest candle wick.
+3.  **Safety Fallback:** If choppy, tighten Stop Loss.
 
 **Context:**
 ${isMultiDimensional
@@ -55,25 +68,25 @@ ${learnedSection}
 
 **Response Requirements:**
 1. **Classification:** Rate confidence based on setup quality (80-100% = A+ Setup, 50-79% = B Setup).
-2. **Speed & Data:** Be concise. Use Google Search **strictly** for a quick check of current news/sentiment. Do not perform deep research.
+2. **Speed & Data:** Use Google Search **strictly** for current news/sentiment check.
 3. **Output:** Return ONLY a valid JSON object.
 
 **Output Format:**
 {
   "asset": "string",
   "timeframe": "string",
-  "signal": "'BUY' or 'SELL'",
+  "signal": "'BUY' or 'SELL' or 'NEUTRAL'",
   "confidence": "number (0-100)",
   "entryPoints": [number, number, number],
   "stopLoss": "number",
   "takeProfits": [number, number, number],
   "expectedDuration": "string (e.g. '45 Minutes', '2 Hours')",
-  "reasoning": ["string (Concise technical reason 1)", "string (Concise technical reason 2)", "string (Concise technical reason 3)"],
+  "reasoning": ["string", "string", "string"],
   "checklist": ["string", "string", "string"],
   "invalidationScenario": "string",
   "riskAnalysis": {
     "riskPerTrade": "$1,000 (1%)",
-    "suggestedLotSize": "string (e.g. '2.5 Lots')",
+    "suggestedLotSize": "string",
     "safetyScore": "number (0-100)"
   },
   "sentiment": {
@@ -84,16 +97,20 @@ ${learnedSection}
 `;
 };
 
-// STRICTLY use gemini-2.5-flash for Chart Analysis
-const MODELS = ['gemini-2.5-flash'];
-
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
     
+    // Select models based on Profit Mode
+    // Profit Mode = Gemini 3.0 Pro Preview (Smarter, Better Reasoning) -> Fallback to Flash
+    // Standard Mode = Gemini 2.5 Flash (Fast, Efficient)
+    const models = request.profitMode 
+        ? ['gemini-3-pro-preview', 'gemini-2.5-flash']
+        : ['gemini-2.5-flash'];
+
     // Execute call with key fallback logic, prioritizing KEY 1 for Chart Analysis
     const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.globalContext, request.learnedStrategies) };
+        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies) };
         const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
         
         if (request.isMultiDimensional && request.images.higher) {
@@ -107,10 +124,10 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
         const config: any = {
             tools: [{googleSearch: {}}], 
             seed: 42,
-            temperature: 0.4, 
+            temperature: request.profitMode ? 0.2 : 0.4, // Lower temperature for Profit Mode to be more strict/deterministic
         };
 
-        return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+        return await runWithModelFallback<GenerateContentResponse>(models, (modelId) => ai.models.generateContent({
             model: modelId,
             contents: [{ parts: promptParts }],
             config,

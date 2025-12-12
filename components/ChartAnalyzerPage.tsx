@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { SignalDisplay } from './SignalDisplay';
@@ -15,6 +16,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
+    const [profitMode, setProfitMode] = useState<boolean>(false);
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -99,7 +101,12 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
 
                 <main>
                    <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl">
-                        <SignalGeneratorForm onSubmit={handleGenerateSignal} isLoading={isLoading} />
+                        <SignalGeneratorForm 
+                            onSubmit={handleGenerateSignal} 
+                            isLoading={isLoading} 
+                            profitMode={profitMode}
+                            onProfitModeChange={setProfitMode}
+                        />
                         
                         <div className="mt-8 pt-8 border-t border-gray-300 dark:border-green-500/50 min-h-[200px] relative">
                              {(signalData || error) && !isLoading && (

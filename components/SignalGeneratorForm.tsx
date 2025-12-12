@@ -136,14 +136,29 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
 interface SignalGeneratorFormProps {
     onSubmit: (request: AnalysisRequest) => void;
     isLoading: boolean;
+    profitMode: boolean;
+    onProfitModeChange: (mode: boolean) => void;
 }
 
-export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {
+export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading, profitMode, onProfitModeChange }) => {
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[1]);
     const [images, setImages] = useState<{ higher?: File, primary?: File, entry?: File }>({});
     const [error, setError] = useState<string | null>(null);
+
+    // Apply or remove the profit-mode class to the body when state changes
+    useEffect(() => {
+        if (profitMode) {
+            document.body.classList.add('profit-mode');
+        } else {
+            document.body.classList.remove('profit-mode');
+        }
+        // Cleanup ensures we don't leave the class if component unmounts unexpectedly
+        return () => {
+            document.body.classList.remove('profit-mode');
+        };
+    }, [profitMode]);
 
     const handleFileChange = (id: 'higher' | 'primary' | 'entry', file: File | null) => {
         setImages(prev => file ? { ...prev, [id]: file } : { ...prev, [id]: undefined });
@@ -178,6 +193,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 riskRewardRatio, 
                 tradingStyle,
                 isMultiDimensional,
+                profitMode
             });
 
         } catch(err) {
@@ -215,22 +231,49 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             </div>
 
             <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4">
-                <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg">
-                    <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Top-Down Analysis</span>
-                    <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
-                        <input 
-                            type="checkbox" 
-                            id="analysis-toggle" 
-                            className="sr-only peer"
-                            checked={isMultiDimensional}
-                            onChange={() => setIsMultiDimensional(!isMultiDimensional)}
-                        />
-                        <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
-                    </label>
-                    <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
-                        Oracle Multi-Dimensional Analysis
-                    </span>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                    {/* Top-Down Toggle */}
+                    <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg w-full sm:w-auto">
+                        <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Top-Down</span>
+                        <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="analysis-toggle" 
+                                className="sr-only peer"
+                                checked={isMultiDimensional}
+                                onChange={() => setIsMultiDimensional(!isMultiDimensional)}
+                            />
+                            <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                        </label>
+                        <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
+                            Multi-Dim
+                        </span>
+                    </div>
+
+                    {/* Profit Mode Toggle */}
+                    <div className={`flex items-center justify-center space-x-3 p-2 rounded-lg w-full sm:w-auto border transition-all duration-300 ${profitMode ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-gray-200 dark:bg-dark-bg/60 border-transparent'}`}>
+                        <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Standard</span>
+                        <label htmlFor="profit-mode-toggle" className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="profit-mode-toggle" 
+                                className="sr-only peer"
+                                checked={profitMode}
+                                onChange={() => onProfitModeChange(!profitMode)}
+                            />
+                            <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-500/50 dark:peer-focus:ring-yellow-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-500"></div>
+                        </label>
+                        <span className={`text-sm font-bold transition-colors flex items-center gap-1 ${profitMode ? 'text-yellow-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
+                            Profit Mode
+                            {profitMode && <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>}
+                        </span>
+                    </div>
                 </div>
+                {profitMode && (
+                    <p className="text-xs text-center text-yellow-600 dark:text-yellow-400 animate-fade-in font-medium">
+                        Strict filtering enabled: Trend Alignment • Liquidity Sweeps • No News • Optimal Time
+                    </p>
+                )}
             </div>
 
             {/* Changed from lg:grid-cols-3 to md:grid-cols-2 lg:grid-cols-3 for better tablet support */}
@@ -298,9 +341,11 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     type="submit" 
                     disabled={isLoading}
                     className={`w-full text-white font-bold rounded-lg text-base px-5 py-3.5 text-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-4 focus:outline-none ${
-                        tradingStyle === 'Scalp'
-                        ? 'bg-red-600 hover:bg-red-500 focus:ring-red-500/50 animate-glowing-border-red' 
-                        : 'bg-green-600 hover:bg-green-500 focus:ring-green-500/50'
+                        profitMode 
+                        ? 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 focus:ring-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.3)]'
+                        : tradingStyle === 'Scalp'
+                            ? 'bg-red-600 hover:bg-red-500 focus:ring-red-500/50 animate-glowing-border-red' 
+                            : 'bg-green-600 hover:bg-green-500 focus:ring-green-500/50'
                     }`}
                 >
                     {isLoading ? (
@@ -309,9 +354,14 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Analyzing...
+                            {profitMode ? 'Running Strict Analysis...' : 'Analyzing Chart...'}
                         </>
-                    ) : 'Analyze Chart'}
+                    ) : (
+                        <>
+                            {profitMode && <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>}
+                            {profitMode ? 'Find A+ Setup' : 'Analyze Chart'}
+                        </>
+                    )}
                  </button>
             </div>
         </form>

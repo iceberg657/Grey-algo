@@ -41,6 +41,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
+    const [profitMode, setProfitMode] = useState<boolean>(false);
 
     useEffect(() => {
         setAnalysisCount(getAnalysisCount());
@@ -196,6 +197,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                         analysisCount={analysisCount} 
                         onResetCount={handleResetAnalysisCount} 
                         onAssetSelect={onAssetSelect}
+                        profitMode={profitMode}
                    />
                    <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl">
                         {error ? (
@@ -209,7 +211,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                                 </button>
                             </div>
                         ) : (
-                            <SignalGeneratorForm onSubmit={handleGenerateSignal} isLoading={isLoading} />
+                            <SignalGeneratorForm 
+                                onSubmit={handleGenerateSignal} 
+                                isLoading={isLoading} 
+                                profitMode={profitMode}
+                                onProfitModeChange={setProfitMode}
+                            />
                         )}
                    </div>
                 </main>

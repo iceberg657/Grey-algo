@@ -13,6 +13,7 @@ export interface AnalysisRequest {
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
+    profitMode: boolean; // New field for strict filtering
     globalContext?: string;
     learnedStrategies?: string[];
 }

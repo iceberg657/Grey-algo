@@ -81,9 +81,10 @@ interface MarketOverviewProps {
     analysisCount: number;
     onResetCount: () => void;
     onAssetSelect?: (asset: string) => void;
+    profitMode: boolean; // Add Profit Mode Prop
 }
 
-export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect }) => {
+export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect, profitMode }) => {
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstance = useRef<any>(null); // Using any for Chart.js instance
     const [timeRange, setTimeRange] = useState<'1H' | '1D' | '1W'>('1H');
@@ -125,45 +126,49 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
     // Fetch Suggestions logic
     useEffect(() => {
+        let isMounted = true;
         let timerInterval: ReturnType<typeof setInterval>;
 
         const fetchSuggestions = async () => {
-            if (isUpdatingSuggestions) return;
             setIsUpdatingSuggestions(true);
             try {
-                const { suggestions: data, nextUpdate } = await getOrRefreshSuggestions();
-                setSuggestions(data);
-                setHasInitialLoad(true);
+                const { suggestions: data, nextUpdate } = await getOrRefreshSuggestions(profitMode);
                 
-                // Start countdown
-                if (timerInterval) clearInterval(timerInterval);
-                timerInterval = setInterval(() => {
-                    const now = Date.now();
-                    const diff = nextUpdate - now;
-                    if (diff <= 0) {
-                        setSuggestionTimer('Rescanning...');
-                        clearInterval(timerInterval);
-                        fetchSuggestions(); // Recursive call to refresh
-                    } else {
-                        const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                        const secs = Math.floor((diff % (1000 * 60)) / 1000);
-                        setSuggestionTimer(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-                    }
-                }, 1000);
+                if (isMounted) {
+                    setSuggestions(data);
+                    setHasInitialLoad(true);
+                    
+                    // Start countdown
+                    if (timerInterval) clearInterval(timerInterval);
+                    timerInterval = setInterval(() => {
+                        const now = Date.now();
+                        const diff = nextUpdate - now;
+                        if (diff <= 0) {
+                            setSuggestionTimer('Rescanning...');
+                            clearInterval(timerInterval);
+                            fetchSuggestions(); // Recursive call to refresh
+                        } else {
+                            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                            const secs = Math.floor((diff % (1000 * 60)) / 1000);
+                            setSuggestionTimer(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
+                        }
+                    }, 1000);
+                }
 
             } catch (e) {
                 console.error("Failed to load suggestions", e);
             } finally {
-                setIsUpdatingSuggestions(false);
+                if (isMounted) setIsUpdatingSuggestions(false);
             }
         };
 
         fetchSuggestions();
 
         return () => {
+            isMounted = false;
             if (timerInterval) clearInterval(timerInterval);
         };
-    }, []);
+    }, [profitMode]); // Refetch when profitMode changes
 
     useEffect(() => {
         if (!chartRef.current) return;
@@ -339,7 +344,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
             </div>
 
              {/* AI Suggestions Section */}
-             <div className="mt-4 p-4 bg-gradient-to-r from-gray-900 to-slate-900 rounded-xl border border-green-500/30 relative overflow-hidden">
+             <div className={`mt-4 p-4 rounded-xl border relative overflow-hidden transition-all duration-300 ${profitMode ? 'bg-gradient-to-r from-yellow-900/40 to-orange-900/40 border-yellow-500/40' : 'bg-gradient-to-r from-gray-900 to-slate-900 border-green-500/30'}`}>
                 <div className="absolute top-0 right-0 p-2 opacity-10">
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-32 w-32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -348,42 +353,42 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 
                 <div className="flex flex-wrap justify-between items-center mb-4 relative z-10 gap-2">
                     <div>
-                        <h3 className="text-lg font-bold text-green-400 flex items-center gap-2">
+                        <h3 className={`text-lg font-bold flex items-center gap-2 ${profitMode ? 'text-yellow-400' : 'text-green-400'}`}>
                              <span className="relative flex h-3 w-3">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${profitMode ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
+                                <span className={`relative inline-flex rounded-full h-3 w-3 ${profitMode ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
                             </span>
-                            AI Asset Suggestions
+                            {profitMode ? 'PROFIT MODE: A+ Setups' : 'AI Asset Suggestions'}
                         </h3>
-                        <p className="text-xs text-gray-400">High-probability setups (80%+) for this session</p>
+                        <p className="text-xs text-gray-400">{profitMode ? 'Strict filtering for highest probability trades' : 'High-probability setups (80%+) for this session'}</p>
                     </div>
                      <div className="text-right">
                         <span className="text-xs text-gray-500 block">Next Scan</span>
-                        <span className="font-mono text-green-300 font-bold">{suggestionTimer}</span>
+                        <span className={`font-mono font-bold ${profitMode ? 'text-yellow-300' : 'text-green-300'}`}>{suggestionTimer}</span>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
                     {isUpdatingSuggestions ? (
                          <div className="col-span-full py-4 text-center text-gray-500 text-sm italic animate-pulse">
-                            Scanning global markets...
+                            {profitMode ? 'Scanning for A+ Setups...' : 'Scanning global markets...'}
                         </div>
                     ) : suggestions.length > 0 ? (
                         suggestions.map((asset, idx) => (
                             <div 
                                 key={idx} 
                                 onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                className="bg-white/5 hover:bg-white/10 p-3 rounded-lg border border-white/10 cursor-pointer transition-all flex justify-between items-center"
+                                className={`p-3 rounded-lg border cursor-pointer transition-all flex justify-between items-center ${profitMode ? 'bg-yellow-500/10 hover:bg-yellow-500/20 border-yellow-500/20' : 'bg-white/5 hover:bg-white/10 border-white/10'}`}
                             >
                                 <div>
                                     <div className="flex items-center gap-2">
                                         <span className="font-bold text-white">{asset.symbol}</span>
-                                        <span className="text-[10px] bg-blue-500/20 text-blue-300 px-1.5 rounded">{asset.type}</span>
+                                        <span className={`text-[10px] px-1.5 rounded ${profitMode ? 'bg-yellow-500/20 text-yellow-300' : 'bg-blue-500/20 text-blue-300'}`}>{asset.type}</span>
                                     </div>
                                     <p className="text-xs text-gray-400 mt-1 line-clamp-1">{asset.reason}</p>
                                 </div>
                                 <div className="text-right">
-                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                     <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 ${profitMode ? 'text-yellow-500' : 'text-gray-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                                     </svg>
                                 </div>
@@ -394,8 +399,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span className="font-semibold block text-gray-300">No high-probability setups found.</span>
-                            <span className="text-xs mt-1 block opacity-70">AI scanned for 80%+ win-rate trades and found none. Preserving capital.</span>
+                            <span className="font-semibold block text-gray-300">No {profitMode ? 'A+' : 'high-probability'} setups found.</span>
+                            <span className="text-xs mt-1 block opacity-70">AI scanned for {profitMode ? 'perfect conditions' : '80%+ win-rate trades'} and found none. Preserving capital.</span>
                         </div>
                     ) : (
                          <div className="col-span-full py-4 text-center text-gray-500 text-sm italic">
