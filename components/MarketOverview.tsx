@@ -5,6 +5,162 @@ import { getOrRefreshSuggestions } from '../services/suggestionService';
 import type { GlobalMarketAnalysis, AssetSuggestion } from '../types';
 import { MarketTicker } from './MarketTicker';
 
+// --- Safe Trading Timer Logic ---
+const SNIPER_TARGET_KEY = 'greyquant_sniper_target';
+const SNIPER_WINDOW_KEY = 'greyquant_sniper_window_end';
+
+type TimerState = 'COUNTDOWN' | 'ACTIVE';
+
+const SafeTradingTimer: React.FC = () => {
+    const [timeLeft, setTimeLeft] = useState<string>('--:--:--');
+    const [targetTimeString, setTargetTimeString] = useState<string>('');
+    const [status, setStatus] = useState<TimerState>('COUNTDOWN');
+    const [progress, setProgress] = useState(0);
+
+    const tick = () => {
+        const now = Date.now();
+        let targetStr = localStorage.getItem(SNIPER_TARGET_KEY);
+        let windowEndStr = localStorage.getItem(SNIPER_WINDOW_KEY);
+
+        let target = targetStr ? parseInt(targetStr, 10) : null;
+        let windowEnd = windowEndStr ? parseInt(windowEndStr, 10) : null;
+
+        // 1. Initialization (First Visit or Hard Reset)
+        if (!target && !windowEnd) {
+            // Generate initial target: Now + (30min to 120min)
+            const minMinutes = 30;
+            const maxMinutes = 120;
+            const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
+            target = now + (randomMinutes * 60 * 1000);
+            localStorage.setItem(SNIPER_TARGET_KEY, target.toString());
+        }
+
+        // 2. Check State Transitions
+        if (target && now < target) {
+            // --- COUNTDOWN PHASE ---
+            setStatus('COUNTDOWN');
+            
+            const diff = target - now;
+            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+            const minutes = Math.floor((diff / 1000 / 60) % 60);
+            const seconds = Math.floor((diff / 1000) % 60);
+            setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+            
+            // Format Target Time
+            const date = new Date(target);
+            setTargetTimeString(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            
+            // Calc Progress (Visual only, approximating a 2hr max bar)
+            // Ideally we'd store start time too, but relative to 'now' visual is okay
+            setProgress(0); 
+
+        } else if (target && now >= target) {
+            // --- TARGET REACHED -> SWITCH TO ACTIVE OR CHECK WINDOW ---
+            
+            // If we haven't defined a window end time yet, define it now.
+            // This happens the exact second target is reached, OR if user returns after target passed.
+            if (!windowEnd) {
+                // Window Duration: 5 to 10 minutes
+                const activeMinutes = Math.floor(Math.random() * (10 - 5 + 1)) + 5;
+                windowEnd = now + (activeMinutes * 60 * 1000); 
+                localStorage.setItem(SNIPER_WINDOW_KEY, windowEnd.toString());
+            }
+
+            if (now < windowEnd) {
+                // --- ACTIVE PHASE ---
+                setStatus('ACTIVE');
+                setTimeLeft('00:00:00');
+                setTargetTimeString('NOW');
+                
+                // You could show countdown of the window closing, 
+                // but user requested "wait... before counting down to next".
+                // So showing static 00:00:00 implies "Action Time".
+                setProgress(100);
+            } else {
+                // --- WINDOW EXPIRED -> RESET ---
+                // The wait period (Active Phase) is over.
+                // Generate NEXT target.
+                const minMinutes = 30;
+                const maxMinutes = 120;
+                const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
+                const newTarget = now + (randomMinutes * 60 * 1000);
+                
+                // Save new state
+                localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
+                localStorage.removeItem(SNIPER_WINDOW_KEY);
+                
+                // Recursive call to update UI immediately for new state
+                tick();
+            }
+        }
+    };
+
+    useEffect(() => {
+        tick(); // Initial render
+        const interval = setInterval(tick, 1000);
+        return () => clearInterval(interval);
+    }, []);
+
+    const isReady = status === 'ACTIVE';
+
+    return (
+        <div className={`mb-6 rounded-xl border relative overflow-hidden transition-all duration-500 ${isReady ? 'bg-green-500/20 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'bg-gradient-to-r from-slate-900 via-blue-900/40 to-slate-900 border-blue-500/30'}`}>
+            {/* Background Scanner Effect */}
+            {!isReady && (
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                    <div className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent transform -skew-x-12 animate-[shimmer_3s_infinite] translate-x-[-100%]"></div>
+                </div>
+            )}
+
+            <div className="flex flex-col sm:flex-row items-center justify-between p-4 relative z-10 gap-4">
+                
+                {/* Left: Label */}
+                <div className="flex items-center gap-4">
+                    <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${isReady ? 'border-green-400 bg-green-500/20 animate-pulse' : 'border-blue-400/50 bg-blue-500/10'}`}>
+                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${isReady ? 'text-green-400' : 'text-blue-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h3 className={`text-sm font-bold uppercase tracking-wider ${isReady ? 'text-green-400' : 'text-blue-300'}`}>
+                            {isReady ? 'SNIPER ENTRY WINDOW OPEN' : 'AI Calibration in Progress'}
+                        </h3>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                            {isReady 
+                                ? 'Market volatility optimal for A+ Setup execution.' 
+                                : 'Analyzing volume & liquidity for safe entry.'}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Right: Timer & Target */}
+                <div className="flex items-center gap-6 bg-black/20 px-4 py-2 rounded-lg border border-white/5">
+                    <div className="text-center">
+                        <span className="text-[10px] text-gray-500 uppercase font-mono block">Countdown</span>
+                        <span className={`font-mono text-xl md:text-2xl font-bold ${isReady ? 'text-green-400 animate-pulse' : 'text-white'}`}>
+                            {timeLeft}
+                        </span>
+                    </div>
+                    <div className="h-8 w-px bg-white/10"></div>
+                    <div className="text-center">
+                        <span className="text-[10px] text-gray-500 uppercase font-mono block">Sniper Time</span>
+                        <span className="font-mono text-lg font-bold text-yellow-400">
+                            {targetTimeString}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            {/* Loading Bar at bottom */}
+            {!isReady && (
+                <div className="h-1 w-full bg-black/40">
+                    <div className="h-full bg-blue-500/50 animate-[pulse_2s_infinite]"></div>
+                </div>
+            )}
+        </div>
+    );
+};
+
 // Hook to get current time and session
 const useDateTime = () => {
     const [now, setNow] = useState(new Date());
@@ -242,6 +398,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     return (
         <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-3 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
             
+            {/* New Safe Trading Timer */}
+            <SafeTradingTimer />
+
             <div className="mb-6">
                 <MarketTicker onAssetClick={onAssetSelect} />
             </div>
