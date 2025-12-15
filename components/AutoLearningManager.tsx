@@ -80,7 +80,7 @@ export const AutoLearningManager: React.FC = () => {
         setIsLearning(true);
         document.body.classList.add('learning-mode');
         
-        console.log(`🚀 GreyQuant Auto-ML: Initiating ${durationMinutes.toFixed(1)}-Minute Core Memory Upgrade...`);
+        console.log(`🚀 GreyAlpha Auto-ML: Initiating ${durationMinutes.toFixed(1)}-Minute Core Memory Upgrade...`);
 
         // Perform the actual API call asynchronously
         try {

@@ -1,8 +1,8 @@
 
 // A robust service worker for caching assets and handling updates.
 
-const CACHE_VERSION = 4; // Increment this version number when you deploy updates.
-const CACHE_NAME = `greyquant-cache-v${CACHE_VERSION}`;
+const CACHE_VERSION = 5; // Increment this version number when you deploy updates.
+const CACHE_NAME = `greyalpha-cache-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
   '/index.html',

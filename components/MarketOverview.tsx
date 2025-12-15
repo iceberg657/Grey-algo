@@ -58,7 +58,7 @@ const SafeTradingTimer: React.FC = () => {
         } else {
             // --- TARGET TIME REACHED OR PASSED ---
             
-            // Case A: Window is active (User is inside the 5-10 min execution window)
+            // Case A: Window is active (User is inside the 3-5 min execution window)
             if (windowEnd && now < windowEnd) {
                 setStatus('ACTIVE');
                 setTimeLeft('00:00:00');
@@ -69,17 +69,15 @@ const SafeTradingTimer: React.FC = () => {
                 const newTarget = generateNewTarget(now);
                 localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
                 localStorage.removeItem(SNIPER_WINDOW_KEY);
-                // State will update on next tick (1s) or fast-update below if we called tick() recursively, 
-                // but let's just let the interval handle it to avoid depth issues.
+                // State will update on next tick (1s)
             }
             // Case C: Target passed, but no window defined yet.
             // This happens when user hits 00:00:00 OR if they return to the app after being away.
             else if (!windowEnd) {
                 // Check if the target is STALE.
-                // If the user arrives 2 hours after the target, we shouldn't open the window.
-                // We allow a buffer of 15 minutes (Max window 10m + 5m tolerance).
+                // If the user arrives 10 minutes after the target, we shouldn't open the window.
                 const timeSinceTarget = now - target;
-                const MAX_LATE_THRESHOLD = 15 * 60 * 1000;
+                const MAX_LATE_THRESHOLD = 10 * 60 * 1000; // Updated to 10 minutes
 
                 if (timeSinceTarget > MAX_LATE_THRESHOLD) {
                     // Too late. Reset immediately.
@@ -88,8 +86,9 @@ const SafeTradingTimer: React.FC = () => {
                     localStorage.removeItem(SNIPER_WINDOW_KEY);
                 } else {
                     // User is on time (or slightly late but valid). Start the "Action" window.
-                    // Duration: 5 to 10 minutes
-                    const activeMinutes = Math.floor(Math.random() * (10 - 5 + 1)) + 5;
+                    // Duration: 3 to 5 minutes
+                    const activeMinutes = Math.floor(Math.random() * (5 - 3 + 1)) + 3; // Updated to 3-5 minutes
+                    
                     // Important: Window ends relative to NOW to give them the full time since they logged in/checked
                     const newWindowEnd = now + (activeMinutes * 60 * 1000);
                     localStorage.setItem(SNIPER_WINDOW_KEY, newWindowEnd.toString());

@@ -173,7 +173,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                         </g>
                     </svg>
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
-                        GreyQuant
+                        GreyAlpha
                     </h1>
                     <p className="mt-3 text-lg text-gray-600 dark:text-dark-text/80">
                         AI-powered quantitative trading and market analysis.

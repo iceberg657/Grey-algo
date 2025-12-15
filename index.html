@@ -1,10 +1,9 @@
-
 <!DOCTYPE html>
 <html lang="en" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GreyQuant</title>
+    <title>GreyAlpha</title>
     
     <!-- Icon -->
     <link rel="icon" type="image/svg+xml" href="/icon.svg">
@@ -202,8 +201,16 @@
     <script type="module" src="/index.tsx"></script>
     <script>
         // Redirect to hash-based URL for PWA compatibility
-        if (location.pathname === '/' && !location.hash) {
-            location.replace('./#/');
+        // Wrapped in try-catch to prevent errors in Blob/Sandbox environments where location modification is restricted
+        try {
+            if (location.pathname === '/' && !location.hash) {
+                // Check if we are not in a blob or special protocol that might forbid this
+                if (location.protocol === 'http:' || location.protocol === 'https:') {
+                    location.replace('./#/');
+                }
+            }
+        } catch (e) {
+            console.warn("Auto-redirect to hash URL skipped:", e);
         }
 
         if ('serviceWorker' in navigator) {

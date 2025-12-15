@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
@@ -84,6 +83,62 @@ const App: React.FC = () => {
         }
     });
 
+    // Helper for History Navigation
+    const navigateTo = useCallback((view: AppView) => {
+        // Check if we are in a safe environment to push state (http/https)
+        // This prevents SecurityError in blob/sandbox environments
+        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        
+        if (isSafeOrigin) {
+            try {
+                window.history.pushState({ view }, '', `#${view}`);
+            } catch (e) {
+                // Fallback attempt without URL change if explicit hash fails
+                try {
+                    window.history.pushState({ view }, '');
+                } catch (e2) {
+                    console.warn("History pushState disabled in this environment.");
+                }
+            }
+        }
+        setAppView(view);
+    }, []);
+
+    // Handle initial load and back button (popstate)
+    useEffect(() => {
+        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        const initialView = isLoggedIn ? 'home' : 'landing';
+        
+        if (!window.history.state && isSafeOrigin) {
+            try {
+                window.history.replaceState({ view: initialView }, '', `#${initialView}`);
+            } catch (e) {
+                try {
+                    window.history.replaceState({ view: initialView }, '');
+                } catch (e2) {
+                    console.warn("History replaceState disabled.");
+                }
+            }
+        }
+
+        const handlePopState = (event: PopStateEvent) => {
+            if (event.state && event.state.view) {
+                setAppView(event.state.view);
+            } else {
+                // If user went back to before our state history, reset to logical default
+                if (isLoggedIn) {
+                    setAppView('home');
+                } else {
+                    setAppView('landing');
+                }
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [isLoggedIn]);
+
+
     // Effect to save news to localStorage whenever it changes
     useEffect(() => {
         try {
@@ -161,24 +216,34 @@ const App: React.FC = () => {
 
     const handleLogin = () => {
         login();
-        setAppView('home');
+        navigateTo('home');
     };
     
     const handleSignUp = () => {
         login(); // Auto-login on sign up for simplicity
-        setAppView('home');
+        navigateTo('home');
     };
 
     const handleLogout = () => {
         logout();
-        setAppView('landing'); // Go back to landing page on logout
+        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        if (isSafeOrigin) {
+            try {
+                window.history.pushState({ view: 'landing' }, '', '#landing');
+            } catch (e) {
+                try {
+                    window.history.pushState({ view: 'landing' }, '');
+                } catch (e2) {}
+            }
+        }
+        setAppView('landing'); 
         setAuthPage('login');
     };
 
     const handleNavigateToAnalysis = (data: SignalData, from: AppView) => {
         setAnalysisData(data);
         setPreviousView(from);
-        setAppView('analysis');
+        navigateTo('analysis');
     };
     
     const handleNewAnalysis = (data: Omit<SignalData, 'id' | 'timestamp'>) => {
@@ -188,55 +253,68 @@ const App: React.FC = () => {
 
     const handleNavigateToHome = () => {
         setAnalysisData(null);
-        setAppView('home');
+        navigateTo('home');
     };
 
     const handleNavigateToHistory = () => {
-        setAppView('history');
+        navigateTo('history');
     };
 
     const handleNavigateToNews = () => {
         if (news.length === 0 && !newsError && !isNewsLoading) {
             fetchNewsData();
         }
-        setAppView('news');
+        navigateTo('news');
     };
 
     const handleNavigateToChat = () => {
-        setAppView('chat');
+        navigateTo('chat');
     };
     
     const handleNavigateToPredictor = () => {
         if (predictedEvents.length === 0 && !predictorError && !isPredictorLoading) {
             fetchPredictedEventsData();
         }
-        setAppView('predictor');
+        navigateTo('predictor');
     };
 
     const handleNavigateToStatistics = () => {
-        setAppView('statistics');
+        navigateTo('statistics');
     };
 
     const handleNavigateToCharting = () => {
-        setAppView('charting');
+        navigateTo('charting');
     };
 
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
-        setAppView(previousView);
+        // Instead of navigateTo, go back in history if possible to preserve natural flow,
+        // otherwise default to previousView
+        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
+        if (isSafeOrigin && window.history.length > 1) {
+             window.history.back();
+        } else {
+             // Fallback if history is empty or unsafe
+             navigateTo(previousView); 
+        }
     };
 
     const handleEnterApp = () => {
         setIsTransitioning(true);
         setTimeout(() => {
-            setAppView(isLoggedIn ? 'home' : 'auth');
+            const nextView = isLoggedIn ? 'home' : 'auth';
+            if (isLoggedIn) {
+                navigateTo('home');
+            } else {
+                setAppView('auth'); // Auth isn't a history state usually, effectively landing
+            }
             setIsTransitioning(false);
         }, 2500); // 2.5 second transition for loading effect
     };
 
     const handleAssetSelect = (asset: string) => {
         setPendingChatQuery(`Tell me the current update on ${asset}`);
-        setAppView('chat');
+        navigateTo('chat');
     };
 
     // New handler for chart analysis from the overlay

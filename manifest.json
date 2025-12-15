@@ -1,6 +1,7 @@
+
 {
-  "short_name": "GreyQuant",
-  "name": "GreyQuant",
+  "short_name": "GreyAlpha",
+  "name": "GreyAlpha",
   "icons": [
     {
       "src": "/icon.svg",

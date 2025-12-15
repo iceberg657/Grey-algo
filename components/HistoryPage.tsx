@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import type { SignalData } from '../types';
 import { getHistory, clearHistory } from '../services/historyService';
@@ -95,7 +94,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.setAttribute('href', url);
-        link.setAttribute('download', 'greyquant_analysis_history.csv');
+        link.setAttribute('download', 'greyalpha_analysis_history.csv');
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);

@@ -83,7 +83,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                         </g>
                     </svg>
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
-                        Grey Algo Chart Analyzer
+                        GreyAlpha Chart Analyzer
                     </h1>
                     <p className="mt-3 text-lg text-gray-600 dark:text-dark-text/80">
                         Upload your chart and let AI find your next trade.

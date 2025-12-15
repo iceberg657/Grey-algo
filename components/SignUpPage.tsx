@@ -75,7 +75,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
                         </g>
                     </svg>
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
-                        GreyQuant
+                        GreyAlpha
                     </h1>
                 </header>
                 
