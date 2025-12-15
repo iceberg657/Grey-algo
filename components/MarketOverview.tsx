@@ -15,7 +15,14 @@ const SafeTradingTimer: React.FC = () => {
     const [timeLeft, setTimeLeft] = useState<string>('--:--:--');
     const [targetTimeString, setTargetTimeString] = useState<string>('');
     const [status, setStatus] = useState<TimerState>('COUNTDOWN');
-    const [progress, setProgress] = useState(0);
+    
+    // Helper to generate a future target
+    const generateNewTarget = (baseTime: number) => {
+        const minMinutes = 30;
+        const maxMinutes = 120;
+        const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
+        return baseTime + (randomMinutes * 60 * 1000);
+    };
 
     const tick = () => {
         const now = Date.now();
@@ -25,18 +32,17 @@ const SafeTradingTimer: React.FC = () => {
         let target = targetStr ? parseInt(targetStr, 10) : null;
         let windowEnd = windowEndStr ? parseInt(windowEndStr, 10) : null;
 
-        // 1. Initialization (First Visit or Hard Reset)
-        if (!target && !windowEnd) {
-            // Generate initial target: Now + (30min to 120min)
-            const minMinutes = 30;
-            const maxMinutes = 120;
-            const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
-            target = now + (randomMinutes * 60 * 1000);
-            localStorage.setItem(SNIPER_TARGET_KEY, target.toString());
+        // 1. Initialization (First Visit or Corrupted State)
+        if (!target) {
+            const newTarget = generateNewTarget(now);
+            localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
+            localStorage.removeItem(SNIPER_WINDOW_KEY);
+            target = newTarget;
+            windowEnd = null;
         }
 
-        // 2. Check State Transitions
-        if (target && now < target) {
+        // 2. Logic Branching
+        if (now < target) {
             // --- COUNTDOWN PHASE ---
             setStatus('COUNTDOWN');
             
@@ -46,51 +52,53 @@ const SafeTradingTimer: React.FC = () => {
             const seconds = Math.floor((diff / 1000) % 60);
             setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
             
-            // Format Target Time
             const date = new Date(target);
             setTargetTimeString(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            
-            // Calc Progress (Visual only, approximating a 2hr max bar)
-            // Ideally we'd store start time too, but relative to 'now' visual is okay
-            setProgress(0); 
 
-        } else if (target && now >= target) {
-            // --- TARGET REACHED -> SWITCH TO ACTIVE OR CHECK WINDOW ---
+        } else {
+            // --- TARGET TIME REACHED OR PASSED ---
             
-            // If we haven't defined a window end time yet, define it now.
-            // This happens the exact second target is reached, OR if user returns after target passed.
-            if (!windowEnd) {
-                // Window Duration: 5 to 10 minutes
-                const activeMinutes = Math.floor(Math.random() * (10 - 5 + 1)) + 5;
-                windowEnd = now + (activeMinutes * 60 * 1000); 
-                localStorage.setItem(SNIPER_WINDOW_KEY, windowEnd.toString());
-            }
-
-            if (now < windowEnd) {
-                // --- ACTIVE PHASE ---
+            // Case A: Window is active (User is inside the 5-10 min execution window)
+            if (windowEnd && now < windowEnd) {
                 setStatus('ACTIVE');
                 setTimeLeft('00:00:00');
                 setTargetTimeString('NOW');
-                
-                // You could show countdown of the window closing, 
-                // but user requested "wait... before counting down to next".
-                // So showing static 00:00:00 implies "Action Time".
-                setProgress(100);
-            } else {
-                // --- WINDOW EXPIRED -> RESET ---
-                // The wait period (Active Phase) is over.
-                // Generate NEXT target.
-                const minMinutes = 30;
-                const maxMinutes = 120;
-                const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
-                const newTarget = now + (randomMinutes * 60 * 1000);
-                
-                // Save new state
+            } 
+            // Case B: Window Expired (User missed it or waited too long) -> RESET
+            else if (windowEnd && now >= windowEnd) {
+                const newTarget = generateNewTarget(now);
                 localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
                 localStorage.removeItem(SNIPER_WINDOW_KEY);
-                
-                // Recursive call to update UI immediately for new state
-                tick();
+                // State will update on next tick (1s) or fast-update below if we called tick() recursively, 
+                // but let's just let the interval handle it to avoid depth issues.
+            }
+            // Case C: Target passed, but no window defined yet.
+            // This happens when user hits 00:00:00 OR if they return to the app after being away.
+            else if (!windowEnd) {
+                // Check if the target is STALE.
+                // If the user arrives 2 hours after the target, we shouldn't open the window.
+                // We allow a buffer of 15 minutes (Max window 10m + 5m tolerance).
+                const timeSinceTarget = now - target;
+                const MAX_LATE_THRESHOLD = 15 * 60 * 1000;
+
+                if (timeSinceTarget > MAX_LATE_THRESHOLD) {
+                    // Too late. Reset immediately.
+                    const newTarget = generateNewTarget(now);
+                    localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
+                    localStorage.removeItem(SNIPER_WINDOW_KEY);
+                } else {
+                    // User is on time (or slightly late but valid). Start the "Action" window.
+                    // Duration: 5 to 10 minutes
+                    const activeMinutes = Math.floor(Math.random() * (10 - 5 + 1)) + 5;
+                    // Important: Window ends relative to NOW to give them the full time since they logged in/checked
+                    const newWindowEnd = now + (activeMinutes * 60 * 1000);
+                    localStorage.setItem(SNIPER_WINDOW_KEY, newWindowEnd.toString());
+                    
+                    // Immediate UI update
+                    setStatus('ACTIVE');
+                    setTimeLeft('00:00:00');
+                    setTargetTimeString('NOW');
+                }
             }
         }
     };
