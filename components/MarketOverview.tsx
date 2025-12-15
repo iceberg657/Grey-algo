@@ -4,6 +4,7 @@ import { getOrRefreshGlobalAnalysis } from '../services/globalMarketService';
 import { getOrRefreshSuggestions } from '../services/suggestionService';
 import type { GlobalMarketAnalysis, AssetSuggestion } from '../types';
 import { MarketTicker } from './MarketTicker';
+import { KillzoneClock } from './KillzoneClock';
 
 // --- Safe Trading Timer Logic ---
 const SNIPER_TARGET_KEY = 'greyquant_sniper_target';
@@ -168,42 +169,6 @@ const SafeTradingTimer: React.FC = () => {
     );
 };
 
-// Hook to get current time and session
-const useDateTime = () => {
-    const [now, setNow] = useState(new Date());
-
-    useEffect(() => {
-        const timer = setInterval(() => setNow(new Date()), 1000);
-        return () => clearInterval(timer);
-    }, []);
-
-    const day = now.toLocaleDateString(undefined, { weekday: 'long' });
-    const date = now.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
-    const time = now.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    const getUtcOffsetString = () => {
-        const offsetMinutes = -now.getTimezoneOffset();
-        const offsetHours = offsetMinutes / 60;
-        const sign = offsetHours >= 0 ? '+' : '-';
-        const hours = Math.floor(Math.abs(offsetHours));
-        return `UTC${sign}${String(hours).padStart(2, '0')}`;
-    };
-
-    const getActiveSessions = () => {
-        const utcHour = now.getUTCHours();
-        const sessions = [];
-        // Asian Session (approx 23:00 - 08:00 UTC)
-        if (utcHour >= 23 || utcHour < 8) sessions.push('Asian');
-        // London Session (approx 07:00 - 16:00 UTC)
-        if (utcHour >= 7 && utcHour < 16) sessions.push('London');
-        // New York Session (approx 12:00 - 21:00 UTC)
-        if (utcHour >= 12 && utcHour < 21) sessions.push('New York');
-        return sessions.length > 0 ? sessions.join(' / ') : 'N/A';
-    };
-
-    return { day, date, time, utcOffset: getUtcOffsetString(), activeSessions: getActiveSessions() };
-};
-
 // Hook to get market status
 const useMarketStatus = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -244,7 +209,7 @@ interface MarketOverviewProps {
     analysisCount: number;
     onResetCount: () => void;
     onAssetSelect?: (asset: string) => void;
-    profitMode: boolean; // Add Profit Mode Prop
+    profitMode: boolean; 
 }
 
 export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect, profitMode }) => {
@@ -252,7 +217,6 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     const chartInstance = useRef<any>(null); // Using any for Chart.js instance
     const [timeRange, setTimeRange] = useState<'1H' | '1D' | '1W'>('1H');
     const { isOpen, statusText } = useMarketStatus();
-    const { day, date, time, utcOffset, activeSessions } = useDateTime();
     const [globalAnalysis, setGlobalAnalysis] = useState<GlobalMarketAnalysis | null>(null);
     const [isUpdatingGlobal, setIsUpdatingGlobal] = useState(false);
     
@@ -405,7 +369,6 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     return (
         <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-3 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
             
-            {/* New Safe Trading Timer */}
             <SafeTradingTimer />
 
             <div className="mb-6">
@@ -459,30 +422,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     </div>
                 </div>
 
-                {/* Current Day Card */}
-                <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[auto] md:min-h-[120px]">
-                    <div className="flex justify-between items-start mb-2 md:mb-0">
-                        <span className="text-xs uppercase font-semibold text-dark-text-secondary tracking-wider">Current Day</span>
-                         <div className="bg-blue-500/20 p-1.5 rounded-lg">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                    </div>
-                    <div className="flex-grow flex flex-col justify-center">
-                        <h3 className="text-2xl sm:text-3xl font-bold text-white">{day}</h3>
-                        <div className="flex items-center mt-1">
-                             <span className="h-2 w-2 rounded-full bg-green-500 mr-2"></span>
-                             <p className="text-sm text-dark-text-secondary">{date}</p>
-                        </div>
-                    </div>
-                    <div className="flex flex-wrap items-end justify-between mt-1 gap-2">
-                        <span className="px-2 py-0.5 bg-blue-500/20 text-blue-300 text-xs font-semibold rounded-full">{activeSessions}</span>
-                        <div className="text-right">
-                           <span className="font-mono text-base text-dark-text">{time}</span>
-                           <span className="font-mono text-xs text-dark-text-secondary ml-1">{utcOffset}</span>
-                        </div>
-                    </div>
+                {/* Killzone Clock - Replaces basic Current Day Card */}
+                <div className="col-span-1 md:col-span-1">
+                    <KillzoneClock />
                 </div>
                 
                  {/* Analysis Count Card */}

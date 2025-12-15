@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from '../contexts/ThemeContext';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { NeuralBackground } from './NeuralBackground';
@@ -412,6 +412,71 @@ footer { background: rgba(15, 23, 42, 0.2); padding: 50px 0 20px; margin-top: 0;
 }
 `;
 
+const LiveSignalFeed: React.FC = () => {
+    const [signals, setSignals] = useState<any[]>([]);
+    
+    const assets = ['EUR/USD', 'GBP/JPY', 'XAU/USD', 'NAS100', 'US30', 'BTC/USD'];
+    const outcomes = ['WIN', 'TP HIT', 'BREAKEVEN'];
+    
+    const addSignal = () => {
+        const asset = assets[Math.floor(Math.random() * assets.length)];
+        const direction = Math.random() > 0.5 ? 'BUY' : 'SELL';
+        const pips = Math.floor(Math.random() * 50) + 10;
+        const outcome = outcomes[Math.floor(Math.random() * outcomes.length)];
+        const isWin = outcome !== 'BREAKEVEN';
+        
+        const newSignal = {
+            id: Date.now(),
+            asset,
+            direction,
+            pips,
+            outcome,
+            isWin,
+            time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+        };
+        
+        setSignals(prev => [newSignal, ...prev].slice(0, 5));
+    };
+
+    useEffect(() => {
+        // Initial population
+        addSignal();
+        addSignal();
+        
+        const interval = setInterval(() => {
+            if (Math.random() > 0.3) {
+                addSignal();
+            }
+        }, 2000);
+        return () => clearInterval(interval);
+    }, []);
+
+    return (
+        <div className="absolute top-24 right-4 md:right-10 z-20 hidden lg:block w-72 pointer-events-none opacity-80">
+            <div className="flex flex-col gap-2">
+                <div className="text-xs font-bold text-green-400 uppercase tracking-widest mb-1 pl-2">Live Alpha Stream</div>
+                {signals.map((sig) => (
+                    <div key={sig.id} className="bg-black/60 backdrop-blur-md border border-gray-700/50 p-3 rounded-lg shadow-lg animate-fade-in flex items-center justify-between">
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-sm">{sig.asset}</span>
+                                <span className={`text-[10px] font-bold px-1.5 rounded ${sig.direction === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{sig.direction}</span>
+                            </div>
+                            <span className="text-[10px] text-gray-400">{sig.time}</span>
+                        </div>
+                        <div className="text-right">
+                            <div className={`font-mono font-bold ${sig.isWin ? 'text-green-400' : 'text-gray-400'}`}>
+                                {sig.isWin ? '+' : ''}{sig.pips} Pips
+                            </div>
+                            <span className="text-[10px] text-gray-500 font-bold">{sig.outcome}</span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }) => {
     const { theme } = useTheme();
 
@@ -544,6 +609,9 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
 
                 {/* Global Background Animation */}
                 <NeuralBackground />
+                
+                {/* Simulated Live Feed */}
+                <LiveSignalFeed />
 
                 {/* Header */}
                 <header className="landing-header">
