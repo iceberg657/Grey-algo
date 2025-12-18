@@ -19,7 +19,8 @@ interface HomePageProps {
     onNavigateToChat: () => void;
     onNavigateToPredictor: () => void;
     onNavigateToStatistics: () => void;
-    onNavigateToCharting: () => void; 
+    onNavigateToCharting: () => void;
+    onNavigateToProducts: () => void; 
     onAssetSelect?: (asset: string) => void;
 }
 
@@ -39,7 +40,7 @@ const NavButton: React.FC<{
     </button>
 );
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor, onNavigateToStatistics, onNavigateToCharting, onAssetSelect }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor, onNavigateToStatistics, onNavigateToCharting, onNavigateToProducts, onAssetSelect }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
@@ -111,6 +112,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             label: 'Academy',
             ariaLabel: 'Open Tactical Academy',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+        },
+        {
+            onClick: onNavigateToProducts,
+            label: 'Products',
+            ariaLabel: 'Open GreyAlpha Products',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
         },
         {
             onClick: onNavigateToNews,

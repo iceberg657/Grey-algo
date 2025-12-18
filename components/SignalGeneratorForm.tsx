@@ -79,6 +79,21 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const blob = items[i].getAsFile();
+                if (blob) {
+                    handleFile(blob);
+                    break;
+                }
+            }
+        }
+    };
+
     const handleRemoveImage = (e: React.MouseEvent) => {
         e.stopPropagation();
         handleFile(null);
@@ -93,9 +108,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
             onDragLeave={handleDrag} 
             onDragOver={handleDrag}
             onDrop={handleDrop}
+            onPaste={handlePaste}
+            tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
-            className={`relative group flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-colors ${
-                isDragging ? 'border-green-400 bg-dark-card/80' : 'border-gray-300 dark:border-green-500/50 hover:border-green-400 dark:hover:bg-dark-bg/60'
+            className={`relative group flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-green-500/50 ${
+                isDragging ? 'border-green-400 bg-dark-card/80' : 'border-gray-300 dark:border-green-500/30 hover:border-green-400 dark:hover:bg-dark-bg/60'
             } min-h-[160px] overflow-hidden`}
         >
             <input
@@ -110,7 +127,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                 <>
                     <img src={imagePreview} alt={title} className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
-                        <span className="text-white font-semibold">Change Image</span>
+                        <span className="text-white font-semibold">Change or Paste</span>
                     </div>
                     <button 
                         onClick={handleRemoveImage}
@@ -124,9 +141,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                 </>
             ) : (
                 <>
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                    <p className="font-semibold text-gray-700 dark:text-dark-text text-center">{title} {required && <span className="text-red-500">*</span>}</p>
-                    <p className="text-xs text-gray-500 dark:text-dark-text-secondary text-center">{subtitle}</p>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <p className="font-semibold text-gray-700 dark:text-dark-text text-center text-sm">{title} {required && <span className="text-red-500">*</span>}</p>
+                    <p className="text-[10px] text-gray-500 dark:text-dark-text-secondary text-center uppercase tracking-tight">Drop, click, or paste image</p>
                 </>
             )}
         </div>
@@ -276,7 +295,6 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 )}
             </div>
 
-            {/* Changed from lg:grid-cols-3 to md:grid-cols-2 lg:grid-cols-3 for better tablet support */}
             <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-2 lg:grid-cols-3' : ''}`}>
                 {isMultiDimensional && (
                      <ImageUploader 

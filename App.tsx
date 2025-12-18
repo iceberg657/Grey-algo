@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
@@ -8,6 +9,7 @@ import { NewsPage } from './components/NewsPage';
 import { ChatPage } from './components/ChatPage';
 import { PredictorPage } from './components/PredictorPage';
 import { MarketStatisticsPage } from './components/MarketStatisticsPage';
+import { ProductsPage } from './components/ProductsPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, NewsArticle, PredictedEvent, ChatMessage, AnalysisRequest } from './types';
@@ -25,7 +27,7 @@ import { NeuralBackground } from './components/NeuralBackground';
 
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'statistics' | 'charting';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'statistics' | 'charting' | 'products';
 
 // Storage keys
 const NEWS_STORAGE_KEY = 'greyquant_news';
@@ -286,6 +288,10 @@ const App: React.FC = () => {
         navigateTo('charting');
     };
 
+    const handleNavigateToProducts = () => {
+        navigateTo('products');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         // Instead of navigateTo, go back in history if possible to preserve natural flow,
@@ -379,6 +385,7 @@ const App: React.FC = () => {
                     onNavigateToPredictor={handleNavigateToPredictor}
                     onNavigateToStatistics={handleNavigateToStatistics}
                     onNavigateToCharting={handleNavigateToCharting}
+                    onNavigateToProducts={handleNavigateToProducts}
                     onAssetSelect={handleAssetSelect}
                 />
             );
@@ -432,6 +439,14 @@ const App: React.FC = () => {
         case 'statistics':
             content = (
                 <MarketStatisticsPage 
+                    onBack={handleNavigateToHome} 
+                    onLogout={handleLogout}
+                />
+            );
+            break;
+        case 'products':
+            content = (
+                <ProductsPage 
                     onBack={handleNavigateToHome} 
                     onLogout={handleLogout}
                 />
