@@ -1,139 +1,128 @@
 
-// In-memory cache to store data.
+const { GoogleGenAI, Type } = require("@google/genai");
+
+// Gemini Key Rotation (Same as fetchData.js)
+const KEYS = [
+    process.env.API_KEY_1,
+    process.env.API_KEY_2,
+    process.env.API_KEY_3,
+    process.env.API_KEY
+].filter(key => !!key && key.trim() !== '');
+
+// Internal cache to prevent hitting Gemini too hard
 let marketDataCache = {
     timestamp: null,
     data: [],
 };
 
-// Realistic fallback data to ensure the ticker is NEVER empty, 
-// even if the API rate limit (5 calls/minute) is hit.
-const FALLBACK_DATA = {
-    'EUR/USD': { price: 1.0845, change: 0.0012, changePercent: 0.11 },
-    'GBP/USD': { price: 1.2630, change: -0.0015, changePercent: -0.12 },
-    'USD/JPY': { price: 148.15, change: 0.35, changePercent: 0.24 },
-    'USD/CHF': { price: 0.8840, change: 0.0008, changePercent: 0.09 },
-    'AUD/USD': { price: 0.6550, change: -0.0025, changePercent: -0.38 },
-    'EUR/GBP': { price: 0.8555, change: 0.0010, changePercent: 0.12 },
-    'EUR/JPY': { price: 160.90, change: 0.60, changePercent: 0.37 },
-    'GBP/JPY': { price: 187.40, change: 0.45, changePercent: 0.24 },
-    'AUD/JPY': { price: 96.85, change: -0.15, changePercent: -0.15 },
-    'NZD/USD': { price: 0.6125, change: -0.0010, changePercent: -0.16 },
-    'BTC/USD': { price: 64250.00, change: 1200.50, changePercent: 1.90 },
-    'ETH/USD': { price: 3450.50, change: 85.20, changePercent: 2.53 },
-    'XAU/USD': { price: 2150.40, change: 12.10, changePercent: 0.56 }
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes cache for market prices
+
+const SYMBOLS = [
+    'EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD',
+    'EUR/GBP', 'EUR/JPY', 'GBP/JPY', 'AUD/JPY', 'NZD/USD',
+    'BTC/USD', 'ETH/USD', 'SOL/USD', 'XAU/USD', 'US30', 'NAS100'
+];
+
+/**
+ * Prompt to get live market data from Gemini Search
+ */
+const PRICE_PROMPT = `Find the current real-time market price, 24h absolute change, and 24h percentage change for these assets: ${SYMBOLS.join(', ')}. 
+Return the data as a structured array. Ensure prices are accurate to current market conditions.`;
+
+const RESPONSE_SCHEMA = {
+    type: Type.ARRAY,
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            symbol: { type: Type.STRING, description: 'The trading pair symbol' },
+            price: { type: Type.NUMBER, description: 'Current market price' },
+            change: { type: Type.NUMBER, description: 'Absolute change in the last 24h' },
+            changePercent: { type: Type.NUMBER, description: 'Percentage change in the last 24h' }
+        },
+        required: ["symbol", "price", "change", "changePercent"]
+    }
 };
 
-const isSameDay = (d1, d2) => {
-    if (!d1 || !d2) return false;
-    const date1 = new Date(d1);
-    const date2 = new Date(d2);
-    return date1.getUTCFullYear() === date2.getUTCFullYear() &&
-           date1.getUTCMonth() === date2.getUTCMonth() &&
-           date1.getUTCDate() === date2.getUTCDate();
-};
-
-const simulateFluctuations = (data) => {
+/**
+ * Simulates micro-fluctuations to make the UI feel alive
+ */
+const simulateJitter = (data) => {
     return data.map(item => {
-        const isCrypto = item.symbol.includes('BTC') || item.symbol.includes('ETH');
-        const baseVolatility = isCrypto ? 0.0005 : 0.0001;
+        const volatility = item.symbol.includes('BTC') || item.symbol.includes('SOL') ? 0.0003 : 0.00005;
+        const randomFactor = (Math.random() - 0.5) * 2;
+        const jitter = item.price * volatility * randomFactor;
         
-        const volatility = item.price * baseVolatility;
-        const randomFactor = (Math.random() - 0.5) * 2; 
-        const priceChange = volatility * randomFactor;
-        
-        const newPrice = item.price + priceChange;
-        const openPrice = item.price - item.change;
-        const newChange = newPrice - openPrice;
-        const newChangePercent = (newChange / openPrice) * 100;
-        
-        let pricePrecision = 4;
-        if (item.symbol.includes('JPY')) pricePrecision = 2;
-        if (item.symbol.includes('XAU') || item.symbol.includes('BTC') || item.symbol.includes('ETH')) pricePrecision = 2;
+        const newPrice = item.price + jitter;
+        const newChange = item.change + jitter;
+        const newChangePercent = (newChange / (newPrice - newChange)) * 100;
+
+        let precision = 4;
+        if (item.symbol.includes('JPY') || item.symbol.includes('XAU') || item.symbol.includes('BTC')) precision = 2;
+        if (item.symbol.includes('US30') || item.symbol.includes('NAS100')) precision = 1;
 
         return {
             symbol: item.symbol,
-            price: parseFloat(newPrice.toFixed(pricePrecision)),
-            change: parseFloat(newChange.toFixed(pricePrecision)),
-            changePercent: parseFloat(newChangePercent.toFixed(2)),
+            price: parseFloat(newPrice.toFixed(precision)),
+            change: parseFloat(newChange.toFixed(precision)),
+            changePercent: parseFloat(newChangePercent.toFixed(2))
         };
     });
 };
 
-async function fetchFreshData(apiKey) {
-    const majorPairs = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'];
-    const minorPairs = ['EUR/GBP', 'EUR/JPY', 'GBP/JPY', 'AUD/JPY', 'NZD/USD'];
-    const cryptoAndMetals = ['BTC/USD', 'ETH/USD', 'XAU/USD'];
-    
-    const allPairs = [...majorPairs, ...minorPairs, ...cryptoAndMetals];
-    
-    console.log(`Fetching ${allPairs.length} pairs. Note: Free tier allows 5 calls/min.`);
+async function fetchFromGemini() {
+    if (KEYS.length === 0) throw new Error("No Gemini API Keys configured.");
 
-    // We process requests in parallel, but handle failures individually
-    const promises = allPairs.map(async (pair) => {
-        const symbol = pair.replace('/', '');
-        const url = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${symbol}&apikey=${apiKey}`;
-        
+    for (const apiKey of KEYS) {
         try {
-            const res = await fetch(url);
-            const data = await res.json();
-            
-            // Check if we got a valid quote
-            if (data['Global Quote'] && data['Global Quote']['05. price']) {
-                const quote = data['Global Quote'];
-                return {
-                    symbol: pair,
-                    price: parseFloat(quote['05. price']),
-                    change: parseFloat(quote['09. change']),
-                    changePercent: parseFloat(quote['10. change percent'].replace('%', '')),
+            const ai = new GoogleGenAI({ apiKey });
+            const response = await ai.models.generateContent({
+                model: 'gemini-3-flash-preview',
+                contents: [{ parts: [{ text: PRICE_PROMPT }] }],
+                config: {
+                    tools: [{ googleSearch: {} }],
+                    responseMimeType: "application/json",
+                    responseSchema: RESPONSE_SCHEMA,
+                    temperature: 0.1
+                }
+            });
+
+            const text = response.text;
+            if (!text) continue;
+
+            const parsedData = JSON.parse(text);
+            if (Array.isArray(parsedData) && parsedData.length > 0) {
+                marketDataCache = {
+                    timestamp: Date.now(),
+                    data: parsedData
                 };
-            } else {
-                // If API rate limited or errored, USE FALLBACK for this specific pair
-                // console.warn(`Rate limit or error for ${pair}, using fallback.`);
-                const fallback = FALLBACK_DATA[pair];
-                return { symbol: pair, ...fallback };
+                return parsedData;
             }
-        } catch (e) {
-            console.error(`Network error for ${pair}`, e);
-            const fallback = FALLBACK_DATA[pair];
-            return { symbol: pair, ...fallback };
+        } catch (error) {
+            console.error(`Gemini Market Data Error with key ending ${apiKey.slice(-4)}:`, error.message);
+            continue; // Try next key
         }
-    });
-    
-    try {
-        const results = await Promise.all(promises);
-        
-        marketDataCache = {
-            timestamp: Date.now(),
-            data: results,
-        };
-        return results;
-    } catch (error) {
-        console.error("Critical error in fetchFreshData:", error);
-        // If everything crashes, return mapped fallback data
-        const emergencyData = allPairs.map(pair => ({ symbol: pair, ...FALLBACK_DATA[pair] }));
-        return emergencyData;
     }
+    
+    // Final Fallback if all keys fail
+    return marketDataCache.data.length > 0 ? marketDataCache.data : SYMBOLS.map(s => ({
+        symbol: s, price: 0, change: 0, changePercent: 0
+    }));
 }
 
 module.exports = async (req, res) => {
-    const apiKey = process.env.ALPHA_VANTAGE_API_KEY;
+    try {
+        const now = Date.now();
+        const isStale = !marketDataCache.timestamp || (now - marketDataCache.timestamp > CACHE_DURATION);
 
-    if (!apiKey) {
-        return res.status(500).json({ error: "Server configuration error: API key is missing." });
-    }
+        let data;
+        if (isStale) {
+            data = await fetchFromGemini();
+        } else {
+            data = simulateJitter(marketDataCache.data);
+        }
 
-    const now = Date.now();
-    const cacheTimestamp = marketDataCache.timestamp;
-
-    // Cache strategy: Fetch fresh data only if cache is empty or it's a new day (UTC).
-    // This aggressively conserves API calls while simulating "live" movement via client-side jitter.
-    if (!cacheTimestamp || !isSameDay(now, cacheTimestamp)) {
-        console.log("Cache stale/empty. Attempting fetch...");
-        const data = await fetchFreshData(apiKey);
-        return res.status(200).json(data);
-    } else {
-        // Serve simulated data based on cache
-        const simulatedData = simulateFluctuations(marketDataCache.data);
-        return res.status(200).json(simulatedData);
+        res.status(200).json(data);
+    } catch (error) {
+        res.status(500).json({ error: "Failed to load market data", details: error.message });
     }
 };

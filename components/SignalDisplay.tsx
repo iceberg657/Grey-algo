@@ -147,7 +147,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             }
             setTtsState('idle');
         } else { // ttsState is 'idle'
-            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence, expectedDuration } = data;
+            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence, expectedDuration, entryType } = data;
             
             // Determine probability level for TTS
             let probabilityLevel = "Low Probability";
@@ -161,6 +161,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             
             textToSpeak += `
                 Confidence is ${confidence} percent, classified as ${probabilityLevel}.
+                Entry Type is ${entryType || 'not specified'}.
                 Expected duration is ${expectedDuration || 'not specified'}.
                 The three entry points are ${entryPoints.join(', ')}.
                 Stop loss is at ${stopLoss}.
@@ -197,6 +198,31 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     };
     
     const confidenceDetails = getConfidenceDetails(data.confidence);
+
+    const getEntryTypeBadge = () => {
+        if (!data.entryType) return null;
+        
+        const type = data.entryType;
+        let color = 'bg-gray-500 text-white';
+        let label = type;
+
+        if (type === 'Market Execution') {
+            color = 'bg-blue-600 text-white animate-pulse';
+            label = 'MARKET EXECUTION (NOW)';
+        } else if (type === 'Pullback') {
+            color = 'bg-orange-500 text-white';
+            label = 'WAIT FOR PULLBACK';
+        } else if (type === 'Breakout') {
+            color = 'bg-purple-600 text-white';
+            label = 'STOP ORDER (BREAKOUT)';
+        }
+
+        return (
+            <div className={`mt-2 inline-flex items-center px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide shadow-sm ${color}`}>
+                {label}
+            </div>
+        );
+    };
 
     return (
         <div className="animate-fade-in text-sm max-w-full overflow-hidden">
@@ -236,9 +262,31 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  />
             </div>
 
+            {/* AUTO-EXIT RULE BANNER */}
+            {data.expectedDuration && (
+                <div className="mt-3 p-3 bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-200 dark:border-indigo-500/20 rounded-lg flex gap-3 animate-fade-in">
+                    <div className="flex-shrink-0 mt-0.5 text-indigo-500 dark:text-indigo-400">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                        </svg>
+                    </div>
+                    <div>
+                        <h4 className="text-xs font-bold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider mb-1">
+                            GreyAlpha Auto-Exit Protocol
+                        </h4>
+                        <p className="text-xs text-gray-700 dark:text-gray-300 font-medium">
+                            If trade duration expires AND TP not hit &rarr; <span className="font-bold text-red-500 dark:text-red-400">close at market or BE</span>.
+                        </p>
+                        <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 italic">
+                            No discretion. No emotion. No "just a little longer".
+                        </p>
+                    </div>
+                </div>
+            )}
+
             <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-2">
                 <TiltCard>
-                    <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 h-full">
+                    <div className="p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 h-full flex flex-col items-center">
                          <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Entry Points</span>
                          {/* Added flex-wrap for responsiveness */}
                          <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-6">
@@ -249,6 +297,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 </div>
                             ))}
                          </div>
+                         {getEntryTypeBadge()}
                     </div>
                 </TiltCard>
                 <TiltCard>

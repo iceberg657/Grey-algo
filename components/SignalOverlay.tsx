@@ -183,16 +183,32 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
                 <ToolButton onClick={() => addAnnotation('liquidity')} color="bg-blue-500/20 text-blue-400 border-blue-500/50" label="Liq $$$" icon="〰️" />
                 <ToolButton onClick={() => addAnnotation('support')} color="bg-green-500/20 text-green-400 border-green-500/50" label="Supp Lvl" icon="⬆️" />
                 <ToolButton onClick={() => addAnnotation('resistance')} color="bg-red-500/20 text-red-400 border-red-500/50" label="Res Lvl" icon="⬇️" />
+                
                 <div className="h-px bg-white/10 my-1"></div>
+                
+                {/* Clear All Button */}
                 <button 
                     onClick={() => setAnnotations([])}
                     className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 text-xs transition-colors"
-                    title="Clear All"
+                    title="Clear All Annotations"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                     </svg>
                 </button>
+
+                {/* EXIT Button */}
+                {onBack && (
+                    <button 
+                        onClick={onBack}
+                        className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs transition-colors mt-1 border border-red-500/20"
+                        title="Exit Charting"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                    </button>
+                )}
             </div>
 
 
@@ -264,12 +280,13 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
                             {onBack && (
                                 <button 
                                     onClick={onBack}
-                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
-                                    title="Back"
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors flex items-center gap-1 group"
+                                    title="Exit to Home"
                                 >
                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                                     </svg>
+                                    <span className="text-xs font-bold md:hidden group-hover:inline ml-1 transition-all">EXIT</span>
                                 </button>
                             )}
                             <ThemeToggleButton />

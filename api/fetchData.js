@@ -52,6 +52,7 @@ Since you are forced to trade 24/5 to meet quota, you must protect the capital w
 **VISUAL ANALYSIS PROTOCOL:**
 1.  **Identify Key Zones:** Locate the nearest Order Blocks, FVGs, and Liquidity Pools based on visual price action.
 2.  **Determine Direction:** Based on the *immediate* momentum, which way is the market pushing? Trade with the flow.
+3.  **Compare Current Price vs Entry:** Explicitly determine if the entry point is at the current market price shown on the chart, or if it requires a pullback/limit order.
 
 ${profitModeInstructions}
 
@@ -73,8 +74,12 @@ ${learnedSection}
 
 **Response Requirements:**
 1. **Classification:** Rate confidence based on setup quality (80-100% = A+ Setup, 50-79% = B Setup).
-2. **Speed & Data:** Be concise. Use Google Search **strictly** for a quick check of current news/sentiment. Do not perform deep research.
-3. **Output:** Return ONLY a valid JSON object.
+2. **Entry Type:** You MUST classify the entry as:
+   - **'Market Execution'**: If the suggested entry is essentially the Current Market Price (CMP) shown on the chart.
+   - **'Pullback'**: If the suggested entry is better than current price (e.g. Sell Limit above CMP, Buy Limit below CMP).
+   - **'Breakout'**: If the suggested entry is a Stop Order.
+3. **Speed & Data:** Be concise. Use Google Search **strictly** for a quick check of current news/sentiment. Do not perform deep research.
+4. **Output:** Return ONLY a valid JSON object.
 
 **Output Format:**
 {
@@ -83,6 +88,7 @@ ${learnedSection}
   "signal": "'BUY' or 'SELL' or 'NEUTRAL'",
   "confidence": "number (0-100)",
   "entryPoints": [number, number, number],
+  "entryType": "'Market Execution' | 'Pullback' | 'Breakout'",
   "stopLoss": "number",
   "takeProfits": [number, number, number],
   "expectedDuration": "string (e.g. '45 Minutes', '2 Hours')",
