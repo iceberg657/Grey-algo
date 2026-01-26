@@ -1,6 +1,10 @@
 
 /**
- * Neural Link Orchestrator: Manages task-specific API key pools and rotation.
+ * GreyAlpha Lane Orchestrator
+ * 
+ * ANALYSIS_POOL: K1, K2, K3 -> Visual Reasoning
+ * SERVICE_POOL: K4, K5 -> Background Polling/Search
+ * CHAT_ML_POOL: K6 -> User Interaction & Learning
  */
 
 const K = {
@@ -13,107 +17,48 @@ const K = {
     K6: process.env.API_KEY_6 || ''
 };
 
-// Lite Pool: API_KEY_1 and API_KEY_2
-// Tasks: Predictor, News, Suggestions, Global Market, Ticker
-export const LITE_POOL = [K.K1, K.K2].filter(k => !!k);
+// Lane 1: Chart Analysis (High Priority Visuals)
+export const ANALYSIS_POOL = [K.K1, K.K2, K.K3].filter(k => !!k);
 
-// Chat & Auto-ML Pool: API_KEY_6
-// Tasks: Oracle AI Chat, Autonomous Strategy Learning
-export const CHAT_POOL = [K.K6].filter(k => !!k);
+// Lane 2: Main App Services (News, Global Bias, Suggestions, Predictions)
+export const SERVICE_POOL = [K.K4, K.K5].filter(k => !!k);
 
-// Chart Pool: API_KEY_3, API_KEY_4, API_KEY_5, and fallback to K2
-// Tasks: Analyzing Chart Screenshots
-export const CHART_POOL = [K.K3, K.K4, K.K5, K.K2].filter(k => !!k);
+// Lane 3: User interaction & Intelligence Growth (Chat, ML)
+export const CHAT_ML_POOL = [K.K6].filter(k => !!k);
 
-/**
- * Specialized executor for background "Lite" tasks.
- */
-export async function executeLiteGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>
+// Specific Priority Key Pools for dedicated services
+// Added exports to fix "Module './retryUtils' has no exported member 'PRIORITY_KEY_x'" errors.
+export const PRIORITY_KEY_1 = [K.K1].filter(k => !!k);
+export const PRIORITY_KEY_2 = [K.K2].filter(k => !!k);
+export const PRIORITY_KEY_3 = [K.K3].filter(k => !!k);
+
+export async function executeLaneCall<T>(
+    operationFactory: (apiKey: string) => Promise<T>,
+    pool: string[]
 ): Promise<T> {
-    const pool = LITE_POOL.length > 0 ? LITE_POOL : [K.P];
+    const activePool = pool.length > 0 ? pool : [K.P];
     let lastError: any = null;
-    
-    for (const apiKey of pool) {
+
+    for (const apiKey of activePool) {
         try {
             return await operationFactory(apiKey);
         } catch (error: any) {
+            lastError = error;
             if (error.message?.includes('429') || error.status === 429) {
-                lastError = error;
+                console.warn(`Lane congestion on key ending ${apiKey.slice(-4)}. Rotating...`);
                 continue;
             }
             throw error;
         }
     }
-    throw lastError || new Error("Lite API Node Capacity Reached.");
+    throw lastError || new Error("Selected Lane Capacity reached.");
 }
 
-/**
- * Specialized executor for Chat and Auto-ML (Using K6).
- */
-export async function executeChatGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>
-): Promise<T> {
-    const pool = CHAT_POOL.length > 0 ? CHAT_POOL : [K.P];
-    let lastError: any = null;
-    
-    for (const apiKey of pool) {
-        try {
-            return await operationFactory(apiKey);
-        } catch (error: any) {
-            if (error.message?.includes('429') || error.status === 429) {
-                lastError = error;
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw lastError || new Error("Oracle Core Offline.");
-}
-
-/**
- * Specialized executor for Chart Analysis.
- */
-export async function executeChartGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>
-): Promise<T> {
-    const pool = CHART_POOL.length > 0 ? CHART_POOL : [K.P];
-    let lastError: any = null;
-
-    for (const apiKey of pool) {
-        try {
-            return await operationFactory(apiKey);
-        } catch (error: any) {
-            if (error.message?.includes('429') || error.status === 429) {
-                lastError = error;
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw lastError || new Error("Chart Analysis Node Capacity Reached.");
-}
-
-/**
- * General purpose executor for other tasks.
- */
-export async function executeGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>
-): Promise<T> {
-    const pool = [K.P, K.K1, K.K2, K.K3, K.K4, K.K5, K.K6].filter(k => !!k);
-    let lastError: any = null;
-    for (const apiKey of pool) {
-        try {
-            return await operationFactory(apiKey);
-        } catch (error: any) {
-            if (error.message?.includes('429') || error.status === 429) {
-                lastError = error;
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw lastError || new Error("Neural Link Offline.");
+/** Legacy Wrappers for backward compatibility **/
+// Updated signature to accept optional pool parameter to fix "Expected 1 arguments, but got 2" errors.
+export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?: string[]): Promise<T> {
+    const activePool = pool || [K.P, ...ANALYSIS_POOL, ...SERVICE_POOL, ...CHAT_ML_POOL];
+    return executeLaneCall(op, activePool);
 }
 
 export async function runWithRetry<T>(
@@ -126,12 +71,9 @@ export async function runWithRetry<T>(
     } catch (error: any) {
         if (retries <= 0) throw error;
         const msg = (error.message || '').toLowerCase();
-        const isRetryable = msg.includes('503') || msg.includes('500') || msg.includes('overloaded');
-
-        if (isRetryable) {
-            const delay = baseDelay * Math.pow(2, 2 - retries);
-            await new Promise(resolve => setTimeout(resolve, delay));
-            return runWithRetry(operation, retries - 1, baseDelay); 
+        if (msg.includes('503') || msg.includes('500') || msg.includes('overloaded')) {
+            await new Promise(r => setTimeout(r, baseDelay));
+            return runWithRetry(operation, retries - 1, baseDelay * 2);
         }
         throw error;
     }

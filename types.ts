@@ -4,15 +4,6 @@ export interface ImagePart {
     mimeType: string;
 }
 
-export interface UserSettings {
-    accountType: 'Real' | 'Funded';
-    balance: number;
-    dailyDrawdownLimit: number; // percentage
-    maxDrawdownLimit: number; // percentage
-    timeLimitDays?: number; // optional
-    currency: string;
-}
-
 export interface AnalysisRequest {
     images: {
         higher?: ImagePart;
@@ -22,10 +13,9 @@ export interface AnalysisRequest {
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
-    profitMode: boolean; 
+    profitMode: boolean; // New field for strict filtering
     globalContext?: string;
     learnedStrategies?: string[];
-    userSettings?: UserSettings; // New field
 }
 
 export interface EconomicEvent {
@@ -53,10 +43,10 @@ export interface SignalData {
     signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
     entryPoints: number[];
-    entryType: 'Market Execution' | 'Pullback' | 'Breakout'; 
+    entryType: 'Market Execution' | 'Pullback' | 'Breakout'; // New field
     stopLoss: number;
     takeProfits: number[];
-    expectedDuration: string; 
+    expectedDuration: string; // New field for time duration
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;
@@ -123,6 +113,7 @@ export interface PredictedEvent {
     reasoning: string;
 }
 
+// Added missing exports for Market Statistics features
 export type StatTimeframe = '15m' | '1H' | '4H' | '1D';
 
 export interface OrderBookEntry {
@@ -137,7 +128,7 @@ export interface OrderBook {
 
 export interface MarketStatsData {
     symbol: string;
-    timeframe: string;
+    timeframe: StatTimeframe;
     price: number;
     sentimentScore: number;
     sentimentLabel: string;
@@ -157,11 +148,11 @@ export interface MarketStatsData {
         r2: number;
         r3: number;
     };
-    patterns: {
+    patterns: Array<{
         name: string;
-        signal: string;
+        signal: 'Bullish' | 'Bearish' | 'Neutral';
         description: string;
-    }[];
+    }>;
     todaysEvents: EconomicEvent[];
     orderBook: OrderBook;
 }

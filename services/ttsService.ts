@@ -1,7 +1,6 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
-// Removed PRIORITY_KEY_3 as it is not exported from retryUtils
-import { executeGeminiCall, runWithRetry } from './retryUtils';
+import { executeGeminiCall, runWithRetry, PRIORITY_KEY_3 } from './retryUtils';
 
 // Audio context for playback
 let audioContext: AudioContext | null = null;
@@ -47,12 +46,12 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
     try {
         // Prioritize Key 3 for TTS
         // Wrapped in executeGeminiCall for key rotation
-        // FIX: Removed undefined PRIORITY_KEY_3 and corrected executeGeminiCall signature.
+        // Added <GenerateContentResponse> generic to fix "Property 'candidates' does not exist on type 'unknown'" error.
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
             // Wrapped in runWithRetry to handle strict 3 RPM limits on specific model/key pair
-            return await runWithRetry<GenerateContentResponse>(async () => {
+            return await runWithRetry(async () => {
                 return await ai.models.generateContent({
                   model: "gemini-2.5-flash-preview-tts",
                   contents: [{ parts: [{ text }] }],
@@ -66,7 +65,7 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
                   },
                 });
             }, 3, 3000); 
-        });
+        }, PRIORITY_KEY_3);
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 

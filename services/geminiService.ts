@@ -1,101 +1,47 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import type { AnalysisRequest, SignalData, UserSettings } from '../types';
+import type { AnalysisRequest, SignalData } from '../types';
 import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
-import { runWithModelFallback, executeChartGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL } from './retryUtils';
 
-const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
-    const now = new Date();
-    const timeString = now.toUTCString();
-    const styleInstruction = tradingStyle === 'Short Term' 
-        ? "Short Term (Intraday Power Shift): Focus on MOMENTUM DOMINANCE."
-        : tradingStyle;
-    
-    const learnedSection = learnedStrategies.length > 0
-        ? `\n**Auto-ML Learned Memory:**\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
-        : "";
-
-    const riskContext = userSettings ? `
-**USER RISK PROTOCOL:**
-- Type: ${userSettings.accountType} | Bal: $${userSettings.balance.toLocaleString()}
-- Daily Drawdown: ${userSettings.dailyDrawdownLimit}% | Max: ${userSettings.maxDrawdownLimit}%
-` : `R:R Target: ${riskRewardRatio}`;
-
-    return `
-Act as an Apex-Tier Quantitative Analyst. Perform a Pixel-Level Audit of the provided chart.
-REAL-TIME CONTEXT: ${timeString} | BIAS: ${globalContext || 'Visuals only'}
-TRADING STYLE: ${styleInstruction}
-${riskContext}
-${learnedSection}
-
-**MANDATORY RULES:**
-1. Duration: Setup MUST reach target within 30m - 3h.
-2. Entry Type: Market Execution | Pullback | Breakout.
-3. Sentiment: 0-100 score.
-4. Confluence: Identify exactly 3-5 Key Factors.
-5. Risk: Define a clear Invalidation Scenario.
-
-**Output JSON Format:**
-{
-  "asset": "string",
-  "timeframe": "string",
-  "signal": "BUY|SELL|NEUTRAL",
-  "confidence": number,
-  "entryPoints": [number],
-  "entryType": "string",
-  "stopLoss": number,
-  "takeProfits": [number],
-  "expectedDuration": "30m-3h",
-  "reasoning": ["string"],
-  "checklist": ["string"],
-  "invalidationScenario": "string",
-  "riskAnalysis": { "riskPerTrade": "string", "suggestedLotSize": "string", "safetyScore": number },
-  "sentiment": { "score": number, "summary": "string" }
-}
-`;
+const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
+    return `Act as an Elite Prop Firm Trader. Mission: Identify high-probability visual SMC setups.
+R:R: ${riskRewardRatio}. Style: ${tradingStyle}.
+REQUIREMENTS: Entry, Stop Loss, 3 TPs, and institutional reasoning.
+Output strictly valid JSON.`;
 };
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
-    // Using gemini-2.5-flash as requested for analysis
-    const MODELS = ['gemini-2.5-flash'];
+    // AS REQUESTED: Chart Analysis uses Gemini 2.5 Flash
+    const model = 'gemini-2.5-flash';
 
-    const response = await executeChartGeminiCall<GenerateContentResponse>(async (apiKey) => {
+    return await executeLaneCall<SignalData>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies, request.userSettings) };
-        const promptParts: any[] = [textPart];
+        const promptText = PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies);
+        const promptParts: any[] = [{ text: promptText }];
         
         if (request.isMultiDimensional && request.images.higher) promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
         promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
         if (request.isMultiDimensional && request.images.entry) promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
 
-        return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
-            model: modelId,
+        const response = await ai.models.generateContent({
+            model: model,
             contents: [{ parts: promptParts }],
-            config: {
-                tools: [{googleSearch: {}}], 
-                temperature: request.profitMode ? 0.1 : 0.25,
-            },
-        }));
-    });
+            config: { tools: [{googleSearch: {}}], temperature: 0.2 },
+        });
 
-    const responseText = response.text;
-    if (!responseText) throw new Error("Empty AI response.");
-    let jsonString = responseText.trim();
-    const firstBrace = jsonString.indexOf('{');
-    const lastBrace = jsonString.lastIndexOf('}');
-    if (firstBrace === -1) throw new Error("Invalid response format.");
-    jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-    const parsedData: Omit<SignalData, 'id' | 'timestamp'> = JSON.parse(jsonString);
-    return { ...parsedData, id: '', timestamp: 0 };
+        const text = response.text || '';
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
+        if (start === -1 || end === -1) throw new Error("Invalid format");
+        
+        const data = JSON.parse(text.substring(start, end + 1));
+        return { ...data, id: Date.now().toString(), timestamp: Date.now() };
+    }, ANALYSIS_POOL);
 }
 
 export async function generateTradingSignal(request: AnalysisRequest): Promise<SignalData> {
-    const enhancedRequest = { ...request };
-    const stored = getStoredGlobalAnalysis();
-    if (stored) enhancedRequest.globalContext = stored.globalSummary;
-    const strategies = getLearnedStrategies();
-    if (strategies.length > 0) enhancedRequest.learnedStrategies = strategies;
-    return callGeminiDirectly(enhancedRequest);
+    return callGeminiDirectly(request);
 }

@@ -23,7 +23,6 @@ import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
-import { useSettings } from './contexts/SettingsContext';
 
 
 type AuthPage = 'login' | 'signup';
@@ -36,7 +35,6 @@ const CHAT_STORAGE_KEY = 'greyquant_chat';
 
 const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
-    const { settings } = useSettings();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
     const [appView, setAppView] = useState<AppView>(isLoggedIn ? 'home' : 'landing');
     const [analysisData, setAnalysisData] = useState<SignalData | null>(null);
@@ -138,7 +136,6 @@ const App: React.FC = () => {
     }, [isLoggedIn]);
 
 
-    // Effect to save news to localStorage whenever it changes
     useEffect(() => {
         try {
             window.localStorage.setItem(NEWS_STORAGE_KEY, JSON.stringify(news));
@@ -147,7 +144,6 @@ const App: React.FC = () => {
         }
     }, [news]);
 
-    // Effect to save predicted events to localStorage whenever they change
     useEffect(() => {
         try {
             window.localStorage.setItem(PREDICTOR_STORAGE_KEY, JSON.stringify(predictedEvents));
@@ -156,7 +152,6 @@ const App: React.FC = () => {
         }
     }, [predictedEvents]);
 
-    // Effect to save chat messages to localStorage whenever they change
     useEffect(() => {
         try {
             window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatMessages));
@@ -165,7 +160,6 @@ const App: React.FC = () => {
         }
     }, [chatMessages]);
 
-    // Lock body scroll when in Charting view to prevent rubber-banding and scroll interference
     useEffect(() => {
         if (appView === 'charting') {
             document.body.style.overflow = 'hidden';
@@ -218,7 +212,7 @@ const App: React.FC = () => {
     };
     
     const handleSignUp = () => {
-        login(); 
+        login();
         navigateTo('home');
     };
 
@@ -315,7 +309,6 @@ const App: React.FC = () => {
         setIsAnalyzingChart(true);
         try {
             const base64Data = imageData.split(',')[1];
-            
             const request: AnalysisRequest = {
                 images: {
                     primary: {
@@ -323,11 +316,10 @@ const App: React.FC = () => {
                         mimeType: 'image/png'
                     }
                 },
-                riskRewardRatio: '1:3', 
-                tradingStyle: 'Day Trading', 
+                riskRewardRatio: '1:3',
+                tradingStyle: 'Day Trading',
                 isMultiDimensional: false,
-                profitMode: false,
-                userSettings: settings // Sync with custom account settings
+                profitMode: false 
             };
 
             const data = await generateTradingSignal(request);
@@ -340,7 +332,7 @@ const App: React.FC = () => {
             setIsAnalyzingChart(false);
             alert("Analysis failed. Please try again.");
         }
-    }, [settings, navigateTo]); // Added settings to dependency array
+    }, []);
     
     if (isTransitioning) {
         return <TransitionLoader />;
@@ -461,11 +453,14 @@ const App: React.FC = () => {
                 <TradingViewWidget />
             </div>
 
-            {/* Signal Overlay with direct z-index positioning */}
-            <SignalOverlay 
-                onAnalyzeClick={handleChartAnalysis} 
-                onBack={handleNavigateToHome}
-            />
+            <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
+                <div className="pointer-events-auto">
+                    <SignalOverlay 
+                        onAnalyzeClick={handleChartAnalysis} 
+                        onBack={handleNavigateToHome}
+                    />
+                </div>
+            </div>
 
             {isAnalyzingChart && (
                 <div className="absolute inset-0 z-[70] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center">
