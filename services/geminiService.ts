@@ -3,7 +3,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AnalysisRequest, SignalData, UserSettings } from '../types';
 import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeChartGeminiCall, KEYS } from './retryUtils';
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
     const now = new Date();
@@ -11,11 +11,9 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     const styleInstruction = tradingStyle === 'Short Term' 
         ? "Short Term (Intraday Power Shift): Focus on MOMENTUM DOMINANCE."
         : tradingStyle;
-    
     const learnedSection = learnedStrategies.length > 0
         ? `\n**Auto-ML Learned Memory:**\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
-
     const riskContext = userSettings ? `
 **USER RISK PROTOCOL:**
 - Type: ${userSettings.accountType} | Bal: $${userSettings.balance.toLocaleString()}
@@ -53,14 +51,15 @@ ${learnedSection}
 };
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
-    const flashModels = ['gemini-3-flash-preview', 'gemini-2.5-flash'];
-
-    const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+    const response = await executeChartGeminiCall<GenerateContentResponse>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        // SPECIAL INSTRUCTION: Designate API_KEY_5 node to use gemma-3-4b for specialized chart reasoning
-        const isGemmaNode = !!process.env.API_KEY_5 && apiKey === process.env.API_KEY_5;
-        const modelsToTry = isGemmaNode ? ['gemma-3-4b', ...flashModels] : flashModels;
+        // Map keys to specific models as requested
+        // API_KEY_3 -> gemini-3-flash-preview
+        // API_KEY_5 -> gemma-3-4b
+        let modelsToTry = ['gemini-3-flash-preview', 'gemma-3-4b'];
+        if (apiKey === KEYS.K3) modelsToTry = ['gemini-3-flash-preview'];
+        if (apiKey === KEYS.K5) modelsToTry = ['gemma-3-4b'];
         
         const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies, request.userSettings) };
         const promptParts: any[] = [textPart];
@@ -75,7 +74,6 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
                 model: modelId,
                 contents: [{ parts: promptParts }],
                 config: {
-                    // Google Search and Thinking Config are Gemini-specific
                     tools: isGemma ? undefined : [{googleSearch: {}}], 
                     temperature: request.profitMode ? 0.1 : 0.25,
                     thinkingConfig: isGemma ? undefined : { thinkingBudget: request.profitMode ? 4000 : 2000 }

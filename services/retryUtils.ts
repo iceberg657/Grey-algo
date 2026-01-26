@@ -1,75 +1,37 @@
 
 /**
- * Neural Link Orchestrator: Manages a pool of API keys to bypass individual quota limits.
+ * Neural Link Orchestrator: Manages task-specific API key pools.
  */
 
-// Gather all configured keys from the environment
-const KEY_POOL = [
-    process.env.API_KEY,
-    process.env.API_KEY_1,
-    process.env.API_KEY_2,
-    process.env.API_KEY_3,
-    process.env.API_KEY_4,
-    process.env.API_KEY_5,
-].filter((key): key is string => !!key && key.trim() !== '');
+// Mapping of keys from environment
+export const KEYS = {
+    PRIMARY: process.env.API_KEY || '',
+    K1: process.env.API_KEY_1 || '',
+    K2: process.env.API_KEY_2 || '',
+    K3: process.env.API_KEY_3 || '',
+    K4: process.env.API_KEY_4 || '',
+    K5: process.env.API_KEY_5 || ''
+};
 
-// Shuffle the pool on module load to distribute initial load across keys
-const SHUFFLED_POOL = [...KEY_POOL].sort(() => Math.random() - 0.5);
+// Pool for background/lite tasks: API Key 1 and 2
+export const LITE_POOL = [KEYS.K1, KEYS.K2].filter(k => !!k);
 
-// Specific keys for background tasks to satisfy the "use two api" requirement
-// and prevent background polling from saturating the primary analysis keys.
-const LITE_POOL = [
-    process.env.API_KEY_1 || process.env.API_KEY || '',
-    process.env.API_KEY_2 || process.env.API_KEY || ''
-].filter(k => !!k && k.trim() !== '');
+// Pool for Chat: API Key 4
+export const CHAT_POOL = [KEYS.K4].filter(k => !!k);
 
-/**
- * A wrapper to execute a Gemini API operation with Intelligent Key Rotation.
- */
-export async function executeGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>
-): Promise<T> {
-    if (SHUFFLED_POOL.length === 0) {
-        throw new Error("Neural Link Offline: No API keys detected in system environment.");
-    }
-
-    let lastError: any = null;
-    
-    for (let i = 0; i < SHUFFLED_POOL.length; i++) {
-        const apiKey = SHUFFLED_POOL[i];
-        try {
-            return await operationFactory(apiKey);
-        } catch (error: any) {
-            const errorMessage = error.message || '';
-            const isQuotaError = 
-                errorMessage.includes('429') || 
-                error.status === 429 || 
-                errorMessage.toLowerCase().includes('quota') ||
-                errorMessage.toLowerCase().includes('resource_exhausted');
-
-            if (isQuotaError) {
-                console.warn(`[Neural Link] Node ${i + 1} Saturated. Re-routing...`);
-                lastError = error;
-                continue;
-            }
-            throw error;
-        }
-    }
-    throw lastError || new Error("Unknown Neural Link failure.");
-}
+// Pool for Chart Analysis: API Key 3 (primary) then API Key 5 (fallback)
+export const CHART_POOL = [KEYS.K3, KEYS.K5].filter(k => !!k);
 
 /**
- * Dedicated executor for background "Lite" tasks.
- * Uses a smaller subset of keys to isolate background traffic.
+ * Specialized executor for background "Lite" tasks (News, Predictor, Global, Suggestions).
+ * Uses API_KEY_1 and API_KEY_2.
  */
 export async function executeLiteGeminiCall<T>(
     operationFactory: (apiKey: string) => Promise<T>
 ): Promise<T> {
-    if (LITE_POOL.length === 0) return executeGeminiCall(operationFactory);
-
+    const pool = LITE_POOL.length > 0 ? LITE_POOL : [KEYS.PRIMARY];
     let lastError: any = null;
-    for (let i = 0; i < LITE_POOL.length; i++) {
-        const apiKey = LITE_POOL[i];
+    for (const apiKey of pool) {
         try {
             return await operationFactory(apiKey);
         } catch (error: any) {
@@ -80,8 +42,49 @@ export async function executeLiteGeminiCall<T>(
             throw error;
         }
     }
-    // If lite keys fail, try the general pool as a last resort
-    return executeGeminiCall(operationFactory);
+    throw lastError || new Error("Lite Pool Exhausted.");
+}
+
+/**
+ * Specialized executor for Chat.
+ * Uses API_KEY_4.
+ */
+export async function executeChatGeminiCall<T>(
+    operationFactory: (apiKey: string) => Promise<T>
+): Promise<T> {
+    const pool = CHAT_POOL.length > 0 ? CHAT_POOL : [KEYS.PRIMARY];
+    try {
+        return await operationFactory(pool[0]);
+    } catch (error: any) {
+        // If K4 fails and we have a primary, fallback as last resort
+        if (KEYS.PRIMARY && pool[0] !== KEYS.PRIMARY) {
+            return await operationFactory(KEYS.PRIMARY);
+        }
+        throw error;
+    }
+}
+
+/**
+ * Specialized executor for Chart Analysis.
+ * Uses API_KEY_3 then switches to API_KEY_5.
+ */
+export async function executeChartGeminiCall<T>(
+    operationFactory: (apiKey: string) => Promise<T>
+): Promise<T> {
+    const pool = CHART_POOL.length > 0 ? CHART_POOL : [KEYS.PRIMARY];
+    let lastError: any = null;
+    for (const apiKey of pool) {
+        try {
+            return await operationFactory(apiKey);
+        } catch (error: any) {
+            if (error.message?.includes('429') || error.status === 429) {
+                lastError = error;
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw lastError || new Error("Chart Analysis Pool Exhausted.");
 }
 
 export async function runWithRetry<T>(
@@ -97,8 +100,7 @@ export async function runWithRetry<T>(
         const isRetryable = 
             errorMessage.includes('503') || 
             errorMessage.includes('500') ||
-            errorMessage.toLowerCase().includes('overloaded') ||
-            errorMessage.toLowerCase().includes('busy');
+            errorMessage.toLowerCase().includes('overloaded');
 
         if (isRetryable) {
             const delay = baseDelay * Math.pow(2, 3 - retries) + (Math.random() * 1000);
@@ -123,4 +125,9 @@ export async function runWithModelFallback<T>(
         }
     }
     throw lastError;
+}
+
+// Keeping original export for components still using it
+export async function executeGeminiCall<T>(f: (k: string) => Promise<T>): Promise<T> {
+    return executeLiteGeminiCall(f);
 }
