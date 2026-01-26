@@ -20,56 +20,30 @@ const TickerItem: React.FC<TickerItemProps> = ({ item, onClick }) => {
             <span className="font-semibold text-gray-800 dark:text-dark-text/90 mr-3">{item.symbol}</span>
             <span className="font-mono text-gray-800 dark:text-dark-text mr-3">{item.price.toFixed(pricePrecision)}</span>
             <div className={`flex items-center font-mono ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                {isPositive ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M5.293 9.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 7.414V15a1 1 0 11-2 0V7.414L6.707 9.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
-                    </svg>
-                ) : (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M14.707 10.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 12.586V5a1 1 0 012 0v7.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                    </svg>
-                )}
-                <span className="ml-1">{item.change.toFixed(pricePrecision)} ({item.changePercent.toFixed(2)}%)</span>
+                <span className="mr-1">{isPositive ? '▲' : '▼'}</span>
+                <span>{Math.abs(item.change).toFixed(pricePrecision)} ({Math.abs(item.changePercent).toFixed(2)}%)</span>
             </div>
         </div>
     );
 };
 
-interface MarketTickerProps {
-    onAssetClick?: (symbol: string) => void;
-}
-
-export const MarketTicker: React.FC<MarketTickerProps> = ({ onAssetClick }) => {
+export const MarketTicker: React.FC<{ onAssetClick?: (s: string) => void }> = ({ onAssetClick }) => {
     const [data, setData] = useState<MarketDataItem[]>([]);
-    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const fetchData = async () => {
-            try {
-                const marketData = await getMarketData();
-                setData(marketData);
-            } catch (err) {
-                setError('Failed to load market data.');
-                console.error(err);
-            }
+            const marketData = await getMarketData();
+            if (marketData.length > 0) setData(marketData);
         };
 
-        fetchData(); // Initial fetch
-        const intervalId = setInterval(fetchData, 5000); // Refresh every 5 seconds
-
+        fetchData();
+        // Reduced polling significantly to save quota
+        const intervalId = setInterval(fetchData, 20000); 
         return () => clearInterval(intervalId);
     }, []);
 
-    if (error) {
-        return <div className="text-center text-red-400 text-xs p-2">{error}</div>;
-    }
-
-    if (data.length === 0) {
-        return null; // Don't render if there's no data yet
-    }
-    
-    // Duplicate the data to create a seamless scrolling loop
-    const tickerItems = [...data, ...data];
+    if (data.length === 0) return null;
+    const tickerItems = [...data, ...data, ...data];
 
     return (
         <div className="w-full bg-gray-200/50 dark:bg-dark-card/50 backdrop-blur-sm p-3 rounded-lg border border-gray-300/50 dark:border-green-500/10 shadow-md overflow-hidden">
@@ -78,7 +52,7 @@ export const MarketTicker: React.FC<MarketTickerProps> = ({ onAssetClick }) => {
                     <TickerItem 
                         key={`${item.symbol}-${index}`} 
                         item={item} 
-                        onClick={(symbol) => onAssetClick && onAssetClick(symbol)}
+                        onClick={(s) => onAssetClick?.(s)}
                     />
                 ))}
             </div>

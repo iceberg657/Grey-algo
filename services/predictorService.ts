@@ -1,10 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { PredictedEvent } from '../types';
-import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_1 } from './retryUtils';
-
-// Lesser Model: Flash Lite (High Speed, Low Cost)
-const MODELS = ['gemini-flash-lite-latest'];
+import { runWithModelFallback, executeLaneCall, SERVICE_POOL, LANE_2_MODELS } from './retryUtils';
 
 const PREDICTOR_PROMPT = `
 You are 'Oracle', an apex-level trading AI.
@@ -27,11 +24,11 @@ You are 'Oracle', an apex-level trading AI.
 
 export async function getPredictedEvents(): Promise<PredictedEvent[]> {
     try {
-        // Prioritize Key 1 for Predictor
-        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+        return await executeLaneCall<PredictedEvent[]>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
 
-            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            // LANE 2 CASCADE: 2.5 Lite -> 2.0 Flash
+            const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => ai.models.generateContent({
                 model: modelId,
                 contents: PREDICTOR_PROMPT,
                 config: {
@@ -39,20 +36,16 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
                     temperature: 0.2,
                 },
             }));
-        }, PRIORITY_KEY_1);
 
-        const responseText = response.text?.trim();
-        if (!responseText) return [];
+            const responseText = response.text?.trim();
+            if (!responseText) return [];
 
-        let jsonString = responseText;
-        const firstBracket = jsonString.indexOf('[');
-        const lastBracket = jsonString.lastIndexOf(']');
+            const start = responseText.indexOf('[');
+            const end = responseText.lastIndexOf(']') + 1;
+            if (start === -1) return [];
 
-        if (firstBracket !== -1 && lastBracket !== -1) {
-            jsonString = jsonString.substring(firstBracket, lastBracket + 1);
-        }
-
-        return JSON.parse(jsonString);
+            return JSON.parse(responseText.substring(start, end));
+        }, SERVICE_POOL);
 
     } catch (error) {
         console.error("Gemini Predictor Service Error:", error);
