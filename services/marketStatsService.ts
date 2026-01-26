@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { MarketStatsData, StatTimeframe } from '../types';
-import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
+import { runWithModelFallback, executeLiteGeminiCall } from './retryUtils';
 
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
@@ -11,79 +11,36 @@ const ASSETS = {
     Crypto: ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'BNB/USD']
 };
 
-// Lesser Model: Flash Lite (High Speed, Low Cost)
 const MODELS = ['gemini-flash-lite-latest'];
 
 const STATS_PROMPT = (symbol: string, timeframe: string) => `
-Act as a Real-Time Technical Analysis Engine. 
-**CRITICAL INSTRUCTION: You are analyzing **${symbol}**. Do NOT analyze any other asset.**
-
-**Task:**
-Generate a real-time technical snapshot for **${symbol}** based on the **${timeframe}** chart. Use Google Search for LIVE PRICE and INDICATORS.
-
-**Output Format (JSON Only):**
-{
-  "symbol": "${symbol}",
-  "timeframe": "${timeframe}",
-  "price": number,
-  "sentimentScore": number,
-  "sentimentLabel": "Strong Sell|Sell|Neutral|Buy|Strong Buy",
-  "indicators": {
-    "ma50": { "value": number, "signal": "Buy|Sell|Neutral" },
-    "ma200": { "value": number, "signal": "Buy|Sell|Neutral" },
-    "stochastic": { "k": number, "d": number, "signal": "Overbought|Oversold|Neutral" },
-    "atr": number,
-    "adx": { "value": number, "trend": "Strong|Weak|Ranging" },
-    "rsi": number
-  },
-  "supportResistance": {
-    "s1": number, "s2": number, "s3": number,
-    "r1": number, "r2": number, "r3": number
-  },
-  "patterns": [
-    { "name": "string", "signal": "Bullish|Bearish|Neutral", "description": "string" }
-  ],
-  "todaysEvents": [
-    { "name": "string", "date": "string (ISO 8601)", "impact": "High|Medium|Low" }
-  ],
-  "orderBook": {
-    "bids": [{ "price": number, "volume": number }],
-    "asks": [{ "price": number, "volume": number }]
-  }
-}
+Act as a Real-Time Technical Engine. Analyzing **${symbol}** on **${timeframe}**.
+Return a snapshot including Price, Sentiment Score (0-100), SMA 50/200, RSI, Support/Resistance Levels, Candlestick Patterns, and a simplified Order Book.
+Output strictly as JSON.
 `;
 
 export async function fetchMarketStatistics(symbol: string, timeframe: StatTimeframe): Promise<MarketStatsData> {
     try {
-        // Prioritize Key 2 for Stats
-        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+        const response = await executeLiteGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
-            
             return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
                 model: modelId,
                 contents: STATS_PROMPT(symbol, timeframe),
-                config: {
-                    tools: [{ googleSearch: {} }],
-                    temperature: 0.1 
-                }
+                config: { tools: [{ googleSearch: {} }], temperature: 0.1 }
             }));
-        }, PRIORITY_KEY_2);
-
+        });
         const text = response.text?.trim();
         if (!text) throw new Error("Empty response");
-
         let jsonString = text;
         const first = jsonString.indexOf('{');
         const last = jsonString.lastIndexOf('}');
         if (first !== -1 && last !== -1) jsonString = jsonString.substring(first, last + 1);
-
         const data: MarketStatsData = JSON.parse(jsonString);
-        data.symbol = symbol; // Enforce symbol match
-
+        data.symbol = symbol;
         return data;
     } catch (e) {
-        console.error("Stats Fetch Error:", e);
-        throw new Error("Failed to load market statistics.");
+        console.error("Stats Error:", e);
+        throw new Error("Failed to load stats.");
     }
 }
 

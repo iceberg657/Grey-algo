@@ -8,7 +8,6 @@ import { HistoryPage } from './components/HistoryPage';
 import { NewsPage } from './components/NewsPage';
 import { ChatPage } from './components/ChatPage';
 import { PredictorPage } from './components/PredictorPage';
-import { MarketStatisticsPage } from './components/MarketStatisticsPage';
 import { ProductsPage } from './components/ProductsPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
@@ -24,10 +23,11 @@ import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
+import { useSettings } from './contexts/SettingsContext';
 
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'statistics' | 'charting' | 'products';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'charting' | 'products';
 
 // Storage keys
 const NEWS_STORAGE_KEY = 'greyquant_news';
@@ -36,6 +36,7 @@ const CHAT_STORAGE_KEY = 'greyquant_chat';
 
 const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
+    const { settings } = useSettings();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
     const [appView, setAppView] = useState<AppView>(isLoggedIn ? 'home' : 'landing');
     const [analysisData, setAnalysisData] = useState<SignalData | null>(null);
@@ -87,15 +88,12 @@ const App: React.FC = () => {
 
     // Helper for History Navigation
     const navigateTo = useCallback((view: AppView) => {
-        // Check if we are in a safe environment to push state (http/https)
-        // This prevents SecurityError in blob/sandbox environments
         const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
         
         if (isSafeOrigin) {
             try {
                 window.history.pushState({ view }, '', `#${view}`);
             } catch (e) {
-                // Fallback attempt without URL change if explicit hash fails
                 try {
                     window.history.pushState({ view }, '');
                 } catch (e2) {
@@ -127,7 +125,6 @@ const App: React.FC = () => {
             if (event.state && event.state.view) {
                 setAppView(event.state.view);
             } else {
-                // If user went back to before our state history, reset to logical default
                 if (isLoggedIn) {
                     setAppView('home');
                 } else {
@@ -188,7 +185,6 @@ const App: React.FC = () => {
         setNewsError(null);
         try {
             const fetchedNews = await getForexNews();
-            // Sort news by date, newest first
             fetchedNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
             setNews(fetchedNews);
         } catch (err) {
@@ -222,7 +218,7 @@ const App: React.FC = () => {
     };
     
     const handleSignUp = () => {
-        login(); // Auto-login on sign up for simplicity
+        login(); 
         navigateTo('home');
     };
 
@@ -280,10 +276,6 @@ const App: React.FC = () => {
         navigateTo('predictor');
     };
 
-    const handleNavigateToStatistics = () => {
-        navigateTo('statistics');
-    };
-
     const handleNavigateToCharting = () => {
         navigateTo('charting');
     };
@@ -294,13 +286,10 @@ const App: React.FC = () => {
 
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
-        // Instead of navigateTo, go back in history if possible to preserve natural flow,
-        // otherwise default to previousView
         const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
         if (isSafeOrigin && window.history.length > 1) {
              window.history.back();
         } else {
-             // Fallback if history is empty or unsafe
              navigateTo(previousView); 
         }
     };
@@ -308,14 +297,13 @@ const App: React.FC = () => {
     const handleEnterApp = () => {
         setIsTransitioning(true);
         setTimeout(() => {
-            const nextView = isLoggedIn ? 'home' : 'auth';
             if (isLoggedIn) {
                 navigateTo('home');
             } else {
-                setAppView('auth'); // Auth isn't a history state usually, effectively landing
+                setAppView('auth'); 
             }
             setIsTransitioning(false);
-        }, 2500); // 2.5 second transition for loading effect
+        }, 2500); 
     };
 
     const handleAssetSelect = (asset: string) => {
@@ -323,11 +311,9 @@ const App: React.FC = () => {
         navigateTo('chat');
     };
 
-    // New handler for chart analysis from the overlay
     const handleChartAnalysis = useCallback(async (imageData: string) => {
         setIsAnalyzingChart(true);
         try {
-            // Strip data URL prefix
             const base64Data = imageData.split(',')[1];
             
             const request: AnalysisRequest = {
@@ -337,23 +323,24 @@ const App: React.FC = () => {
                         mimeType: 'image/png'
                     }
                 },
-                riskRewardRatio: '1:3', // Default for quick analysis
-                tradingStyle: 'Day Trading', // Default
+                riskRewardRatio: '1:3', 
+                tradingStyle: 'Day Trading', 
                 isMultiDimensional: false,
-                profitMode: false // Default to false for quick overlay analysis
+                profitMode: false,
+                userSettings: settings // Sync with custom account settings
             };
 
             const data = await generateTradingSignal(request);
             const savedData = saveAnalysis(data);
             
             setIsAnalyzingChart(false);
-            handleNavigateToAnalysis(savedData, 'charting'); // Return to charting when "Back" is pressed
+            handleNavigateToAnalysis(savedData, 'charting'); 
         } catch (error) {
             console.error("Chart Analysis Failed:", error);
             setIsAnalyzingChart(false);
             alert("Analysis failed. Please try again.");
         }
-    }, []);
+    }, [settings, navigateTo]); // Added settings to dependency array
     
     if (isTransitioning) {
         return <TransitionLoader />;
@@ -370,7 +357,6 @@ const App: React.FC = () => {
         return <LoginPage onLogin={handleLogin} onNavigateToSignUp={() => setAuthPage('signup')} />;
     }
 
-    // Determine the main content based on the view
     let content: React.ReactNode = null;
 
     switch (appView) {
@@ -383,7 +369,6 @@ const App: React.FC = () => {
                     onNavigateToNews={handleNavigateToNews}
                     onNavigateToChat={handleNavigateToChat}
                     onNavigateToPredictor={handleNavigateToPredictor}
-                    onNavigateToStatistics={handleNavigateToStatistics}
                     onNavigateToCharting={handleNavigateToCharting}
                     onNavigateToProducts={handleNavigateToProducts}
                     onAssetSelect={handleAssetSelect}
@@ -436,14 +421,6 @@ const App: React.FC = () => {
                 />
             );
             break;
-        case 'statistics':
-            content = (
-                <MarketStatisticsPage 
-                    onBack={handleNavigateToHome} 
-                    onLogout={handleLogout}
-                />
-            );
-            break;
         case 'products':
             content = (
                 <ProductsPage 
@@ -464,14 +441,11 @@ const App: React.FC = () => {
             }
             break;
         case 'charting':
-            // Content handled by persistent chartLayer
             break;
         default:
             content = null;
     }
 
-    // Persistent Chart Layer
-    // We changed this to display: block and use absolute positioning for children to ensure full screen map-like feel
     const isCharting = appView === 'charting';
     const chartLayer = (
         <div 
@@ -483,22 +457,16 @@ const App: React.FC = () => {
             }}
         >
             <NeuralBackground />
-            {/* Chart fills the entire container */}
             <div className="absolute inset-0 z-0">
                 <TradingViewWidget />
             </div>
 
-            {/* Floating HUD Layer - Positioned absolutely on top of chart */}
-            <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-                <div className="pointer-events-auto">
-                    <SignalOverlay 
-                        onAnalyzeClick={handleChartAnalysis} 
-                        onBack={handleNavigateToHome}
-                    />
-                </div>
-            </div>
+            {/* Signal Overlay with direct z-index positioning */}
+            <SignalOverlay 
+                onAnalyzeClick={handleChartAnalysis} 
+                onBack={handleNavigateToHome}
+            />
 
-            {/* Chart Analysis Loading Overlay */}
             {isAnalyzingChart && (
                 <div className="absolute inset-0 z-[70] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center">
                     <Loader />

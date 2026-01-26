@@ -4,6 +4,15 @@ export interface ImagePart {
     mimeType: string;
 }
 
+export interface UserSettings {
+    accountType: 'Real' | 'Funded';
+    balance: number;
+    dailyDrawdownLimit: number; // percentage
+    maxDrawdownLimit: number; // percentage
+    timeLimitDays?: number; // optional
+    currency: string;
+}
+
 export interface AnalysisRequest {
     images: {
         higher?: ImagePart;
@@ -13,9 +22,10 @@ export interface AnalysisRequest {
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
-    profitMode: boolean; // New field for strict filtering
+    profitMode: boolean; 
     globalContext?: string;
     learnedStrategies?: string[];
+    userSettings?: UserSettings; // New field
 }
 
 export interface EconomicEvent {
@@ -43,10 +53,10 @@ export interface SignalData {
     signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
     entryPoints: number[];
-    entryType: 'Market Execution' | 'Pullback' | 'Breakout'; // New field
+    entryType: 'Market Execution' | 'Pullback' | 'Breakout'; 
     stopLoss: number;
     takeProfits: number[];
-    expectedDuration: string; // New field for time duration
+    expectedDuration: string; 
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;
@@ -66,7 +76,6 @@ export interface AssetSuggestion {
     volatilityWarning: boolean;
 }
 
-// FIX: Add MarketDataItem interface for use in market data services and components.
 export interface MarketDataItem {
     symbol: string;
     price: number;
@@ -114,42 +123,32 @@ export interface PredictedEvent {
     reasoning: string;
 }
 
-// --- New Types for Market Statistics ---
-
 export type StatTimeframe = '15m' | '1H' | '4H' | '1D';
 
-export interface TechnicalIndicators {
-    ma50: { value: number; signal: 'Buy' | 'Sell' | 'Neutral' };
-    ma200: { value: number; signal: 'Buy' | 'Sell' | 'Neutral' };
-    stochastic: { k: number; d: number; signal: 'Overbought' | 'Oversold' | 'Neutral' };
-    atr: number;
-    adx: { value: number; trend: 'Strong' | 'Weak' | 'Ranging' };
-    rsi: number;
-}
-
-export interface CandlestickPattern {
-    name: string;
-    signal: 'Bullish' | 'Bearish' | 'Neutral';
-    description: string;
-}
-
-export interface OrderBookLevel {
+export interface OrderBookEntry {
     price: number;
     volume: number;
 }
 
 export interface OrderBook {
-    bids: OrderBookLevel[];
-    asks: OrderBookLevel[];
+    bids: OrderBookEntry[];
+    asks: OrderBookEntry[];
 }
 
 export interface MarketStatsData {
     symbol: string;
-    timeframe: StatTimeframe;
+    timeframe: string;
     price: number;
-    sentimentScore: number; // 0-100 (0=Strong Sell, 50=Neutral, 100=Strong Buy)
-    sentimentLabel: 'Strong Sell' | 'Sell' | 'Neutral' | 'Buy' | 'Strong Buy';
-    indicators: TechnicalIndicators;
+    sentimentScore: number;
+    sentimentLabel: string;
+    indicators: {
+        ma50: { value: number; signal: string };
+        ma200: { value: number; signal: string };
+        stochastic: { k: number; d: number; signal: string };
+        atr: number;
+        adx: { value: number; trend: string };
+        rsi: number;
+    };
     supportResistance: {
         s1: number;
         s2: number;
@@ -158,7 +157,11 @@ export interface MarketStatsData {
         r2: number;
         r3: number;
     };
+    patterns: {
+        name: string;
+        signal: string;
+        description: string;
+    }[];
     todaysEvents: EconomicEvent[];
-    patterns: CandlestickPattern[];
-    orderBook?: OrderBook;
+    orderBook: OrderBook;
 }

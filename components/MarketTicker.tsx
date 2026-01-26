@@ -48,27 +48,28 @@ export const MarketTicker: React.FC<MarketTickerProps> = ({ onAssetClick }) => {
             try {
                 const marketData = await getMarketData();
                 setData(marketData);
+                setError(null);
             } catch (err) {
-                setError('Failed to load market data.');
+                setError('Market data paused.');
                 console.error(err);
             }
         };
 
         fetchData(); // Initial fetch
-        const intervalId = setInterval(fetchData, 5000); // Refresh every 5 seconds
+        // Increased from 5000 to 30000 to save quota
+        const intervalId = setInterval(fetchData, 30000); 
 
         return () => clearInterval(intervalId);
     }, []);
 
     if (error) {
-        return <div className="text-center text-red-400 text-xs p-2">{error}</div>;
+        return <div className="text-center text-red-400 text-[10px] p-1 opacity-50 uppercase font-bold">{error}</div>;
     }
 
     if (data.length === 0) {
-        return null; // Don't render if there's no data yet
+        return <div className="h-8 animate-pulse bg-gray-200/20 rounded"></div>;
     }
     
-    // Duplicate the data to create a seamless scrolling loop
     const tickerItems = [...data, ...data];
 
     return (

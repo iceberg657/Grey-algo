@@ -1,36 +1,20 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
+import { runWithModelFallback, executeLiteGeminiCall } from './retryUtils';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
-const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
+const UPDATE_INTERVAL = 3600000; // 1 hour
 
-// Lesser Model: Flash Lite (High Speed, Low Cost)
 const MODELS = ['gemini-flash-lite-latest'];
 
 const GLOBAL_MARKET_PROMPT = `
-Act as a chief market strategist. Your task is to perform a high-level, real-time analysis of the current global market structure to determine the prevailing bias.
-
-**Instructions:**
-1.  **Scan Key Assets:** Use Google Search to analyze the current price action, news, and sentiment for these 4 key sectors:
-    *   **US Equities:** Focus on S&P 500 (SPX).
-    *   **Forex:** Focus on the US Dollar Index (DXY) and EUR/USD.
-    *   **Commodities:** Focus on Gold (XAU/USD).
-    *   **Crypto:** Focus on Bitcoin (BTC/USD).
-
-2.  **Determine Bias:** For each sector, declare the immediate market structure as **'Bullish'**, **'Bearish'**, or **'Neutral'**.
-3.  **Provide Rationale:** For each sector, provide a very short, punchy, one-sentence reason (e.g., "Breaking above 5200 resistance," or "Rejected at key supply zone").
-4.  **Synthesize Global Summary:** Write a concise 1-2 sentence summary of the overall global risk sentiment (e.g., Risk-On, Risk-Off, or Mixed/Indecisive).
-
-**Output Format:**
+Act as a chief market strategist. Perform a high-level, real-time analysis of market structure.
+1. US Equities (SPX). 2. Forex (DXY/EURUSD). 3. Commodities (Gold). 4. Crypto (BTC).
 Return ONLY a valid JSON object matching this structure:
 {
   "sectors": [
-    { "name": "US Equities", "asset": "SPX", "bias": "Bullish|Bearish|Neutral", "reason": "string" },
-    { "name": "Forex", "asset": "DXY", "bias": "Bullish|Bearish|Neutral", "reason": "string" },
-    { "name": "Commodities", "asset": "Gold", "bias": "Bullish|Bearish|Neutral", "reason": "string" },
-    { "name": "Crypto", "asset": "BTC", "bias": "Bullish|Bearish|Neutral", "reason": "string" }
+    { "name": "string", "asset": "string", "bias": "Bullish|Bearish|Neutral", "reason": "string" }
   ],
   "globalSummary": "string"
 }
@@ -38,8 +22,7 @@ Return ONLY a valid JSON object matching this structure:
 
 export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis> {
     try {
-        // Prioritize Key 2 for Global Analysis
-        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+        const response = await executeLiteGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
             return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
@@ -50,33 +33,26 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
                     temperature: 0.1,
                 },
             }));
-        }, PRIORITY_KEY_2);
+        });
 
         const responseText = response.text?.trim();
-        if (!responseText) throw new Error("Empty response from AI");
+        if (!responseText) throw new Error("Empty response");
 
         let jsonString = responseText;
         const firstBrace = jsonString.indexOf('{');
         const lastBrace = jsonString.lastIndexOf('}');
-
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-        }
+        if (firstBrace !== -1 && lastBrace !== -1) jsonString = jsonString.substring(firstBrace, lastBrace + 1);
 
         const data = JSON.parse(jsonString);
-        
         const analysis: GlobalMarketAnalysis = {
             timestamp: Date.now(),
             sectors: data.sectors,
             globalSummary: data.globalSummary
         };
-
         localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis));
-        
         return analysis;
-
     } catch (error) {
-        console.error("Failed to fetch global market analysis:", error);
+        console.error("Failed to fetch global analysis:", error);
         throw error;
     }
 }
@@ -84,25 +60,12 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
 export function getStoredGlobalAnalysis(): GlobalMarketAnalysis | null {
     try {
         const stored = localStorage.getItem(STORAGE_KEY);
-        if (!stored) return null;
-        
-        const analysis: GlobalMarketAnalysis = JSON.parse(stored);
-        return analysis;
-    } catch (e) {
-        console.error("Error reading global analysis from storage", e);
-        return null;
-    }
+        return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
 }
 
 export async function getOrRefreshGlobalAnalysis(): Promise<GlobalMarketAnalysis> {
     const stored = getStoredGlobalAnalysis();
-    
-    if (stored) {
-        const age = Date.now() - stored.timestamp;
-        if (age < UPDATE_INTERVAL) {
-            return stored;
-        }
-    }
-    
+    if (stored && (Date.now() - stored.timestamp < UPDATE_INTERVAL)) return stored;
     return fetchGlobalMarketAnalysis();
 }

@@ -1,91 +1,89 @@
 
-// Gather keys from environment variables.
-const RAW_KEYS = [
-    process.env.API_KEY_1, 
+/**
+ * Neural Link Orchestrator: Manages a pool of API keys to bypass individual quota limits.
+ */
+
+// Gather all configured keys from the environment
+const KEY_POOL = [
+    process.env.API_KEY,
+    process.env.API_KEY_1,
     process.env.API_KEY_2,
-    process.env.API_KEY_3, 
-    process.env.API_KEY
+    process.env.API_KEY_3,
+    process.env.API_KEY_4,
+    process.env.API_KEY_5,
 ].filter((key): key is string => !!key && key.trim() !== '');
 
-// Export Key Indices for clarity
-export const PRIORITY_KEY_1 = 0; // Charts, News, Predictor
-export const PRIORITY_KEY_2 = 1; // Stats, Chat, Global
-export const PRIORITY_KEY_3 = 2; // Rest (Suggestions, Learning, TTS)
+// Shuffle the pool on module load to distribute initial load across keys
+const SHUFFLED_POOL = [...KEY_POOL].sort(() => Math.random() - 0.5);
+
+// Specific keys for background tasks to satisfy the "use two api" requirement
+// and prevent background polling from saturating the primary analysis keys.
+const LITE_POOL = [
+    process.env.API_KEY_1 || process.env.API_KEY || '',
+    process.env.API_KEY_2 || process.env.API_KEY || ''
+].filter(k => !!k && k.trim() !== '');
 
 /**
- * A wrapper to execute a Gemini API operation with:
- * 1. Intelligent Key Selection (Prioritize specific key based on task)
- * 2. Automatic Key Rotation (Primary -> Secondary -> etc.)
- * 3. Model Fallback (via runWithModelFallback inside)
- * 4. 30-Second Minimum Wait on Total Failure
- * 
- * @param operationFactory The function performing the API call
- * @param priorityIndex The index of the key to try FIRST (0 = Key 1, 1 = Key 2, etc.)
+ * A wrapper to execute a Gemini API operation with Intelligent Key Rotation.
  */
 export async function executeGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>,
-    priorityIndex: number = 0
+    operationFactory: (apiKey: string) => Promise<T>
 ): Promise<T> {
-    const startTime = Date.now();
-    
-    // If no keys are configured, throw immediately
-    if (RAW_KEYS.length === 0) {
-        throw new Error("No API Keys configured in Vercel.");
-    }
-
-    // Reorder keys based on priority
-    // If priority is 1 (Key 2), order becomes: [Key2, Key3, Key1, Default]
-    // This ensures we try the assigned key first, but still have backups.
-    const reorderedKeys = [...RAW_KEYS];
-    if (priorityIndex > 0 && priorityIndex < reorderedKeys.length) {
-        const preferred = reorderedKeys.splice(priorityIndex, 1)[0];
-        reorderedKeys.unshift(preferred);
+    if (SHUFFLED_POOL.length === 0) {
+        throw new Error("Neural Link Offline: No API keys detected in system environment.");
     }
 
     let lastError: any = null;
-
-    // Iterate through available keys
-    for (const apiKey of reorderedKeys) {
+    
+    for (let i = 0; i < SHUFFLED_POOL.length; i++) {
+        const apiKey = SHUFFLED_POOL[i];
         try {
-            // Attempt the operation with the current key
             return await operationFactory(apiKey);
         } catch (error: any) {
-            lastError = error;
             const errorMessage = error.message || '';
-            
-            // Check if this is a Quota/Rate Limit error
             const isQuotaError = 
                 errorMessage.includes('429') || 
                 error.status === 429 || 
                 errorMessage.toLowerCase().includes('quota') ||
-                errorMessage.toLowerCase().includes('resource_exhausted') ||
-                errorMessage.toLowerCase().includes('too many requests');
+                errorMessage.toLowerCase().includes('resource_exhausted');
 
             if (isQuotaError) {
-                console.warn(`[Gemini API] Quota hit on key ending in ...${apiKey.slice(-4)}. Switching to backup key...`);
-                // Continue to the next key in the loop
+                console.warn(`[Neural Link] Node ${i + 1} Saturated. Re-routing...`);
+                lastError = error;
                 continue;
-            } else {
-                // If it's not a quota error (e.g., Bad Request, 500), throw immediately
-                throw error;
             }
+            throw error;
         }
     }
-
-    // If we exit the loop, it means ALL keys failed with Quota/Limit errors.
-    
-    // ENFORCE 30 SECOND DELAY RULE
-    // We wait until 30 seconds have passed since the start of the attempt
-    const elapsed = Date.now() - startTime;
-    const remaining = 30000 - elapsed;
-    if (remaining > 0) {
-        await new Promise(resolve => setTimeout(resolve, remaining));
-    }
-
-    throw new Error("Limit reached please try after some times");
+    throw lastError || new Error("Unknown Neural Link failure.");
 }
 
-// Keep existing retry logic for internal model retries
+/**
+ * Dedicated executor for background "Lite" tasks.
+ * Uses a smaller subset of keys to isolate background traffic.
+ */
+export async function executeLiteGeminiCall<T>(
+    operationFactory: (apiKey: string) => Promise<T>
+): Promise<T> {
+    if (LITE_POOL.length === 0) return executeGeminiCall(operationFactory);
+
+    let lastError: any = null;
+    for (let i = 0; i < LITE_POOL.length; i++) {
+        const apiKey = LITE_POOL[i];
+        try {
+            return await operationFactory(apiKey);
+        } catch (error: any) {
+            if (error.message?.includes('429') || error.status === 429) {
+                lastError = error;
+                continue;
+            }
+            throw error;
+        }
+    }
+    // If lite keys fail, try the general pool as a last resort
+    return executeGeminiCall(operationFactory);
+}
+
 export async function runWithRetry<T>(
     operation: () => Promise<T>,
     retries: number = 3,
@@ -95,22 +93,18 @@ export async function runWithRetry<T>(
         return await operation();
     } catch (error: any) {
         if (retries <= 0) throw error;
-
         const errorMessage = error.message || '';
-        // We only retry standard server errors here, NOT 429s (handled by key rotation above)
-        const isServerOverloaded = 
+        const isRetryable = 
             errorMessage.includes('503') || 
-            error.status === 503 ||
+            errorMessage.includes('500') ||
             errorMessage.toLowerCase().includes('overloaded') ||
-            errorMessage.toLowerCase().includes('busy') ||
-            errorMessage.toLowerCase().includes('internal error');
+            errorMessage.toLowerCase().includes('busy');
 
-        if (isServerOverloaded) {
-            const delay = baseDelay * Math.pow(1.5, 3 - retries) + (Math.random() * 1000);
+        if (isRetryable) {
+            const delay = baseDelay * Math.pow(2, 3 - retries) + (Math.random() * 1000);
             await new Promise(resolve => setTimeout(resolve, delay));
             return runWithRetry(operation, retries - 1, baseDelay); 
         }
-
         throw error;
     }
 }
@@ -122,11 +116,10 @@ export async function runWithModelFallback<T>(
     let lastError: any;
     for (const model of modelIds) {
         try {
-            return await runWithRetry(() => operationFactory(model), 1); // Low internal retries, rely on key rotation
+            return await runWithRetry(() => operationFactory(model), 1);
         } catch (error: any) {
-            console.warn(`[Model Failed] ${model}:`, error.message);
             lastError = error;
-            // Proceed to next model
+            if (error.message?.includes('quota') || error.message?.includes('429')) break;
         }
     }
     throw lastError;

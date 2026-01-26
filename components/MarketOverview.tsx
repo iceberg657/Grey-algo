@@ -17,7 +17,6 @@ const SafeTradingTimer: React.FC = () => {
     const [targetTimeString, setTargetTimeString] = useState<string>('');
     const [status, setStatus] = useState<TimerState>('COUNTDOWN');
     
-    // Helper to generate a future target
     const generateNewTarget = (baseTime: number) => {
         const minMinutes = 30;
         const maxMinutes = 120;
@@ -33,7 +32,6 @@ const SafeTradingTimer: React.FC = () => {
         let target = targetStr ? parseInt(targetStr, 10) : null;
         let windowEnd = windowEndStr ? parseInt(windowEndStr, 10) : null;
 
-        // 1. Initialization (First Visit or Corrupted State)
         if (!target) {
             const newTarget = generateNewTarget(now);
             localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
@@ -42,59 +40,35 @@ const SafeTradingTimer: React.FC = () => {
             windowEnd = null;
         }
 
-        // 2. Logic Branching
         if (now < target) {
-            // --- COUNTDOWN PHASE ---
             setStatus('COUNTDOWN');
-            
             const diff = target - now;
             const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
             const minutes = Math.floor((diff / 1000 / 60) % 60);
             const seconds = Math.floor((diff / 1000) % 60);
             setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-            
             const date = new Date(target);
             setTargetTimeString(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-
         } else {
-            // --- TARGET TIME REACHED OR PASSED ---
-            
-            // Case A: Window is active (User is inside the 3-5 min execution window)
             if (windowEnd && now < windowEnd) {
                 setStatus('ACTIVE');
                 setTimeLeft('00:00:00');
                 setTargetTimeString('NOW');
-            } 
-            // Case B: Window Expired (User missed it or waited too long) -> RESET
-            else if (windowEnd && now >= windowEnd) {
+            } else if (windowEnd && now >= windowEnd) {
                 const newTarget = generateNewTarget(now);
                 localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
                 localStorage.removeItem(SNIPER_WINDOW_KEY);
-                // State will update on next tick (1s)
-            }
-            // Case C: Target passed, but no window defined yet.
-            // This happens when user hits 00:00:00 OR if they return to the app after being away.
-            else if (!windowEnd) {
-                // Check if the target is STALE.
-                // If the user arrives 10 minutes after the target, we shouldn't open the window.
+            } else if (!windowEnd) {
                 const timeSinceTarget = now - target;
-                const MAX_LATE_THRESHOLD = 10 * 60 * 1000; // Updated to 10 minutes
-
+                const MAX_LATE_THRESHOLD = 10 * 60 * 1000;
                 if (timeSinceTarget > MAX_LATE_THRESHOLD) {
-                    // Too late. Reset immediately.
                     const newTarget = generateNewTarget(now);
                     localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
                     localStorage.removeItem(SNIPER_WINDOW_KEY);
                 } else {
-                    // User is on time (or slightly late but valid). Start the "Action" window.
-                    // Duration: 3 to 5 minutes
-                    const activeMinutes = Math.floor(Math.random() * (5 - 3 + 1)) + 3; // Updated to 3-5 minutes
-                    
-                    // Important: Window ends relative to NOW to give them the full time since they logged in/checked
+                    const activeMinutes = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
                     const newWindowEnd = now + (activeMinutes * 60 * 1000);
                     localStorage.setItem(SNIPER_WINDOW_KEY, newWindowEnd.toString());
-                    
-                    // Immediate UI update
                     setStatus('ACTIVE');
                     setTimeLeft('00:00:00');
                     setTargetTimeString('NOW');
@@ -104,7 +78,7 @@ const SafeTradingTimer: React.FC = () => {
     };
 
     useEffect(() => {
-        tick(); // Initial render
+        tick();
         const interval = setInterval(tick, 1000);
         return () => clearInterval(interval);
     }, []);
@@ -113,16 +87,12 @@ const SafeTradingTimer: React.FC = () => {
 
     return (
         <div className={`mb-6 rounded-xl border relative overflow-hidden transition-all duration-500 ${isReady ? 'bg-green-500/20 border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.3)]' : 'bg-gradient-to-r from-slate-900 via-blue-900/40 to-slate-900 border-blue-500/30'}`}>
-            {/* Background Scanner Effect */}
             {!isReady && (
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-0 bottom-0 left-0 w-1/2 bg-gradient-to-r from-transparent via-blue-500/10 to-transparent transform -skew-x-12 animate-[shimmer_3s_infinite] translate-x-[-100%]"></div>
                 </div>
             )}
-
             <div className="flex flex-col sm:flex-row items-center justify-between p-4 relative z-10 gap-4">
-                
-                {/* Left: Label */}
                 <div className="flex items-center gap-4">
                     <div className={`flex items-center justify-center w-12 h-12 rounded-full border-2 ${isReady ? 'border-green-400 bg-green-500/20 animate-pulse' : 'border-blue-400/50 bg-blue-500/10'}`}>
                         <svg xmlns="http://www.w3.org/2000/svg" className={`h-6 w-6 ${isReady ? 'text-green-400' : 'text-blue-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -134,14 +104,10 @@ const SafeTradingTimer: React.FC = () => {
                             {isReady ? 'SNIPER ENTRY WINDOW OPEN' : 'AI Calibration in Progress'}
                         </h3>
                         <p className="text-xs text-gray-400 mt-0.5">
-                            {isReady 
-                                ? 'Market volatility optimal for A+ Setup execution.' 
-                                : 'Analyzing volume & liquidity for safe entry.'}
+                            {isReady ? 'Market volatility optimal for A+ Setup execution.' : 'Analyzing volume & liquidity for safe entry.'}
                         </p>
                     </div>
                 </div>
-
-                {/* Right: Timer & Target */}
                 <div className="flex items-center gap-6 bg-black/20 px-4 py-2 rounded-lg border border-white/5">
                     <div className="text-center">
                         <span className="text-[10px] text-gray-500 uppercase font-mono block">Countdown</span>
@@ -158,8 +124,6 @@ const SafeTradingTimer: React.FC = () => {
                     </div>
                 </div>
             </div>
-            
-            {/* Loading Bar at bottom */}
             {!isReady && (
                 <div className="h-1 w-full bg-black/40">
                     <div className="h-full bg-blue-500/50 animate-[pulse_2s_infinite]"></div>
@@ -169,29 +133,23 @@ const SafeTradingTimer: React.FC = () => {
     );
 };
 
-// Hook to get market status
 const useMarketStatus = () => {
     const [isOpen, setIsOpen] = useState(false);
-
     useEffect(() => {
         const checkStatus = () => {
             const now = new Date();
-            const dayUTC = now.getUTCDay(); // 0 = Sun, 6 = Sat
+            const dayUTC = now.getUTCDay();
             const hourUTC = now.getUTCHours();
-
-            // Market is closed on Saturday, Sunday before 22:00 UTC, and Friday after 22:00 UTC
             if (dayUTC === 6 || (dayUTC === 0 && hourUTC < 22) || (dayUTC === 5 && hourUTC >= 22)) {
                 setIsOpen(false);
             } else {
                 setIsOpen(true);
             }
         };
-
         checkStatus();
-        const timer = setInterval(checkStatus, 60000); // Check every minute
+        const timer = setInterval(checkStatus, 60000);
         return () => clearInterval(timer);
     }, []);
-
     return { isOpen, statusText: isOpen ? 'Active' : 'Closed' };
 };
 
@@ -214,19 +172,17 @@ interface MarketOverviewProps {
 
 export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect, profitMode }) => {
     const chartRef = useRef<HTMLCanvasElement>(null);
-    const chartInstance = useRef<any>(null); // Using any for Chart.js instance
+    const chartInstance = useRef<any>(null);
     const [timeRange, setTimeRange] = useState<'1H' | '1D' | '1W'>('1H');
     const { isOpen, statusText } = useMarketStatus();
     const [globalAnalysis, setGlobalAnalysis] = useState<GlobalMarketAnalysis | null>(null);
     const [isUpdatingGlobal, setIsUpdatingGlobal] = useState(false);
     
-    // Suggestion State
     const [suggestions, setSuggestions] = useState<AssetSuggestion[]>([]);
     const [suggestionTimer, setSuggestionTimer] = useState<string>('--:--');
     const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
     const [hasInitialLoad, setHasInitialLoad] = useState(false);
 
-    // Fetch Global Market Analysis with 1hr auto-refresh logic
     useEffect(() => {
         const fetchAnalysis = async () => {
             if (isUpdatingGlobal) return;
@@ -240,23 +196,18 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 setIsUpdatingGlobal(false);
             }
         };
-
         fetchAnalysis();
-        
-        // Check every 1 minute if the 1-hour cache has expired, if so, refresh
-        const interval = setInterval(() => {
-            fetchAnalysis();
-        }, 60000); 
-
+        const interval = setInterval(fetchAnalysis, 60000); 
         return () => clearInterval(interval);
     }, []);
 
-    // Fetch Suggestions logic
     useEffect(() => {
         let isMounted = true;
         let timerInterval: ReturnType<typeof setInterval>;
+        let retryTimeout: ReturnType<typeof setTimeout>;
 
         const fetchSuggestions = async () => {
+            if (!isMounted) return;
             setIsUpdatingSuggestions(true);
             try {
                 const { suggestions: data, nextUpdate } = await getOrRefreshSuggestions(profitMode);
@@ -265,15 +216,13 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     setSuggestions(data);
                     setHasInitialLoad(true);
                     
-                    // Start countdown
                     if (timerInterval) clearInterval(timerInterval);
                     timerInterval = setInterval(() => {
                         const now = Date.now();
                         const diff = nextUpdate - now;
                         if (diff <= 0) {
-                            setSuggestionTimer('Rescanning...');
                             clearInterval(timerInterval);
-                            fetchSuggestions(); // Recursive call to refresh
+                            fetchSuggestions(); 
                         } else {
                             const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
                             const secs = Math.floor((diff % (1000 * 60)) / 1000);
@@ -281,9 +230,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         }
                     }, 1000);
                 }
-
             } catch (e) {
                 console.error("Failed to load suggestions", e);
+                if (isMounted) {
+                    setSuggestionTimer('Quota Full: Retrying...');
+                    if (retryTimeout) clearTimeout(retryTimeout);
+                    // Automatic retry after 60 seconds if limit hit
+                    retryTimeout = setTimeout(fetchSuggestions, 60000);
+                }
             } finally {
                 if (isMounted) setIsUpdatingSuggestions(false);
             }
@@ -294,21 +248,19 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         return () => {
             isMounted = false;
             if (timerInterval) clearInterval(timerInterval);
+            if (retryTimeout) clearTimeout(retryTimeout);
         };
-    }, [profitMode]); // Refetch when profitMode changes
+    }, [profitMode]);
 
     useEffect(() => {
         if (!chartRef.current) return;
         const Chart = (window as any).Chart;
         if (!Chart) return;
-
         const ctx = chartRef.current.getContext('2d');
         if (!ctx) return;
-        
         const gradient = ctx.createLinearGradient(0, 0, 0, chartRef.current.clientHeight);
         gradient.addColorStop(0, 'rgba(52, 152, 219, 0.5)');
         gradient.addColorStop(1, 'rgba(15, 23, 42, 0.1)');
-
         const data = {
             labels: Array(50).fill(''),
             datasets: [{
@@ -321,43 +273,30 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 tension: 0.4
             }]
         };
-
         if (chartInstance.current) {
             chartInstance.current.destroy();
         }
-
         chartInstance.current = new Chart(ctx, {
             type: 'line',
             data: data,
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                animation: {
-                    duration: 500,
-                },
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false }
-                },
-                scales: {
-                    x: { display: false },
-                    y: { display: false }
-                }
+                animation: { duration: 500 },
+                plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                scales: { x: { display: false }, y: { display: false } }
             }
         });
-        
         return () => {
             if (chartInstance.current) {
                 chartInstance.current.destroy();
                 chartInstance.current = null;
             }
         };
-    }, [timeRange]); // Redraw chart when timeRange changes
+    }, [timeRange]);
 
     const handleTimeRangeChange = (range: '1H' | '1D' | '1W') => {
-        if (range !== timeRange) {
-            setTimeRange(range);
-        }
+        if (range !== timeRange) setTimeRange(range);
     };
 
     const getBiasColor = (bias: string) => {
@@ -368,13 +307,10 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
     return (
         <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-3 sm:p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl mb-8">
-            
             <SafeTradingTimer />
-
             <div className="mb-6">
                 <MarketTicker onAssetClick={onAssetSelect} />
             </div>
-
             <a href="https://www.tradingview.com/" target="_blank" rel="noopener noreferrer" className="block cursor-pointer group">
                 <div className="flex flex-wrap justify-between items-center mb-4 gap-2">
                     <h2 className="text-lg font-bold text-gray-800 dark:text-dark-text group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">Market Overview</h2>
@@ -398,9 +334,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     <canvas ref={chartRef}></canvas>
                 </div>
             </a>
-            
             <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {/* Market Status Card */}
                 <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[auto] md:min-h-[120px]">
                     <div className="flex justify-between items-start mb-2 md:mb-0">
                         <span className="text-xs uppercase font-semibold text-dark-text-secondary tracking-wider">Market Status</span>
@@ -421,13 +355,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         </div>
                     </div>
                 </div>
-
-                {/* Killzone Clock - Replaces basic Current Day Card */}
-                <div className="col-span-1 md:col-span-1">
-                    <KillzoneClock />
-                </div>
-                
-                 {/* Analysis Count Card */}
+                <div className="col-span-1 md:col-span-1"><KillzoneClock /></div>
                 <div className="bg-dark-card/60 p-4 rounded-xl shadow-lg border border-green-500/10 flex flex-col justify-between min-h-[auto] md:min-h-[120px] relative group">
                     <div className="flex justify-between items-start mb-2 md:mb-0">
                         <span className="text-xs uppercase font-semibold text-dark-text-secondary tracking-wider">Session Analysis</span>
@@ -441,24 +369,13 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         <h3 className="text-4xl sm:text-5xl font-bold text-white tracking-tighter">{analysisCount}</h3>
                         <p className="text-sm text-dark-text-secondary mt-1">Analyses performed</p>
                     </div>
-                    <button 
-                        onClick={onResetCount} 
-                        className="absolute bottom-2 right-2 text-xs font-medium text-blue-400 hover:underline focus:outline-none md:opacity-0 md:group-hover:opacity-100 transition-opacity"
-                        aria-label="Reset analysis count"
-                    >
-                        Reset
-                    </button>
+                    <button onClick={onResetCount} className="absolute bottom-2 right-2 text-xs font-medium text-blue-400 hover:underline focus:outline-none md:opacity-0 md:group-hover:opacity-100 transition-opacity">Reset</button>
                 </div>
             </div>
-
-             {/* AI Suggestions Section */}
              <div className={`mt-4 p-4 rounded-xl border relative overflow-hidden transition-all duration-300 ${profitMode ? 'bg-gradient-to-r from-yellow-900/40 to-orange-900/40 border-yellow-500/40' : 'bg-gradient-to-r from-gray-900 to-slate-900 border-green-500/30'}`}>
                 <div className="absolute top-0 right-0 p-2 opacity-10">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-32 w-32" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" />
-                    </svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-32 w-32" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
                 </div>
-                
                 <div className="flex flex-wrap justify-between items-center mb-4 relative z-10 gap-2">
                     <div>
                         <h3 className={`text-lg font-bold flex items-center gap-2 ${profitMode ? 'text-yellow-400' : 'text-green-400'}`}>
@@ -475,11 +392,10 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         <span className={`font-mono font-bold ${profitMode ? 'text-yellow-300' : 'text-green-300'}`}>{suggestionTimer}</span>
                     </div>
                 </div>
-
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
                     {isUpdatingSuggestions ? (
                          <div className="col-span-full py-4 text-center text-gray-500 text-sm italic animate-pulse">
-                            {profitMode ? 'Scanning for A+ Setups...' : 'Scanning global markets...'}
+                            {suggestionTimer.includes('Retrying') ? 'Quota limit hit. Retrying soon...' : (profitMode ? 'Scanning for A+ Setups...' : 'Scanning global markets...')}
                         </div>
                     ) : suggestions.length > 0 ? (
                         suggestions.map((asset, idx) => (
@@ -504,40 +420,27 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         ))
                     ) : hasInitialLoad ? (
                          <div className="col-span-full py-6 text-center text-gray-400 text-sm bg-white/5 rounded-lg border border-white/5">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 mx-auto text-gray-600 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             <span className="font-semibold block text-gray-300">No {profitMode ? 'A+' : 'high-probability'} setups found.</span>
-                            <span className="text-xs mt-1 block opacity-70">AI scanned for {profitMode ? 'perfect conditions' : '80%+ win-rate trades'} and found none. Preserving capital.</span>
+                            <span className="text-xs mt-1 block opacity-70">AI found no perfect conditions. Preserving capital.</span>
                         </div>
                     ) : (
-                         <div className="col-span-full py-4 text-center text-gray-500 text-sm italic">
-                            Initializing Scanner...
-                        </div>
+                         <div className="col-span-full py-4 text-center text-gray-500 text-sm italic">Initializing Scanner...</div>
                     )}
                 </div>
             </div>
-
-            {/* Global Market Structure Section */}
             <div className="mt-6 pt-6 border-t border-gray-300 dark:border-green-500/20">
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-bold text-gray-800 dark:text-dark-text">
-                        Global Market Structure
-                        {isUpdatingGlobal && <span className="ml-2 text-xs font-normal text-blue-400 animate-pulse">(Updating...)</span>}
-                    </h3>
+                    <h3 className="text-lg font-bold text-gray-800 dark:text-dark-text">Global Market Structure{isUpdatingGlobal && <span className="ml-2 text-xs font-normal text-blue-400 animate-pulse">(Updating...)</span>}</h3>
                     <span className="text-xs text-dark-text-secondary bg-dark-bg/40 px-2 py-1 rounded">Auto-Updates Hourly</span>
                 </div>
-                
                 {globalAnalysis ? (
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {globalAnalysis.sectors.map((sector) => (
                                 <div key={sector.asset} className={`p-3 rounded-xl border flex flex-col justify-between ${getBiasColor(sector.bias)}`}>
                                     <div className="flex justify-between items-start mb-2">
-                                        <div>
-                                            <span className="text-xs font-bold uppercase opacity-70">{sector.name}</span>
-                                            <h4 className="font-bold text-lg">{sector.asset}</h4>
-                                        </div>
+                                        <div><span className="text-xs font-bold uppercase opacity-70">{sector.name}</span><h4 className="font-bold text-lg">{sector.asset}</h4></div>
                                         <span className="text-xs font-bold px-2 py-1 rounded bg-black/20">{sector.bias}</span>
                                     </div>
                                     <p className="text-xs opacity-90 leading-tight">{sector.reason}</p>
@@ -545,19 +448,13 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                             ))}
                         </div>
                         <div className="bg-blue-900/20 border border-blue-500/30 p-3 rounded-xl flex items-start gap-3">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <p className="text-sm text-blue-100/90">
-                                <span className="font-bold text-blue-300">Global Context:</span> {globalAnalysis.globalSummary}
-                            </p>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <p className="text-sm text-blue-100/90"><span className="font-bold text-blue-300">Global Context:</span> {globalAnalysis.globalSummary}</p>
                         </div>
                          <p className="text-right text-[10px] text-dark-text-secondary mt-1">Last Updated: {new Date(globalAnalysis.timestamp).toLocaleTimeString()}</p>
                     </div>
                 ) : (
-                    <div className="flex justify-center py-8">
-                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div>
-                    </div>
+                    <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500"></div></div>
                 )}
             </div>
         </div>

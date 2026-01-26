@@ -1,7 +1,8 @@
 
-import { GoogleGenAI, Chat, Content } from "@google/genai";
+import { GoogleGenAI, Chat, Content, GenerateContentResponse } from "@google/genai";
 import { getStoredGlobalAnalysis } from './globalMarketService';
-import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
+// Removed PRIORITY_KEY_2 as it is not exported from retryUtils
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 const BASE_SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI.
 **Core Directives:**
@@ -28,17 +29,14 @@ function getDynamicSystemInstruction(): string {
     return `${BASE_SYSTEM_INSTRUCTION}\nTime: ${now.toUTCString()}\n${globalContextStr}`;
 }
 
-// Chat instance storage must be keyed by API Key to ensure we don't try to use a chat created with Key A on Key B
-// However, SDK doesn't expose getting the key back easily.
-// Strategy: We will re-create the chat session if we switch keys.
 let chat: Chat | null = null;
-let currentChatModel = 'gemini-2.5-flash';
+let currentChatModel = 'gemini-3-flash-preview';
 let currentApiKey = '';
 
-// STRICTLY use gemini-2.5-flash for Chat
-export const CHAT_MODELS = ['gemini-2.5-flash'];
+// Use Gemini 3 Flash for optimized chat
+export const CHAT_MODELS = ['gemini-3-flash-preview', 'gemini-2.5-flash'];
 
-export function initializeChat(apiKey: string, model: string = 'gemini-2.5-flash'): Chat {
+export function initializeChat(apiKey: string, model: string = 'gemini-3-flash-preview'): Chat {
     const ai = new GoogleGenAI({ apiKey });
     currentChatModel = model;
     currentApiKey = apiKey;
@@ -54,9 +52,6 @@ export function initializeChat(apiKey: string, model: string = 'gemini-2.5-flash
 }
 
 export function getChatInstance(): Chat {
-    // For initial UI render, we might not have a key picked yet. 
-    // Just grab the first available key to return an instance for structure,
-    // but actual calls will go through sendMessageStreamWithRetry which handles rotation.
     const key = process.env.API_KEY_1 || process.env.API_KEY_2 || process.env.API_KEY;
     if (!key) throw new Error("No API Key available");
     
@@ -71,23 +66,15 @@ export function resetChat(): void {
 
 /**
  * Sends a message using robust key and model fallback.
+ * FIX: Removed undefined PRIORITY_KEY_2 and corrected executeGeminiCall signature.
  */
-export async function sendMessageStreamWithRetry(messageParts: any) {
-    
-    // Prioritize Key 2 for Chat
-    return await executeGeminiCall(async (apiKey) => {
-        
-        return await runWithModelFallback(CHAT_MODELS, async (modelId) => {
-            
-            // If we switched keys OR models, we must recreate the chat instance.
-            // Note: This does lose 'history' in the AI's internal memory for this specific turn 
-            // if we fail over mid-conversation, but it's better than crashing.
+export async function sendMessageStreamWithRetry(messageParts: any): Promise<AsyncIterable<GenerateContentResponse>> {
+    return await executeGeminiCall<AsyncIterable<GenerateContentResponse>>(async (apiKey) => {
+        return await runWithModelFallback<AsyncIterable<GenerateContentResponse>>(CHAT_MODELS, async (modelId) => {
             if (!chat || currentChatModel !== modelId || currentApiKey !== apiKey) {
-                 console.log(`[Chat] Initializing session with Model: ${modelId} (Key ends in ...${apiKey.slice(-4)})`);
                  initializeChat(apiKey, modelId);
             }
-            
             return await chat!.sendMessageStream({ message: messageParts });
         });
-    }, PRIORITY_KEY_2);
+    });
 }

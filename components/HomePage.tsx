@@ -10,6 +10,8 @@ import { MarketOverview } from './MarketOverview';
 import { getAnalysisCount, incrementAnalysisCount, resetAnalysisCount } from '../services/analysisCountService';
 import { RiskCalculator } from './RiskCalculator';
 import { CheatSheet } from './CheatSheet';
+import { SettingsModal } from './SettingsModal';
+import { useSettings } from '../contexts/SettingsContext';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -18,7 +20,6 @@ interface HomePageProps {
     onNavigateToNews: () => void;
     onNavigateToChat: () => void;
     onNavigateToPredictor: () => void;
-    onNavigateToStatistics: () => void;
     onNavigateToCharting: () => void;
     onNavigateToProducts: () => void; 
     onAssetSelect?: (asset: string) => void;
@@ -40,13 +41,15 @@ const NavButton: React.FC<{
     </button>
 );
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor, onNavigateToStatistics, onNavigateToCharting, onNavigateToProducts, onAssetSelect }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToNews, onNavigateToChat, onNavigateToPredictor, onNavigateToCharting, onNavigateToProducts, onAssetSelect }) => {
+    const { settings } = useSettings();
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
     const [profitMode, setProfitMode] = useState<boolean>(false);
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
+    const [showSettings, setShowSettings] = useState<boolean>(false);
 
     useEffect(() => {
         setAnalysisCount(getAnalysisCount());
@@ -62,7 +65,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
         setError(null);
 
         try {
-            const data = await generateTradingSignal(request);
+            // Inject user settings into the request
+            const data = await generateTradingSignal({
+                ...request,
+                userSettings: settings
+            });
             const newCount = incrementAnalysisCount();
             setAnalysisCount(newCount);
             onAnalysisComplete(data);
@@ -72,7 +79,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
         } finally {
             setIsLoading(false);
         }
-    }, [onAnalysisComplete]);
+    }, [onAnalysisComplete, settings]);
     
     const iconClasses = "h-6 w-6 group-hover:scale-110 transition-transform";
 
@@ -84,12 +91,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>
         },
         {
-            onClick: onNavigateToStatistics,
-            label: 'Stats',
-            ariaLabel: 'Open Market Statistics',
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
-        },
-        {
             onClick: onNavigateToCharting,
             label: 'Charting',
             ariaLabel: 'Open Charting Platform',
@@ -99,7 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             onClick: onNavigateToChat,
             label: 'Chat',
             ariaLabel: 'Open Oracle Chat',
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 movie-0.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
         },
         {
             onClick: () => setShowRiskCalc(true),
@@ -149,56 +150,48 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             
             {showRiskCalc && <RiskCalculator onClose={() => setShowRiskCalc(false)} />}
             {showCheatSheet && <CheatSheet onClose={() => setShowCheatSheet(false)} />}
+            {showSettings && <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />}
 
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                 <header className="text-center mb-6 relative">
                      <div className="absolute top-0 right-0">
                         <ThemeToggleButton />
                     </div>
-                    <svg className="h-16 w-16 mx-auto mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <defs>
-                            <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">
-                                <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur" />
-                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.9 0" result="glow" />
-                                <feComposite in="SourceGraphic" in2="glow" operator="over" />
-                            </filter>
-                            <linearGradient id="greenCandleFill" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#6ee7b7" />
-                                <stop offset="100%" stopColor="#10b981" />
-                            </linearGradient>
-                            <linearGradient id="darkGreenCandleFill" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#059669" />
-                                <stop offset="100%" stopColor="#047857" />
-                            </linearGradient>
-                            <style>
-                                {`
-                                    .sparkle {
-                                        animation: sparkle-anim 2.5s ease-in-out infinite;
-                                        transform-origin: center;
-                                    }
-                                    @keyframes sparkle-anim {
-                                        0%, 100% { opacity: 0; transform: scale(0.5); }
-                                        50% { opacity: 1; transform: scale(1.2); }
-                                    }
-                                `}
-                            </style>
-                        </defs>
+                    <button 
+                        onClick={() => setShowSettings(true)}
+                        className="group relative inline-block transition-transform active:scale-95"
+                        aria-label="System Settings"
+                    >
+                        <svg className="h-16 w-16 mx-auto mb-4 group-hover:drop-shadow-[0_0_10px_rgba(16,185,129,0.5)] transition-all" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <defs>
+                                <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">
+                                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur" />
+                                    <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.9 0" result="glow" />
+                                    <feComposite in="SourceGraphic" in2="glow" operator="over" />
+                                </filter>
+                                <linearGradient id="greenCandleFill" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor="#6ee7b7" />
+                                    <stop offset="100%" stopColor="#10b981" />
+                                </linearGradient>
+                                <linearGradient id="darkGreenCandleFill" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor="#059669" />
+                                    <stop offset="100%" stopColor="#047857" />
+                                </linearGradient>
+                            </defs>
 
-                        {/* Sparkles */}
-                        <path d="M38 14 L40 10 L42 14 L46 16 L42 18 L40 22 L38 18 L34 16 Z" fill="#6ee7b7" className="sparkle" style={{ animationDelay: '0s' }} />
-                        <path d="M18 50 L20 46 L22 50 L26 52 L22 54 L20 58 L18 54 L14 52 Z" fill="#a7f3d0" className="sparkle" style={{ animationDelay: '1.2s' }} />
-
-                        <g className="animate-bounce-candle origin-center [animation-delay:-0.2s]" filter="url(#brilliantGlow)">
-                            <path d="M20 12V20" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
-                            <rect x="16" y="20" width="8" height="18" rx="1" fill="url(#darkGreenCandleFill)"/>
-                            <path d="M20 38V48" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
-                        </g>
-                        <g className="animate-bounce-candle origin-center" filter="url(#brilliantGlow)">
-                            <path d="M44 16V26" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
-                            <rect x="40" y="26" width="8" height="18" rx="1" fill="url(#greenCandleFill)"/>
-                            <path d="M44 44V52" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
-                        </g>
-                    </svg>
+                            <g className="animate-bounce-candle origin-center [animation-delay:-0.2s]" filter="url(#brilliantGlow)">
+                                <path d="M20 12V20" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
+                                <rect x="16" y="20" width="8" height="18" rx="1" fill="url(#darkGreenCandleFill)"/>
+                                <path d="M20 38V48" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
+                            </g>
+                            <g className="animate-bounce-candle origin-center" filter="url(#brilliantGlow)">
+                                <path d="M44 16V26" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
+                                <rect x="40" y="26" width="8" height="18" rx="1" fill="url(#greenCandleFill)"/>
+                                <path d="M44 44V52" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
+                            </g>
+                        </svg>
+                        <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 transition-opacity bg-black/60 text-[8px] font-black text-white px-2 py-0.5 rounded whitespace-nowrap tracking-widest">SETTINGS</div>
+                    </button>
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
                         GreyAlpha
                     </h1>

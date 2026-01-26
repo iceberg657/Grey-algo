@@ -1,216 +1,105 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import type { AnalysisRequest, SignalData } from '../types';
+import type { AnalysisRequest, SignalData, UserSettings } from '../types';
 import { getStoredGlobalAnalysis } from './globalMarketService';
 import { getLearnedStrategies } from './learningService';
-import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_1 } from './retryUtils';
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
-const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
+const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
     const now = new Date();
     const timeString = now.toUTCString();
-
     const styleInstruction = tradingStyle === 'Short Term' 
-        ? "Short Term (Intraday Power Shift): Execute as an Intraday strategy focused on MOMENTUM DOMINANCE."
+        ? "Short Term (Intraday Power Shift): Focus on MOMENTUM DOMINANCE."
         : tradingStyle;
     
     const learnedSection = learnedStrategies.length > 0
-        ? `\n**Advanced Learned Core Memory (Auto-ML Strategies):**\nThe following are advanced strategies you have autonomously learned. Apply them if the chart patterns align:\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
+        ? `\n**Auto-ML Learned Memory:**\n${learnedStrategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
 
-    const profitModeInstructions = profitMode ? `
-**⚠️ PROFIT MODE ENABLED (STRICTEST FILTERING):**
-You are operating under **Profit Mode** protocols. Your goal is **Capital Preservation** and **High Precision**.
-**CRITERIA FOR SIGNAL GENERATION (ALL MUST BE TRUE):**
-1. **Trend Alignment:** The trade MUST align with the higher timeframe trend. No counter-trend scalping.
-2. **Liquidity:** The entry MUST occur immediately after a clear Liquidity Sweep (Stop Hunt) of a previous high or low.
-3. **News Filter:** Ensure no High-Impact news events are imminent (within 60 mins).
-4. **Time Window:** Prefer optimal volume sessions (London/NY Killzones). If volume is thin, DO NOT trade.
-5. **Calm Structure:** Avoid erratic/choppy markets.
-**OUTPUT RULE:** If conditions are **NOT optimal** based on these filters, return a **NEUTRAL** signal with reasoning explaining which filter failed. ONLY issue a BUY/SELL for **A+ Setups**.
-` : "";
+    const riskContext = userSettings ? `
+**USER RISK PROTOCOL:**
+- Type: ${userSettings.accountType} | Bal: $${userSettings.balance.toLocaleString()}
+- Daily Drawdown: ${userSettings.dailyDrawdownLimit}% | Max: ${userSettings.maxDrawdownLimit}%
+` : `R:R Target: ${riskRewardRatio}`;
 
     return `
-Act as an **Elite Prop Firm Trader** managing a **$100,000 Funded Account**.
-Your Daily Profit Target is **$1,500 - $4,000**.
-Your Daily Drawdown Limit is **$4,000 (4%)**.
-
-**REAL-TIME CONTEXT:**
-- **Current Server Time (UTC):** ${timeString}
-- **Mission:** Identify a high-probability trade execution.
-
-**PROP FIRM SAFETY PROTOCOLS (MANDATORY):**
-1.  **Blast Radius Control:** Stop Loss must be based on strict invalidation of the immediate micro-structure.
-2.  **Dynamic Sizing:** Adhere to a strict **1% Risk Per Trade ($1,000)**.
-3.  **Aggressive Scaling:** Aim for a minimum **${riskRewardRatio}** Risk/Reward.
-4.  **Duration Constraint:** Look for setups that resolve within **30 Minutes to 3 Hours**.
-
-**VISUAL ANALYSIS PROTOCOL:**
-1.  **Identify Key Zones:** Locate Order Blocks, FVGs, and Liquidity Pools.
-2.  **Determine Direction:** Based on the *immediate* momentum, which way is the market pushing?
-3.  **Compare Current Price vs Entry:** Explicitly determine if the entry point is at the current market price shown on the chart, or if it requires a pullback/limit order.
-
-${profitModeInstructions}
-
-**The "Action" Protocol:**
-1.  **Take a Stance:** Provide a **BUY**, **SELL**, or **NEUTRAL** signal.
-2.  **Execution:** Pinpoint the entry.
-3.  **Safety Fallback:** If choppy, tighten Stop Loss.
-
-**Context:**
-${isMultiDimensional
-? `You are provided with three charts: 1. Strategic View (Highest TF), 2. Tactical View (Middle TF), 3. Execution View (Lowest TF).`
-: `You are provided with a single Tactical View chart.`}
+Act as an Apex-Tier Quantitative Analyst. Perform a Pixel-Level Audit of the provided chart.
+REAL-TIME CONTEXT: ${timeString} | BIAS: ${globalContext || 'Visuals only'}
+TRADING STYLE: ${styleInstruction}
+${riskContext}
 ${learnedSection}
 
-**Trading Parameters:**
-· **Style:** ${styleInstruction}
-· **Time Horizon:** 30 Minutes - 3 Hours
-· **Risk Management:** Target R:R of ${riskRewardRatio}. Risk $1,000 (1%) per trade.
+**MANDATORY RULES:**
+1. Duration: Setup MUST reach target within 30m - 3h.
+2. Entry Type: Market Execution | Pullback | Breakout.
+3. Sentiment: 0-100 score.
 
-**Response Requirements:**
-1. **Classification:** Rate confidence based on setup quality (80-100% = A+ Setup, 50-79% = B Setup).
-2. **Entry Type:** You MUST classify the entry as:
-   - **'Market Execution'**: If the suggested entry is essentially the Current Market Price (CMP) shown on the chart.
-   - **'Pullback'**: If the suggested entry is better than current price (e.g. Sell Limit above CMP, Buy Limit below CMP).
-   - **'Breakout'**: If the suggested entry is a Stop Order (e.g. Buy Stop above CMP).
-3. **Speed & Data:** Use Google Search **strictly** for current news/sentiment check.
-4. **Output:** Return ONLY a valid JSON object.
-
-**Output Format:**
+**Output JSON Format:**
 {
   "asset": "string",
   "timeframe": "string",
-  "signal": "'BUY' or 'SELL' or 'NEUTRAL'",
-  "confidence": "number (0-100)",
-  "entryPoints": [number, number, number],
-  "entryType": "'Market Execution' | 'Pullback' | 'Breakout'",
-  "stopLoss": "number",
-  "takeProfits": [number, number, number],
-  "expectedDuration": "string (e.g. '45 Minutes', '2 Hours')",
-  "reasoning": ["string", "string", "string"],
-  "checklist": ["string", "string", "string"],
-  "invalidationScenario": "string",
-  "riskAnalysis": {
-    "riskPerTrade": "$1,000 (1%)",
-    "suggestedLotSize": "string",
-    "safetyScore": "number (0-100)"
-  },
-  "sentiment": {
-    "score": "number (0-100)",
-    "summary": "string"
-  }
+  "signal": "BUY|SELL|NEUTRAL",
+  "confidence": number,
+  "entryPoints": [number],
+  "entryType": "string",
+  "stopLoss": number,
+  "takeProfits": [number],
+  "expectedDuration": "30m-3h",
+  "reasoning": ["string"],
+  "riskAnalysis": { "riskPerTrade": "string", "suggestedLotSize": "string", "safetyScore": number },
+  "sentiment": { "score": number, "summary": "string" }
 }
 `;
 };
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
-    
-    // Select models based on Profit Mode
-    // Profit Mode = Gemini 3.0 Pro Preview (Smarter, Better Reasoning) -> Fallback to Flash
-    // Standard Mode = Gemini 2.5 Flash (Fast, Efficient)
-    const models = request.profitMode 
-        ? ['gemini-3-pro-preview', 'gemini-2.5-flash']
-        : ['gemini-2.5-flash'];
+    const flashModels = ['gemini-3-flash-preview', 'gemini-2.5-flash'];
 
-    // Execute call with key fallback logic, prioritizing KEY 1 for Chart Analysis
     const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies) };
-        const promptParts: ({ text: string; } | { inlineData: { data: string; mimeType: string; }; })[] = [textPart];
+        // SPECIAL INSTRUCTION: Designate API_KEY_5 node to use gemma-3-4b for specialized chart reasoning
+        const isGemmaNode = !!process.env.API_KEY_5 && apiKey === process.env.API_KEY_5;
+        const modelsToTry = isGemmaNode ? ['gemma-3-4b', ...flashModels] : flashModels;
         
-        if (request.isMultiDimensional && request.images.higher) {
-            promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
-        }
+        const textPart = { text: PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies, request.userSettings) };
+        const promptParts: any[] = [textPart];
+        
+        if (request.isMultiDimensional && request.images.higher) promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });
         promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
-        if (request.isMultiDimensional && request.images.entry) {
-            promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
-        }
+        if (request.isMultiDimensional && request.images.entry) promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
 
-        const config: any = {
-            tools: [{googleSearch: {}}], 
-            seed: 42,
-            temperature: request.profitMode ? 0.2 : 0.4, // Lower temperature for Profit Mode to be more strict/deterministic
-        };
-
-        return await runWithModelFallback<GenerateContentResponse>(models, (modelId) => ai.models.generateContent({
-            model: modelId,
-            contents: [{ parts: promptParts }],
-            config,
-        }));
-    }, PRIORITY_KEY_1); // Priority 0 (Key 1)
+        return await runWithModelFallback<GenerateContentResponse>(modelsToTry, (modelId) => {
+            const isGemma = modelId.startsWith('gemma');
+            return ai.models.generateContent({
+                model: modelId,
+                contents: [{ parts: promptParts }],
+                config: {
+                    // Google Search and Thinking Config are Gemini-specific
+                    tools: isGemma ? undefined : [{googleSearch: {}}], 
+                    temperature: request.profitMode ? 0.1 : 0.25,
+                    thinkingConfig: isGemma ? undefined : { thinkingBudget: request.profitMode ? 4000 : 2000 }
+                },
+            });
+        });
+    });
 
     const responseText = response.text;
-    if (!responseText) {
-        throw new Error("Received an empty response from the AI.");
-    }
-    
-    const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    const sources = groundingChunks
-        ?.map(chunk => chunk.web)
-        .filter((web): web is { uri: string; title: string } => !!(web && web.uri && web.title)) || [];
-
+    if (!responseText) throw new Error("Empty AI response.");
     let jsonString = responseText.trim();
     const firstBrace = jsonString.indexOf('{');
     const lastBrace = jsonString.lastIndexOf('}');
-
-    if (firstBrace === -1 || lastBrace === -1 || lastBrace < firstBrace) {
-        throw new Error("The AI returned an invalid response format.");
-    }
-
+    if (firstBrace === -1) throw new Error("Invalid response format.");
     jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-    
     const parsedData: Omit<SignalData, 'id' | 'timestamp'> = JSON.parse(jsonString);
-    
-    if (!parsedData.signal || !parsedData.entryPoints) {
-        throw new Error("AI response is missing required fields.");
-    }
-    
-    const fullData = { ...parsedData, id: '', timestamp: 0 };
-
-    if (sources.length > 0) {
-        fullData.sources = sources;
-    }
-
-    return fullData;
-}
-
-async function callApiEndpoint(request: AnalysisRequest): Promise<SignalData> {
-    const response = await fetch('/api/fetchData', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(request),
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ details: response.statusText }));
-        throw new Error(errorData.details || `Request failed with status ${response.status}`);
-    }
-
-    const data: Omit<SignalData, 'id' | 'timestamp'> = await response.json();
-    return { ...data, id: '', timestamp: 0 };
+    return { ...parsedData, id: '', timestamp: 0 };
 }
 
 export async function generateTradingSignal(request: AnalysisRequest): Promise<SignalData> {
-    let enhancedRequest = { ...request };
-    
-    if (typeof window !== 'undefined') {
-        const storedAnalysis = getStoredGlobalAnalysis();
-        if (storedAnalysis) {
-            enhancedRequest.globalContext = storedAnalysis.globalSummary;
-        }
-
-        const strategies = getLearnedStrategies();
-        if (strategies.length > 0) {
-            enhancedRequest.learnedStrategies = strategies;
-        }
-    }
-
-    if (process.env.API_KEY || process.env.API_KEY_1 || process.env.API_KEY_2 || process.env.API_KEY_3) {
-        return callGeminiDirectly(enhancedRequest);
-    } else {
-        return callApiEndpoint(enhancedRequest);
-    }
+    const enhancedRequest = { ...request };
+    const stored = getStoredGlobalAnalysis();
+    if (stored) enhancedRequest.globalContext = stored.globalSummary;
+    const strategies = getLearnedStrategies();
+    if (strategies.length > 0) enhancedRequest.learnedStrategies = strategies;
+    return callGeminiDirectly(enhancedRequest);
 }

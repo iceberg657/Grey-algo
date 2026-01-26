@@ -5,6 +5,7 @@ import { getChatInstance, sendMessageStreamWithRetry } from '../services/chatSer
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { NeuralBackground } from './NeuralBackground';
+import { GenerateContentResponse } from '@google/genai';
 
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
@@ -323,8 +324,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             const streamMessageId = `model-stream-${Date.now()}`;
             setMessages(prev => [...prev, { id: streamMessageId, role: 'model', text: '' }]);
 
+            // FIX: typed result properly via sendMessageStreamWithRetry cast
             for await (const chunk of result) {
-                responseText += chunk.text;
+                // FIX: Access chunk.text from GenerateContentResponse
+                const c = chunk as GenerateContentResponse;
+                responseText += c.text;
                 setMessages(prev => {
                     const newMessages = [...prev];
                     const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
