@@ -1,11 +1,10 @@
 
 /**
- * Neural Link Orchestrator: Manages task-specific API key pools.
+ * Neural Link Orchestrator: Manages task-specific API key pools and rotation.
  */
 
-// Mapping of keys from environment
-export const KEYS = {
-    PRIMARY: process.env.API_KEY || '',
+const K = {
+    P: process.env.API_KEY || '',
     K1: process.env.API_KEY_1 || '',
     K2: process.env.API_KEY_2 || '',
     K3: process.env.API_KEY_3 || '',
@@ -13,24 +12,23 @@ export const KEYS = {
     K5: process.env.API_KEY_5 || ''
 };
 
-// Pool for background/lite tasks: API Key 1 and 2
-export const LITE_POOL = [KEYS.K1, KEYS.K2].filter(k => !!k);
+// Lite Pool: API_KEY_1 and API_KEY_2
+// Tasks: Predictor, News, Suggestions, Global Market, Other background stuff
+export const LITE_POOL = [K.K1, K.K2].filter(k => !!k);
 
-// Pool for Chat: API Key 4
-export const CHAT_POOL = [KEYS.K4].filter(k => !!k);
-
-// Pool for Chart Analysis: API Key 3 (primary) then API Key 5 (fallback)
-export const CHART_POOL = [KEYS.K3, KEYS.K5].filter(k => !!k);
+// Chart Pool: API_KEY_3, API_KEY_4, API_KEY_5, and part of API_KEY_2
+// Tasks: Analyzing Chart Screenshots
+export const CHART_POOL = [K.K3, K.K4, K.K5, K.K2].filter(k => !!k);
 
 /**
- * Specialized executor for background "Lite" tasks (News, Predictor, Global, Suggestions).
- * Uses API_KEY_1 and API_KEY_2.
+ * Specialized executor for background "Lite" tasks.
  */
 export async function executeLiteGeminiCall<T>(
     operationFactory: (apiKey: string) => Promise<T>
 ): Promise<T> {
-    const pool = LITE_POOL.length > 0 ? LITE_POOL : [KEYS.PRIMARY];
+    const pool = LITE_POOL.length > 0 ? LITE_POOL : [K.P];
     let lastError: any = null;
+    
     for (const apiKey of pool) {
         try {
             return await operationFactory(apiKey);
@@ -42,36 +40,39 @@ export async function executeLiteGeminiCall<T>(
             throw error;
         }
     }
-    throw lastError || new Error("Lite Pool Exhausted.");
-}
-
-/**
- * Specialized executor for Chat.
- * Uses API_KEY_4.
- */
-export async function executeChatGeminiCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>
-): Promise<T> {
-    const pool = CHAT_POOL.length > 0 ? CHAT_POOL : [KEYS.PRIMARY];
-    try {
-        return await operationFactory(pool[0]);
-    } catch (error: any) {
-        // If K4 fails and we have a primary, fallback as last resort
-        if (KEYS.PRIMARY && pool[0] !== KEYS.PRIMARY) {
-            return await operationFactory(KEYS.PRIMARY);
-        }
-        throw error;
-    }
+    throw lastError || new Error("Lite API Node Capacity Reached.");
 }
 
 /**
  * Specialized executor for Chart Analysis.
- * Uses API_KEY_3 then switches to API_KEY_5.
  */
 export async function executeChartGeminiCall<T>(
     operationFactory: (apiKey: string) => Promise<T>
 ): Promise<T> {
-    const pool = CHART_POOL.length > 0 ? CHART_POOL : [KEYS.PRIMARY];
+    const pool = CHART_POOL.length > 0 ? CHART_POOL : [K.P];
+    let lastError: any = null;
+
+    for (const apiKey of pool) {
+        try {
+            return await operationFactory(apiKey);
+        } catch (error: any) {
+            if (error.message?.includes('429') || error.status === 429) {
+                lastError = error;
+                continue;
+            }
+            throw error;
+        }
+    }
+    throw lastError || new Error("Chart Analysis Node Capacity Reached.");
+}
+
+/**
+ * General purpose executor for other tasks (like Chat).
+ */
+export async function executeGeminiCall<T>(
+    operationFactory: (apiKey: string) => Promise<T>
+): Promise<T> {
+    const pool = [K.P, K.K1, K.K2, K.K3, K.K4, K.K5].filter(k => !!k);
     let lastError: any = null;
     for (const apiKey of pool) {
         try {
@@ -84,26 +85,23 @@ export async function executeChartGeminiCall<T>(
             throw error;
         }
     }
-    throw lastError || new Error("Chart Analysis Pool Exhausted.");
+    throw lastError || new Error("Neural Link Offline.");
 }
 
 export async function runWithRetry<T>(
     operation: () => Promise<T>,
-    retries: number = 3,
+    retries: number = 2,
     baseDelay: number = 2000
 ): Promise<T> {
     try {
         return await operation();
     } catch (error: any) {
         if (retries <= 0) throw error;
-        const errorMessage = error.message || '';
-        const isRetryable = 
-            errorMessage.includes('503') || 
-            errorMessage.includes('500') ||
-            errorMessage.toLowerCase().includes('overloaded');
+        const msg = (error.message || '').toLowerCase();
+        const isRetryable = msg.includes('503') || msg.includes('500') || msg.includes('overloaded');
 
         if (isRetryable) {
-            const delay = baseDelay * Math.pow(2, 3 - retries) + (Math.random() * 1000);
+            const delay = baseDelay * Math.pow(2, 2 - retries);
             await new Promise(resolve => setTimeout(resolve, delay));
             return runWithRetry(operation, retries - 1, baseDelay); 
         }
@@ -121,13 +119,8 @@ export async function runWithModelFallback<T>(
             return await runWithRetry(() => operationFactory(model), 1);
         } catch (error: any) {
             lastError = error;
-            if (error.message?.includes('quota') || error.message?.includes('429')) break;
+            if (error.message?.includes('429')) break;
         }
     }
     throw lastError;
-}
-
-// Keeping original export for components still using it
-export async function executeGeminiCall<T>(f: (k: string) => Promise<T>): Promise<T> {
-    return executeLiteGeminiCall(f);
 }

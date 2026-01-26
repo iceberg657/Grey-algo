@@ -1,15 +1,14 @@
 
 const { GoogleGenAI, Type } = require("@google/genai");
 
-const KEYS = [
+const LITE_POOL = [
     process.env.API_KEY_1,
     process.env.API_KEY_2,
-    process.env.API_KEY_3,
     process.env.API_KEY
 ].filter(key => !!key && key.trim() !== '');
 
 let marketDataCache = { timestamp: null, data: [] };
-const CACHE_DURATION = 10 * 60 * 1000;
+const CACHE_DURATION = 15 * 60 * 1000;
 
 const SYMBOLS = [
     'EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD',
@@ -34,8 +33,7 @@ const RESPONSE_SCHEMA = {
 };
 
 async function fetchFromGemini() {
-    if (KEYS.length === 0) throw new Error("No keys.");
-    for (const apiKey of KEYS) {
+    for (const apiKey of LITE_POOL) {
         try {
             const ai = new GoogleGenAI({ apiKey });
             const response = await ai.models.generateContent({
@@ -66,6 +64,6 @@ module.exports = async (req, res) => {
         const data = isStale ? await fetchFromGemini() : marketDataCache.data;
         res.status(200).json(data);
     } catch (error) {
-        res.status(500).json({ error: "Failed to load" });
+        res.status(500).json({ error: "Failed to load market data" });
     }
 };

@@ -1,7 +1,8 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { getStoredGlobalAnalysis } from './globalMarketService';
-import { runWithModelFallback, executeChatGeminiCall } from './retryUtils';
+// Fix: executeChatGeminiCall was not exported from retryUtils, using executeGeminiCall instead as it is the general purpose executor.
+import { runWithModelFallback, executeGeminiCall } from './retryUtils';
 
 const BASE_SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI.
 **Core Directives:**
@@ -55,7 +56,8 @@ export function resetChat(): void {
 }
 
 export async function sendMessageStreamWithRetry(messageParts: any): Promise<AsyncIterable<GenerateContentResponse>> {
-    return await executeChatGeminiCall<AsyncIterable<GenerateContentResponse>>(async (apiKey) => {
+    // Fix: Using executeGeminiCall as it is the intended executor for non-lite/non-chart tasks like chat.
+    return await executeGeminiCall<AsyncIterable<GenerateContentResponse>>(async (apiKey) => {
         return await runWithModelFallback<AsyncIterable<GenerateContentResponse>>(CHAT_MODELS, async (modelId) => {
             if (!chat || currentChatModel !== modelId || currentApiKey !== apiKey) {
                  initializeChat(apiKey, modelId);
