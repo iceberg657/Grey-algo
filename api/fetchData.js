@@ -10,7 +10,8 @@ const K = {
     K5: process.env.API_KEY_5
 };
 
-const CHART_POOL = [K.K3, K.K4, K.K5, K.K2, K.P].filter(k => !!k);
+// Chart Pool: API_KEY_3, API_KEY_4, and API_KEY_5
+const CHART_POOL = [K.K3, K.K4, K.K5, K.P].filter(k => !!k);
 
 const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, profitMode, globalContext) => {
     return `Act as an Apex-Tier SMC Analyst. Perform a Pixel-Level Audit of the provided charts.
@@ -58,6 +59,7 @@ async function callGeminiWithKeyRotation(request) {
             if (!responseText) continue;
             const firstBrace = responseText.indexOf('{');
             const lastBrace = responseText.lastIndexOf('}');
+            if (firstBrace === -1) continue;
             return JSON.parse(responseText.substring(firstBrace, lastBrace + 1));
         } catch (error) {
             if (error.message?.includes('429')) continue;

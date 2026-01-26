@@ -1,8 +1,7 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
 import { getStoredGlobalAnalysis } from './globalMarketService';
-// Fix: executeChatGeminiCall was not exported from retryUtils, using executeGeminiCall instead as it is the general purpose executor.
-import { runWithModelFallback, executeGeminiCall } from './retryUtils';
+import { runWithModelFallback, executeChatGeminiCall } from './retryUtils';
 
 const BASE_SYSTEM_INSTRUCTION = `You are 'Oracle', an apex-level trading AI.
 **Core Directives:**
@@ -44,7 +43,7 @@ export function initializeChat(apiKey: string, model: string = 'gemma-3-4b'): Ch
 }
 
 export function getChatInstance(): Chat {
-    const key = process.env.API_KEY_4 || process.env.API_KEY;
+    const key = process.env.API_KEY_2 || process.env.API_KEY;
     if (!key) throw new Error("No API Key available");
     if (!chat) return initializeChat(key);
     return chat;
@@ -56,8 +55,7 @@ export function resetChat(): void {
 }
 
 export async function sendMessageStreamWithRetry(messageParts: any): Promise<AsyncIterable<GenerateContentResponse>> {
-    // Fix: Using executeGeminiCall as it is the intended executor for non-lite/non-chart tasks like chat.
-    return await executeGeminiCall<AsyncIterable<GenerateContentResponse>>(async (apiKey) => {
+    return await executeChatGeminiCall<AsyncIterable<GenerateContentResponse>>(async (apiKey) => {
         return await runWithModelFallback<AsyncIterable<GenerateContentResponse>>(CHAT_MODELS, async (modelId) => {
             if (!chat || currentChatModel !== modelId || currentApiKey !== apiKey) {
                  initializeChat(apiKey, modelId);
