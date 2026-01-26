@@ -57,6 +57,7 @@ ${learnedSection}
 };
 
 async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
+    // Using gemini-2.5-flash as requested for analysis
     const MODELS = ['gemini-2.5-flash'];
 
     const response = await executeChartGeminiCall<GenerateContentResponse>(async (apiKey) => {

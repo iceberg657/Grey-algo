@@ -11,8 +11,8 @@ const K = {
     K6: process.env.API_KEY_6
 };
 
-// Chart Pool: API_KEY_3, API_KEY_4, and API_KEY_5
-const CHART_POOL = [K.K3, K.K4, K.K5, K.P].filter(k => !!k);
+// Chart Pool: API_KEY_3, API_KEY_4, API_KEY_5, and part of API_KEY_2
+const CHART_POOL = [K.K3, K.K4, K.K5, K.K2, K.P].filter(k => !!k);
 
 const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, profitMode, globalContext) => {
     return `Act as an Apex-Tier SMC Analyst. Perform a Pixel-Level Audit of the provided charts.

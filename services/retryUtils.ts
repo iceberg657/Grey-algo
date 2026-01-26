@@ -14,16 +14,16 @@ const K = {
 };
 
 // Lite Pool: API_KEY_1 and API_KEY_2
-// Tasks: Predictor, News, Suggestions, Global Market
+// Tasks: Predictor, News, Suggestions, Global Market, Ticker
 export const LITE_POOL = [K.K1, K.K2].filter(k => !!k);
 
 // Chat & Auto-ML Pool: API_KEY_6
 // Tasks: Oracle AI Chat, Autonomous Strategy Learning
 export const CHAT_POOL = [K.K6].filter(k => !!k);
 
-// Chart Pool: API_KEY_3, API_KEY_4, and API_KEY_5
+// Chart Pool: API_KEY_3, API_KEY_4, API_KEY_5, and fallback to K2
 // Tasks: Analyzing Chart Screenshots
-export const CHART_POOL = [K.K3, K.K4, K.K5].filter(k => !!k);
+export const CHART_POOL = [K.K3, K.K4, K.K5, K.K2].filter(k => !!k);
 
 /**
  * Specialized executor for background "Lite" tasks.

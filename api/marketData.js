@@ -1,10 +1,10 @@
 
 const { GoogleGenAI, Type } = require("@google/genai");
 
+// Strictly use API Keys 1 and 2 for market data
 const LITE_POOL = [
     process.env.API_KEY_1,
-    process.env.API_KEY_2,
-    process.env.API_KEY
+    process.env.API_KEY_2
 ].filter(key => !!key && key.trim() !== '');
 
 let marketDataCache = { timestamp: null, data: [] };
@@ -33,7 +33,10 @@ const RESPONSE_SCHEMA = {
 };
 
 async function fetchFromGemini() {
-    for (const apiKey of LITE_POOL) {
+    // If Lite Pool is empty, fallback to primary as last resort
+    const keysToTry = LITE_POOL.length > 0 ? LITE_POOL : [process.env.API_KEY];
+    
+    for (const apiKey of keysToTry) {
         try {
             const ai = new GoogleGenAI({ apiKey });
             const response = await ai.models.generateContent({
@@ -53,7 +56,10 @@ async function fetchFromGemini() {
                 marketDataCache = { timestamp: Date.now(), data: parsedData };
                 return parsedData;
             }
-        } catch (error) { continue; }
+        } catch (error) { 
+            console.error(`Ticker Key Error:`, error.message);
+            continue; 
+        }
     }
     return marketDataCache.data;
 }
