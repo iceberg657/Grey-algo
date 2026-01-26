@@ -33,6 +33,8 @@ ${learnedSection}
 1. Duration: Setup MUST reach target within 30m - 3h.
 2. Entry Type: Market Execution | Pullback | Breakout.
 3. Sentiment: 0-100 score.
+4. Confluence: Identify exactly 3-5 Key Factors.
+5. Risk: Define a clear Invalidation Scenario.
 
 **Output JSON Format:**
 {
@@ -46,6 +48,8 @@ ${learnedSection}
   "takeProfits": [number],
   "expectedDuration": "30m-3h",
   "reasoning": ["string"],
+  "checklist": ["string"],
+  "invalidationScenario": "string",
   "riskAnalysis": { "riskPerTrade": "string", "suggestedLotSize": "string", "safetyScore": number },
   "sentiment": { "score": number, "summary": "string" }
 }

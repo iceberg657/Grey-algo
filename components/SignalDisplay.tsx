@@ -264,18 +264,20 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </ul>
             </Section>
 
-            {data.checklist && data.invalidationScenario && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {data.checklist && data.checklist.length > 0 && (
                     <Section title="Key Factors" icon={<svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}>
                         <ul className="space-y-1.5">
                             {data.checklist.map((item, i) => <li key={i} className="flex items-start text-xs sm:text-sm"><span className="text-green-500 mr-2 mt-0.5 flex-shrink-0">&#10003;</span><span>{item}</span></li>)}
                         </ul>
                     </Section>
+                )}
+                {data.invalidationScenario && (
                     <Section title="Invalidation" icon={<svg className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>}>
                         <p className="text-sm bg-red-500/10 p-2 rounded-lg border border-red-500/20">{data.invalidationScenario}</p>
                     </Section>
-                 </div>
-            )}
+                )}
+            </div>
         </div>
     );
 };

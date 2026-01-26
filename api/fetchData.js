@@ -16,7 +16,26 @@ const PROMPT = (riskRewardRatio, tradingStyle, isMultiDimensional, profitMode, g
     return `Act as an Apex-Tier SMC Analyst. Perform a Pixel-Level Audit of the provided charts.
 R:R: ${riskRewardRatio}. Style: ${tradingStyle}. Profit Mode: ${profitMode}.
 Global Context: ${globalContext || 'Analyze visuals only'}.
-Output strictly as valid JSON.`;
+
+**REQUIREMENTS:**
+1. Identify 3-5 Key Factors for confluence.
+2. Define a clear Invalidation Scenario.
+
+Output strictly as valid JSON matching:
+{
+  "asset": "string",
+  "timeframe": "string",
+  "signal": "BUY|SELL|NEUTRAL",
+  "confidence": number,
+  "entryPoints": [number],
+  "entryType": "string",
+  "stopLoss": number,
+  "takeProfits": [number],
+  "expectedDuration": "string",
+  "reasoning": ["string"],
+  "checklist": ["string"],
+  "invalidationScenario": "string"
+}`;
 };
 
 async function callGeminiWithKeyRotation(request) {
