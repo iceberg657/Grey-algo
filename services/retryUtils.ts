@@ -9,16 +9,17 @@ const K = {
     K2: process.env.API_KEY_2 || '',
     K3: process.env.API_KEY_3 || '',
     K4: process.env.API_KEY_4 || '',
-    K5: process.env.API_KEY_5 || ''
+    K5: process.env.API_KEY_5 || '',
+    K6: process.env.API_KEY_6 || ''
 };
 
 // Lite Pool: API_KEY_1 and API_KEY_2
 // Tasks: Predictor, News, Suggestions, Global Market
 export const LITE_POOL = [K.K1, K.K2].filter(k => !!k);
 
-// Chat Pool: API_KEY_2 and API_KEY_3
-// Tasks: Oracle AI Chat
-export const CHAT_POOL = [K.K2, K.K3].filter(k => !!k);
+// Chat & Auto-ML Pool: API_KEY_6
+// Tasks: Oracle AI Chat, Autonomous Strategy Learning
+export const CHAT_POOL = [K.K6].filter(k => !!k);
 
 // Chart Pool: API_KEY_3, API_KEY_4, and API_KEY_5
 // Tasks: Analyzing Chart Screenshots
@@ -48,7 +49,7 @@ export async function executeLiteGeminiCall<T>(
 }
 
 /**
- * Specialized executor for Chat.
+ * Specialized executor for Chat and Auto-ML (Using K6).
  */
 export async function executeChatGeminiCall<T>(
     operationFactory: (apiKey: string) => Promise<T>
@@ -67,7 +68,7 @@ export async function executeChatGeminiCall<T>(
             throw error;
         }
     }
-    throw lastError || new Error("Chat Node Capacity Reached.");
+    throw lastError || new Error("Oracle Core Offline.");
 }
 
 /**
@@ -99,7 +100,7 @@ export async function executeChartGeminiCall<T>(
 export async function executeGeminiCall<T>(
     operationFactory: (apiKey: string) => Promise<T>
 ): Promise<T> {
-    const pool = [K.P, K.K1, K.K2, K.K3, K.K4, K.K5].filter(k => !!k);
+    const pool = [K.P, K.K1, K.K2, K.K3, K.K4, K.K5, K.K6].filter(k => !!k);
     let lastError: any = null;
     for (const apiKey of pool) {
         try {

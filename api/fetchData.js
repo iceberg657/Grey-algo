@@ -7,7 +7,8 @@ const K = {
     K2: process.env.API_KEY_2,
     K3: process.env.API_KEY_3,
     K4: process.env.API_KEY_4,
-    K5: process.env.API_KEY_5
+    K5: process.env.API_KEY_5,
+    K6: process.env.API_KEY_6
 };
 
 // Chart Pool: API_KEY_3, API_KEY_4, and API_KEY_5

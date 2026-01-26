@@ -43,7 +43,7 @@ export function initializeChat(apiKey: string, model: string = 'gemma-3-4b'): Ch
 }
 
 export function getChatInstance(): Chat {
-    const key = process.env.API_KEY_2 || process.env.API_KEY;
+    const key = process.env.API_KEY_6 || process.env.API_KEY;
     if (!key) throw new Error("No API Key available");
     if (!chat) return initializeChat(key);
     return chat;

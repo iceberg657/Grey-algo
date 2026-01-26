@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLiteGeminiCall, runWithRetry } from './retryUtils';
+import { executeChatGeminiCall, runWithRetry } from './retryUtils';
 
 const STRATEGIES_STORAGE_KEY = 'greyquant_learned_strategies';
 const DAILY_STATS_KEY = 'greyquant_learning_stats';
@@ -46,7 +46,8 @@ export const incrementDailyCount = (): void => {
 
 export const performAutoLearning = async (): Promise<string | null> => {
     try {
-        const response = await executeLiteGeminiCall<GenerateContentResponse>(async (apiKey) => {
+        // Auto-ML now uses K6 (shared with Chat as requested)
+        const response = await executeChatGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             return await runWithRetry<GenerateContentResponse>(() => ai.models.generateContent({
                 model: 'gemini-flash-lite-latest',
