@@ -1,13 +1,10 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, SERVICE_POOL, LANE_2_MODELS } from './retryUtils';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
-
-// Lesser Model: Flash Lite (High Speed, Low Cost)
-const MODELS = ['gemini-flash-lite-latest'];
 
 const GLOBAL_MARKET_PROMPT = `
 Act as a chief market strategist. Your task is to perform a high-level, real-time analysis of the current global market structure to determine the prevailing bias.
@@ -38,11 +35,11 @@ Return ONLY a valid JSON object matching this structure:
 
 export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis> {
     try {
-        // Prioritize Key 2 for Global Analysis
-        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+        // Lane 2: gemini-2.5-flash-lite-latest -> gemini-2.0-flash
+        return await executeLaneCall<GlobalMarketAnalysis>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => ai.models.generateContent({
                 model: modelId,
                 contents: GLOBAL_MARKET_PROMPT,
                 config: {
@@ -50,30 +47,30 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
                     temperature: 0.1,
                 },
             }));
-        }, PRIORITY_KEY_2);
 
-        const responseText = response.text?.trim();
-        if (!responseText) throw new Error("Empty response from AI");
+            const responseText = response.text?.trim();
+            if (!responseText) throw new Error("Empty response from AI");
 
-        let jsonString = responseText;
-        const firstBrace = jsonString.indexOf('{');
-        const lastBrace = jsonString.lastIndexOf('}');
+            let jsonString = responseText;
+            const firstBrace = jsonString.indexOf('{');
+            const lastBrace = jsonString.lastIndexOf('}');
 
-        if (firstBrace !== -1 && lastBrace !== -1) {
-            jsonString = jsonString.substring(firstBrace, lastBrace + 1);
-        }
+            if (firstBrace !== -1 && lastBrace !== -1) {
+                jsonString = jsonString.substring(firstBrace, lastBrace + 1);
+            }
 
-        const data = JSON.parse(jsonString);
-        
-        const analysis: GlobalMarketAnalysis = {
-            timestamp: Date.now(),
-            sectors: data.sectors,
-            globalSummary: data.globalSummary
-        };
+            const data = JSON.parse(jsonString);
+            
+            const analysis: GlobalMarketAnalysis = {
+                timestamp: Date.now(),
+                sectors: data.sectors,
+                globalSummary: data.globalSummary
+            };
 
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis));
-        
-        return analysis;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis));
+            
+            return analysis;
+        }, SERVICE_POOL);
 
     } catch (error) {
         console.error("Failed to fetch global market analysis:", error);

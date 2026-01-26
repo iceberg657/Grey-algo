@@ -15,15 +15,27 @@ const K = {
 
 // Lane 1: Chart Analysis (High Priority Visuals)
 export const ANALYSIS_POOL = [K.K1, K.K2, K.K3].filter(k => !!k);
-export const LANE_1_MODELS = ['gemini-3-flash-preview', 'gemini-2.5-pro-preview', 'gemini-2.5-flash', 'gemini-2.5-flash-lite-latest'];
+export const LANE_1_MODELS = [
+    'gemini-3-flash-preview', 
+    'gemini-2.5-pro', 
+    'gemini-2.5-flash', 
+    'gemini-2.5-flash-lite-latest'
+];
 
 // Lane 2: Main App Services (News, Global Bias, Suggestions, Predictions)
 export const SERVICE_POOL = [K.K4, K.K5].filter(k => !!k);
-export const LANE_2_MODELS = ['gemini-2.5-flash-lite-latest', 'gemini-2.0-flash'];
+export const LANE_2_MODELS = [
+    'gemini-2.5-flash-lite-latest', 
+    'gemini-2.0-flash'
+];
 
 // Lane 3: User interaction & Intelligence Growth (Chat, ML)
 export const CHAT_ML_POOL = [K.K6].filter(k => !!k);
-export const LANE_3_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite-latest', 'gemini-2.0-flash'];
+export const LANE_3_MODELS = [
+    'gemini-2.5-flash', 
+    'gemini-2.5-flash-lite-latest', 
+    'gemini-2.0-flash'
+];
 
 // Legacy priority keys
 export const PRIORITY_KEY_1 = [K.K1].filter(k => !!k);

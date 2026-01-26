@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { MarketStatsData, StatTimeframe } from '../types';
-import { runWithModelFallback, executeGeminiCall, PRIORITY_KEY_2 } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, SERVICE_POOL, LANE_2_MODELS } from './retryUtils';
 
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
@@ -10,9 +10,6 @@ const ASSETS = {
     Indices: ['US30', 'NAS100', 'SPX500', 'GER40', 'UK100'],
     Crypto: ['BTC/USD', 'ETH/USD', 'SOL/USD', 'XRP/USD', 'BNB/USD']
 };
-
-// Lesser Model: Flash Lite (High Speed, Low Cost)
-const MODELS = ['gemini-flash-lite-latest'];
 
 const STATS_PROMPT = (symbol: string, timeframe: string) => `
 Act as a Real-Time Technical Analysis Engine. 
@@ -55,11 +52,11 @@ Generate a real-time technical snapshot for **${symbol}** based on the **${timef
 
 export async function fetchMarketStatistics(symbol: string, timeframe: StatTimeframe): Promise<MarketStatsData> {
     try {
-        // Prioritize Key 2 for Stats
-        const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
+        // Lane 2: gemini-2.5-flash-lite-latest -> gemini-2.0-flash
+        return await executeLaneCall<MarketStatsData>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            return await runWithModelFallback<GenerateContentResponse>(MODELS, (modelId) => ai.models.generateContent({
+            const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => ai.models.generateContent({
                 model: modelId,
                 contents: STATS_PROMPT(symbol, timeframe),
                 config: {
@@ -67,20 +64,20 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
                     temperature: 0.1 
                 }
             }));
-        }, PRIORITY_KEY_2);
 
-        const text = response.text?.trim();
-        if (!text) throw new Error("Empty response");
+            const text = response.text?.trim();
+            if (!text) throw new Error("Empty response");
 
-        let jsonString = text;
-        const first = jsonString.indexOf('{');
-        const last = jsonString.lastIndexOf('}');
-        if (first !== -1 && last !== -1) jsonString = jsonString.substring(first, last + 1);
+            let jsonString = text;
+            const first = jsonString.indexOf('{');
+            const last = jsonString.lastIndexOf('}');
+            if (first !== -1 && last !== -1) jsonString = jsonString.substring(first, last + 1);
 
-        const data: MarketStatsData = JSON.parse(jsonString);
-        data.symbol = symbol; // Enforce symbol match
+            const data: MarketStatsData = JSON.parse(jsonString);
+            data.symbol = symbol; // Enforce symbol match
 
-        return data;
+            return data;
+        }, SERVICE_POOL);
     } catch (e) {
         console.error("Stats Fetch Error:", e);
         throw new Error("Failed to load market statistics.");
