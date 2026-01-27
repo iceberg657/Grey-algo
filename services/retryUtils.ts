@@ -125,7 +125,10 @@ export async function runWithRetry<T>(
     } catch (error: any) {
         if (retries <= 0) throw error;
         const msg = (error.message || '').toLowerCase();
-        if (msg.includes('503') || msg.includes('500') || msg.includes('overloaded') || msg.includes('429')) {
+        
+        // OPTIMIZATION: Do NOT retry 429s here. Let them bubble up to `runWithModelFallback`
+        // so we can switch models immediately without waiting 3 seconds.
+        if (msg.includes('503') || msg.includes('500') || msg.includes('overloaded')) {
             // Invoke callback if provided to notify UI of the wait time
             if (onRetry) {
                 onRetry(baseDelay);
@@ -149,7 +152,7 @@ export async function runWithModelFallback<T>(
     let lastError: any;
     for (const model of modelIds) {
         try {
-            // Internal retry for 500/503/429 errors
+            // Internal retry for 500/503 errors (network blips)
             return await runWithRetry(() => operationFactory(model), 1, 3000, onRetry);
         } catch (error: any) {
             lastError = error;

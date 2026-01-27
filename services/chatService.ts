@@ -36,6 +36,10 @@ export function resetChat(): void {
     currentChat = null;
 }
 
+export function getCurrentModelName(): string {
+    return currentModel;
+}
+
 export async function sendMessageStreamWithRetry(
     messageParts: any, 
     onRetry?: (delayMs: number) => void

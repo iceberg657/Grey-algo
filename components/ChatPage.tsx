@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import type { ChatMessage, ImagePart } from '../types';
-import { getChatInstance, sendMessageStreamWithRetry } from '../services/chatService';
+import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName } from '../services/chatService';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { NeuralBackground } from './NeuralBackground';
@@ -201,6 +201,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [currentModelName, setCurrentModelName] = useState<string>('');
 
     // Rate Limit Countdown State
     const [retrySeconds, setRetrySeconds] = useState<number>(0);
@@ -208,6 +209,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
     useEffect(() => {
         getChatInstance(); // Initialize on component mount
+        setCurrentModelName(getCurrentModelName());
         
         // Cleanup speech and timeout on unmount
         return () => {
@@ -347,6 +349,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             // Pass the retry callback here
             const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
+            
+            // Update the model name in case it changed during fallback
+            setCurrentModelName(getCurrentModelName());
 
             // Once streaming starts, we can stop the countdown visual if strictly waiting for connection
             setRetrySeconds(0); 
@@ -438,7 +443,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                         Back
                     </button>
-                    <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-200 truncate mx-2">Oracle AI</h1>
+                    <div className="flex flex-col items-center mx-2">
+                        <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-200 truncate">Oracle AI</h1>
+                        {currentModelName && (
+                            <span className="text-[9px] font-mono font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
+                                {currentModelName.replace('gemini-', '')}
+                            </span>
+                        )}
+                    </div>
                     <div className="flex items-center space-x-1 sm:space-x-2">
                         <ThemeToggleButton />
                         <button onClick={onLogout} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-xs sm:text-sm font-medium p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Logout">
