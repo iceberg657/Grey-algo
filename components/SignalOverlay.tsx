@@ -215,14 +215,28 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
             {/* --- 3. HUD (Top Left) --- */}
             <div className="absolute top-4 left-4 z-40 flex flex-col gap-2 max-w-[90vw] md:max-w-fit pointer-events-auto">
                 {!isExpanded ? (
-                    <button 
-                        onClick={() => setIsExpanded(true)}
-                        className="bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/20 p-2 rounded-full shadow-lg hover:bg-white/20 transition-all"
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </button>
+                    <div className="flex flex-col gap-2 pointer-events-auto">
+                        {onBack && (
+                            <button 
+                                onClick={onBack}
+                                className="bg-red-500/20 backdrop-blur-md border border-red-500/30 p-2 rounded-full shadow-lg hover:bg-red-500/30 transition-all group"
+                                title="Exit to Home"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-400 group-hover:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                </svg>
+                            </button>
+                        )}
+                        <button 
+                            onClick={() => setIsExpanded(true)}
+                            className="bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/20 p-2 rounded-full shadow-lg hover:bg-white/20 transition-all"
+                            title="Expand HUD"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </button>
+                    </div>
                 ) : (
                     <div className="bg-white/90 dark:bg-[#0f172a]/80 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl p-3 flex flex-col md:flex-row items-start md:items-center gap-4 transition-all duration-300">
                         
