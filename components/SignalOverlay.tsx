@@ -25,6 +25,7 @@ interface Annotation {
 export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, onBack }) => {
     const [latestAnalysis, setLatestAnalysis] = useState<SignalData | null>(null);
     const [copiedId, setCopiedId] = useState<string | null>(null);
+    const [showUI, setShowUI] = useState(true);
     const [isExpanded, setIsExpanded] = useState(true);
     
     // Annotation State
@@ -138,7 +139,43 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
             ref={containerRef}
             className="absolute inset-0 pointer-events-none overflow-hidden"
         >
-            {/* --- 1. Annotation Canvas Layer --- */}
+            {/* --- 1. Persistent Top-Left Controls --- */}
+            <div className="absolute top-4 left-4 z-[999] flex gap-2 pointer-events-auto">
+                {onBack && (
+                    <button 
+                        onClick={onBack}
+                        className="group flex items-center bg-red-600 hover:bg-red-500 text-white rounded-full p-1.5 pr-4 shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all hover:scale-105 active:scale-95 backdrop-blur-md border border-red-400/30 ring-1 ring-red-500/50"
+                        title="Exit Charting"
+                    >
+                        <div className="bg-red-700/50 rounded-full p-1 mr-2 group-hover:bg-red-600 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 19l-7-7 7-7" />
+                            </svg>
+                        </div>
+                        <span className="text-xs font-bold tracking-wide">EXIT</span>
+                    </button>
+                )}
+                
+                <button 
+                    onClick={() => setShowUI(!showUI)}
+                    className={`flex items-center justify-center w-10 h-10 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 backdrop-blur-md border ${showUI ? 'bg-gray-800/80 text-gray-300 border-gray-600 hover:bg-gray-700' : 'bg-blue-600/90 text-white border-blue-400/50 shadow-[0_0_15px_rgba(37,99,235,0.5)]'}`}
+                    title={showUI ? "Hide Overlay" : "Show Overlay"}
+                >
+                    {showUI ? (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M3.707 2.293a1 1 0 00-1.414 1.414l14 14a1 1 0 001.414-1.414l-1.473-1.473A10.014 10.014 0 0019.542 10C18.268 5.943 14.478 3 10 3a9.958 9.958 0 00-4.512 1.074l-1.78-1.781zm4.261 4.26l1.514 1.515a2.003 2.003 0 012.45 2.45l1.514 1.514a4 4 0 00-5.478-5.478z" clipRule="evenodd" />
+                            <path d="M12.454 16.697L9.75 13.992a4 4 0 01-3.742-3.742L2.335 6.578A9.98 9.98 0 00.458 10c1.274 4.057 5.064 7 9.542 7 .847 0 1.669-.105 2.454-.303z" />
+                        </svg>
+                    ) : (
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
+                            <path fillRule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clipRule="evenodd" />
+                        </svg>
+                    )}
+                </button>
+            </div>
+
+            {/* --- 2. Annotation Canvas Layer --- */}
             {annotations.map(ann => (
                 <div
                     key={ann.id}
@@ -159,163 +196,117 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
                         'h-0.5 bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.5)]'
                     }`}
                 >
-                    {/* Label / Delete Hint */}
                     <div className="absolute -top-5 left-0 text-[10px] font-bold uppercase tracking-wider text-white/70 bg-black/40 px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
                         {ann.type.replace('-', ' ')} (Dbl Click Delete)
                     </div>
-                    
-                    {/* Specific visuals for Liquidity */}
                     {ann.type === 'liquidity' && (
                         <div className="absolute -top-3 right-0 text-[10px] text-blue-400 font-mono">$$$</div>
                     )}
                 </div>
             ))}
 
-
-            {/* --- 2. SMC Toolbar (Right Side) --- */}
-            <div className="absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-auto flex flex-col gap-2 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-2xl">
-                <div className="text-[9px] text-center text-gray-400 font-bold mb-1">TOOLS</div>
+            {/* --- UI Elements Controlled by Toggle --- */}
+            <div className={`transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 
-                <ToolButton onClick={() => addAnnotation('bullish-ob')} color="bg-green-500/20 text-green-400 border-green-500/50" label="Bull OB" icon="🟩" />
-                <ToolButton onClick={() => addAnnotation('bearish-ob')} color="bg-red-500/20 text-red-400 border-red-500/50" label="Bear OB" icon="🟥" />
-                <ToolButton onClick={() => addAnnotation('fvg')} color="bg-yellow-500/20 text-yellow-400 border-yellow-500/50" label="FVG Gap" icon="🟨" />
-                <div className="h-px bg-white/10 my-1"></div>
-                <ToolButton onClick={() => addAnnotation('liquidity')} color="bg-blue-500/20 text-blue-400 border-blue-500/50" label="Liq $$$" icon="〰️" />
-                <ToolButton onClick={() => addAnnotation('support')} color="bg-green-500/20 text-green-400 border-green-500/50" label="Supp Lvl" icon="⬆️" />
-                <ToolButton onClick={() => addAnnotation('resistance')} color="bg-red-500/20 text-red-400 border-red-500/50" label="Res Lvl" icon="⬇️" />
-                
-                <div className="h-px bg-white/10 my-1"></div>
-                
-                {/* Clear All Button */}
-                <button 
-                    onClick={() => setAnnotations([])}
-                    className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 text-xs transition-colors"
-                    title="Clear All Annotations"
-                >
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                </button>
-
-                {/* EXIT Button */}
-                {onBack && (
+                {/* SMC Toolbar */}
+                <div className="absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-auto flex flex-col gap-2 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-2xl">
+                    <div className="text-[9px] text-center text-gray-400 font-bold mb-1">TOOLS</div>
+                    <ToolButton onClick={() => addAnnotation('bullish-ob')} color="bg-green-500/20 text-green-400 border-green-500/50" label="Bull OB" icon="🟩" />
+                    <ToolButton onClick={() => addAnnotation('bearish-ob')} color="bg-red-500/20 text-red-400 border-red-500/50" label="Bear OB" icon="🟥" />
+                    <ToolButton onClick={() => addAnnotation('fvg')} color="bg-yellow-500/20 text-yellow-400 border-yellow-500/50" label="FVG Gap" icon="🟨" />
+                    <div className="h-px bg-white/10 my-1"></div>
+                    <ToolButton onClick={() => addAnnotation('liquidity')} color="bg-blue-500/20 text-blue-400 border-blue-500/50" label="Liq $$$" icon="〰️" />
+                    <ToolButton onClick={() => addAnnotation('support')} color="bg-green-500/20 text-green-400 border-green-500/50" label="Supp Lvl" icon="⬆️" />
+                    <ToolButton onClick={() => addAnnotation('resistance')} color="bg-red-500/20 text-red-400 border-red-500/50" label="Res Lvl" icon="⬇️" />
+                    <div className="h-px bg-white/10 my-1"></div>
                     <button 
-                        onClick={onBack}
-                        className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 text-xs transition-colors mt-1 border border-red-500/20"
-                        title="Exit Charting"
+                        onClick={() => setAnnotations([])}
+                        className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-white/10 text-xs transition-colors"
+                        title="Clear All Annotations"
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                     </button>
-                )}
-            </div>
+                </div>
 
-
-            {/* --- 3. HUD (Top Left) --- */}
-            <div className="absolute top-4 left-4 z-40 flex flex-col gap-2 max-w-[90vw] md:max-w-fit pointer-events-auto">
-                {!isExpanded ? (
-                    <div className="flex flex-col gap-2 pointer-events-auto">
-                        {onBack && (
+                {/* HUD (Shifted down to avoid Back Button overlap) */}
+                <div className="absolute top-16 left-4 z-40 flex flex-col gap-2 max-w-[90vw] md:max-w-fit pointer-events-auto">
+                    {!isExpanded ? (
+                        <div className="flex flex-col gap-2 pointer-events-auto">
                             <button 
-                                onClick={onBack}
-                                className="bg-red-500/20 backdrop-blur-md border border-red-500/30 p-2 rounded-full shadow-lg hover:bg-red-500/30 transition-all group"
-                                title="Exit to Home"
+                                onClick={() => setIsExpanded(true)}
+                                className="bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/20 p-2 rounded-full shadow-lg hover:bg-white/20 transition-all animate-fade-in"
+                                title="Show Analysis"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-red-400 group-hover:text-red-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                             </button>
-                        )}
-                        <button 
-                            onClick={() => setIsExpanded(true)}
-                            className="bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/20 p-2 rounded-full shadow-lg hover:bg-white/20 transition-all"
-                            title="Expand HUD"
-                        >
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </button>
-                    </div>
-                ) : (
-                    <div className="bg-white/90 dark:bg-[#0f172a]/80 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl p-3 flex flex-col md:flex-row items-start md:items-center gap-4 transition-all duration-300">
-                        
-                        {/* Header */}
-                        <div className="flex items-center justify-between w-full md:w-auto gap-3">
-                            <div className="flex items-center gap-3">
-                                <div className="flex flex-col">
-                                    <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">ACTIVE SIGNAL</span>
-                                    {latestAnalysis ? (
-                                        <div className="flex items-center gap-2">
-                                            <span className="text-base font-black text-gray-800 dark:text-white">{latestAnalysis.asset}</span>
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${signalBg} ${signalColor}`}>
-                                                {latestAnalysis.signal}
-                                            </span>
-                                        </div>
-                                    ) : (
-                                        <span className="text-sm font-bold text-gray-400">No Active Analysis</span>
-                                    )}
+                        </div>
+                    ) : (
+                        <div className="bg-white/90 dark:bg-[#0f172a]/80 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl p-3 flex flex-col md:flex-row items-start md:items-center gap-4 transition-all duration-300 animate-fade-in">
+                            <div className="flex items-center justify-between w-full md:w-auto gap-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="flex flex-col">
+                                        <span className="text-xs font-bold text-gray-500 dark:text-gray-400 tracking-wider">ACTIVE SIGNAL</span>
+                                        {latestAnalysis ? (
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-base font-black text-gray-800 dark:text-white">{latestAnalysis.asset}</span>
+                                                <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${signalBg} ${signalColor}`}>
+                                                    {latestAnalysis.signal}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <span className="text-sm font-bold text-gray-400">No Active Analysis</span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* Separator */}
-                        <div className="hidden md:block w-px h-8 bg-gray-300 dark:bg-white/10"></div>
+                            <div className="hidden md:block w-px h-8 bg-gray-300 dark:bg-white/10"></div>
 
-                        {/* Data Points */}
-                        {latestAnalysis && (
-                            <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start overflow-x-auto">
-                                <DataPoint 
-                                    label="ENTRY" 
-                                    value={latestAnalysis.entryPoints[0]} 
-                                    color="text-blue-600 dark:text-blue-400" 
-                                    onCopy={() => handleCopy(latestAnalysis.entryPoints[0], 'ENTRY')}
-                                    isCopied={copiedId === 'ENTRY'}
-                                />
-                                <DataPoint 
-                                    label="STOP" 
-                                    value={latestAnalysis.stopLoss} 
-                                    color="text-red-600 dark:text-red-400"
-                                    onCopy={() => handleCopy(latestAnalysis.stopLoss, 'STOP')}
-                                    isCopied={copiedId === 'STOP'}
-                                />
-                                <DataPoint 
-                                    label="TARGET" 
-                                    value={latestAnalysis.takeProfits[0]} 
-                                    color="text-green-600 dark:text-green-400"
-                                    onCopy={() => handleCopy(latestAnalysis.takeProfits[0], 'TARGET')}
-                                    isCopied={copiedId === 'TARGET'}
-                                />
-                            </div>
-                        )}
-
-                        {/* Tools (Visible on Mobile & Desktop) */}
-                        <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-gray-300 dark:border-white/10 pt-2 md:pt-0 md:pl-4 w-full md:w-auto justify-end">
-                            {onBack && (
-                                <button 
-                                    onClick={onBack}
-                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors flex items-center gap-1 group"
-                                    title="Exit to Home"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-                                    </svg>
-                                    <span className="text-xs font-bold md:hidden group-hover:inline ml-1 transition-all">EXIT</span>
-                                </button>
+                            {latestAnalysis && (
+                                <div className="flex items-center gap-4 w-full md:w-auto justify-between md:justify-start overflow-x-auto">
+                                    <DataPoint 
+                                        label="ENTRY" 
+                                        value={latestAnalysis.entryPoints[0]} 
+                                        color="text-blue-600 dark:text-blue-400" 
+                                        onCopy={() => handleCopy(latestAnalysis.entryPoints[0], 'ENTRY')}
+                                        isCopied={copiedId === 'ENTRY'}
+                                    />
+                                    <DataPoint 
+                                        label="STOP" 
+                                        value={latestAnalysis.stopLoss} 
+                                        color="text-red-600 dark:text-red-400"
+                                        onCopy={() => handleCopy(latestAnalysis.stopLoss, 'STOP')}
+                                        isCopied={copiedId === 'STOP'}
+                                    />
+                                    <DataPoint 
+                                        label="TARGET" 
+                                        value={latestAnalysis.takeProfits[0]} 
+                                        color="text-green-600 dark:text-green-400"
+                                        onCopy={() => handleCopy(latestAnalysis.takeProfits[0], 'TARGET')}
+                                        isCopied={copiedId === 'TARGET'}
+                                    />
+                                </div>
                             )}
-                            <ThemeToggleButton />
-                            <button 
-                                onClick={() => setIsExpanded(false)}
-                                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
-                                title="Minimize HUD"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
-                                    <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-                                </svg>
-                            </button>
+
+                            <div className="flex items-center gap-2 border-t md:border-t-0 md:border-l border-gray-300 dark:border-white/10 pt-2 md:pt-0 md:pl-4 w-full md:w-auto justify-end">
+                                <ThemeToggleButton />
+                                <button 
+                                    onClick={() => setIsExpanded(false)}
+                                    className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-gray-500 dark:text-gray-400 transition-colors"
+                                    title="Minimize"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                </button>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    )}
+                </div>
             </div>
         </div>
     );

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, Component, type ErrorInfo, type ReactNode } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
@@ -376,8 +377,9 @@ const App: React.FC = () => {
                 <TradingViewWidget />
             </div>
 
-            <div className="absolute top-0 left-0 right-0 z-10 pointer-events-none">
-                <div className="pointer-events-auto">
+            {/* Changed from top-0 left-0 right-0 to inset-0 to ensure full coverage */}
+            <div className="absolute inset-0 z-10 pointer-events-none">
+                <div className="pointer-events-auto h-full">
                     <SignalOverlay 
                         onAnalyzeClick={handleChartAnalysis} 
                         onBack={handleNavigateToHome}
