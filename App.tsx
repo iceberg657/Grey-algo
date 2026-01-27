@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect, type ErrorInfo, type ReactNode } from 'react';
+import React, { useState, useCallback, useEffect, type ErrorInfo, type ReactNode, Component } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { HomePage } from './components/HomePage';
@@ -41,8 +41,8 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary Component to prevent White Screen of Death
-// FIX: Changed `extends Component` to `extends React.Component` to resolve TypeScript error where `props` was not found.
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+// FIX: Imported 'Component' and used `extends Component` to resolve TypeScript error where `props` was not found.
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {

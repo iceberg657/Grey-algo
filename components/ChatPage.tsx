@@ -191,13 +191,13 @@ const SUGGESTED_PROMPTS = [
 ];
 
 const getModelSymbol = (modelName: string) => {
-    if (modelName.includes('2.5-pro')) return '🧠'; // Brain for Pro/Reasoning
-    if (modelName.includes('2.5-flash')) return '⚡'; // Lightning for Flash
-    if (modelName.includes('2.0-flash')) return '🚀'; // Rocket for Speed/Legacy
-    if (modelName.includes('lite')) return '🍃'; // Leaf for Lite
-    if (modelName.includes('3-pro')) return '💎'; // Diamond for 3.0 Pro
-    if (modelName.includes('3-flash')) return '💫'; // Star for 3.0 Flash
-    return '🤖'; // Robot fallback
+    if (modelName.includes('2.5-pro')) return 'Α'; // Alpha
+    if (modelName.includes('2.5-flash')) return 'Β'; // Beta
+    if (modelName.includes('2.0-flash')) return 'Γ'; // Gamma
+    if (modelName.includes('lite')) return 'Λ';   // Lambda for lite
+    if (modelName.includes('3-pro')) return 'Ω';   // Omega for top-tier Pro
+    if (modelName.includes('3-flash')) return 'Δ'; // Delta for fast new-gen
+    return 'Σ'; // Sigma as a generic fallback
 };
 
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput }) => {
@@ -457,7 +457,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-200 truncate">Oracle AI</h1>
                         {currentModelName && (
                             <span 
-                                className="text-lg md:text-xl ml-1 cursor-help" 
+                                className="text-xl md:text-2xl font-bold ml-1 cursor-help font-mono text-green-600 dark:text-green-400" 
                                 title={`Active Model: ${currentModelName}`}
                             >
                                 {getModelSymbol(currentModelName)}
