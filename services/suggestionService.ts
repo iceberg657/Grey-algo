@@ -7,19 +7,39 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
     return await executeLaneCall<AssetSuggestion[]>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        // LANE 2 CASCADE: 2.5 Lite -> 2.0 Flash
+        const prompt = `
+        Scan the current market (Forex, Crypto, Indices).
+        Identify 4 high-probability trading setups for the current session.
+        ${profitMode ? "STRICT MODE: Only return A+ setups matching institutional order flow." : "Standard Mode: Return high-potential movers."}
+        
+        **REQUIRED JSON OUTPUT FORMAT:**
+        [
+          { 
+            "symbol": "string (e.g. GBP/USD)", 
+            "type": "Major" | "Minor" | "Commodity" | "Index" | "Crypto", 
+            "reason": "short explanation", 
+            "volatilityWarning": boolean 
+          }
+        ]
+        Return ONLY valid JSON.
+        `;
+
+        // LANE 2 CASCADE: 3.0 Flash -> 2.5
         const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => 
             ai.models.generateContent({
                 model: modelId,
-                contents: `Identify 3 high-probability setups. ProfitMode: ${profitMode}. JSON output.`,
-                config: { tools: [{googleSearch: {}}], temperature: 0.1 },
+                contents: prompt,
+                config: { tools: [{googleSearch: {}}], temperature: 0.3 },
             })
         );
 
-        const text = response.text || '[]';
+        let text = response.text || '[]';
+        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        
         const start = text.indexOf('[');
         const end = text.lastIndexOf(']') + 1;
         if (start === -1) return [];
+        
         return JSON.parse(text.substring(start, end));
     }, SERVICE_POOL);
 }

@@ -1,6 +1,4 @@
-
-
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, Component, type ErrorInfo, type ReactNode } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { HomePage } from './components/HomePage';
@@ -34,6 +32,62 @@ const NEWS_STORAGE_KEY = 'greyquant_news';
 const PREDICTOR_STORAGE_KEY = 'greyquant_predictor';
 const CHAT_STORAGE_KEY = 'greyquant_chat';
 
+interface ErrorBoundaryProps {
+    children?: ReactNode;
+}
+
+interface ErrorBoundaryState {
+    hasError: boolean;
+    error: Error | null;
+}
+
+// Error Boundary Component to prevent White Screen of Death
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = { hasError: false, error: null };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error("Critical Application Error:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex flex-col items-center justify-center min-h-screen bg-[#0f172a] text-white p-6 text-center z-[99999] relative">
+          <div className="bg-red-900/20 border border-red-500/50 p-6 rounded-2xl max-w-md w-full shadow-2xl backdrop-blur-xl">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+              <h1 className="text-2xl font-bold text-red-400 mb-2">System Critical Error</h1>
+              <p className="text-gray-300 mb-4 text-sm">
+                The application encountered an unexpected issue and could not render.
+              </p>
+              <div className="bg-black/30 p-3 rounded-lg text-left mb-6 overflow-auto max-h-32 border border-white/10">
+                <p className="font-mono text-xs text-red-300 break-all">
+                    {this.state.error?.toString() || "Unknown Error"}
+                </p>
+              </div>
+              <button 
+                onClick={() => {
+                    localStorage.clear(); 
+                    window.location.href = '/';
+                }}
+                className="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-red-500/30"
+              >
+                Clear Cache & Reload
+              </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children; 
+  }
+}
+
 const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
@@ -54,7 +108,6 @@ const App: React.FC = () => {
             const storedNews = window.localStorage.getItem(NEWS_STORAGE_KEY);
             return storedNews ? JSON.parse(storedNews) : [];
         } catch (error) {
-            console.warn(`Could not read news from localStorage: ${error}`);
             return [];
         }
     });
@@ -67,7 +120,6 @@ const App: React.FC = () => {
             const storedEvents = window.localStorage.getItem(PREDICTOR_STORAGE_KEY);
             return storedEvents ? JSON.parse(storedEvents) : [];
         } catch (error) {
-            console.warn(`Could not read predicted events from localStorage: ${error}`);
             return [];
         }
     });
@@ -80,109 +132,21 @@ const App: React.FC = () => {
             const storedMessages = window.localStorage.getItem(CHAT_STORAGE_KEY);
             return storedMessages ? JSON.parse(storedMessages) : [];
         } catch (error) {
-            console.warn(`Could not read chat messages from localStorage: ${error}`);
             return [];
         }
     });
 
-    // Helper for History Navigation
     const navigateTo = useCallback((view: AppView) => {
-        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-        
-        if (isSafeOrigin) {
-            try {
-                window.history.pushState({ view }, '', `#${view}`);
-            } catch (e) {
-                try {
-                    window.history.pushState({ view }, '');
-                } catch (e2) {
-                    console.warn("History pushState disabled in this environment.");
-                }
-            }
-        }
         setAppView(view);
     }, []);
 
-    // Handle initial load and back button (popstate)
     useEffect(() => {
-        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-        const initialView = isLoggedIn ? 'home' : 'landing';
-        
-        if (!window.history.state && isSafeOrigin) {
-            try {
-                window.history.replaceState({ view: initialView }, '', `#${initialView}`);
-            } catch (e) {
-                try {
-                    window.history.replaceState({ view: initialView }, '');
-                } catch (e2) {
-                    console.warn("History replaceState disabled.");
-                }
-            }
-        }
-
-        const handlePopState = (event: PopStateEvent) => {
-            if (event.state && event.state.view) {
-                setAppView(event.state.view);
-            } else {
-                if (isLoggedIn) {
-                    setAppView('home');
-                } else {
-                    setAppView('landing');
-                }
-            }
-        };
-
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, [isLoggedIn]);
-
-
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(NEWS_STORAGE_KEY, JSON.stringify(news));
-        } catch (error) {
-            console.error(`Could not save news to localStorage: ${error}`);
-        }
-    }, [news]);
-
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(PREDICTOR_STORAGE_KEY, JSON.stringify(predictedEvents));
-        } catch (error) {
-            console.error(`Could not save predicted events from localStorage: ${error}`);
-        }
-    }, [predictedEvents]);
-
-    useEffect(() => {
-        try {
-            window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatMessages));
-        } catch (error) {
-            console.error(`Could not save chat messages from localStorage: ${error}`);
-        }
-    }, [chatMessages]);
-
-    useEffect(() => {
-        // This effect acts as a guard against invalid states.
-        // If we land on the analysis page without any data (e.g., from a bookmark or browser history),
-        // redirect to the home page to prevent a blank screen.
+        // Safe redirect: Only redirect if on analysis page and data is missing
         if (isLoggedIn && appView === 'analysis' && !analysisData) {
-            navigateTo('home');
+            console.warn("Redirecting from analysis to home due to missing data.");
+            setAppView('home'); // Direct state update is safer than navigateTo here
         }
-    }, [isLoggedIn, appView, analysisData, navigateTo]);
-
-    useEffect(() => {
-        if (appView === 'charting') {
-            document.body.style.overflow = 'hidden';
-            document.body.style.overscrollBehavior = 'none';
-        } else {
-            document.body.style.overflow = '';
-            document.body.style.overscrollBehavior = '';
-        }
-        return () => {
-            document.body.style.overflow = '';
-            document.body.style.overscrollBehavior = '';
-        };
-    }, [appView]);
+    }, [isLoggedIn, appView, analysisData]);
 
     const fetchNewsData = useCallback(async () => {
         setIsNewsLoading(true);
@@ -228,16 +192,6 @@ const App: React.FC = () => {
 
     const handleLogout = () => {
         logout();
-        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-        if (isSafeOrigin) {
-            try {
-                window.history.pushState({ view: 'landing' }, '', '#landing');
-            } catch (e) {
-                try {
-                    window.history.pushState({ view: 'landing' }, '');
-                } catch (e2) {}
-            }
-        }
         setAppView('landing'); 
         setAuthPage('login');
     };
@@ -290,12 +244,7 @@ const App: React.FC = () => {
 
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
-        const isSafeOrigin = window.location.protocol === 'http:' || window.location.protocol === 'https:';
-        if (isSafeOrigin && window.history.length > 1) {
-             window.history.back();
-        } else {
-             navigateTo(previousView); 
-        }
+        navigateTo(previousView); 
     };
 
     const handleEnterApp = () => {
@@ -307,7 +256,7 @@ const App: React.FC = () => {
                 setAppView('auth'); 
             }
             setIsTransitioning(false);
-        }, 2500); 
+        }, 2000); 
     };
 
     const handleAssetSelect = (asset: string) => {
@@ -344,14 +293,19 @@ const App: React.FC = () => {
         }
     }, []);
     
+    // --- Render Logic ---
+
+    // 1. Transition Loader
     if (isTransitioning) {
         return <TransitionLoader />;
     }
 
+    // 2. Landing Page
     if (appView === 'landing') {
         return <LandingPage onEnterApp={handleEnterApp} />;
     }
 
+    // 3. Auth Pages
     if (!isLoggedIn) {
         if (authPage === 'signup') {
             return <SignUpPage onSignUp={handleSignUp} onNavigateToLogin={() => setAuthPage('login')} />;
@@ -359,6 +313,7 @@ const App: React.FC = () => {
         return <LoginPage onLogin={handleLogin} onNavigateToSignUp={() => setAuthPage('signup')} />;
     }
 
+    // 4. Main App Logic
     let content: React.ReactNode = null;
 
     switch (appView) {
@@ -445,10 +400,17 @@ const App: React.FC = () => {
         case 'charting':
             break;
         default:
-            content = null;
+            // Fallback for unknown view
+            content = (
+                <div className="flex items-center justify-center h-screen">
+                    <p className="text-gray-500">Page Not Found. Redirecting...</p>
+                </div>
+            );
     }
 
     const isCharting = appView === 'charting';
+    
+    // Chart Layer needs to be outside the switch to preserve iframe state
     const chartLayer = (
         <div 
             className="fixed inset-0 z-[50] bg-[#f4f7f9] dark:bg-[#0f172a] transition-opacity duration-300"
@@ -482,13 +444,13 @@ const App: React.FC = () => {
     );
 
     return (
-        <>
+        <ErrorBoundary>
             <AutoLearningManager />
             {chartLayer}
-            <div style={{ display: isCharting ? 'none' : 'block' }}>
+            <div style={{ display: isCharting ? 'none' : 'block', minHeight: '100vh' }}>
                 {content}
             </div>
-        </>
+        </ErrorBoundary>
     );
 };
 

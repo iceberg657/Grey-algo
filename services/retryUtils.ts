@@ -18,7 +18,6 @@ export const ANALYSIS_POOL = [K.K1, K.K2, K.K3].filter(k => !!k);
 export const LANE_1_MODELS = [
     'gemini-3-pro-preview',
     'gemini-3-flash-preview',
-    'gemini-2.5-pro',
     'gemini-2.5-flash-lite-latest'
 ];
 

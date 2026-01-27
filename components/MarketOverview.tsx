@@ -262,7 +262,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 const { suggestions: data, nextUpdate } = await getOrRefreshSuggestions(profitMode);
                 
                 if (isMounted) {
-                    setSuggestions(data);
+                    setSuggestions(data || []);
                     setHasInitialLoad(true);
                     
                     // Start countdown
@@ -284,6 +284,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
             } catch (e) {
                 console.error("Failed to load suggestions", e);
+                if (isMounted) setSuggestions([]); // Safety
             } finally {
                 if (isMounted) setIsUpdatingSuggestions(false);
             }
@@ -481,7 +482,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                          <div className="col-span-full py-4 text-center text-gray-500 text-sm italic animate-pulse">
                             {profitMode ? 'Scanning for A+ Setups...' : 'Scanning global markets...'}
                         </div>
-                    ) : suggestions.length > 0 ? (
+                    ) : suggestions && suggestions.length > 0 ? (
                         suggestions.map((asset, idx) => (
                             <div 
                                 key={idx} 
@@ -528,7 +529,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     <span className="text-xs text-dark-text-secondary bg-dark-bg/40 px-2 py-1 rounded">Auto-Updates Hourly</span>
                 </div>
                 
-                {globalAnalysis ? (
+                {globalAnalysis && globalAnalysis.sectors ? (
                     <div className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                             {globalAnalysis.sectors.map((sector) => (
