@@ -142,27 +142,47 @@ export async function runWithRetry<T>(
 
 /**
  * Enhanced fallback that tries a different model series if one is quota-exhausted.
- * This is critical for bypassing model-specific free tier limits.
+ * Loops through the model list `loopCount` times before failing.
  */
 export async function runWithModelFallback<T>(
     modelIds: string[],
     operationFactory: (modelId: string) => Promise<T>,
-    onRetry?: (delayMs: number) => void
+    onRetry?: (delayMs: number) => void,
+    loopCount: number = 2 // Try the whole sequence twice by default
 ): Promise<T> {
     let lastError: any;
-    for (const model of modelIds) {
-        try {
-            // Internal retry for 500/503 errors (network blips)
-            return await runWithRetry(() => operationFactory(model), 1, 3000, onRetry);
-        } catch (error: any) {
-            lastError = error;
-            const errorMsg = (error.message || '').toLowerCase();
-            // If it's a 429 (Quota), we immediately cascade to the next model in the list
-            if (errorMsg.includes('429') || error.status === 429) {
-                console.log(`Model Quota Exhausted for ${model}. Cascading to next available model...`);
-                continue;
+    
+    outerLoop: for (let i = 0; i < loopCount; i++) {
+        for (let j = 0; j < modelIds.length; j++) {
+            const model = modelIds[j];
+            try {
+                // Internal retry for 500/503 errors (network blips)
+                return await runWithRetry(() => operationFactory(model), 1, 3000, onRetry);
+            } catch (error: any) {
+                lastError = error;
+                const errorMsg = (error.message || '').toLowerCase();
+                
+                // If it's a 429 (Quota)
+                if (errorMsg.includes('429') || error.status === 429) {
+                    
+                    // Check if this is the last model in the list
+                    if (j === modelIds.length - 1) {
+                        // If we have loops remaining, wait 3s and restart the chain
+                        if (i < loopCount - 1) {
+                            console.log(`All models exhausted in pass ${i+1}. Waiting 3s before restarting chain...`);
+                            if (onRetry) onRetry(3000); // Trigger UI Countdown
+                            await new Promise(resolve => setTimeout(resolve, 3000));
+                            continue outerLoop; // Jump to next outer iteration (restart from first model)
+                        }
+                    }
+                    
+                    console.log(`Model Quota Exhausted for ${model}. Cascading...`);
+                    continue; // Try next model in the list
+                }
+                
+                // For non-retryable errors (e.g. 400 Bad Request), stop immediately
+                break;
             }
-            break;
         }
     }
     throw lastError;

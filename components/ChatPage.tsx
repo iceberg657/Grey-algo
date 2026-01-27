@@ -190,6 +190,16 @@ const SUGGESTED_PROMPTS = [
     "Summarize the latest forex news"
 ];
 
+const getModelSymbol = (modelName: string) => {
+    if (modelName.includes('2.5-pro')) return '🧠'; // Brain for Pro/Reasoning
+    if (modelName.includes('2.5-flash')) return '⚡'; // Lightning for Flash
+    if (modelName.includes('2.0-flash')) return '🚀'; // Rocket for Speed/Legacy
+    if (modelName.includes('lite')) return '🍃'; // Leaf for Lite
+    if (modelName.includes('3-pro')) return '💎'; // Diamond for 3.0 Pro
+    if (modelName.includes('3-flash')) return '💫'; // Star for 3.0 Flash
+    return '🤖'; // Robot fallback
+};
+
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
@@ -446,8 +456,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     <div className="flex flex-col items-center mx-2">
                         <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-200 truncate">Oracle AI</h1>
                         {currentModelName && (
-                            <span className="text-[9px] font-mono font-bold text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded uppercase tracking-wider">
-                                {currentModelName.replace('gemini-', '')}
+                            <span 
+                                className="text-lg md:text-xl ml-1 cursor-help" 
+                                title={`Active Model: ${currentModelName}`}
+                            >
+                                {getModelSymbol(currentModelName)}
                             </span>
                         )}
                     </div>
