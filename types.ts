@@ -4,6 +4,15 @@ export interface ImagePart {
     mimeType: string;
 }
 
+export interface UserSettings {
+    accountType: 'Real' | 'Funded';
+    accountBalance: number;
+    targetPercentage: number;
+    dailyDrawdown: number;
+    maxDrawdown: number;
+    timeLimit: number; // days
+}
+
 export interface AnalysisRequest {
     images: {
         higher?: ImagePart;
@@ -16,6 +25,7 @@ export interface AnalysisRequest {
     profitMode: boolean; // New field for strict filtering
     globalContext?: string;
     learnedStrategies?: string[];
+    userSettings?: UserSettings;
 }
 
 export interface EconomicEvent {

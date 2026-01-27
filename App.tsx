@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, type ErrorInfo, type ReactNode } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
@@ -20,6 +21,7 @@ import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
+import { PacificTimeClock } from './components/PacificTimeClock';
 
 
 type AuthPage = 'login' | 'signup';
@@ -39,6 +41,7 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary Component to prevent White Screen of Death
+// FIX: Changed `extends Component` to `extends React.Component` to resolve TypeScript error where `props` was not found.
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   public state: ErrorBoundaryState = { hasError: false, error: null };
 
@@ -397,6 +400,7 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
+            {isLoggedIn && <PacificTimeClock />}
             <AutoLearningManager />
             {chartLayer}
             <div style={{ display: isCharting ? 'none' : 'block', minHeight: '100vh' }}>

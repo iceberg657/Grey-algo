@@ -1,9 +1,25 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import type { AnalysisRequest, SignalData } from '../types';
+import type { AnalysisRequest, SignalData, UserSettings } from '../types';
 import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS } from './retryUtils';
 
-const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
+const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
+    
+    let userContext = '';
+    if (userSettings) {
+        userContext = `
+    **USER ACCOUNT CONTEXT:**
+    - Account Type: ${userSettings.accountType}
+    - Balance: $${userSettings.accountBalance.toLocaleString()}
+    - Profit Target: ${userSettings.targetPercentage}%
+    - Max Daily Drawdown: ${userSettings.dailyDrawdown}%
+    - Max Overall Drawdown: ${userSettings.maxDrawdown}%
+    - Time Limit: ${userSettings.accountType === 'Funded' ? `${userSettings.timeLimit} days` : 'N/A'}
+    
+    **CRITICAL RULE:** The analysis MUST respect these risk parameters. Do not suggest trades that would violate drawdown rules. The goal is to safely reach the profit target within the given constraints.
+        `;
+    }
+    
     return `
     You are 'GreyAlpha', an elite quantitative trading AI.
     Analyze the attached financial chart image(s) using Institutional SMC (Smart Money Concepts).
@@ -13,6 +29,7 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     - Style: ${tradingStyle}
     - Profit Mode (Strict Filtering): ${profitMode ? "ENABLED (Only A+ Setups)" : "Standard"}
     ${globalContext ? `- Global Market Context: ${globalContext}` : ''}
+    ${userContext}
 
     **REQUIRED OUTPUT FORMAT:**
     You MUST return a raw JSON object. Do not include markdown formatting like \`\`\`json.
@@ -43,7 +60,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
     return await executeLaneCall<Omit<SignalData, 'id' | 'timestamp'>>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        const promptText = PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies);
+        const promptText = PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies, request.userSettings);
         const promptParts: any[] = [{ text: promptText }];
         
         if (request.isMultiDimensional && request.images.higher) promptParts.push({ inlineData: { data: request.images.higher.data, mimeType: request.images.higher.mimeType } });

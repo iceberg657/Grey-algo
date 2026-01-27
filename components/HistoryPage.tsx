@@ -58,7 +58,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
 
         const headers = [
             "Timestamp", "Asset", "Timeframe", "Signal", "Confidence", 
-            "Entry Range", "Stop Loss", "Take Profits", "Reasoning",
+            "Entry Points", "Stop Loss", "Take Profits", "Reasoning",
             "Checklist", "Invalidation Scenario", "Sources"
         ];
         
@@ -77,13 +77,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
             const checklist = row.checklist ? row.checklist.join(' | ') : '';
             const invalidation = row.invalidationScenario || '';
             const sources = row.sources ? row.sources.map(s => s.uri).join(' | ') : '';
-            // FIX: The `entryRange` property does not exist on `SignalData`.
-            // Use `entryPoints` instead and join the array into a string.
-            const entryRange = row.entryPoints.join(' | ');
+            const entryPoints = row.entryPoints.join(' | ');
 
             return [
                 escapeCsvCell(timestamp), escapeCsvCell(row.asset), escapeCsvCell(row.timeframe),
-                escapeCsvCell(row.signal), row.confidence, escapeCsvCell(entryRange), row.stopLoss,
+                escapeCsvCell(row.signal), row.confidence, escapeCsvCell(entryPoints), row.stopLoss,
                 escapeCsvCell(takeProfits), escapeCsvCell(reasoning), 
                 escapeCsvCell(checklist), escapeCsvCell(invalidation), escapeCsvCell(sources)
             ].join(',');

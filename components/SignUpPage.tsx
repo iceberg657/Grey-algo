@@ -4,7 +4,6 @@ import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface SignUpPageProps {
     onNavigateToLogin: () => void;
-    // FIX: Add onSignUp prop to fix type error from App.tsx.
     onSignUp: () => void;
 }
 
@@ -16,7 +15,6 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
         e.preventDefault();
         // Mock signup: succeed if fields are not empty
         if (email && password) {
-            // FIX: Call the onSignUp prop passed from App.tsx.
             onSignUp();
         } else {
             alert("Please fill in both email and password.");

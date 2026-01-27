@@ -1,14 +1,16 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { Loader } from './Loader';
 import { ErrorMessage } from './ErrorMessage';
 import { generateTradingSignal } from '../services/geminiService';
-import type { SignalData, AnalysisRequest } from '../types';
+import type { SignalData, AnalysisRequest, UserSettings } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { MarketOverview } from './MarketOverview';
 import { getAnalysisCount, incrementAnalysisCount, resetAnalysisCount } from '../services/analysisCountService';
 import { RiskCalculator } from './RiskCalculator';
 import { CheatSheet } from './CheatSheet';
+import { SettingsModal } from './SettingsModal';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -44,6 +46,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
     const [profitMode, setProfitMode] = useState<boolean>(false);
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
+    const [showSettings, setShowSettings] = useState<boolean>(false);
 
     useEffect(() => {
         setAnalysisCount(getAnalysisCount());
@@ -54,12 +57,21 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
         setAnalysisCount(0);
     }, []);
 
-    const handleGenerateSignal = useCallback(async (request: AnalysisRequest) => {
+    const handleGenerateSignal = useCallback(async (requestData: Omit<AnalysisRequest, 'userSettings' | 'globalContext' | 'learnedStrategies'>) => {
         setIsLoading(true);
         setError(null);
 
         try {
-            const data = await generateTradingSignal(request);
+            // Load user settings from localStorage
+            const storedSettings = localStorage.getItem('greyquant_user_settings');
+            const userSettings = storedSettings ? JSON.parse(storedSettings) as UserSettings : undefined;
+
+            const fullRequest: AnalysisRequest = {
+                ...requestData,
+                userSettings,
+            };
+
+            const data = await generateTradingSignal(fullRequest);
             const newCount = incrementAnalysisCount();
             setAnalysisCount(newCount);
             onAnalysisComplete(data);
@@ -134,59 +146,62 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             
             {showRiskCalc && <RiskCalculator onClose={() => setShowRiskCalc(false)} />}
             {showCheatSheet && <CheatSheet onClose={() => setShowCheatSheet(false)} />}
+            {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                 <header className="text-center mb-6 relative">
-                     <div className="absolute top-0 right-0">
+                     <div className="absolute top-0 right-0 flex items-center gap-2">
                         <ThemeToggleButton />
                     </div>
-                    <svg className="h-16 w-16 mx-auto mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <defs>
-                            <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">
-                                <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur" />
-                                <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.9 0" result="glow" />
-                                <feComposite in="SourceGraphic" in2="glow" operator="over" />
-                            </filter>
-                            <linearGradient id="greenCandleFill" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#6ee7b7" />
-                                <stop offset="100%" stopColor="#10b981" />
-                            </linearGradient>
-                            <linearGradient id="darkGreenCandleFill" x1="0" y1="0" x2="1" y2="1">
-                                <stop offset="0%" stopColor="#059669" />
-                                <stop offset="100%" stopColor="#047857" />
-                            </linearGradient>
-                            <style>
-                                {`
-                                    .sparkle {
-                                        animation: sparkle-anim 2.5s ease-in-out infinite;
-                                        transform-origin: center;
-                                    }
-                                    @keyframes sparkle-anim {
-                                        0%, 100% { opacity: 0; transform: scale(0.5); }
-                                        50% { opacity: 1; transform: scale(1.2); }
-                                    }
-                                `}
-                            </style>
-                        </defs>
+                    <button onClick={() => setShowSettings(true)} className="block mx-auto cursor-pointer group focus:outline-none focus:ring-2 focus:ring-green-400/50 rounded-2xl p-2" title="Open Settings">
+                        <svg className="h-16 w-16 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <defs>
+                                <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">
+                                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur" />
+                                    <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.9 0" result="glow" />
+                                    <feComposite in="SourceGraphic" in2="glow" operator="over" />
+                                </filter>
+                                <linearGradient id="greenCandleFill" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor="#6ee7b7" />
+                                    <stop offset="100%" stopColor="#10b981" />
+                                </linearGradient>
+                                <linearGradient id="darkGreenCandleFill" x1="0" y1="0" x2="1" y2="1">
+                                    <stop offset="0%" stopColor="#059669" />
+                                    <stop offset="100%" stopColor="#047857" />
+                                </linearGradient>
+                                <style>
+                                    {`
+                                        .sparkle {
+                                            animation: sparkle-anim 2.5s ease-in-out infinite;
+                                            transform-origin: center;
+                                        }
+                                        @keyframes sparkle-anim {
+                                            0%, 100% { opacity: 0; transform: scale(0.5); }
+                                            50% { opacity: 1; transform: scale(1.2); }
+                                        }
+                                    `}
+                                </style>
+                            </defs>
 
-                        {/* Sparkles */}
-                        <path d="M38 14 L40 10 L42 14 L46 16 L42 18 L40 22 L38 18 L34 16 Z" fill="#6ee7b7" className="sparkle" style={{ animationDelay: '0s' }} />
-                        <path d="M18 50 L20 46 L22 50 L26 52 L22 54 L20 58 L18 54 L14 52 Z" fill="#a7f3d0" className="sparkle" style={{ animationDelay: '1.2s' }} />
+                            {/* Sparkles */}
+                            <path d="M38 14 L40 10 L42 14 L46 16 L42 18 L40 22 L38 18 L34 16 Z" fill="#6ee7b7" className="sparkle" style={{ animationDelay: '0s' }} />
+                            <path d="M18 50 L20 46 L22 50 L26 52 L22 54 L20 58 L18 54 L14 52 Z" fill="#a7f3d0" className="sparkle" style={{ animationDelay: '1.2s' }} />
 
-                        <g className="animate-bounce-candle origin-center [animation-delay:-0.2s]" filter="url(#brilliantGlow)">
-                            <path d="M20 12V20" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
-                            <rect x="16" y="20" width="8" height="18" rx="1" fill="url(#darkGreenCandleFill)"/>
-                            <path d="M20 38V48" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
-                        </g>
-                        <g className="animate-bounce-candle origin-center" filter="url(#brilliantGlow)">
-                            <path d="M44 16V26" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
-                            <rect x="40" y="26" width="8" height="18" rx="1" fill="url(#greenCandleFill)"/>
-                            <path d="M44 44V52" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
-                        </g>
-                    </svg>
-                    <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
-                        GreyAlpha
-                    </h1>
+                            <g className="animate-bounce-candle origin-center [animation-delay:-0.2s]" filter="url(#brilliantGlow)">
+                                <path d="M20 12V20" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
+                                <rect x="16" y="20" width="8" height="18" rx="1" fill="url(#darkGreenCandleFill)"/>
+                                <path d="M20 38V48" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
+                            </g>
+                            <g className="animate-bounce-candle origin-center" filter="url(#brilliantGlow)">
+                                <path d="M44 16V26" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
+                                <rect x="40" y="26" width="8" height="18" rx="1" fill="url(#greenCandleFill)"/>
+                                <path d="M44 44V52" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
+                            </g>
+                        </svg>
+                        <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient group-hover:brightness-110 transition-all">
+                            GreyAlpha
+                        </h1>
+                    </button>
                     <p className="mt-3 text-lg text-gray-600 dark:text-dark-text/80">
                         AI-powered quantitative trading and market analysis.
                     </p>
