@@ -10,8 +10,8 @@ REQUIREMENTS: Entry, Stop Loss, 3 TPs, and institutional reasoning.
 Output strictly valid JSON.`;
 };
 
-async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData> {
-    return await executeLaneCall<SignalData>(async (apiKey) => {
+async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<SignalData, 'id' | 'timestamp'>> {
+    return await executeLaneCall<Omit<SignalData, 'id' | 'timestamp'>>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
         const promptText = PROMPT(request.riskRewardRatio, request.tradingStyle, request.isMultiDimensional, request.profitMode, request.globalContext, request.learnedStrategies);
@@ -33,13 +33,13 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<SignalData>
         const text = response.text || '';
         const start = text.indexOf('{');
         const end = text.lastIndexOf('}');
-        if (start === -1 || end === -1) throw new Error("Invalid format");
+        if (start === -1 || end === -1) throw new Error("Invalid format: No JSON object found in response.");
         
         const data = JSON.parse(text.substring(start, end + 1));
-        return { ...data, id: Date.now().toString(), timestamp: Date.now() };
+        return data; // Return raw data, let saveAnalysis handle id/timestamp
     }, ANALYSIS_POOL);
 }
 
-export async function generateTradingSignal(request: AnalysisRequest): Promise<SignalData> {
+export async function generateTradingSignal(request: AnalysisRequest): Promise<Omit<SignalData, 'id' | 'timestamp'>> {
     return callGeminiDirectly(request);
 }

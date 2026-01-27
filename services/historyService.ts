@@ -1,3 +1,4 @@
+
 import type { SignalData } from '../types';
 
 const HISTORY_KEY = 'analysisHistory';
@@ -12,11 +13,28 @@ export const getHistory = (): SignalData[] => {
         if (!historyJson) {
             return [];
         }
-        const history = JSON.parse(historyJson) as SignalData[];
-        // Ensure data is sorted newest first, in case it was manually tampered with
-        return history.sort((a, b) => b.timestamp - a.timestamp);
+        const history = JSON.parse(historyJson);
+
+        // Robustness check: Ensure the stored data is an array.
+        if (!Array.isArray(history)) {
+            console.warn("Corrupted history data (not an array) in localStorage. Clearing history.");
+            localStorage.removeItem(HISTORY_KEY);
+            return [];
+        }
+
+        // Filter out any potential null/invalid entries just in case
+        const validHistory = history.filter(item => item && typeof item === 'object' && item.timestamp);
+        
+        return validHistory.sort((a, b) => b.timestamp - a.timestamp);
+
     } catch (error) {
-        console.error("Failed to parse history from localStorage", error);
+        console.error("Failed to parse history from localStorage. Clearing history.", error);
+        // If parsing fails, the data is corrupted. Remove it to prevent future crashes.
+        try {
+            localStorage.removeItem(HISTORY_KEY);
+        } catch (removeError) {
+            console.error("Failed to remove corrupted history from localStorage.", removeError);
+        }
         return [];
     }
 };

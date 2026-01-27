@@ -163,10 +163,10 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 Confidence is ${confidence} percent, classified as ${probabilityLevel}.
                 Entry Type is ${entryType || 'not specified'}.
                 Expected duration is ${expectedDuration || 'not specified'}.
-                The three entry points are ${entryPoints.join(', ')}.
+                The three entry points are ${entryPoints?.join(', ') ?? 'not specified'}.
                 Stop loss is at ${stopLoss}.
-                Take profits are at ${takeProfits.join(', ')}.
-                Reasoning: ${reasoning.join(' ')}.
+                Take profits are at ${takeProfits?.join(', ') ?? 'not specified'}.
+                Reasoning: ${reasoning?.join(' ') ?? 'not specified'}.
                 Key Factors: ${checklist?.join('. ') ?? 'Not available'}.
                 Invalidation Scenario: ${invalidationScenario ?? 'Not available'}.
                 Sentiment score is ${sentiment?.score} percent. Summary: ${sentiment?.summary}.
@@ -290,7 +290,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                          <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Entry Points</span>
                          {/* Added flex-wrap for responsiveness */}
                          <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-6">
-                            {data.entryPoints.map((ep, i) => (
+                            {Array.isArray(data.entryPoints) && data.entryPoints.map((ep, i) => (
                                 <div key={i} className="text-center bg-white/10 p-1.5 rounded-md">
                                     <span className="font-mono text-base sm:text-lg font-semibold text-gray-800 dark:text-dark-text">{ep}</span>
                                     <span className="block text-[10px] text-gray-500 dark:text-dark-text/60">Entry {i + 1}</span>
@@ -305,7 +305,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                          <span className="text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider block text-center mb-2">Take Profit Targets</span>
                          {/* Added flex-wrap for responsiveness */}
                          <div className="flex flex-wrap justify-center items-center gap-3 sm:gap-6">
-                            {data.takeProfits.map((tp, i) => (
+                            {Array.isArray(data.takeProfits) && data.takeProfits.map((tp, i) => (
                                 <div key={i} className="text-center bg-white/10 p-1.5 rounded-md">
                                     <span className="font-mono text-base sm:text-lg font-semibold text-green-600 dark:text-green-400">{tp}</span>
                                     <span className="block text-[10px] text-gray-500 dark:text-dark-text/60">TP{i + 1}</span>
@@ -318,7 +318,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
             <Section title="Reasoning" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002 2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>}>
                 <ul className="space-y-2">
-                    {data.reasoning.map((reason, i) => <li key={i} className="bg-gray-200/30 dark:bg-dark-bg/40 p-3 rounded-md text-sm">{reason}</li>)}
+                    {Array.isArray(data.reasoning) && data.reasoning.map((reason, i) => <li key={i} className="bg-gray-200/30 dark:bg-dark-bg/40 p-3 rounded-md text-sm">{reason}</li>)}
                 </ul>
             </Section>
 
@@ -326,7 +326,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Section title="Key Factors" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" /></svg>}>
                         <ul className="space-y-1.5">
-                            {data.checklist.map((item, i) => <li key={i} className="flex items-start text-xs sm:text-sm"><span className="text-green-500 mr-2 mt-0.5 flex-shrink-0">&#10003;</span><span>{item}</span></li>)}
+                            {Array.isArray(data.checklist) && data.checklist.map((item, i) => <li key={i} className="flex items-start text-xs sm:text-sm"><span className="text-green-500 mr-2 mt-0.5 flex-shrink-0">&#10003;</span><span>{item}</span></li>)}
                         </ul>
                     </Section>
                     <Section title="Invalidation" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>}>
@@ -342,7 +342,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                             <SentimentGauge score={data.sentiment.score} summary={data.sentiment.summary} />
                          </Section>
                     )}
-                     {data.economicEvents && data.economicEvents.length > 0 && (
+                     {Array.isArray(data.economicEvents) && data.economicEvents.length > 0 && (
                         <Section title="Upcoming Events" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>}>
                             <div className="space-y-2">
                                 {data.economicEvents.map((event, i) => <EventCard key={i} event={event} />)}
@@ -352,7 +352,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </div>
             )}
 
-            {data.sources && data.sources.length > 0 && (
+            {Array.isArray(data.sources) && data.sources.length > 0 && (
                  <Section title="Sources" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M12.586 4.586a2 2 0 112.828 2.828l-3 3a2 2 0 01-2.828 0 1 1 0 00-1.414 1.414 4 4 0 005.656 0l3-3a4 4 0 00-5.656-5.656l-1.5 1.5a1 1 0 101.414 1.414l1.5-1.5zm-5 5a2 2 0 012.828 0 1 1 0 101.414-1.414 4 4 0 00-5.656 0l-3 3a4 4 0 105.656 5.656l1.5-1.5a1 1 0 10-1.414-1.414l-1.5 1.5a2 2 0 11-2.828-2.828l3-3z" clipRule="evenodd" /></svg>}>
                     <ul className="space-y-1">
                         {data.sources.map((source, i) => (
