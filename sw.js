@@ -1,7 +1,6 @@
-
 // A robust service worker for caching assets and handling updates.
 
-const CACHE_VERSION = 5; // Increment this version number when you deploy updates.
+const CACHE_VERSION = 6; // Increment this version number when you deploy updates.
 const CACHE_NAME = `greyalpha-cache-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
@@ -10,6 +9,55 @@ const urlsToCache = [
   '/icon.svg',
   'https://cdn.tailwindcss.com',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap',
+  '/index.tsx',
+  '/App.tsx',
+  '/types.ts',
+  '/constants.ts',
+  '/contexts/AuthContext.tsx',
+  '/contexts/ThemeContext.tsx',
+  '/hooks/useAuth.ts',
+  '/components/AnalysisPage.tsx',
+  '/components/AutoLearningManager.tsx',
+  '/components/ChartAnalyzerPage.tsx',
+  '/components/ChatPage.tsx',
+  '/components/CheatSheet.tsx',
+  '/components/ErrorMessage.tsx',
+  '/components/HistoryPage.tsx',
+  '/components/HomePage.tsx',
+  '/components/KillzoneClock.tsx',
+  '/components/LandingPage.tsx',
+  '/components/Loader.tsx',
+  '/components/LoginPage.tsx',
+  '/components/MarketDepth.tsx',
+  '/components/MarketOverview.tsx',
+  '/components/MarketStatisticsPage.tsx',
+  '/components/MarketTicker.tsx',
+  '/components/NeuralBackground.tsx',
+  '/components/NewsPage.tsx',
+  '/components/PredictorPage.tsx',
+  '/components/ProductsPage.tsx',
+  '/components/RiskCalculator.tsx',
+  '/components/SignalDisplay.tsx',
+  '/components/SignalGeneratorForm.tsx',
+  '/components/SignalOverlay.tsx',
+  '/components/SignUpPage.tsx',
+  '/components/ThemeToggleButton.tsx',
+  '/components/TiltCard.tsx',
+  '/components/TradingViewWidget.tsx',
+  '/components/TransitionLoader.tsx',
+  '/services/analysisCountService.ts',
+  '/services/chatService.ts',
+  '/services/geminiService.ts',
+  '/services/globalMarketService.ts',
+  '/services/historyService.ts',
+  '/services/learningService.ts',
+  '/services/marketDataService.ts',
+  '/services/marketStatsService.ts',
+  '/services/newsService.ts',
+  '/services/predictorService.ts',
+  '/services/retryUtils.ts',
+  '/services/suggestionService.ts',
+  '/services/ttsService.ts'
 ];
 
 // On install, cache the core assets and take control immediately.
