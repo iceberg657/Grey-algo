@@ -21,9 +21,9 @@ export const ANALYSIS_POOL = [K.K1, K.K2, K.K3].filter(k => !!k);
 export const LANE_1_MODELS = [
     'gemini-3-pro-preview',                 // Tier 1: Highest Intelligence
     'gemini-3-flash-preview',               // Tier 2: High Speed + Vision
-    'gemini-2.0-pro-exp-02-05',             // Tier 3: "2.5 Pro" (2.0 Pro Exp)
-    'gemini-2.0-flash',                     // Tier 4: "2.5 Flash" (2.0 Flash Stable)
-    'gemini-2.0-flash-lite-preview-02-05'   // Tier 5: "2.5 Flash Lite" (Specific Lite Preview)
+    'gemini-2.5-pro',             // Tier 3: "2.5 Pro" (2.0 Pro Exp)
+    'gemini-2.5-flash',                     // Tier 4: "2.5 Flash" (2.0 Flash Stable)
+    'gemini-2.0-flash'   // Tier 5: "2.5 Flash Lite" (Specific Lite Preview)
 ];
 
 // Lane 2: Main App Services (News, Predictions)
@@ -35,7 +35,7 @@ export const SUGGESTION_STRUCTURE_POOL = [K.K7].filter(k => !!k);
 export const LANE_2_MODELS = [
     'gemini-3-flash-preview',
     'gemini-2.0-flash',
-    'gemini-2.0-flash-lite-preview-02-05'
+    'gemini-2.0-flash'
 ];
 
 // Lane 3: User interaction & Intelligence Growth (Chat, ML)
@@ -43,7 +43,7 @@ export const CHAT_ML_POOL = [K.K6].filter(k => !!k);
 export const LANE_3_MODELS = [
     'gemini-3-flash-preview',
     'gemini-2.0-flash',
-    'gemini-2.0-flash-lite-preview-02-05'
+    'gemini-2.0-flash'
 ];
 
 // Legacy priority keys
