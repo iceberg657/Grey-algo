@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { MarketStatsData, StatTimeframe } from '../types';
-import { runWithModelFallback, executeLaneCall, SERVICE_POOL, LANE_2_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, PREDICTION_POOL, PREDICTION_MODELS } from './retryUtils';
 
 const ASSETS = {
     Majors: ['EUR/USD', 'GBP/USD', 'USD/JPY', 'USD/CHF', 'AUD/USD'],
@@ -52,11 +52,11 @@ Generate a real-time technical snapshot for **${symbol}** based on the **${timef
 
 export async function fetchMarketStatistics(symbol: string, timeframe: StatTimeframe): Promise<MarketStatsData> {
     try {
-        // Lane 2: gemini-2.5-flash-lite-latest -> gemini-2.0-flash
+        // Uses Prediction Pool (Key 5)
         return await executeLaneCall<MarketStatsData>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => ai.models.generateContent({
+            const response = await runWithModelFallback<GenerateContentResponse>(PREDICTION_MODELS, (modelId) => ai.models.generateContent({
                 model: modelId,
                 contents: STATS_PROMPT(symbol, timeframe),
                 config: {
@@ -77,7 +77,7 @@ export async function fetchMarketStatistics(symbol: string, timeframe: StatTimef
             data.symbol = symbol; // Enforce symbol match
 
             return data;
-        }, SERVICE_POOL);
+        }, PREDICTION_POOL);
     } catch (e) {
         console.error("Stats Fetch Error:", e);
         throw new Error("Failed to load market statistics.");

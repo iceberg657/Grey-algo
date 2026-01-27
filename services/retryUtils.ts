@@ -14,49 +14,53 @@ const K = {
     K7: process.env.API_KEY_7 || ''
 };
 
-// Lane 1: Chart Analysis (High Priority Visuals)
-// Uses Keys 1, 2, and 3
-export const ANALYSIS_POOL = [K.K1, K.K2, K.K3].filter(k => !!k);
-
-export const LANE_1_MODELS = [
-    'gemini-3-pro-preview',                 // Tier 1: Highest Intelligence
-    'gemini-3-flash-preview',               // Tier 2: High Speed + Vision
-    'gemini-2.5-pro',             // Tier 3: "2.5 Pro" (2.0 Pro Exp)
-    'gemini-2.5-flash',                     // Tier 4: "2.5 Flash" (2.0 Flash Stable)
-    'gemini-2.0-flash'   // Tier 5: "2.5 Flash Lite" (Specific Lite Preview)
+// 1. CHART ANALYSIS (Keys 1, 2, 3, 4)
+// Models: 3.0 Pro -> 3.0 Flash -> 2.5 Pro -> 2.5 Flash -> 2.0 Flash
+export const ANALYSIS_POOL = [K.K1, K.K2, K.K3, K.K4].filter(k => !!k);
+export const ANALYSIS_MODELS = [
+    'gemini-3-pro-preview',
+    'gemini-3-flash-preview',
+    'gemini-2.5-pro',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
 ];
 
-// Lane 2: Main App Services (News, Predictions)
-export const SERVICE_POOL = [K.K4, K.K5].filter(k => !!k);
+// 2. PREDICTION (Key 5)
+// Models: 2.5 Flash -> 2.0 Flash
+export const PREDICTION_POOL = [K.K5].filter(k => !!k);
+export const PREDICTION_MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+];
 
-// Lane 2b: Structural Analysis (Suggestions, Global Market) - Uses API Key 7
-export const SUGGESTION_STRUCTURE_POOL = [K.K7].filter(k => !!k);
+// 3. AI ASSETS SUGGESTION (Key 6)
+// Models: 2.5 Flash -> 2.0 Flash
+export const SUGGESTION_POOL = [K.K6].filter(k => !!k);
+export const SUGGESTION_MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+];
+
+// 4. CHAT (Key 7)
+// Models: 2.5 Pro -> 2.5 Flash -> 2.0 Flash
+export const CHAT_POOL = [K.K7].filter(k => !!k);
+export const CHAT_MODELS = [
+    'gemini-2.5-pro',
+    'gemini-2.5-flash',
+    'gemini-2.0-flash'
+];
+
+// Missing Exports Definitions
+export const SERVICE_POOL = PREDICTION_POOL; // Shared with Prediction (Key 5)
+export const SUGGESTION_STRUCTURE_POOL = CHAT_POOL; // Shared with Chat (Key 7)
 
 export const LANE_2_MODELS = [
-    'gemini-3-flash-preview',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash'
+    'gemini-flash-lite-latest',
+    'gemini-2.5-flash'
 ];
 
-// Lane 3: User interaction & Intelligence Growth (Chat, ML)
-export const CHAT_ML_POOL = [K.K6].filter(k => !!k);
-export const LANE_3_MODELS = [
-    'gemini-3-flash-preview',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash'
-];
-// Lane 4: User interaction (chat)
-export const CHAT_POOL = [K.K4].filter(k => !!k);
-export const LANE_4_MODELS = [
-    'gemini-3-flash-preview',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash'
-];
-
-// Legacy priority keys
-export const PRIORITY_KEY_1 = [K.K1].filter(k => !!k);
-export const PRIORITY_KEY_2 = [K.K2].filter(k => !!k);
-export const PRIORITY_KEY_3 = [K.K3].filter(k => !!k);
+// Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
+export const TTS_KEY = [K.K3].filter(k => !!k);
 
 // Global Penalty Box for exhausted keys
 const cooldownMap = new Map<string, number>();
@@ -105,7 +109,7 @@ export async function executeLaneCall<T>(
 }
 
 export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?: string[]): Promise<T> {
-    const activePool = pool || [K.P, ...ANALYSIS_POOL, ...SERVICE_POOL, ...CHAT_ML_POOL];
+    const activePool = pool || [K.P, ...ANALYSIS_POOL];
     return executeLaneCall(op, activePool);
 }
 

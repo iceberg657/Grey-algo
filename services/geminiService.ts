@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AnalysisRequest, SignalData } from '../types';
-import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, LANE_1_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS } from './retryUtils';
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = []) => {
     return `
@@ -50,8 +50,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
         if (request.isMultiDimensional && request.images.entry) promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
 
-        // LANE 1 CASCADE: 3.0 Pro -> 3.0 Flash -> 2.5
-        const response = await runWithModelFallback<GenerateContentResponse>(LANE_1_MODELS, (modelId) => 
+        // LANE 1 CASCADE: 3.0 Pro -> 3.0 Flash -> 2.5 Pro -> 2.5 Flash -> 2.0 Flash
+        const response = await runWithModelFallback<GenerateContentResponse>(ANALYSIS_MODELS, (modelId) => 
             ai.models.generateContent({
                 model: modelId,
                 contents: [{ parts: promptParts }],

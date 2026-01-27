@@ -1,6 +1,7 @@
+
 // A robust service worker for caching assets and handling updates.
 
-const CACHE_VERSION = 7; // Increment this version number when you deploy updates.
+const CACHE_VERSION = 8; // Increment this version number when you deploy updates.
 const CACHE_NAME = `greyalpha-cache-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
@@ -28,9 +29,7 @@ const urlsToCache = [
   '/components/LandingPage.tsx',
   '/components/Loader.tsx',
   '/components/LoginPage.tsx',
-  '/components/MarketDepth.tsx',
   '/components/MarketOverview.tsx',
-  '/components/MarketStatisticsPage.tsx',
   '/components/MarketTicker.tsx',
   '/components/NeuralBackground.tsx',
   '/components/PredictorPage.tsx',
@@ -51,7 +50,6 @@ const urlsToCache = [
   '/services/historyService.ts',
   '/services/learningService.ts',
   '/services/marketDataService.ts',
-  '/services/marketStatsService.ts',
   '/services/predictorService.ts',
   '/services/retryUtils.ts',
   '/services/suggestionService.ts',

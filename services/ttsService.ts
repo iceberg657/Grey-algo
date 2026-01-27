@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
-import { executeGeminiCall, runWithRetry, PRIORITY_KEY_3 } from './retryUtils';
+import { executeGeminiCall, runWithRetry, TTS_KEY } from './retryUtils';
 
 // Audio context for playback
 let audioContext: AudioContext | null = null;
@@ -44,9 +44,7 @@ async function decodeAudioData(
 
 export async function generateAndPlayAudio(text: string, onEnded: () => void): Promise<void> {
     try {
-        // Prioritize Key 3 for TTS
-        // Wrapped in executeGeminiCall for key rotation
-        // Added <GenerateContentResponse> generic to fix "Property 'candidates' does not exist on type 'unknown'" error.
+        // Prioritize Key 3 via TTS_KEY export from retryUtils
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -65,7 +63,7 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
                   },
                 });
             }, 3, 3000); 
-        }, PRIORITY_KEY_3);
+        }, TTS_KEY);
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 

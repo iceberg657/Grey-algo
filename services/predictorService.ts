@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { PredictedEvent } from '../types';
-import { runWithModelFallback, executeLaneCall, SERVICE_POOL, LANE_2_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, PREDICTION_POOL, PREDICTION_MODELS } from './retryUtils';
 
 const PREDICTOR_PROMPT = `
 You are 'Oracle', an apex-level trading AI.
@@ -27,8 +27,8 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
         return await executeLaneCall<PredictedEvent[]>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
 
-            // LANE 2 CASCADE: 2.5 Lite -> 2.0 Flash
-            const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => ai.models.generateContent({
+            // LANE 2 CASCADE: 2.5 Flash -> 2.0 Flash
+            const response = await runWithModelFallback<GenerateContentResponse>(PREDICTION_MODELS, (modelId) => ai.models.generateContent({
                 model: modelId,
                 contents: PREDICTOR_PROMPT,
                 config: {
@@ -45,7 +45,7 @@ export async function getPredictedEvents(): Promise<PredictedEvent[]> {
             if (start === -1) return [];
 
             return JSON.parse(responseText.substring(start, end));
-        }, SERVICE_POOL);
+        }, PREDICTION_POOL);
 
     } catch (error) {
         console.error("Gemini Predictor Service Error:", error);

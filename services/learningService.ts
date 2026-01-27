@@ -1,14 +1,14 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, CHAT_ML_POOL, LANE_3_MODELS, runWithModelFallback } from './retryUtils';
+import { executeLaneCall, CHAT_POOL, CHAT_MODELS, runWithModelFallback } from './retryUtils';
 
 export const performAutoLearning = async (): Promise<string | null> => {
     try {
         return await executeLaneCall<string>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            // LANE 3 CASCADE: 2.5 Flash -> 2.5 Lite -> 2.0 Flash
-            const response = await runWithModelFallback<GenerateContentResponse>(LANE_3_MODELS, (modelId) => 
+            // Auto Learning uses CHAT Models (2.5 Pro/Flash) via Key 7
+            const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
                 ai.models.generateContent({
                     model: modelId,
                     contents: "Discover a new actionable SMC/ICT trading rule. Concise text output.",
@@ -17,7 +17,7 @@ export const performAutoLearning = async (): Promise<string | null> => {
             );
             
             return response.text?.trim() || null;
-        }, CHAT_ML_POOL);
+        }, CHAT_POOL);
     } catch { return null; }
 };
 

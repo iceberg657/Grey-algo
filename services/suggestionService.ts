@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AssetSuggestion } from '../types';
-import { executeLaneCall, SUGGESTION_STRUCTURE_POOL, runWithModelFallback, LANE_2_MODELS } from './retryUtils';
+import { executeLaneCall, SUGGESTION_POOL, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
 
 export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetSuggestion[]> {
     return await executeLaneCall<AssetSuggestion[]>(async (apiKey) => {
@@ -27,8 +27,8 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
         Return ONLY valid JSON. No markdown, no conversational text.
         `;
 
-        // LANE 2 CASCADE: 3.0 Flash -> 2.5
-        const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => 
+        // LANE 2b CASCADE: 2.5 Flash -> 2.0 Flash
+        const response = await runWithModelFallback<GenerateContentResponse>(SUGGESTION_MODELS, (modelId) => 
             ai.models.generateContent({
                 model: modelId,
                 contents: prompt,
@@ -44,7 +44,7 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
         if (start === -1) return [];
         
         return JSON.parse(text.substring(start, end));
-    }, SUGGESTION_STRUCTURE_POOL);
+    }, SUGGESTION_POOL);
 }
 
 export async function getOrRefreshSuggestions(profitMode: boolean = false) {
