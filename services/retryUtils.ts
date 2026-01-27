@@ -45,6 +45,13 @@ export const LANE_3_MODELS = [
     'gemini-2.0-flash',
     'gemini-2.0-flash'
 ];
+// Lane 4: User interaction (chat)
+export const CHAT_POOL = [K.K4].filter(k => !!k);
+export const LANE_4_MODELS = [
+    'gemini-3-flash-preview',
+    'gemini-2.0-flash',
+    'gemini-2.0-flash'
+];
 
 // Legacy priority keys
 export const PRIORITY_KEY_1 = [K.K1].filter(k => !!k);
