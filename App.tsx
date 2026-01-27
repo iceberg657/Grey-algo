@@ -1,4 +1,5 @@
 
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
@@ -148,7 +149,7 @@ const App: React.FC = () => {
         try {
             window.localStorage.setItem(PREDICTOR_STORAGE_KEY, JSON.stringify(predictedEvents));
         } catch (error) {
-            console.error(`Could not save predicted events to localStorage: ${error}`);
+            console.error(`Could not save predicted events from localStorage: ${error}`);
         }
     }, [predictedEvents]);
 
@@ -156,9 +157,18 @@ const App: React.FC = () => {
         try {
             window.localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(chatMessages));
         } catch (error) {
-            console.error(`Could not save chat messages to localStorage: ${error}`);
+            console.error(`Could not save chat messages from localStorage: ${error}`);
         }
     }, [chatMessages]);
+
+    useEffect(() => {
+        // This effect acts as a guard against invalid states.
+        // If we land on the analysis page without any data (e.g., from a bookmark or browser history),
+        // redirect to the home page to prevent a blank screen.
+        if (isLoggedIn && appView === 'analysis' && !analysisData) {
+            navigateTo('home');
+        }
+    }, [isLoggedIn, appView, analysisData, navigateTo]);
 
     useEffect(() => {
         if (appView === 'charting') {
