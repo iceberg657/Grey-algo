@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect, Component, type ErrorInfo, type ReactNode } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';

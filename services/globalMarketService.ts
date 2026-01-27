@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithModelFallback, executeLaneCall, SERVICE_POOL, LANE_2_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, SUGGESTION_STRUCTURE_POOL, LANE_2_MODELS } from './retryUtils';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
@@ -36,6 +36,7 @@ Return ONLY a valid JSON object matching this structure:
 export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis> {
     try {
         // Lane 2: gemini-2.5-flash-lite-latest -> gemini-2.0-flash
+        // Uses dedicated KEY 7 Pool
         return await executeLaneCall<GlobalMarketAnalysis>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -70,7 +71,7 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
             localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis));
             
             return analysis;
-        }, SERVICE_POOL);
+        }, SUGGESTION_STRUCTURE_POOL);
 
     } catch (error) {
         console.error("Failed to fetch global market analysis:", error);

@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AssetSuggestion } from '../types';
-import { executeLaneCall, SERVICE_POOL, runWithModelFallback, LANE_2_MODELS } from './retryUtils';
+import { executeLaneCall, SUGGESTION_STRUCTURE_POOL, runWithModelFallback, LANE_2_MODELS } from './retryUtils';
 
 export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetSuggestion[]> {
     return await executeLaneCall<AssetSuggestion[]>(async (apiKey) => {
@@ -41,7 +41,7 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
         if (start === -1) return [];
         
         return JSON.parse(text.substring(start, end));
-    }, SERVICE_POOL);
+    }, SUGGESTION_STRUCTURE_POOL);
 }
 
 export async function getOrRefreshSuggestions(profitMode: boolean = false) {

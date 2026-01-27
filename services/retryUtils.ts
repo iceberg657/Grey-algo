@@ -10,19 +10,29 @@ const K = {
     K3: process.env.API_KEY_3 || '',
     K4: process.env.API_KEY_4 || '',
     K5: process.env.API_KEY_5 || '',
-    K6: process.env.API_KEY_6 || ''
+    K6: process.env.API_KEY_6 || '',
+    K7: process.env.API_KEY_7 || ''
 };
 
 // Lane 1: Chart Analysis (High Priority Visuals)
+// Uses Keys 1, 2, and 3
 export const ANALYSIS_POOL = [K.K1, K.K2, K.K3].filter(k => !!k);
+
 export const LANE_1_MODELS = [
-    'gemini-3-pro-preview',
-    'gemini-3-flash-preview',
-    'gemini-2.5-flash-lite-latest'
+    'gemini-3-pro-preview',         // 1. Top Tier (Reasoning + Vision)
+    'gemini-3-flash-preview',       // 2. High Speed Tier (New)
+    'gemini-1.5-pro',               // 3. Fallback for "2.5 Pro" request (Stable Pro)
+    'gemini-2.0-flash',             // 4. Fallback for "2.5 Flash" request
+    'gemini-2.5-flash-image',       // 5. Specific Vision Model
+    'gemini-1.5-flash'              // 6. Final Safety Net ("2.0 Flash" request mapped to stable)
 ];
 
-// Lane 2: Main App Services (News, Global Bias, Suggestions, Predictions)
+// Lane 2: Main App Services (News, Predictions)
 export const SERVICE_POOL = [K.K4, K.K5].filter(k => !!k);
+
+// Lane 2b: Structural Analysis (Suggestions, Global Market) - Uses API Key 7
+export const SUGGESTION_STRUCTURE_POOL = [K.K7].filter(k => !!k);
+
 export const LANE_2_MODELS = [
     'gemini-3-flash-preview',
     'gemini-2.5-flash',

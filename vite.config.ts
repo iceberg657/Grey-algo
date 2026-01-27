@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => {
       'process.env.API_KEY_4': JSON.stringify(env.API_KEY_4),
       'process.env.API_KEY_5': JSON.stringify(env.API_KEY_5),
       'process.env.API_KEY_6': JSON.stringify(env.API_KEY_6),
+      'process.env.API_KEY_7': JSON.stringify(env.API_KEY_7),
     }
   }
 })
