@@ -11,6 +11,7 @@ import { getAnalysisCount, incrementAnalysisCount, resetAnalysisCount } from '..
 import { RiskCalculator } from './RiskCalculator';
 import { CheatSheet } from './CheatSheet';
 import { SettingsModal } from './SettingsModal';
+import { PacificTimeClock } from './PacificTimeClock';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -138,6 +139,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300">
+            <PacificTimeClock />
             {isLoading && (
                 <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-[100] animate-fade-in">
                     <Loader />

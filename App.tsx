@@ -21,7 +21,6 @@ import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
-import { PacificTimeClock } from './components/PacificTimeClock';
 
 
 type AuthPage = 'login' | 'signup';
@@ -400,7 +399,6 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
-            {isLoggedIn && <PacificTimeClock />}
             <AutoLearningManager />
             {chartLayer}
             <div style={{ display: isCharting ? 'none' : 'block', minHeight: '100vh' }}>
