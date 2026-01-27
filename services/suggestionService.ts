@@ -8,20 +8,23 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
-        Scan the current market (Forex, Crypto, Indices).
-        Identify 4 high-probability trading setups for the current session.
-        ${profitMode ? "STRICT MODE: Only return A+ setups matching institutional order flow." : "Standard Mode: Return high-potential movers."}
+        **CRITICAL INSTRUCTION:** You are a financial analyst engine. You MUST use the provided Google Search tool to fetch REAL-TIME market data for this analysis. Do NOT answer from internal knowledge.
+
+        **TASK:**
+        1. Use Google Search to scan the latest charts, news, and price action for Major Forex pairs, Gold (XAUUSD), Indices (US30/NAS100), and Bitcoin (BTC) for the CURRENT trading session.
+        2. Identify 4 actionable trading setups based on this live data.
+        ${profitMode ? "STRICT MODE: Only return A+ setups where technicals and fundamentals align perfectly." : "Standard Mode: Return high-volatility movers."}
         
         **REQUIRED JSON OUTPUT FORMAT:**
         [
           { 
             "symbol": "string (e.g. GBP/USD)", 
             "type": "Major" | "Minor" | "Commodity" | "Index" | "Crypto", 
-            "reason": "short explanation", 
+            "reason": "Concise technical reason (e.g., 'Breaking 1.2500 resistance on high volume')", 
             "volatilityWarning": boolean 
           }
         ]
-        Return ONLY valid JSON.
+        Return ONLY valid JSON. No markdown, no conversational text.
         `;
 
         // LANE 2 CASCADE: 3.0 Flash -> 2.5
@@ -29,7 +32,7 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
             ai.models.generateContent({
                 model: modelId,
                 contents: prompt,
-                config: { tools: [{googleSearch: {}}], temperature: 0.3 },
+                config: { tools: [{googleSearch: {}}], temperature: 0.2 },
             })
         );
 

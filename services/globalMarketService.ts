@@ -7,18 +7,18 @@ const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
 
 const GLOBAL_MARKET_PROMPT = `
-Act as a chief market strategist. Your task is to perform a high-level, real-time analysis of the current global market structure to determine the prevailing bias.
+**CRITICAL INSTRUCTION:** You are a chief market strategist. You MUST use the provided Google Search tool to fetch REAL-TIME data. Do NOT rely on training data.
 
 **Instructions:**
-1.  **Scan Key Assets:** Use Google Search to analyze the current price action, news, and sentiment for these 4 key sectors:
+1.  **LIVE SCAN:** Use Google Search to analyze the current price action, breaking news, and sentiment for these 4 key sectors RIGHT NOW:
     *   **US Equities:** Focus on S&P 500 (SPX).
     *   **Forex:** Focus on the US Dollar Index (DXY) and EUR/USD.
     *   **Commodities:** Focus on Gold (XAU/USD).
     *   **Crypto:** Focus on Bitcoin (BTC/USD).
 
 2.  **Determine Bias:** For each sector, declare the immediate market structure as **'Bullish'**, **'Bearish'**, or **'Neutral'**.
-3.  **Provide Rationale:** For each sector, provide a very short, punchy, one-sentence reason (e.g., "Breaking above 5200 resistance," or "Rejected at key supply zone").
-4.  **Synthesize Global Summary:** Write a concise 1-2 sentence summary of the overall global risk sentiment (e.g., Risk-On, Risk-Off, or Mixed/Indecisive).
+3.  **Provide Rationale:** For each sector, provide a very short, punchy, one-sentence reason based on the LIVE search results.
+4.  **Synthesize Global Summary:** Write a concise 1-2 sentence summary of the overall global risk sentiment.
 
 **Output Format:**
 Return ONLY a valid JSON object matching this structure:
