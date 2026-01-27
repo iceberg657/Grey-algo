@@ -34,10 +34,11 @@ export const PREDICTION_MODELS = [
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
-// Models: 2.5 Flash -> 2.0 Flash
+// Models: 2.5 Flash -> Lite -> 2.0
 export const SUGGESTION_POOL = [K.K6].filter(k => !!k);
 export const SUGGESTION_MODELS = [
     'gemini-2.5-flash',
+    'gemini-flash-lite-latest',
     'gemini-2.0-flash'
 ];
 

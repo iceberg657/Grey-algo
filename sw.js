@@ -1,7 +1,7 @@
 
 // A robust service worker for caching assets and handling updates.
 
-const CACHE_VERSION = 8; // Increment this version number when you deploy updates.
+const CACHE_VERSION = 9; // Increment this version number when you deploy updates.
 const CACHE_NAME = `greyalpha-cache-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',
