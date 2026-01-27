@@ -4,16 +4,14 @@ import { SignUpPage } from './components/SignUpPage';
 import { HomePage } from './components/HomePage';
 import { AnalysisPage } from './components/AnalysisPage';
 import { HistoryPage } from './components/HistoryPage';
-import { NewsPage } from './components/NewsPage';
 import { ChatPage } from './components/ChatPage';
 import { PredictorPage } from './components/PredictorPage';
 import { ProductsPage } from './components/ProductsPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
-import type { SignalData, NewsArticle, PredictedEvent, ChatMessage, AnalysisRequest } from './types';
+import type { SignalData, PredictedEvent, ChatMessage, AnalysisRequest } from './types';
 import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
-import { getForexNews } from './services/newsService';
 import { getPredictedEvents } from './services/predictorService';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
@@ -25,10 +23,9 @@ import { NeuralBackground } from './components/NeuralBackground';
 
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'news' | 'chat' | 'predictor' | 'charting' | 'products';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'predictor' | 'charting' | 'products';
 
 // Storage keys
-const NEWS_STORAGE_KEY = 'greyquant_news';
 const PREDICTOR_STORAGE_KEY = 'greyquant_predictor';
 const CHAT_STORAGE_KEY = 'greyquant_chat';
 
@@ -102,18 +99,6 @@ const App: React.FC = () => {
     // State to handle redirects to chat with a prompt
     const [pendingChatQuery, setPendingChatQuery] = useState<string | null>(null);
 
-    // State for NewsPage with localStorage persistence
-    const [news, setNews] = useState<NewsArticle[]>(() => {
-        try {
-            const storedNews = window.localStorage.getItem(NEWS_STORAGE_KEY);
-            return storedNews ? JSON.parse(storedNews) : [];
-        } catch (error) {
-            return [];
-        }
-    });
-    const [isNewsLoading, setIsNewsLoading] = useState(false);
-    const [newsError, setNewsError] = useState<string | null>(null);
-
     // State for PredictorPage with localStorage persistence
     const [predictedEvents, setPredictedEvents] = useState<PredictedEvent[]>(() => {
         try {
@@ -147,20 +132,6 @@ const App: React.FC = () => {
             setAppView('home'); // Direct state update is safer than navigateTo here
         }
     }, [isLoggedIn, appView, analysisData]);
-
-    const fetchNewsData = useCallback(async () => {
-        setIsNewsLoading(true);
-        setNewsError(null);
-        try {
-            const fetchedNews = await getForexNews();
-            fetchedNews.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-            setNews(fetchedNews);
-        } catch (err) {
-            setNewsError(err instanceof Error ? err.message : 'Failed to fetch news.');
-        } finally {
-            setIsNewsLoading(false);
-        }
-    }, []);
     
     const fetchPredictedEventsData = useCallback(async () => {
         setIsPredictorLoading(true);
@@ -214,13 +185,6 @@ const App: React.FC = () => {
 
     const handleNavigateToHistory = () => {
         navigateTo('history');
-    };
-
-    const handleNavigateToNews = () => {
-        if (news.length === 0 && !newsError && !isNewsLoading) {
-            fetchNewsData();
-        }
-        navigateTo('news');
     };
 
     const handleNavigateToChat = () => {
@@ -323,7 +287,6 @@ const App: React.FC = () => {
                     onLogout={handleLogout} 
                     onAnalysisComplete={handleNewAnalysis} 
                     onNavigateToHistory={handleNavigateToHistory}
-                    onNavigateToNews={handleNavigateToNews}
                     onNavigateToChat={handleNavigateToChat}
                     onNavigateToPredictor={handleNavigateToPredictor}
                     onNavigateToCharting={handleNavigateToCharting}
@@ -354,18 +317,6 @@ const App: React.FC = () => {
                     onNewChat={handleNewChat}
                     initialInput={pendingChatQuery}
                     onClearInitialInput={() => setPendingChatQuery(null)}
-                />
-            );
-            break;
-        case 'news':
-            content = (
-                <NewsPage 
-                    onBack={handleNavigateToHome} 
-                    onLogout={handleLogout}
-                    news={news}
-                    isLoading={isNewsLoading}
-                    error={newsError}
-                    onFetchNews={fetchNewsData}
                 />
             );
             break;

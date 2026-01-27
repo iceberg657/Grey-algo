@@ -40,7 +40,12 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
 
         try {
             const data = await generateTradingSignal(request);
-            setSignalData(data);
+            const fullData: SignalData = {
+                ...data,
+                id: Date.now().toString(),
+                timestamp: Date.now()
+            };
+            setSignalData(fullData);
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');
