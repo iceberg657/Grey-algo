@@ -36,7 +36,10 @@ export function resetChat(): void {
     currentChat = null;
 }
 
-export async function sendMessageStreamWithRetry(messageParts: any): Promise<AsyncIterable<GenerateContentResponse>> {
+export async function sendMessageStreamWithRetry(
+    messageParts: any, 
+    onRetry?: (delayMs: number) => void
+): Promise<AsyncIterable<GenerateContentResponse>> {
     return await executeLaneCall(async (apiKey) => {
         // LANE 4 CASCADE
         return await runWithModelFallback(CHAT_MODELS, async (modelId) => {
@@ -45,6 +48,6 @@ export async function sendMessageStreamWithRetry(messageParts: any): Promise<Asy
                 initializeChat(apiKey, modelId);
             }
             return await currentChat!.sendMessageStream({ message: messageParts });
-        });
+        }, onRetry);
     }, CHAT_POOL);
 }

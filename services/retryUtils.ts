@@ -117,16 +117,21 @@ export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?:
 export async function runWithRetry<T>(
     operation: () => Promise<T>,
     retries: number = 2,
-    baseDelay: number = 3000
+    baseDelay: number = 3000,
+    onRetry?: (delayMs: number) => void
 ): Promise<T> {
     try {
         return await operation();
     } catch (error: any) {
         if (retries <= 0) throw error;
         const msg = (error.message || '').toLowerCase();
-        if (msg.includes('503') || msg.includes('500') || msg.includes('overloaded')) {
+        if (msg.includes('503') || msg.includes('500') || msg.includes('overloaded') || msg.includes('429')) {
+            // Invoke callback if provided to notify UI of the wait time
+            if (onRetry) {
+                onRetry(baseDelay);
+            }
             await new Promise(r => setTimeout(r, baseDelay));
-            return runWithRetry(operation, retries - 1, baseDelay * 2);
+            return runWithRetry(operation, retries - 1, baseDelay * 2, onRetry);
         }
         throw error;
     }
@@ -138,13 +143,14 @@ export async function runWithRetry<T>(
  */
 export async function runWithModelFallback<T>(
     modelIds: string[],
-    operationFactory: (modelId: string) => Promise<T>
+    operationFactory: (modelId: string) => Promise<T>,
+    onRetry?: (delayMs: number) => void
 ): Promise<T> {
     let lastError: any;
     for (const model of modelIds) {
         try {
-            // Internal retry for 500/503 errors
-            return await runWithRetry(() => operationFactory(model), 1);
+            // Internal retry for 500/503/429 errors
+            return await runWithRetry(() => operationFactory(model), 1, 3000, onRetry);
         } catch (error: any) {
             lastError = error;
             const errorMsg = (error.message || '').toLowerCase();

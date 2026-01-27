@@ -202,6 +202,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // Rate Limit Countdown State
+    const [retrySeconds, setRetrySeconds] = useState<number>(0);
+    const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
     useEffect(() => {
         getChatInstance(); // Initialize on component mount
         
@@ -211,6 +215,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             if (timeoutRef.current) {
                 clearTimeout(timeoutRef.current);
             }
+            if (countdownIntervalRef.current) {
+                clearInterval(countdownIntervalRef.current);
+            }
         };
     }, []);
 
@@ -218,7 +225,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         if (chatContainerRef.current) {
             chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
         }
-    }, [messages, isLoading]);
+    }, [messages, isLoading, retrySeconds]);
     
     const handleToggleSpeech = useCallback(async (message: ChatMessage) => {
         if (speakingMessageId === message.id) {
@@ -291,6 +298,27 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         }
     };
 
+    // Callback function passed to the service layer
+    const onRetryWait = useCallback((delayMs: number) => {
+        // Clear any existing interval
+        if (countdownIntervalRef.current) {
+            clearInterval(countdownIntervalRef.current);
+        }
+
+        let seconds = Math.ceil(delayMs / 1000);
+        setRetrySeconds(seconds);
+
+        countdownIntervalRef.current = setInterval(() => {
+            setRetrySeconds(prev => {
+                if (prev <= 1) {
+                    if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }, []);
+
     const executeSendMessage = useCallback(async (text: string, files: File[], previews: string[]) => {
          if ((!text.trim() && files.length === 0) || isLoading) return;
 
@@ -304,6 +332,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         
         setIsLoading(true);
         setError(null);
+        setRetrySeconds(0); // Reset countdown on new message
 
         try {
             const messageParts: (({ text: string } | { inlineData: { data: string, mimeType: string } }))[] = [];
@@ -316,8 +345,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             }
             messageParts.push({ text: text });
 
-            // Use the new retry-enabled service function
-            const result = await sendMessageStreamWithRetry(messageParts);
+            // Pass the retry callback here
+            const result = await sendMessageStreamWithRetry(messageParts, onRetryWait);
+
+            // Once streaming starts, we can stop the countdown visual if strictly waiting for connection
+            setRetrySeconds(0); 
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
             let responseText = '';
             const streamMessageId = `model-stream-${Date.now()}`;
@@ -336,9 +369,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             }
 
         } catch (err) {
+            setRetrySeconds(0); // Ensure countdown clears on error
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+
             const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
             // If we've exhausted all retries and models, show a user-friendly message
-            if (errorMessage.includes("503") || errorMessage.includes("Overloaded") || errorMessage.includes("Quota")) {
+            if (errorMessage.includes("503") || errorMessage.includes("Overloaded") || errorMessage.includes("Quota") || errorMessage.includes("429")) {
                 setError("Oracle is currently overloaded. Please wait a moment and try again.");
             } else {
                 setError(`Oracle Error: ${errorMessage}`);
@@ -349,8 +385,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             setMessages(prev => [...prev, { id: errorId, role: 'model', text: errorText }]);
         } finally {
             setIsLoading(false);
+            setRetrySeconds(0);
+            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         }
-    }, [isLoading, setMessages]);
+    }, [isLoading, setMessages, onRetryWait]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -406,7 +444,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                 ref={chatContainerRef}
                 className="flex-grow overflow-y-auto overflow-x-hidden scroll-smooth relative z-0"
             >
-                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 h-full">
+                <div className="w-full max-w-7xl mx-auto px-4 sm:p-6 h-full">
                     {messages.length === 0 && !isLoading ? (
                         <div className="flex-grow flex flex-col items-center justify-center text-center h-full pb-20">
                             <OracleLogo />
@@ -437,6 +475,17 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 />
                             ))}
                             {isLoading && <TypingIndicator />}
+                            {retrySeconds > 0 && (
+                                <div className="flex justify-center w-full animate-fade-in my-2">
+                                    <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-lg">
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Rate limit reached. Retrying in {retrySeconds}s...
+                                    </div>
+                                </div>
+                            )}
                             {error && <p className="text-red-400 text-sm text-center p-2 bg-red-500/10 rounded-lg mx-4">{error}</p>}
                         </div>
                     )}
