@@ -299,7 +299,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     };
 
     // Callback function passed to the service layer
-    const onRetryWait = useCallback((delayMs: number) => {
+    const startCountdown = useCallback((delayMs: number) => {
         // Clear any existing interval
         if (countdownIntervalRef.current) {
             clearInterval(countdownIntervalRef.current);
@@ -320,7 +320,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     }, []);
 
     const executeSendMessage = useCallback(async (text: string, files: File[], previews: string[]) => {
-         if ((!text.trim() && files.length === 0) || isLoading) return;
+         if ((!text.trim() && files.length === 0) || isLoading || retrySeconds > 0) return;
 
         const userMessage: ChatMessage = {
             id: `user-${Date.now()}`,
@@ -346,7 +346,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             messageParts.push({ text: text });
 
             // Pass the retry callback here
-            const result = await sendMessageStreamWithRetry(messageParts, onRetryWait);
+            const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
 
             // Once streaming starts, we can stop the countdown visual if strictly waiting for connection
             setRetrySeconds(0); 
@@ -369,26 +369,34 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             }
 
         } catch (err) {
-            setRetrySeconds(0); // Ensure countdown clears on error
-            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
-
             const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-            // If we've exhausted all retries and models, show a user-friendly message
-            if (errorMessage.includes("503") || errorMessage.includes("Overloaded") || errorMessage.includes("Quota") || errorMessage.includes("429")) {
+            
+            // Check for total exhaustion of lanes
+            if (errorMessage.includes("All Neural Lanes") || errorMessage.includes("congested")) {
+                setError("System Cooldown Active: All neural lanes are currently congested. Please wait.");
+                // Initiate 60s cooldown visual
+                startCountdown(60000); 
+            } 
+            else if (errorMessage.includes("503") || errorMessage.includes("Overloaded") || errorMessage.includes("Quota") || errorMessage.includes("429")) {
+                // If it failed after retries but not total lane failure
                 setError("Oracle is currently overloaded. Please wait a moment and try again.");
-            } else {
+                setRetrySeconds(0);
+                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            } 
+            else {
                 setError(`Oracle Error: ${errorMessage}`);
+                setRetrySeconds(0);
+                if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
             }
             
             const errorId = `model-error-${Date.now()}`;
-            const errorText = `Connection interrupted. Please try again. \n\nDetails: ${errorMessage}`;
+            const errorText = `Connection interrupted. \n\nDetails: ${errorMessage}`;
             setMessages(prev => [...prev, { id: errorId, role: 'model', text: errorText }]);
         } finally {
             setIsLoading(false);
-            setRetrySeconds(0);
-            if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
+            // Note: We do NOT clear countdown here if it was set by the catch block for system cooldown
         }
-    }, [isLoading, setMessages, onRetryWait]);
+    }, [isLoading, setMessages, startCountdown, retrySeconds]);
 
     const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -475,18 +483,35 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 />
                             ))}
                             {isLoading && <TypingIndicator />}
+                            
+                            {/* Wait/Cooldown Banner */}
                             {retrySeconds > 0 && (
                                 <div className="flex justify-center w-full animate-fade-in my-2">
-                                    <div className="bg-yellow-500/10 border border-yellow-500/30 text-yellow-600 dark:text-yellow-400 px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-lg">
-                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                        </svg>
-                                        Rate limit reached. Retrying in {retrySeconds}s...
+                                    <div className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-lg border ${
+                                        isLoading 
+                                        ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400' // Transient Retry
+                                        : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400' // System Lockdown
+                                    }`}>
+                                        {isLoading ? (
+                                            <>
+                                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-yellow-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                </svg>
+                                                Rate limit reached. Retrying in {retrySeconds}s...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                System Cooldown: Restoring Neural Link in {retrySeconds}s
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                             )}
-                            {error && <p className="text-red-400 text-sm text-center p-2 bg-red-500/10 rounded-lg mx-4">{error}</p>}
+                            {error && !retrySeconds && <p className="text-red-400 text-sm text-center p-2 bg-red-500/10 rounded-lg mx-4">{error}</p>}
                         </div>
                     )}
                 </div>
@@ -510,7 +535,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             ))}
                         </div>
                     )}
-                    <form onSubmit={handleSendMessage} className="flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-300 dark:border-slate-700 shadow-sm focus-within:ring-2 focus-within:ring-green-500/50 transition-all">
+                    <form onSubmit={handleSendMessage} className={`flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-300 dark:border-slate-700 shadow-sm focus-within:ring-2 focus-within:ring-green-500/50 transition-all ${retrySeconds > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                          <input
                             type="file"
                             ref={fileInputRef}
@@ -522,7 +547,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         <button
                             type="button"
                             onClick={() => fileInputRef.current?.click()}
-                            disabled={isLoading}
+                            disabled={isLoading || retrySeconds > 0}
                             className="p-2 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 disabled:opacity-50 transition-colors flex-shrink-0 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800"
                             aria-label="Attach image"
                         >
@@ -534,15 +559,15 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             type="text"
                             value={input}
                             onChange={(e) => setInput(e.target.value)}
-                            placeholder="Ask Oracle..."
-                            disabled={isLoading}
+                            placeholder={retrySeconds > 0 ? `Cooling down (${retrySeconds}s)...` : "Ask Oracle..."}
+                            disabled={isLoading || retrySeconds > 0}
                             // Using text-base on mobile prevents auto-zoom on iOS
                             className="flex-grow bg-transparent text-gray-900 dark:text-gray-100 text-base md:text-sm focus:outline-none block w-full placeholder-gray-500 dark:placeholder-gray-600 disabled:opacity-50 py-1"
                             aria-label="Chat input"
                         />
                         <button
                             type="submit"
-                            disabled={isLoading || (!input.trim() && imageFiles.length === 0)}
+                            disabled={isLoading || retrySeconds > 0 || (!input.trim() && imageFiles.length === 0)}
                             className="p-2 w-10 h-10 flex items-center justify-center text-white bg-green-600 rounded-full hover:bg-green-500 focus:outline-none disabled:bg-gray-200 dark:disabled:bg-slate-800 disabled:text-gray-400 disabled:cursor-not-allowed transition-all shadow-sm flex-shrink-0"
                             aria-label="Send message"
                         >
