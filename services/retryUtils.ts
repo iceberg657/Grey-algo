@@ -19,12 +19,10 @@ const K = {
 export const ANALYSIS_POOL = [K.K1, K.K2, K.K3].filter(k => !!k);
 
 export const LANE_1_MODELS = [
-    'gemini-3-pro-preview',         // 1. Top Tier (Reasoning + Vision)
-    'gemini-3-flash-preview',       // 2. High Speed Tier (New)
-    'gemini-1.5-pro',               // 3. Fallback for "2.5 Pro" request (Stable Pro)
-    'gemini-2.0-flash',             // 4. Fallback for "2.5 Flash" request
-    'gemini-2.5-flash-image',       // 5. Specific Vision Model
-    'gemini-1.5-flash'              // 6. Final Safety Net ("2.0 Flash" request mapped to stable)
+    'gemini-3-pro-preview',         // 1. "2.5 Pro" (Top Tier Logic + Vision)
+    'gemini-3-flash-preview',       // 2. "2.5 Flash" (High Speed + Vision)
+    'gemini-2.0-flash',             // 3. "2.0 Flash" (Legacy Fast Vision)
+    'gemini-2.5-flash-image'        // 4. Specific Vision Fallback
 ];
 
 // Lane 2: Main App Services (News, Predictions)
