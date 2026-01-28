@@ -152,7 +152,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
 
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col perspective-1000">
-                <header className="text-center mb-10 relative opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
+                <header className="text-center mb-10 relative opacity-0 animate-flip-3d" style={{ animationDelay: '30ms' }}>
                      <div className="absolute top-0 right-0 flex items-center gap-2">
                         <ThemeToggleButton />
                     </div>
@@ -185,7 +185,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                             </g>
                         </svg>
                         <h1 className="text-4xl sm:text-5xl font-black tracking-tight animated-gradient-text animate-animated-gradient group-hover:brightness-110 transition-all italic uppercase tracking-[-0.05em]">
-                            GreyAlpha Hub
+                            GreyAlpha
                         </h1>
                     </button>
                     <p className="mt-3 text-sm font-black text-gray-500 dark:text-dark-text/40 uppercase tracking-[0.4em]">
@@ -201,13 +201,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                             aria-label={item.ariaLabel}
                             icon={item.icon}
                             label={item.label}
-                            delay={`${100 + (idx * 50)}ms`}
+                            delay={`${60 + (idx * 30)}ms`}
                         />
                     ))}
                 </nav>
 
                 <main className="relative group">
-                   <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '400ms' }}>
+                   <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '150ms' }}>
                        <MarketOverview 
                             analysisCount={analysisCount} 
                             onResetCount={handleResetAnalysisCount} 
@@ -216,12 +216,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                        />
                    </div>
 
-                   <div className="opacity-0 animate-flip-3d relative" style={{ animationDelay: '550ms' }}>
+                   <div className="opacity-0 animate-flip-3d relative" style={{ animationDelay: '250ms' }}>
                         {/* High-Tech HUD Brackets for Form */}
                         <div className="absolute -top-3 -left-3 w-10 h-10 border-t-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:-translate-y-1"></div>
                         <div className="absolute -top-3 -right-3 w-10 h-10 border-t-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:-translate-y-1"></div>
-                        <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:translate-y-1"></div>
-                        <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:translate-y-1"></div>
+                        <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:-translate-y-1"></div>
+                        <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:-translate-y-1"></div>
 
                         <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-2xl p-6 sm:p-10 rounded-2xl border-2 border-green-500/20 shadow-2xl relative overflow-hidden">
                              {/* Interactive Scanline */}

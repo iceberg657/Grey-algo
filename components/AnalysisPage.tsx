@@ -33,7 +33,7 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, onBack, onLogo
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
                             </svg>
                         </div>
-                        Hub
+                        GreyAlpha
                     </button>
                     <div className="flex flex-col items-center">
                          <h1 className={`text-2xl md:text-3xl font-black uppercase tracking-[-0.05em] italic ${isBuy ? 'text-green-500' : isSell ? 'text-red-500' : 'text-blue-500'}`}>
