@@ -69,11 +69,21 @@
                         'glowing-edge': 'glowingEdge 8s ease-in-out infinite alternate',
                         'glowing-edge-profit': 'glowingEdgeProfit 8s ease-in-out infinite alternate',
                         'marquee': 'marquee 20s linear infinite',
+                        'flip-3d': 'flip3D 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards',
+                        'shimmer': 'shimmer 4s linear infinite',
                     },
                     keyframes: {
                         fadeIn: {
                             '0%': { opacity: '0', transform: 'translateY(10px)' },
                             '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        shimmer: {
+                            '0%': { transform: 'translateX(-100%)' },
+                            '100%': { transform: 'translateX(100%)' },
+                        },
+                        flip3D: {
+                            '0%': { opacity: '0', transform: 'perspective(1000px) rotateX(-90deg) translateY(50px)' },
+                            '100%': { opacity: '1', transform: 'perspective(1000px) rotateX(0deg) translateY(0)' },
                         },
                         glowingBorder: {
                             '0%, 100%': {
@@ -181,6 +191,21 @@
             -webkit-text-fill-color: transparent;
             color: transparent;
             background-clip: text;
+        }
+        
+        /* Smooth Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(16, 185, 129, 0.3);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(16, 185, 129, 0.5);
         }
     </style>
 <script type="importmap">

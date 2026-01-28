@@ -44,7 +44,7 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       "entryType": "Market Execution" | "Pullback" | "Breakout",
       "stopLoss": number,
       "takeProfits": [number, number, number], // 3 specific TP prices
-      "expectedDuration": "string", // e.g. "2-4 Hours"
+      "expectedDuration": "string", // An exact trade holding duration between 30 minutes and 4 hours (e.g., "30 minutes", "1 hour 30 minutes", "3 hours"). Do not provide a range.
       "reasoning": ["string", "string", "string"], // 3 bullet points
       "checklist": ["string", "string", "string"], // 3 confirmation factors
       "invalidationScenario": "string",
