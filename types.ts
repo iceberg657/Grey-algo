@@ -112,13 +112,3 @@ export interface ChatMessage {
     text: string;
     images?: string[]; // Data URL for rendering
 }
-
-export interface PredictedEvent {
-    name: string;
-    date: string; // ISO 8601 format with timezone
-    eventDurationHours: number;
-    affectedAsset: string;
-    predictedDirection: 'BUY' | 'SELL';
-    confidence: number; // 80-100
-    reasoning: string;
-}

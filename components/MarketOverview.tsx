@@ -1,162 +1,17 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getOrRefreshSuggestions } from '../services/suggestionService';
 import type { AssetSuggestion } from '../types';
 import { MarketTicker } from './MarketTicker';
 import { KillzoneClock } from './KillzoneClock';
+import { useTheme } from '../contexts/ThemeContext';
 
-// --- Safe Trading Timer Logic ---
 const SNIPER_TARGET_KEY = 'greyquant_sniper_target';
 const SNIPER_WINDOW_KEY = 'greyquant_sniper_window_end';
+const SENTIMENT_PAIR_KEY = 'greyquant_sentiment_single_pair';
+const SENTIMENT_UPDATE_KEY = 'greyquant_sentiment_next_update';
 
 type TimerState = 'COUNTDOWN' | 'ACTIVE';
-
-const SafeTradingTimer: React.FC = () => {
-    const [timeLeft, setTimeLeft] = useState<string>('--:--:--');
-    const [targetTimeString, setTargetTimeString] = useState<string>('');
-    const [status, setStatus] = useState<TimerState>('COUNTDOWN');
-    
-    const generateNewTarget = (baseTime: number) => {
-        const minMinutes = 30;
-        const maxMinutes = 120;
-        const randomMinutes = Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) + minMinutes;
-        return baseTime + (randomMinutes * 60 * 1000);
-    };
-
-    const tick = () => {
-        const now = Date.now();
-        let targetStr = localStorage.getItem(SNIPER_TARGET_KEY);
-        let windowEndStr = localStorage.getItem(SNIPER_WINDOW_KEY);
-
-        let target = targetStr ? parseInt(targetStr, 10) : null;
-        let windowEnd = windowEndStr ? parseInt(windowEndStr, 10) : null;
-
-        if (!target) {
-            const newTarget = generateNewTarget(now);
-            localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
-            localStorage.removeItem(SNIPER_WINDOW_KEY);
-            target = newTarget;
-            windowEnd = null;
-        }
-
-        if (now < target) {
-            setStatus('COUNTDOWN');
-            const diff = target - now;
-            const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
-            const minutes = Math.floor((diff / 1000 / 60) % 60);
-            const seconds = Math.floor((diff / 1000) % 60);
-            setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
-            const date = new Date(target);
-            setTargetTimeString(date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-        } else {
-            if (windowEnd && now < windowEnd) {
-                setStatus('ACTIVE');
-                setTimeLeft('00:00:00');
-                setTargetTimeString('NOW');
-            } else if (windowEnd && now >= windowEnd) {
-                const newTarget = generateNewTarget(now);
-                localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
-                localStorage.removeItem(SNIPER_WINDOW_KEY);
-            } else if (!windowEnd) {
-                const timeSinceTarget = now - target;
-                const MAX_LATE_THRESHOLD = 10 * 60 * 1000;
-                if (timeSinceTarget > MAX_LATE_THRESHOLD) {
-                    const newTarget = generateNewTarget(now);
-                    localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
-                    localStorage.removeItem(SNIPER_WINDOW_KEY);
-                } else {
-                    const activeMinutes = Math.floor(Math.random() * (5 - 3 + 1)) + 3;
-                    const newWindowEnd = now + (activeMinutes * 60 * 1000);
-                    localStorage.setItem(SNIPER_WINDOW_KEY, newWindowEnd.toString());
-                    setStatus('ACTIVE');
-                    setTimeLeft('00:00:00');
-                    setTargetTimeString('NOW');
-                }
-            }
-        }
-    };
-
-    useEffect(() => {
-        tick();
-        const interval = setInterval(tick, 1000);
-        return () => clearInterval(interval);
-    }, []);
-
-    const isReady = status === 'ACTIVE';
-
-    return (
-        <div className={`mb-8 rounded-2xl border-2 relative overflow-hidden transition-all duration-500 shadow-2xl ${isReady ? 'bg-green-500/10 border-green-500/50 shadow-[0_0_30px_rgba(34,197,94,0.2)]' : 'bg-black/40 border-white/5'}`}>
-            <div className="flex flex-col sm:flex-row items-center justify-between p-5 relative z-10 gap-6">
-                <div className="flex items-center gap-5">
-                    <div className={`flex items-center justify-center w-14 h-14 rounded-2xl border-2 transition-all ${isReady ? 'border-green-400 bg-green-500/20 animate-pulse' : 'border-blue-400/30 bg-blue-500/10'}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-7 w-7 ${isReady ? 'text-green-400' : 'text-blue-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                    </div>
-                    <div>
-                        <h3 className={`text-xs font-black uppercase tracking-[0.2em] ${isReady ? 'text-green-400' : 'text-blue-400/70'}`}>
-                            {isReady ? 'Precision Entry Window Active' : 'Neural Calibration Protocol'}
-                        </h3>
-                        <p className={`text-xl font-black uppercase tracking-tight mt-1 ${isReady ? 'text-white' : 'text-gray-400'}`}>
-                            {isReady ? 'EXECUTE ALPHA SETUP NOW' : 'WAITING FOR LIQUIDITY'}
-                        </p>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-8 bg-black/40 px-6 py-3 rounded-2xl border border-white/5 shadow-inner">
-                    <div className="text-center">
-                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Time To Sync</span>
-                        <span className={`font-mono text-3xl font-black ${isReady ? 'text-green-400 animate-pulse' : 'text-white'}`}>
-                            {timeLeft}
-                        </span>
-                    </div>
-                    <div className="h-10 w-px bg-white/10"></div>
-                    <div className="text-center">
-                        <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Sync Target</span>
-                        <span className="font-mono text-xl font-black text-yellow-500">
-                            {targetTimeString}
-                        </span>
-                    </div>
-                </div>
-            </div>
-            {!isReady && (
-                <div className="h-1 w-full bg-black/60 relative overflow-hidden">
-                    <div className="absolute inset-0 bg-blue-500/30 animate-shimmer"></div>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const useMarketStatus = () => {
-    const [isOpen, setIsOpen] = useState(false);
-    useEffect(() => {
-        const checkStatus = () => {
-            const now = new Date();
-            const dayUTC = now.getUTCDay();
-            const hourUTC = now.getUTCHours();
-            if (dayUTC === 6 || (dayUTC === 0 && hourUTC < 22) || (dayUTC === 5 && hourUTC >= 22)) {
-                setIsOpen(false);
-            } else {
-                setIsOpen(true);
-            }
-        };
-        checkStatus();
-        const timer = setInterval(checkStatus, 60000);
-        return () => clearInterval(timer);
-    }, []);
-    return { isOpen, statusText: isOpen ? 'OPERATIONAL' : 'OFFLINE' };
-};
-
-const generateChartData = () => {
-    const data = [];
-    let value = 50 + Math.random() * 20;
-    for (let i = 0; i < 50; i++) {
-        data.push(value);
-        value += (Math.random() - 0.5) * 5;
-    }
-    return data;
-};
 
 interface MarketOverviewProps {
     analysisCount: number;
@@ -165,186 +20,437 @@ interface MarketOverviewProps {
     profitMode: boolean; 
 }
 
+const MAJORS_POOL = ['FX:EURUSD', 'FX:GBPUSD', 'FX:USDJPY', 'FX:USDCHF', 'FX:AUDUSD', 'FX:USDCAD', 'FX:NZDUSD'];
+const MINORS_POOL = ['FX:EURGBP', 'FX:GBPJPY', 'FX:AUDJPY', 'FX:EURAUD', 'FX:GBPAUD', 'FX:NZDJPY', 'FX:CADJPY', 'FX:EURJPY', 'FX:CHFJPY'];
+const ASSET_POOL = [...MAJORS_POOL, ...MINORS_POOL];
+
+// Helper to pick 1 random item
+const getRandomPair = () => ASSET_POOL[Math.floor(Math.random() * ASSET_POOL.length)];
+
+// --- Neural Radar Widget ---
+const METRICS = ['MOMENTUM', 'STRUCTURE', 'LIQUIDITY', 'VOLUME', 'VOLATILITY'];
+
+const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol, theme }) => {
+    // Generate deterministic "random" stats based on symbol name string char codes
+    // This ensures the chart looks consistent for the specific symbol during its 2hr window
+    const stats = useMemo(() => {
+        const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const rand = (offset: number) => {
+            const x = Math.sin(seed + offset) * 10000;
+            return Math.floor((x - Math.floor(x)) * 70) + 30; // Value between 30 and 100
+        };
+        return METRICS.map((_, i) => rand(i));
+    }, [symbol]);
+
+    const overallScore = Math.floor(stats.reduce((a, b) => a + b, 0) / stats.length);
+    const bias = overallScore > 65 ? 'BULLISH' : overallScore < 45 ? 'BEARISH' : 'NEUTRAL';
+    
+    // Colors
+    const isDark = theme === 'dark';
+    const primaryColor = bias === 'BULLISH' ? '#4ade80' : bias === 'BEARISH' ? '#ef4444' : '#60a5fa'; // Green, Red, Blue
+    const bgFill = bias === 'BULLISH' ? 'rgba(74, 222, 128, 0.2)' : bias === 'BEARISH' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(96, 165, 250, 0.2)';
+    
+    // SVG Calc
+    const size = 300;
+    const center = size / 2;
+    const radius = 100;
+    
+    const getCoordinates = (value: number, index: number, total: number) => {
+        const angle = (Math.PI * 2 * index) / total - Math.PI / 2;
+        const r = (value / 100) * radius;
+        return {
+            x: center + Math.cos(angle) * r,
+            y: center + Math.sin(angle) * r
+        };
+    };
+
+    const points = stats.map((val, i) => getCoordinates(val, i, METRICS.length))
+                        .map(p => `${p.x},${p.y}`).join(' ');
+
+    const fullPolyPoints = METRICS.map((_, i) => getCoordinates(100, i, METRICS.length))
+                                  .map(p => `${p.x},${p.y}`).join(' ');
+
+    return (
+        <div className="w-full h-full flex items-center justify-center relative overflow-hidden bg-gradient-to-b from-gray-100 to-gray-200 dark:from-[#0f172a] dark:to-[#1e293b]">
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-10 pointer-events-none"></div>
+            
+            {/* Radar Chart */}
+            <div className="relative z-10 animate-fade-in">
+                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+                    {/* Background Grid (Concentric) */}
+                    {[25, 50, 75, 100].map((level, idx) => {
+                        const levelPoints = METRICS.map((_, i) => getCoordinates(level, i, METRICS.length))
+                                                   .map(p => `${p.x},${p.y}`).join(' ');
+                        return (
+                            <polygon 
+                                key={level} 
+                                points={levelPoints} 
+                                fill="none" 
+                                stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"} 
+                                strokeWidth="1" 
+                            />
+                        );
+                    })}
+                    
+                    {/* Axis Lines */}
+                    {METRICS.map((_, i) => {
+                        const end = getCoordinates(100, i, METRICS.length);
+                        return (
+                            <line 
+                                key={i} 
+                                x1={center} y1={center} 
+                                x2={end.x} y2={end.y} 
+                                stroke={isDark ? "rgba(255,255,255,0.1)" : "rgba(0,0,0,0.1)"} 
+                                strokeWidth="1" 
+                            />
+                        );
+                    })}
+
+                    {/* Data Polygon */}
+                    <polygon 
+                        points={points} 
+                        fill={bgFill} 
+                        stroke={primaryColor} 
+                        strokeWidth="2"
+                        className="drop-shadow-[0_0_10px_rgba(255,255,255,0.3)] animate-pulse-slow"
+                    />
+                    
+                    {/* Data Points */}
+                    {stats.map((val, i) => {
+                        const pos = getCoordinates(val, i, METRICS.length);
+                        return (
+                            <circle 
+                                key={i} 
+                                cx={pos.x} cy={pos.y} 
+                                r="3" 
+                                fill={primaryColor} 
+                                className="animate-ping" 
+                                style={{ animationDuration: '3s', animationDelay: `${i * 0.2}s` }}
+                            />
+                        );
+                    })}
+
+                    {/* Labels */}
+                    {METRICS.map((label, i) => {
+                        const pos = getCoordinates(125, i, METRICS.length);
+                        return (
+                            <text 
+                                key={i} 
+                                x={pos.x} y={pos.y} 
+                                textAnchor="middle" 
+                                dominantBaseline="middle" 
+                                fill={isDark ? "#94a3b8" : "#475569"} 
+                                fontSize="10" 
+                                fontWeight="bold" 
+                                className="uppercase tracking-widest"
+                            >
+                                {label}
+                            </text>
+                        );
+                    })}
+                </svg>
+                
+                {/* Center Info */}
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">VECTOR</div>
+                    <div className={`text-3xl font-black ${bias === 'BULLISH' ? 'text-green-500' : bias === 'BEARISH' ? 'text-red-500' : 'text-blue-500'}`}>
+                        {overallScore}
+                    </div>
+                </div>
+            </div>
+
+            {/* Corner Info */}
+            <div className="absolute bottom-4 right-4 text-right">
+                <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Calculated Bias</div>
+                <div className={`text-sm font-black uppercase ${bias === 'BULLISH' ? 'text-green-400' : bias === 'BEARISH' ? 'text-red-400' : 'text-blue-400'}`}>
+                    {bias}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect, profitMode }) => {
-    const chartRef = useRef<HTMLCanvasElement>(null);
-    const chartInstance = useRef<any>(null);
-    const [timeRange, setTimeRange] = useState<'1H' | '1D' | '1W'>('1H');
-    const { isOpen, statusText } = useMarketStatus();
+    const { theme } = useTheme();
+    
+    // --- Shared Timer Logic ---
+    const [timeLeftDisplay, setTimeLeftDisplay] = useState<string>('--:--');
+    const [targetTimeString, setTargetTimeString] = useState<string>('');
+    const [timerStatus, setTimerStatus] = useState<TimerState>('COUNTDOWN');
+    const lastTriggeredRef = useRef<number | null>(null);
+    
+    // --- Assets Logic ---
     const [suggestions, setSuggestions] = useState<AssetSuggestion[]>([]);
-    const [suggestionTimer, setSuggestionTimer] = useState<string>('--:--');
     const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
-    const [hasInitialLoad, setHasInitialLoad] = useState(false);
+
+    // --- Structural Sentiment Logic ---
+    const [currentPair, setCurrentPair] = useState<string>('FX:EURUSD');
 
     useEffect(() => {
-        let isMounted = true;
-        let timerInterval: ReturnType<typeof setInterval>;
-        const fetchSuggestions = async () => {
-            setIsUpdatingSuggestions(true);
-            try {
-                const { suggestions: data, nextUpdate } = await getOrRefreshSuggestions(profitMode);
-                if (isMounted) {
-                    setSuggestions(data || []);
-                    setHasInitialLoad(true);
-                    if (timerInterval) clearInterval(timerInterval);
-                    timerInterval = setInterval(() => {
-                        const now = Date.now();
-                        const diff = nextUpdate - now;
-                        if (diff <= 0) {
-                            setSuggestionTimer('Scanning');
-                            clearInterval(timerInterval);
-                            fetchSuggestions();
-                        } else {
-                            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-                            const secs = Math.floor((diff % (1000 * 60)) / 1000);
-                            setSuggestionTimer(`${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`);
-                        }
-                    }, 1000);
-                }
-            } catch (e) {
-                console.error("Failed to load suggestions", e);
-                if (isMounted) setSuggestions([]);
-            } finally {
-                if (isMounted) setIsUpdatingSuggestions(false);
+        const updatePair = () => {
+            const now = Date.now();
+            const storedUpdate = localStorage.getItem(SENTIMENT_UPDATE_KEY);
+            const nextUpdate = storedUpdate ? parseInt(storedUpdate, 10) : 0;
+            const storedPair = localStorage.getItem(SENTIMENT_PAIR_KEY);
+
+            if (!storedPair || now >= nextUpdate) {
+                // Rotate to a single random pair from the combined pool
+                const newPair = getRandomPair();
+                
+                localStorage.setItem(SENTIMENT_PAIR_KEY, newPair);
+                localStorage.setItem(SENTIMENT_UPDATE_KEY, (now + (2 * 60 * 60 * 1000)).toString()); // 2 hours
+                setCurrentPair(newPair);
+            } else {
+                setCurrentPair(storedPair);
             }
         };
-        fetchSuggestions();
-        return () => { isMounted = false; if (timerInterval) clearInterval(timerInterval); };
+
+        updatePair();
+        const interval = setInterval(updatePair, 60000); // Check every minute
+        return () => clearInterval(interval);
+    }, []);
+
+    // Standardized 40m to 2h range
+    const generateNewTarget = (baseTime: number) => {
+        const minMs = 40 * 60 * 1000;
+        const maxMs = 120 * 60 * 1000;
+        const randomMs = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
+        return baseTime + (Math.round(randomMs / 60000) * 60000);
+    };
+
+    const fetchAssets = useCallback(async (force: boolean = false) => {
+        setIsUpdatingSuggestions(true);
+        try {
+            const { suggestions: data } = await getOrRefreshSuggestions(profitMode, force);
+            setSuggestions(data || []);
+        } catch (e) {
+            console.error("Neural Queue Sync Failure:", e);
+        } finally {
+            setIsUpdatingSuggestions(false);
+        }
     }, [profitMode]);
 
     useEffect(() => {
-        if (!chartRef.current) return;
-        const Chart = (window as any).Chart;
-        if (!Chart) return;
-        const ctx = chartRef.current.getContext('2d');
-        if (!ctx) return;
-        const gradient = ctx.createLinearGradient(0, 0, 0, chartRef.current.clientHeight);
-        gradient.addColorStop(0, 'rgba(52, 152, 219, 0.4)');
-        gradient.addColorStop(1, 'rgba(15, 23, 42, 0)');
-        const data = {
-            labels: Array(50).fill(''),
-            datasets: [{
-                data: generateChartData(),
-                borderColor: '#3498db',
-                backgroundColor: gradient,
-                borderWidth: 2,
-                pointRadius: 0,
-                fill: true,
-                tension: 0.4
-            }]
-        };
-        if (chartInstance.current) chartInstance.current.destroy();
-        chartInstance.current = new Chart(ctx, {
-            type: 'line',
-            data: data,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: { duration: 500 },
-                plugins: { legend: { display: false }, tooltip: { enabled: false } },
-                scales: { x: { display: false }, y: { display: false } }
+        const tick = () => {
+            const now = Date.now();
+            let targetStr = localStorage.getItem(SNIPER_TARGET_KEY);
+            let windowEndStr = localStorage.getItem(SNIPER_WINDOW_KEY);
+
+            let target = targetStr ? parseInt(targetStr, 10) : null;
+            let windowEnd = windowEndStr ? parseInt(windowEndStr, 10) : null;
+
+            if (!target) {
+                const newTarget = generateNewTarget(now);
+                localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
+                target = newTarget;
             }
-        });
-        return () => { if (chartInstance.current) { chartInstance.current.destroy(); chartInstance.current = null; } };
-    }, [timeRange]);
+
+            if (now < target) {
+                setTimerStatus('COUNTDOWN');
+                const diff = target - now;
+                const h = Math.floor(diff / (1000 * 60 * 60));
+                const m = Math.floor((diff / (1000 * 60)) % 60);
+                const s = Math.floor((diff / 1000) % 60);
+                
+                const hDisplay = h > 0 ? `${h}h ` : "";
+                const mDisplay = `${m}m `;
+                const sDisplay = h === 0 ? `${s}s` : "";
+                setTimeLeftDisplay(`${hDisplay}${mDisplay}${sDisplay}`.trim());
+                
+                setTargetTimeString(new Date(target).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
+            } else {
+                if (timerStatus === 'COUNTDOWN' || (target !== lastTriggeredRef.current)) {
+                    setTimerStatus('ACTIVE');
+                    lastTriggeredRef.current = target;
+                    fetchAssets(true); 
+                }
+
+                if (windowEnd && now < windowEnd) {
+                    setTimerStatus('ACTIVE');
+                    setTimeLeftDisplay('SYNCED');
+                    setTargetTimeString('ACTIVE');
+                } else if (windowEnd && now >= windowEnd) {
+                    const newTarget = generateNewTarget(now);
+                    localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
+                    localStorage.removeItem(SNIPER_WINDOW_KEY);
+                } else if (!windowEnd) {
+                    const activeMinutes = Math.floor(Math.random() * (15 - 8 + 1)) + 8;
+                    const newWindowEnd = now + (activeMinutes * 60 * 1000);
+                    localStorage.setItem(SNIPER_WINDOW_KEY, newWindowEnd.toString());
+                    setTimerStatus('ACTIVE');
+                }
+            }
+        };
+
+        const interval = setInterval(tick, 1000);
+        tick();
+        return () => clearInterval(interval);
+    }, [timerStatus, fetchAssets]);
+
+    useEffect(() => {
+        const heartbeat = setInterval(() => {
+            if (timerStatus !== 'ACTIVE') fetchAssets(false);
+        }, 30 * 60 * 1000);
+        return () => clearInterval(heartbeat);
+    }, [fetchAssets, timerStatus]);
+
+    // Initial load
+    useEffect(() => {
+        if (suggestions.length === 0 && !isUpdatingSuggestions) {
+            fetchAssets(false);
+        }
+    }, [suggestions.length, isUpdatingSuggestions, fetchAssets]);
+
+    const isMarketOpen = () => {
+        const now = new Date();
+        const day = now.getUTCDay();
+        const hour = now.getUTCHours();
+        return !(day === 6 || (day === 0 && hour < 22) || (day === 5 && hour >= 22));
+    };
+
+    const isReady = timerStatus === 'ACTIVE';
 
     return (
         <div className="bg-white/80 dark:bg-dark-card/90 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl border-2 border-white/5 shadow-2xl mb-12">
             
-            <SafeTradingTimer />
+            {/* Neural Calibration Timer */}
+            <div className={`mb-8 rounded-2xl border-2 relative overflow-hidden transition-all duration-700 shadow-2xl ${isReady ? 'bg-green-500/10 border-green-500/50 shadow-[0_0_40px_rgba(34,197,94,0.3)]' : 'bg-black/60 border-white/5'}`}>
+                <div className="flex flex-col sm:flex-row items-center justify-between p-6 relative z-10 gap-6">
+                    <div className="flex items-center gap-5">
+                        <div className={`flex items-center justify-center w-16 h-16 rounded-2xl border-2 transition-all duration-500 ${isReady ? 'border-green-400 bg-green-500/20 animate-pulse scale-110' : 'border-blue-400/30 bg-blue-500/10'}`}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-8 w-8 ${isReady ? 'text-green-400' : 'text-blue-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] mb-1 ${isReady ? 'text-green-400' : 'text-blue-400/70'}`}>
+                                {isReady ? 'PRECISION WINDOW ACTIVE' : 'NEURAL CALIBRATION IN PROGRESS'}
+                            </h3>
+                            <p className={`text-2xl font-black uppercase tracking-tight ${isReady ? 'text-white' : 'text-gray-400'}`}>
+                                {isReady ? 'EXECUTE ALPHA PROTOCOL' : 'SCANNING FOR LIQUIDITY'}
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-8 bg-black/60 px-8 py-4 rounded-2xl border border-white/5 shadow-inner">
+                        <div className="text-center min-w-[120px]">
+                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Time to Sync</span>
+                            <span className={`font-mono text-3xl font-black ${isReady ? 'text-green-400 animate-pulse' : 'text-white'}`}>
+                                {timeLeftDisplay}
+                            </span>
+                        </div>
+                        <div className="h-12 w-px bg-white/10"></div>
+                        <div className="text-center">
+                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Target Gate</span>
+                            <span className="font-mono text-2xl font-black text-yellow-500">
+                                {targetTimeString}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                {!isReady && (
+                    <div className="h-1 w-full bg-black/60 relative overflow-hidden">
+                        <div className="absolute inset-0 bg-blue-500/30 animate-shimmer"></div>
+                    </div>
+                )}
+            </div>
 
             <div className="mb-8">
                 <MarketTicker onAssetClick={onAssetSelect} />
             </div>
 
+            {/* --- Structural Sentiment Arc (Single Rotating Neural Radar) --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="lg:col-span-2 bg-black/20 p-6 rounded-2xl border border-white/5 shadow-inner">
+                <div className="lg:col-span-2 bg-black/20 p-6 rounded-2xl border border-white/5 shadow-inner flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-xs font-black uppercase tracking-[0.3em] text-gray-500 dark:text-gray-400">Global Sentiment Arc</h2>
-                        <div className="flex space-x-2 bg-black/30 p-1 rounded-xl">
-                            {['1H', '1D', '1W'].map(range => (
-                                <button
-                                    key={range}
-                                    onClick={() => setTimeRange(range as '1H' | '1D' | '1W')}
-                                    className={`px-3 py-1 rounded-lg text-[10px] font-black transition-all ${timeRange === range ? 'bg-blue-600 text-white shadow-lg' : 'text-gray-500 hover:text-white'}`}
-                                >
-                                    {range}
-                                </button>
-                            ))}
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Structural Sentiment Vectors</h2>
+                        <div className="flex items-center gap-2">
+                            <span className="text-[9px] font-bold text-white bg-blue-500/20 px-2 py-1 rounded border border-blue-500/30 uppercase">
+                                {currentPair}
+                            </span>
+                            <span className="text-[9px] font-bold text-gray-600 bg-black/40 px-2 py-1 rounded border border-white/5">
+                                ROTATES EVERY 2H
+                            </span>
                         </div>
                     </div>
-                    <div className="h-40">
-                        <canvas ref={chartRef}></canvas>
+                    
+                    {/* Neural Radar Widget */}
+                    <div className="w-full h-80 flex-grow relative rounded-xl overflow-hidden border border-white/5 shadow-2xl">
+                        <NeuralRadarWidget symbol={currentPair} theme={theme} />
                     </div>
                 </div>
 
-                <div className="space-y-4">
-                    <div className="bg-black/20 p-5 rounded-2xl border border-white/5 h-full flex flex-col justify-between">
-                        <div className="flex justify-between items-center mb-4">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">System State</span>
-                            <div className={`flex items-center gap-2 text-[10px] font-black px-2 py-1 rounded-full ${isOpen ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                                <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                                {statusText}
-                            </div>
+                <div className="bg-black/20 p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
+                    <div className="flex justify-between items-center">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Node Status</span>
+                        <div className={`flex items-center gap-2 text-[10px] font-black px-3 py-1 rounded-full ${isMarketOpen() ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            <span className={`w-2 h-2 rounded-full ${isMarketOpen() ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                            {isMarketOpen() ? 'OPERATIONAL' : 'DORMANT'}
                         </div>
-                        <div className="text-center py-4">
-                            <span className="text-xs font-black text-gray-500 uppercase tracking-[0.2em] block mb-2">Daily Iterations</span>
-                            <span className="text-5xl font-black text-white tracking-tighter font-mono">{analysisCount}</span>
-                        </div>
-                        <button 
-                            onClick={onResetCount} 
-                            className="text-[9px] font-black uppercase tracking-widest text-blue-400 hover:text-blue-300 transition-colors text-center block w-full mt-2"
-                        >
-                            Reset Logs
-                        </button>
                     </div>
+                    <div className="text-center py-6">
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] block mb-2">Daily Iterations</span>
+                        <span className="text-6xl font-black text-white tracking-tighter font-mono">{analysisCount}</span>
+                    </div>
+                    <button onClick={onResetCount} className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 hover:text-cyan-300 transition-colors">Reset Logs</button>
                 </div>
             </div>
 
-            <div className="col-span-full mb-8">
+            <div className="mb-8">
                 <KillzoneClock />
             </div>
 
-             <div className={`p-6 rounded-2xl border-2 relative overflow-hidden transition-all duration-300 ${profitMode ? 'bg-yellow-900/10 border-yellow-500/30' : 'bg-black/40 border-green-500/20'}`}>
+            {/* Neural Assets Queue - Always Visible, Syncs on hit */}
+             <div className={`p-6 rounded-2xl border-2 relative overflow-hidden transition-all duration-500 ${isReady ? (profitMode ? 'bg-yellow-900/10 border-yellow-500/40' : 'bg-green-900/10 border-green-500/40') : 'bg-black/40 border-white/5'}`}>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none"></div>
                 
                 <div className="flex flex-wrap justify-between items-center mb-6 relative z-10 gap-4">
                     <div>
-                        <h3 className={`text-lg font-black flex items-center gap-3 uppercase tracking-tighter ${profitMode ? 'text-yellow-500' : 'text-green-500'}`}>
-                             <span className="relative flex h-3 w-3">
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${profitMode ? 'bg-yellow-400' : 'bg-green-400'}`}></span>
-                                <span className={`relative inline-flex rounded-full h-3 w-3 ${profitMode ? 'bg-yellow-500' : 'bg-green-500'}`}></span>
+                        <h3 className={`text-xl font-black flex items-center gap-3 uppercase tracking-tighter ${isUpdatingSuggestions ? 'text-cyan-400' : (isReady ? (profitMode ? 'text-yellow-500' : 'text-green-500') : 'text-gray-400')}`}>
+                             <span className="relative flex h-4 w-4">
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUpdatingSuggestions ? 'bg-cyan-400' : (isReady ? (profitMode ? 'bg-yellow-400' : 'bg-green-400') : 'bg-gray-400')}`}></span>
+                                <span className={`relative inline-flex rounded-full h-4 w-4 ${isUpdatingSuggestions ? 'bg-cyan-500' : (isReady ? (profitMode ? 'bg-yellow-500' : 'bg-green-500') : 'bg-gray-500')}`}></span>
                             </span>
-                            {profitMode ? 'Tactical Alpha Scanner' : 'Neural Asset Queue'}
+                            {isUpdatingSuggestions ? 'SYNCHRONIZING ALPHA...' : (isReady ? 'TACTICAL ALPHA UNLOCKED' : 'NEURAL ASSET QUEUE')}
                         </h3>
                     </div>
                      <div className="text-right">
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Queue Refresh</span>
-                        <span className={`font-mono text-lg font-black ${profitMode ? 'text-yellow-400' : 'text-green-400'}`}>{suggestionTimer}</span>
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Queue Sync</span>
+                        <span className={`font-mono text-xl font-black ${isUpdatingSuggestions ? 'text-cyan-400 animate-pulse' : (isReady ? 'text-green-400' : 'text-gray-500')}`}>
+                            {isUpdatingSuggestions ? 'BUSY' : (isReady ? 'OPTIMAL' : 'STANDBY')}
+                        </span>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
-                    {isUpdatingSuggestions ? (
-                         <div className="col-span-full py-8 text-center text-gray-500 text-xs font-black uppercase tracking-widest animate-pulse">
-                            Processing Market Topography...
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative z-10">
+                    {isUpdatingSuggestions && suggestions.length === 0 ? (
+                         <div className="col-span-full py-12 flex flex-col items-center justify-center gap-4">
+                            <div className="w-10 h-10 border-4 border-t-cyan-500 border-gray-700 rounded-full animate-spin"></div>
+                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] animate-pulse">Scanning Global Orderflow...</span>
                         </div>
-                    ) : suggestions.map((asset, idx) => (
-                        <div 
-                            key={idx} 
-                            onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                            className={`p-4 rounded-xl border cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-3 ${profitMode ? 'bg-black/40 hover:bg-yellow-500/10 border-yellow-500/20 shadow-xl shadow-yellow-500/5' : 'bg-black/40 hover:bg-green-500/10 border-white/5'}`}
-                        >
-                            <div className="flex justify-between items-center">
-                                <span className="font-black text-white text-lg tracking-tight">{asset.symbol}</span>
-                                <span className={`text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-widest ${profitMode ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-blue-500/20 text-blue-300'}`}>{asset.type}</span>
+                    ) : suggestions.length > 0 ? (
+                        suggestions.map((asset, idx) => (
+                            <div 
+                                key={idx} 
+                                onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
+                                className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group ${isUpdatingSuggestions ? 'opacity-50 pointer-events-none' : ''} ${profitMode ? 'bg-black/60 hover:bg-yellow-500/10 border-yellow-500/20 shadow-xl' : 'bg-black/60 hover:bg-green-500/10 border-white/5'}`}
+                            >
+                                <div className="flex justify-between items-center">
+                                    <span className="font-black text-white text-xl tracking-tighter group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
+                                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${profitMode ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-blue-500/20 text-blue-300'}`}>{asset.type}</span>
+                                </div>
+                                <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                <div className="flex justify-between items-center mt-2 border-t border-white/10 pt-4">
+                                    <span className="text-[9px] font-black text-gray-500 uppercase group-hover:text-white transition-colors">Analyze Setup</span>
+                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transform group-hover:translate-x-1 transition-transform ${profitMode ? 'text-yellow-500' : 'text-green-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                                </div>
                             </div>
-                            <p className="text-[11px] text-gray-400 font-medium leading-tight line-clamp-2">{asset.reason}</p>
-                            <div className="flex justify-between items-center mt-2 border-t border-white/5 pt-2">
-                                <span className="text-[9px] font-black text-gray-500 uppercase">Analysis Ready</span>
-                                <svg xmlns="http://www.w3.org/2000/svg" className={`h-4 w-4 ${profitMode ? 'text-yellow-500' : 'text-green-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-                            </div>
+                        ))
+                    ) : (
+                        <div className="col-span-full py-12 text-center">
+                            <p className="text-gray-600 font-black text-sm uppercase tracking-[0.2em]">Queue Depleted. Initiating Priority Scan...</p>
                         </div>
-                    ))}
+                    )}
                 </div>
             </div>
         </div>

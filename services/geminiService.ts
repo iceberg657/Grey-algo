@@ -9,49 +9,72 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     if (userSettings) {
         userContext = `
     **USER ACCOUNT CONTEXT:**
-    - Account Type: ${userSettings.accountType}
     - Balance: $${userSettings.accountBalance.toLocaleString()}
-    - Profit Target: ${userSettings.targetPercentage}%
-    - Max Daily Drawdown: ${userSettings.dailyDrawdown}%
-    - Max Overall Drawdown: ${userSettings.maxDrawdown}%
-    - Time Limit: ${userSettings.accountType === 'Funded' ? `${userSettings.timeLimit} days` : 'N/A'}
-    
-    **CRITICAL RULE:** The analysis MUST respect these risk parameters. Do not suggest trades that would violate drawdown rules. The goal is to safely reach the profit target within the given constraints.
+    - Risk Profile: ${userSettings.dailyDrawdown}% Daily Limit
+    - Trading Style: ${tradingStyle}
+    - Target R:R: ${riskRewardRatio}
         `;
     }
     
     return `
-    You are 'GreyAlpha', an elite quantitative trading AI.
-    Analyze the attached financial chart image(s) using Institutional SMC (Smart Money Concepts).
+    You are 'GreyAlpha-QX', an elite quantitative execution engine. Your objective is not just to analyze, but to provide a hyper-accurate, low-drawdown entry blueprint.
+
+    **QX-TACTICAL PROTOCOLS (STRICT ENFORCEMENT):**
     
+    1. **DIRECTIONAL DELTA LOGIC:** 
+       - Even in messy markets, calculate the "Probability Delta". If Buy probability is 65% and Sell is 35%, do NOT simply stay Neutral.
+       - Select the higher probability side but APPLY A WAIT PROTOCOL.
+       - **Immediate Market Execution:** ONLY for setups where the price is currently at the extreme tip of a Liquidity Sweep or an active impulsive expansion. Use this ONLY if you predict 0% drawdown.
+       - **Wait for Pullback:** Use when the trend is valid but price is overextended. Specify the exact retrace level in Entry Points.
+       - **Wait for Reversal:** Use for counter-trend setups or when price is approaching a major S/R flip.
+
+    2. **CALCULATED TIME WINDOWS:**
+       - Do NOT give generic hold times.
+       - Calculate duration based on the distance between Entry and TP1/TP3 relative to the asset's current volatility (ATR).
+       - If a trade hasn't hit target within this window, it is considered "Time-Invalidated".
+
+    3. **SMART MONEY CONCEPTS (SMC) FUSION:**
+       - Use Google Search to verify if any "Black Swan" events or high-impact news (NFP, CPI) are within 2 hours of the current window.
+       - If news is imminent, the Wait Protocol is MANDATORY.
+
+    **REQUIRED OUTPUT FORMAT RULES:**
+    
+    - **Intelligence Sources:** EXACTLY 5 distinct URL sources.
+    - **Confluence Matrix:** EXACTLY 5 specific technical confirmations.
+    - **Analysis Logic:** 5-8 reasoning paragraphs detailing the "Why" and "When".
+    - **Sentiment Score:** 0-100 (No negatives). 0-40: Bearish, 45-55: Neutral, 60-100: Bullish.
+
     **CONTEXT:**
     - Risk/Reward: ${riskRewardRatio}
     - Style: ${tradingStyle}
-    - Profit Mode (Strict Filtering): ${profitMode ? "ENABLED (Only A+ Setups)" : "Standard"}
-    ${globalContext ? `- Global Market Context: ${globalContext}` : ''}
+    - Mode: ${profitMode ? "STRICT ALPHA (MAX PRECISION)" : "Standard"}
     ${userContext}
 
-    **REQUIRED OUTPUT FORMAT:**
-    You MUST return a raw JSON object. Do not include markdown formatting like \`\`\`json.
-    
-    **JSON SCHEMA:**
+    **REQUIRED JSON OUTPUT:**
     {
       "signal": "BUY" | "SELL" | "NEUTRAL",
-      "confidence": number, // 0 to 100
-      "asset": "string", // e.g. "EUR/USD"
-      "timeframe": "string", // e.g. "4H"
-      "entryPoints": [number, number, number], // 3 specific entry prices
-      "entryType": "Market Execution" | "Pullback" | "Breakout",
+      "confidence": number (70-98), 
+      "asset": "string",
+      "timeframe": "string",
+      "entryPoints": [number, number, number],
+      "entryType": "Market Execution" | "Wait for Pullback" | "Wait for Reversal",
       "stopLoss": number,
-      "takeProfits": [number, number, number], // 3 specific TP prices
-      "expectedDuration": "string", // An exact trade holding duration between 30 minutes and 4 hours (e.g., "30 minutes", "1 hour 30 minutes", "3 hours"). Do not provide a range.
-      "reasoning": ["string", "string", "string"], // 3 bullet points
-      "checklist": ["string", "string", "string"], // 3 confirmation factors
-      "invalidationScenario": "string",
+      "takeProfits": [number, number, number],
+      "expectedDuration": "string (e.g., '45m', '2h 15m' - MUST be calculated)", 
+      "reasoning": ["Paragraph 1", "Paragraph 2", "etc"],
+      "checklist": ["Confirmation 1", "Confirmation 2", "etc"],
+      "invalidationScenario": "Specific price or time event that kills the setup.",
       "sentiment": {
-        "score": number, // 0-100
-        "summary": "string"
-      }
+        "score": number,
+        "summary": "One sentence tactical summary."
+      },
+      "sources": [
+        { "uri": "https://...", "title": "Source 1" },
+        { "uri": "https://...", "title": "Source 2" },
+        { "uri": "https://...", "title": "Source 3" },
+        { "uri": "https://...", "title": "Source 4" },
+        { "uri": "https://...", "title": "Source 5" }
+      ]
     }
     `;
 };
@@ -67,40 +90,47 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         promptParts.push({ inlineData: { data: request.images.primary.data, mimeType: request.images.primary.mimeType } });
         if (request.isMultiDimensional && request.images.entry) promptParts.push({ inlineData: { data: request.images.entry.data, mimeType: request.images.entry.mimeType } });
 
-        // LANE 1 CASCADE: 3.0 Pro -> 3.0 Flash -> 2.5 Pro -> 2.5 Flash -> 2.0 Flash
         const response = await runWithModelFallback<GenerateContentResponse>(ANALYSIS_MODELS, (modelId) => 
             ai.models.generateContent({
                 model: modelId,
                 contents: [{ parts: promptParts }],
-                config: { tools: [{googleSearch: {}}], temperature: 0.2 },
+                config: { tools: [{googleSearch: {}}], temperature: 0.1 },
             })
         );
 
         let text = response.text || '';
-        // Sanitize: remove markdown code blocks if present
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
         const start = text.indexOf('{');
         const end = text.lastIndexOf('}');
-        if (start === -1 || end === -1) throw new Error("Invalid format: No JSON object found in response.");
+        if (start === -1 || end === -1) throw new Error("Neural output misaligned.");
         
         const data = JSON.parse(text.substring(start, end + 1));
         
-        // Data Validation / Fallbacks to prevent "undefined"
+        // Final sanity check and sanitization
+        const safeSignal = (data.signal === 'BUY' || data.signal === 'SELL' || data.signal === 'NEUTRAL') ? data.signal : 'NEUTRAL';
+        let rawScore = data.sentiment?.score || 50;
+        if (rawScore < 0) rawScore = 20; 
+        rawScore = Math.min(100, Math.max(0, rawScore));
+
         return {
             asset: data.asset || "Unknown Asset",
             timeframe: data.timeframe || "N/A",
-            signal: data.signal || "NEUTRAL",
-            confidence: data.confidence || 50,
+            signal: safeSignal,
+            confidence: data.confidence || 75,
             entryPoints: data.entryPoints || [0, 0, 0],
-            entryType: data.entryType || "Pullback",
+            entryType: data.entryType || "Wait for Pullback",
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
-            expectedDuration: data.expectedDuration || "Unknown",
+            expectedDuration: data.expectedDuration || "1h",
             reasoning: data.reasoning || ["Analysis incomplete."],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Price violates structure.",
-            sentiment: data.sentiment || { score: 50, summary: "Neutral" }
+            sentiment: { 
+                score: rawScore, 
+                summary: data.sentiment?.summary || "Neutral" 
+            },
+            sources: data.sources || []
         };
     }, ANALYSIS_POOL);
 }

@@ -25,10 +25,12 @@ export const ANALYSIS_MODELS = [
     'gemini-2.0-flash'
 ];
 
-// 2. PREDICTION (Key 5)
-// Models: 2.5 Flash -> 2.0 Flash
-export const PREDICTION_POOL = [K.K5].filter(k => !!k);
-export const PREDICTION_MODELS = [
+// 2. CHAT & NEWS (Key 5)
+// Models: 2.5 Pro -> 2.5 Flash -> 2.0 Flash
+// Note: Predictor has been removed, so K5 is repurposed for Chat/News
+export const CHAT_POOL = [K.K5].filter(k => !!k);
+export const CHAT_MODELS = [
+    'gemini-2.5-pro',
     'gemini-2.5-flash',
     'gemini-2.0-flash'
 ];
@@ -42,18 +44,9 @@ export const SUGGESTION_MODELS = [
     'gemini-2.0-flash'
 ];
 
-// 4. CHAT (Key 7)
-// Models: 2.5 Pro -> 2.5 Flash -> 2.0 Flash
-export const CHAT_POOL = [K.K7].filter(k => !!k);
-export const CHAT_MODELS = [
-    'gemini-2.5-pro',
-    'gemini-2.5-flash',
-    'gemini-2.0-flash'
-];
-
-// Missing Exports Definitions
-export const SERVICE_POOL = PREDICTION_POOL; // Shared with Prediction (Key 5)
-export const SUGGESTION_STRUCTURE_POOL = CHAT_POOL; // Shared with Chat (Key 7)
+// Shared Pools
+export const SERVICE_POOL = CHAT_POOL; // News uses Chat Pool (K5)
+export const SUGGESTION_STRUCTURE_POOL = CHAT_POOL; // Global Market uses Chat Pool (K5) to save other keys
 
 export const LANE_2_MODELS = [
     'gemini-flash-lite-latest',
@@ -128,7 +121,16 @@ export async function runWithRetry<T>(
         
         // OPTIMIZATION: Do NOT retry 429s here. Let them bubble up to `runWithModelFallback`
         // so we can switch models immediately without waiting 3 seconds.
-        if (msg.includes('503') || msg.includes('500') || msg.includes('overloaded')) {
+        // We DO retry 500s, 503s, and network/XHR errors which are often transient.
+        if (
+            msg.includes('503') || 
+            msg.includes('500') || 
+            msg.includes('overloaded') || 
+            msg.includes('xhr error') || 
+            msg.includes('rpc failed') ||
+            msg.includes('fetch failed') ||
+            msg.includes('network error')
+        ) {
             // Invoke callback if provided to notify UI of the wait time
             if (onRetry) {
                 onRetry(baseDelay);
@@ -162,8 +164,16 @@ export async function runWithModelFallback<T>(
                 lastError = error;
                 const errorMsg = (error.message || '').toLowerCase();
                 
-                // If it's a 429 (Quota)
-                if (errorMsg.includes('429') || error.status === 429) {
+                // If it's a 429 (Quota) OR a persistent 5xx/Network error after retries
+                if (
+                    errorMsg.includes('429') || 
+                    error.status === 429 ||
+                    errorMsg.includes('503') ||
+                    errorMsg.includes('500') ||
+                    errorMsg.includes('xhr error') ||
+                    errorMsg.includes('rpc failed') ||
+                    errorMsg.includes('fetch failed')
+                ) {
                     
                     // Check if this is the last model in the list
                     if (j === modelIds.length - 1) {
@@ -176,7 +186,7 @@ export async function runWithModelFallback<T>(
                         }
                     }
                     
-                    console.log(`Model Quota Exhausted for ${model}. Cascading...`);
+                    console.log(`Model Quota/Network Exhausted for ${model} (${errorMsg.substring(0, 50)}...). Cascading...`);
                     continue; // Try next model in the list
                 }
                 

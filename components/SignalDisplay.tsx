@@ -81,9 +81,9 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                 ></div>
             </div>
             <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
-                <span>Bearish</span>
+                <span>Bearish (10-40)</span>
                 <span>Neutral</span>
-                <span>Bullish</span>
+                <span>Bullish (60-100)</span>
             </div>
 
             <div className="bg-gray-100 dark:bg-black/20 p-3 rounded-lg border-l-4 border-gray-400 dark:border-gray-600 shadow-sm">
@@ -128,54 +128,70 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Pull settings for calculations
     const userSettings = useMemo(() => {
         const stored = localStorage.getItem('greyquant_user_settings');
-        return stored ? JSON.parse(stored) as UserSettings : null;
+        return stored ? JSON.parse(stored) as UserSettings : {
+            accountBalance: 100000,
+            dailyDrawdown: 5,
+            maxDrawdown: 10,
+            targetPercentage: 10,
+            accountType: 'Funded',
+            timeLimit: 30
+        };
     }, []);
 
     const quantCalculations = useMemo(() => {
         const entry = data.entryPoints[0];
         const sl = data.stopLoss;
-        const tp1 = data.takeProfits[0];
-        const tp3 = data.takeProfits[2];
+        const tp3 = data.takeProfits[2] || data.takeProfits[data.takeProfits.length - 1];
         const asset = data.asset.toUpperCase();
 
         const diffSL = Math.abs(entry - sl);
-        const diffTP1 = Math.abs(tp1 - entry);
         const diffTP3 = Math.abs(tp3 - entry);
 
-        // Asset Multiplier Detection
-        let multiplier = 10000; // Standard 4-digit
+        let pipScalar = 10000;
+        let pipValueUsd = 10;
         let unit = 'Pips';
+        let precision = 1;
 
-        if (asset.includes('JPY')) multiplier = 100;
-        if (asset.includes('XAU') || asset.includes('GOLD') || asset.includes('BTC') || asset.includes('US30') || asset.includes('NAS')) {
-            multiplier = 1;
+        if (asset.includes('JPY')) {
+            pipScalar = 100;
+            pipValueUsd = 9; 
+        } else if (asset.includes('XAU') || asset.includes('GOLD')) {
+            pipScalar = 10; 
+            pipValueUsd = 100; 
+            unit = 'Points ($)';
+        } else if (asset.includes('BTC') || asset.includes('ETH')) {
+            pipScalar = 1;
+            pipValueUsd = 1; 
+            unit = '$ Move';
+            precision = 0;
+        } else if (['US30', 'NAS100', 'SPX500', 'GER30', 'UK100', 'FTSE'].some(idx => asset.includes(idx))) {
+            pipScalar = 1; 
+            pipValueUsd = 1; 
             unit = 'Points';
+            precision = 0;
         }
 
-        const slDist = parseFloat((diffSL * multiplier).toFixed(1));
-        const tp1Dist = parseFloat((diffTP1 * multiplier).toFixed(1));
-        const tp3Dist = parseFloat((diffTP3 * multiplier).toFixed(1));
+        const slDist = parseFloat((diffSL * pipScalar).toFixed(precision));
+        const tp3Dist = parseFloat((diffTP3 * pipScalar).toFixed(precision));
 
-        // Position Sizing if settings exist
-        let suggestedLot = "N/A";
+        let suggestedLot = "0.00";
         let monetaryRisk = 0;
+        let riskPercent = 1.0;
 
         if (userSettings) {
-            const riskPct = 1.0; // Defaulting to safe 1% if not specified in SignalData
-            monetaryRisk = userSettings.accountBalance * (riskPct / 100);
-            
-            // Basic formula for lots
+            monetaryRisk = userSettings.accountBalance * (riskPercent / 100);
             if (slDist > 0) {
-                let pipValue = 10; // Standard 1.0 lot pip value
-                if (unit === 'Points') pipValue = 1;
-                suggestedLot = (monetaryRisk / (slDist * pipValue)).toFixed(2);
+                let lot = monetaryRisk / (slDist * (pipValueUsd / (asset.includes('XAU') ? 10 : 1))); 
+                if (unit === 'Points' || unit === '$ Move') lot = monetaryRisk / slDist; 
+                suggestedLot = lot.toFixed(2);
+                if (asset.includes('BTC')) suggestedLot = lot.toFixed(3);
             }
         }
 
-        return { slDist, tp1Dist, tp3Dist, unit, suggestedLot, monetaryRisk };
+        const riskRewardRatio = slDist > 0 ? (tp3Dist / slDist).toFixed(2) : "0.00";
+        return { slDist, tp3Dist, unit, suggestedLot, monetaryRisk, riskPercent, riskRewardRatio };
     }, [data, userSettings]);
 
     useEffect(() => {
@@ -193,13 +209,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
             setTtsState('idle');
         } else {
-            const { asset, signal, entryPoints, stopLoss, takeProfits, reasoning, checklist, invalidationScenario, sentiment, confidence, expectedDuration, entryType } = data;
-            
-            const probabilityLevel = confidence >= 80 ? "High Probability, A plus setup" : confidence >= 65 ? "Medium Probability" : "Low Probability";
-
-            let textToSpeak = `Analysis for ${asset}. Signal is ${signal}. `;
-            textToSpeak += `Confidence is ${confidence} percent. Entry Type is ${entryType || 'not specified'}. Duration ${expectedDuration || 'not specified'}. Stop loss at ${stopLoss}. Take profits at ${takeProfits?.join(', ') ?? 'not specified'}. Key Reasoning: ${reasoning?.join(' ') ?? 'not specified'}. Invalidation: ${invalidationScenario ?? 'Not available'}. Sentiment score is ${sentiment?.score} percent.`;
-            
+            const { asset, signal, stopLoss, takeProfits, reasoning, confidence, entryType, expectedDuration } = data;
+            let textToSpeak = `Blueprint for ${asset}. Operational bias ${signal}. `;
+            textToSpeak += `Strategic confidence ${confidence} percent. Execution protocol ${entryType}. Calculated hold time ${expectedDuration}. Stop loss ${stopLoss}. Primary target ${takeProfits[0]}. Reasoning: ${reasoning[0]}`;
             setTtsState('waiting');
             timeoutRef.current = setTimeout(async () => {
                 try {
@@ -210,7 +222,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
         }
     };
 
-    const confidenceDetails = data.confidence >= 80 ? { label: "A+ Setup", color: "text-green-400" } : data.confidence >= 65 ? { label: "Medium Prob", color: "text-yellow-400" } : { label: "Low Prob", color: "text-gray-400" };
+    const confidenceDetails = data.confidence >= 80 
+        ? { label: "High Probability", color: "text-green-400" } 
+        : { label: "Medium Probability", color: "text-yellow-400" };
 
     return (
         <div className="text-sm max-w-full overflow-hidden relative">
@@ -221,7 +235,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     <div className="flex items-center gap-2 mt-2">
                         <span className="text-xs sm:text-sm text-gray-500 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/5 px-2 py-0.5 rounded border border-white/5">{data.timeframe} FRAME</span>
                         <span className="w-1 h-1 rounded-full bg-green-500 shadow-[0_0_5px_theme(colors.green.400)]"></span>
-                        <span className="text-[10px] text-gray-400 font-mono bg-black/10 dark:bg-black/30 px-2 py-0.5 rounded">ID_{Math.random().toString(36).substring(7).toUpperCase()}</span>
+                        <span className="text-[10px] text-gray-400 font-mono bg-black/10 dark:bg-black/30 px-2 py-0.5 rounded uppercase">Protocol: {data.entryType}</span>
                     </div>
                 </div>
                  <button
@@ -240,9 +254,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                  <InfoCard label="Bias" value={data.signal} isSignal signalType={data.signal} className="col-span-2 md:col-span-1" delay="100ms" />
-                 <InfoCard label="Confidence" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
+                 <InfoCard label="Precision" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
                  <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
-                 <InfoCard label="Est. Hold" value={data.expectedDuration || "N/A"} valueClassName="text-blue-500 dark:text-blue-400" subValue="Time Horizon" delay="400ms" />
+                 <InfoCard label="Calculated Hold" value={data.expectedDuration || "N/A"} valueClassName="text-blue-500 dark:text-blue-400" subValue="Volatility Adjusted" delay="400ms" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -255,12 +269,12 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 {data.entryPoints.map((ep, i) => (
                                     <div key={i} className="text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border border-white/5 min-w-[100px] shadow-lg">
                                         <span className="font-mono text-xl font-black text-gray-800 dark:text-white block">{ep}</span>
-                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">LVL 0{i + 1}</span>
+                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">LEVEL 0{i + 1}</span>
                                     </div>
                                 ))}
                              </div>
                              {data.entryType && (
-                                <div className={`mt-6 inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${data.entryType === 'Market Execution' ? 'bg-blue-600 text-white animate-pulse' : 'bg-gray-800 text-gray-300'}`}>
+                                <div className={`mt-6 inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${data.entryType === 'Market Execution' ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'}`}>
                                     {data.entryType}
                                 </div>
                              )}
@@ -276,7 +290,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 {data.takeProfits.map((tp, i) => (
                                     <div key={i} className="text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border border-white/5 min-w-[100px] shadow-lg">
                                         <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{tp}</span>
-                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">TP 0{i + 1}</span>
+                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">TARGET 0{i + 1}</span>
                                     </div>
                                 ))}
                              </div>
@@ -289,19 +303,67 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </div>
             </div>
 
-            <Section title="Analysis Logic" delay="700ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" /></svg>}>
-                <ul className="grid grid-cols-1 gap-4">
-                    {data.reasoning.map((reason, i) => (
-                        <li key={i} className="bg-white/40 dark:bg-dark-bg/40 p-5 rounded-xl border border-white/10 flex gap-4 shadow-sm hover:border-green-500/30 transition-colors">
-                            <span className="text-green-500 font-mono font-black text-lg">0{i+1}</span>
-                            <span className="text-sm font-medium leading-relaxed dark:text-dark-text/90">{reason}</span>
-                        </li>
-                    ))}
-                </ul>
+            <Section title="Quant Execution Metrics" delay="1000ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
+                <div className="bg-gray-900/10 dark:bg-black/40 rounded-2xl border-2 border-white/5 p-6 shadow-2xl relative overflow-hidden">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10">
+                        <div className="space-y-4">
+                            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Tactical Array</h4>
+                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
+                                <span className="text-xs font-bold text-red-400 uppercase">Risk Bound</span>
+                                <span className="font-mono text-white">{quantCalculations.slDist} <span className="text-[10px] opacity-50">{quantCalculations.unit}</span></span>
+                            </div>
+                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
+                                <span className="text-xs font-bold text-green-400 uppercase">Reward Bound</span>
+                                <span className="font-mono text-white">{quantCalculations.tp3Dist} <span className="text-[10px] opacity-50">{quantCalculations.unit}</span></span>
+                            </div>
+                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
+                                <span className="text-xs font-bold text-blue-400 uppercase">Calculated R:R</span>
+                                <span className="font-mono text-white">1 : {quantCalculations.riskRewardRatio}</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/5">
+                            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Position Sizing ({quantCalculations.riskPercent}%)</h4>
+                            <div className="text-center">
+                                <span className="block text-[10px] text-gray-400 uppercase font-black">Execution Size</span>
+                                <span className="block text-4xl font-black text-blue-400 font-mono my-1">{quantCalculations.suggestedLot}</span>
+                                <span className="block text-[10px] text-blue-500/70 font-bold">Standard Units</span>
+                            </div>
+                            <div className="h-px bg-white/10 w-full"></div>
+                            <div className="flex justify-between items-center">
+                                <span className="text-[10px] font-black text-gray-400 uppercase">Drawdown Limit</span>
+                                <span className="font-mono font-bold text-red-400">-${quantCalculations.monetaryRisk.toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </Section>
 
+            <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1100ms' }}>
+                <div className="mt-8">
+                    <h3 className="text-green-400 font-bold uppercase tracking-widest flex items-center mb-6">
+                        <span className="p-2 border border-green-500/30 rounded-lg mr-3 bg-green-500/10">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                        </span>
+                        ANALYSIS LOGIC
+                    </h3>
+                    <div className="space-y-4">
+                        {data.reasoning.map((text, i) => (
+                            <div key={i} className="flex p-5 rounded-2xl border border-white/5 bg-gray-900/40 dark:bg-[#0f172a]/60 relative overflow-hidden group hover:border-green-500/30 transition-all hover:bg-black/40">
+                                <span className="text-3xl font-mono font-bold text-green-500 mr-6 opacity-80 flex-shrink-0">
+                                    {(i + 1).toString().padStart(2, '0')}
+                                </span>
+                                <p className="text-gray-300 text-sm leading-relaxed font-medium pt-1.5">{text}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <Section title="Confluence Matrix" delay="800ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>}>
+                <Section title="Confluence Matrix" delay="1200ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>}>
                     <div className="space-y-2">
                         {data.checklist?.map((item, i) => (
                             <div key={i} className="flex items-center bg-green-500/5 p-3 rounded-lg border border-green-500/20 shadow-sm transition-all hover:bg-green-500/10">
@@ -311,7 +373,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                         ))}
                     </div>
                 </Section>
-                <Section title="Critical Invalidation" delay="900ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>}>
+                <Section title="Critical Invalidation" delay="1300ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>}>
                     <div className="bg-red-500/5 p-5 rounded-2xl border-2 border-red-500/20 text-sm leading-relaxed italic font-bold text-red-600 dark:text-red-400 shadow-inner">
                         "{data.invalidationScenario}"
                     </div>
@@ -322,81 +384,17 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </Section>
             </div>
 
-            {/* --- NEW TRADE CALCULATIONS SECTION --- */}
-            <Section title="Quant Execution Metrics" delay="1000ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
-                <div className="bg-gray-900/10 dark:bg-black/40 rounded-2xl border-2 border-white/5 p-6 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10">
-                         <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M11 3.055A9.001 9.001 0 1020.945 13H11V3.055z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M20.488 9H15V3.512A9.025 9.025 0 0120.488 9z" /></svg>
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 relative z-10">
-                        {/* Range Metrics */}
-                        <div className="space-y-4">
-                            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Distance Array</h4>
-                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
-                                <span className="text-xs font-bold text-red-400">STOP RANGE</span>
-                                <span className="font-mono text-white">{quantCalculations.slDist} <span className="text-[10px] opacity-50">{quantCalculations.unit}</span></span>
-                            </div>
-                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
-                                <span className="text-xs font-bold text-green-400">TP1 RANGE</span>
-                                <span className="font-mono text-white">{quantCalculations.tp1Dist} <span className="text-[10px] opacity-50">{quantCalculations.unit}</span></span>
-                            </div>
-                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
-                                <span className="text-xs font-bold text-green-400">TP3 RANGE</span>
-                                <span className="font-mono text-white">{quantCalculations.tp3Dist} <span className="text-[10px] opacity-50">{quantCalculations.unit}</span></span>
-                            </div>
-                        </div>
-
-                        {/* Risk Sizing */}
-                        <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Risk Management</h4>
-                            <div className="text-center">
-                                <span className="block text-[10px] text-gray-400 uppercase font-black">Suggested Position Size</span>
-                                <span className="block text-4xl font-black text-blue-400 font-mono my-1">{quantCalculations.suggestedLot}</span>
-                                <span className="block text-[10px] text-blue-500/70 font-bold">Standard Lots</span>
-                            </div>
-                            <div className="h-px bg-white/10 w-full"></div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black text-gray-400 uppercase">Cash Risk</span>
-                                <span className="font-mono font-bold text-red-400">-${quantCalculations.monetaryRisk.toLocaleString()}</span>
-                            </div>
-                        </div>
-
-                        {/* R:R Breakdown */}
-                        <div className="space-y-4">
-                             <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Probability Engine</h4>
-                             <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 p-4 rounded-xl border border-green-500/20 flex flex-col items-center justify-center h-full">
-                                <span className="text-[10px] font-black text-gray-400 uppercase mb-2">Effective R:R</span>
-                                <span className="text-3xl font-black text-white italic">{(quantCalculations.tp3Dist / quantCalculations.slDist).toFixed(1)} : 1</span>
-                                <p className="text-[9px] text-center text-gray-500 mt-4 leading-tight uppercase font-black tracking-tighter">
-                                    Strategic Advantage: High <br/> 
-                                    Capital Exposure: Controlled
-                                </p>
-                             </div>
-                        </div>
-                    </div>
-                    
-                    {!userSettings && (
-                        <div className="mt-6 text-center py-2 bg-yellow-500/5 border border-yellow-500/20 rounded-lg">
-                            <p className="text-[10px] text-yellow-500/80 font-black uppercase tracking-widest">
-                                Tip: Update Account Settings in Home to enable auto-lot sizing
-                            </p>
-                        </div>
-                    )}
-                </div>
-            </Section>
-
             {(data.sentiment || (data.economicEvents && data.economicEvents.length > 0)) && (
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                     {data.sentiment && (
-                         <Section title="Structural Bias" delay="1100ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></svg>}>
+                         <Section title="Structural Bias" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></svg>}>
                             <div className="bg-white/5 p-5 rounded-2xl border border-white/5 shadow-inner">
                                 <SentimentGauge score={data.sentiment.score} summary={data.sentiment.summary} />
                             </div>
                          </Section>
                     )}
                      {Array.isArray(data.economicEvents) && data.economicEvents.length > 0 && (
-                        <Section title="Market Catalysts" delay="1200ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>}>
+                        <Section title="Market Catalysts" delay="1500ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>}>
                             <div className="space-y-3">
                                 {data.economicEvents.map((event, i) => <EventCard key={i} event={event} />)}
                             </div>
@@ -406,7 +404,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             )}
 
             {Array.isArray(data.sources) && data.sources.length > 0 && (
-                 <Section title="Intelligence Sources" delay="1300ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.937 7.937 0 0112 4c1.232 0 2.403.28 3.444.782l1.556-1.556a1 1 0 011.414 1.414l-1.556 1.556c.496 1.056.782 2.227.782 3.444 0 1.241-.3 2.413-.834 3.443L19.293 17.707a1 1 0 01-1.414 1.414l-3.483-3.484A7.935 7.935 0 0112 16a7.937 7.937 0 01-3-4.804l-1.556 1.556a1 1 0 01-1.414-1.414l1.556-1.556A7.935 7.935 0 014 12a7.937 7.937 0 013-4.804L5.444 5.64a1 1 0 011.414-1.414l1.556 1.556C9.403 5.084 10.574 4.804 12 4.804z" /></svg>}>
+                 <Section title="Intelligence Sources" delay="1600ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.937 7.937 0 0112 4c1.232 0 2.403.28 3.444.782l1.556-1.556a1 1 0 011.414 1.414l-1.556 1.556c.496 1.056.782 2.227.782 3.444 0 1.241-.3 2.413-.834 3.443L19.293 17.707a1 1 0 01-1.414 1.414l-3.483-3.484A7.935 7.935 0 0112 16a7.937 7.937 0 01-3-4.804l-1.556 1.556a1 1 0 01-1.414-1.414l1.556-1.556A7.935 7.935 0 014 12a7.937 7.937 0 013-4.804L5.444 5.64a1 1 0 011.414-1.414l1.556 1.556C9.403 5.084 10.574 4.804 12 4.804z" /></svg>}>
                     <ul className="space-y-3">
                         {data.sources.map((source, i) => (
                             <li key={i} className="flex items-start bg-black/20 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 transition-all group overflow-hidden shadow-sm">

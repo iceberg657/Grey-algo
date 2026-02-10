@@ -1,5 +1,4 @@
 
-
 import React, { useState, useCallback, useEffect, type ErrorInfo, type ReactNode, Component } from 'react';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
@@ -7,14 +6,12 @@ import { HomePage } from './components/HomePage';
 import { AnalysisPage } from './components/AnalysisPage';
 import { HistoryPage } from './components/HistoryPage';
 import { ChatPage } from './components/ChatPage';
-import { PredictorPage } from './components/PredictorPage';
 import { ProductsPage } from './components/ProductsPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
-import type { SignalData, PredictedEvent, ChatMessage, AnalysisRequest } from './types';
+import type { SignalData, ChatMessage, AnalysisRequest } from './types';
 import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
-import { getPredictedEvents } from './services/predictorService';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
 import { TradingViewWidget } from './components/TradingViewWidget';
@@ -25,10 +22,9 @@ import { NeuralBackground } from './components/NeuralBackground';
 
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'predictor' | 'charting' | 'products';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'charting' | 'products';
 
 // Storage keys
-const PREDICTOR_STORAGE_KEY = 'greyquant_predictor';
 const CHAT_STORAGE_KEY = 'greyquant_chat';
 
 interface ErrorBoundaryProps {
@@ -41,11 +37,15 @@ interface ErrorBoundaryState {
 }
 
 // Error Boundary Component to prevent White Screen of Death
+// Fix: Use explicit property declarations to resolve TypeScript errors in specific environments
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // FIX: Refactored to use a constructor for state initialization. This is a more robust
-  // pattern that ensures `this.props` is correctly set up, resolving the error.
+  // Explicitly declaring state and props to help TypeScript inference
+  public state: ErrorBoundaryState;
+  public props: ErrorBoundaryProps;
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
+    this.props = props;
     this.state = { hasError: false, error: null };
   }
 
@@ -106,18 +106,6 @@ const App: React.FC = () => {
     // State to handle redirects to chat with a prompt
     const [pendingChatQuery, setPendingChatQuery] = useState<string | null>(null);
 
-    // State for PredictorPage with localStorage persistence
-    const [predictedEvents, setPredictedEvents] = useState<PredictedEvent[]>(() => {
-        try {
-            const storedEvents = window.localStorage.getItem(PREDICTOR_STORAGE_KEY);
-            return storedEvents ? JSON.parse(storedEvents) : [];
-        } catch (error) {
-            return [];
-        }
-    });
-    const [isPredictorLoading, setIsPredictorLoading] = useState(false);
-    const [predictorError, setPredictorError] = useState<string | null>(null);
-
     // State for ChatPage with localStorage persistence
     const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
         try {
@@ -136,23 +124,10 @@ const App: React.FC = () => {
         // Safe redirect: Only redirect if on analysis page and data is missing
         if (isLoggedIn && appView === 'analysis' && !analysisData) {
             console.warn("Redirecting from analysis to home due to missing data.");
-            setAppView('home'); // Direct state update is safer than navigateTo here
+            setAppView('home'); 
         }
     }, [isLoggedIn, appView, analysisData]);
     
-    const fetchPredictedEventsData = useCallback(async () => {
-        setIsPredictorLoading(true);
-        setPredictorError(null);
-        try {
-            const fetchedEvents = await getPredictedEvents();
-            setPredictedEvents(fetchedEvents);
-        } catch (err) {
-            setPredictorError(err instanceof Error ? err.message : 'Failed to fetch predictions.');
-        } finally {
-            setIsPredictorLoading(false);
-        }
-    }, []);
-
     const handleNewChat = () => {
         setChatMessages([]);
         resetChatService();
@@ -198,13 +173,6 @@ const App: React.FC = () => {
         navigateTo('chat');
     };
     
-    const handleNavigateToPredictor = () => {
-        if (predictedEvents.length === 0 && !predictorError && !isPredictorLoading) {
-            fetchPredictedEventsData();
-        }
-        navigateTo('predictor');
-    };
-
     const handleNavigateToCharting = () => {
         navigateTo('charting');
     };
@@ -295,22 +263,9 @@ const App: React.FC = () => {
                     onAnalysisComplete={handleNewAnalysis} 
                     onNavigateToHistory={handleNavigateToHistory}
                     onNavigateToChat={handleNavigateToChat}
-                    onNavigateToPredictor={handleNavigateToPredictor}
                     onNavigateToCharting={handleNavigateToCharting}
                     onNavigateToProducts={handleNavigateToProducts}
                     onAssetSelect={handleAssetSelect}
-                />
-            );
-            break;
-        case 'predictor':
-            content = (
-                <PredictorPage 
-                    onBack={handleNavigateToHome} 
-                    onLogout={handleLogout}
-                    events={predictedEvents}
-                    isLoading={isPredictorLoading}
-                    error={predictorError}
-                    onFetchPredictions={fetchPredictedEventsData}
                 />
             );
             break;

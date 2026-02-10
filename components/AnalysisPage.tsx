@@ -83,12 +83,11 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, onBack, onLogo
             
             <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-600 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
                  <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-3 text-red-500 dark:text-red-400 mb-2">
-                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-                        RESTRICTED ACCESS: QUANT OPERATOR ONLY
-                    </div>
-                    <p className="max-w-xl mx-auto opacity-70">
+                    <p className="max-w-xl mx-auto opacity-70 mb-2">
                         Institutional analysis strictly for data validation. Follow the edge. Preserve the capital.
+                    </p>
+                    <p className="mt-2 text-green-600 dark:text-green-400">
+                        ma8138498@gmail.com
                     </p>
                  </div>
             </footer>

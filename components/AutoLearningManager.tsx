@@ -135,20 +135,20 @@ export const AutoLearningManager: React.FC = () => {
             {/* Active Learning Banner */}
             {isLearning && (
                 <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[9999] animate-fade-in w-full max-w-md px-4 pointer-events-none">
-                    <div className="bg-black/90 backdrop-blur-xl border-2 border-red-500 text-white px-6 py-4 rounded-2xl shadow-[0_0_50px_rgba(220,38,38,0.6)] flex items-center justify-between">
+                    <div className="bg-black/90 backdrop-blur-xl border-2 border-green-500 text-white px-6 py-4 rounded-2xl shadow-[0_0_50px_rgba(34,197,94,0.6)] flex items-center justify-between">
                         <div className="flex items-center space-x-4">
                             <div className="relative flex h-4 w-4 flex-shrink-0">
-                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-                                <span className="relative inline-flex rounded-full h-4 w-4 bg-red-600"></span>
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-4 w-4 bg-green-600"></span>
                             </div>
                             <div>
-                                 <h4 className="font-bold text-sm text-transparent bg-clip-text bg-gradient-to-r from-red-400 via-orange-400 to-yellow-400 animate-pulse">
+                                 <h4 className="font-bold text-sm text-transparent bg-clip-text bg-gradient-to-r from-green-400 via-emerald-400 to-teal-400 animate-pulse">
                                     AUTO-MACHINE LEARNING ACTIVE
                                 </h4>
                                 <p className="text-xs text-gray-400 mt-0.5">Upgrading core pattern recognition...</p>
                             </div>
                         </div>
-                        <div className="h-8 w-8 border-2 border-t-red-500 border-r-orange-500 border-b-yellow-500 border-l-transparent rounded-full animate-spin"></div>
+                        <div className="h-8 w-8 border-2 border-t-green-500 border-r-emerald-500 border-b-teal-500 border-l-transparent rounded-full animate-spin"></div>
                     </div>
                 </div>
             )}

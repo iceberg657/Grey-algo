@@ -4,26 +4,37 @@ import type { AssetSuggestion } from '../types';
 import { executeLaneCall, SUGGESTION_POOL, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
 
 const CACHE_KEY = 'greyquant_asset_suggestions';
-const CACHE_DURATION = 30 * 60 * 1000; // 30 minutes
+const CACHE_DURATION = 30 * 60 * 1000; // Standard 30-minute refresh cycle
+
+const ALLOWED_ASSETS = `
+1. MAJOR FX: EURUSD, USDJPY, GBPUSD, USDCHF, AUDUSD
+2. MINOR FX: EURGBP, GBPJPY, AUDJPY, EURCHF
+3. US INDICES: S&P 500 (SPX500), Dow Jones (US30), Nasdaq (NAS100), Russell 2000 (US2000)
+4. UK INDICES: FTSE 100, FTSE 250, FTSE 350
+5. CRYPTO: BTCUSD, ETHUSD
+`;
 
 export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetSuggestion[]> {
     return await executeLaneCall<AssetSuggestion[]>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
-        **CRITICAL INSTRUCTION:** You are a financial analyst engine. You MUST use the provided Google Search tool to fetch REAL-TIME market data.
+        **TASK:** You are a specialized Market Scanner. Select exactly 4 high-probability trading assets ONLY from the allowed list below.
         
-        **TASK:**
-        1. Scan latest price action and news for Major Forex pairs, Gold (XAUUSD), Indices (US30/NAS100), and Crypto (BTC).
-        2. Identify 4 actionable trading setups.
-        ${profitMode ? "STRICT MODE: Only return A+ setups (High confluence)." : "Standard Mode: High-volatility movers."}
+        **ALLOWED ASSET POOL:**
+        ${ALLOWED_ASSETS}
         
-        **REQUIRED JSON OUTPUT:**
+        **CRITERIA:**
+        - Use Google Search to check real-time volume and volatility.
+        - ${profitMode ? "STRICT ALPHA: Select assets nearing key Institutional Order Blocks or Liquidity pools." : "HIGH MOMENTUM: Select assets with the highest percentage change in the last hour."}
+        - DIVERSITY: Try to mix Asset Classes (e.g., 1 FX, 1 Index, 1 Crypto).
+        
+        **JSON OUTPUT FORMAT:**
         [
           { 
-            "symbol": "string", 
-            "type": "Major" | "Minor" | "Commodity" | "Index" | "Crypto", 
-            "reason": "string", 
+            "symbol": "string (Use standard ticker, e.g., GBPJPY)", 
+            "type": "Major" | "Minor" | "Index" | "Crypto", 
+            "reason": "One concise sentence on why this asset is valid right now.", 
             "volatilityWarning": boolean 
           }
         ]
@@ -40,32 +51,23 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
         let text = response.text || '[]';
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
         
-        // Robust JSON extraction
         const start = text.indexOf('[');
         const end = text.lastIndexOf(']');
         
-        if (start === -1 || end === -1) {
-             console.error("Malformed AI response for suggestions:", text);
-             throw new Error("Invalid JSON format from AI");
-        }
+        if (start === -1 || end === -1) throw new Error("Neural Queue Desync.");
         
-        try {
-            return JSON.parse(text.substring(start, end + 1));
-        } catch (e) {
-            console.error("JSON parse error:", e);
-            throw new Error("Failed to parse suggestion data");
-        }
+        return JSON.parse(text.substring(start, end + 1));
     }, SUGGESTION_POOL);
 }
 
-export async function getOrRefreshSuggestions(profitMode: boolean = false) {
+export async function getOrRefreshSuggestions(profitMode: boolean = false, force: boolean = false) {
     const now = Date.now();
     const cached = localStorage.getItem(CACHE_KEY);
     
-    if (cached) {
+    // 1. Return cached data if not forced and still within duration
+    if (!force && cached) {
         try {
             const { timestamp, mode, data } = JSON.parse(cached);
-            // Return cache if fresh (less than 30 mins old) AND mode matches AND data is valid
             if (now - timestamp < CACHE_DURATION && mode === profitMode && Array.isArray(data) && data.length > 0) {
                 return { suggestions: data, nextUpdate: timestamp + CACHE_DURATION };
             }
@@ -74,6 +76,7 @@ export async function getOrRefreshSuggestions(profitMode: boolean = false) {
         }
     }
 
+    // 2. Perform fresh scan if forced OR cache expired
     try {
         const suggestions = await fetchAssetSuggestions(profitMode);
         if (suggestions && suggestions.length > 0) {
@@ -85,18 +88,16 @@ export async function getOrRefreshSuggestions(profitMode: boolean = false) {
             return { suggestions, nextUpdate: now + CACHE_DURATION };
         }
     } catch (error) {
-        console.error("Suggestion fetch failed, attempting to use stale cache...", error);
+        console.error("Queue sync failure", error);
     }
 
-    // Fallback: Return stale data if available (better than empty state in UI)
+    // 3. Fallback to stale cache if API fails
     if (cached) {
         try {
             const { data } = JSON.parse(cached);
-            if (Array.isArray(data) && data.length > 0) {
-                 return { suggestions: data, nextUpdate: now + 60000 }; // Retry again soon
-            }
-        } catch (e) { /* ignore */ }
+            if (Array.isArray(data) && data.length > 0) return { suggestions: data, nextUpdate: now + 30000 };
+        } catch (e) {}
     }
 
-    return { suggestions: [], nextUpdate: now + 10000 }; // Retry very soon
+    return { suggestions: [], nextUpdate: now + 5000 };
 }

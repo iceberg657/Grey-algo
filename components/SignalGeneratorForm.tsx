@@ -31,6 +31,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
     const [imagePreview, setImagePreview] = useState<string | null>(null);
     const [isDragging, setIsDragging] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const pasteAreaRef = useRef<HTMLTextAreaElement>(null);
 
     const handleFile = (file: File | null) => {
         if (imagePreview) {
@@ -88,9 +89,17 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                 const blob = items[i].getAsFile();
                 if (blob) {
                     handleFile(blob);
+                    if (pasteAreaRef.current) pasteAreaRef.current.value = '';
                     break;
                 }
             }
+        }
+    };
+
+    const handleAreaClick = (e: React.MouseEvent) => {
+        // Only trigger file select if it wasn't a right-click (native paste)
+        if (e.button === 0) {
+            fileInputRef.current?.click();
         }
     };
 
@@ -102,19 +111,33 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
         }
     };
 
+    const handleMouseEnter = () => {
+        if (pasteAreaRef.current) {
+            pasteAreaRef.current.focus();
+        }
+    };
+
     return (
         <div 
             onDragEnter={handleDrag} 
             onDragLeave={handleDrag} 
             onDragOver={handleDrag}
             onDrop={handleDrop}
-            onPaste={handlePaste}
-            tabIndex={0}
-            onClick={() => fileInputRef.current?.click()}
-            className={`relative group flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-all focus:outline-none focus:ring-2 focus:ring-green-500/50 ${
+            onMouseEnter={handleMouseEnter}
+            className={`relative group flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-all focus-within:ring-2 focus-within:ring-green-500/50 ${
                 isDragging ? 'border-green-400 bg-dark-card/80' : 'border-gray-300 dark:border-green-500/30 hover:border-green-400 dark:hover:bg-dark-bg/60'
             } min-h-[160px] overflow-hidden`}
         >
+            {/* Hidden Input Layer for native context menu "Paste" support AND Click-to-Select */}
+            <textarea
+                ref={pasteAreaRef}
+                onPaste={handlePaste}
+                onClick={handleAreaClick}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full resize-none z-10 overflow-hidden"
+                aria-label={`Paste area for ${title}`}
+                title="Click to select from storage, or Right click to paste"
+            />
+            
             <input
                 ref={fileInputRef}
                 type="file"
@@ -123,15 +146,16 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                 className="hidden"
                 onChange={handleChange}
             />
+            
             {imagePreview ? (
                 <>
                     <img src={imagePreview} alt={title} className="absolute inset-0 w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-10">
+                    <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20 pointer-events-none">
                         <span className="text-white font-semibold">Change or Paste</span>
                     </div>
                     <button 
                         onClick={handleRemoveImage}
-                        className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-500 text-white rounded-full p-1 leading-none shadow-lg z-20 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
+                        className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-500 text-white rounded-full p-1 leading-none shadow-lg z-30 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
                         aria-label={`Remove ${title} image`}
                     >
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -140,13 +164,13 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                     </button>
                 </>
             ) : (
-                <>
+                <div className="flex flex-col items-center justify-center pointer-events-none">
                     <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
                     <p className="font-semibold text-gray-700 dark:text-dark-text text-center text-sm">{title} {required && <span className="text-red-500">*</span>}</p>
-                    <p className="text-[10px] text-gray-500 dark:text-dark-text-secondary text-center uppercase tracking-tight">Drop, click, or paste image</p>
-                </>
+                    <p className="text-[10px] text-gray-500 dark:text-dark-text-secondary text-center uppercase tracking-tight">Paste Image or Click to Select</p>
+                </div>
             )}
         </div>
     );
@@ -166,14 +190,12 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     const [images, setImages] = useState<{ higher?: File, primary?: File, entry?: File }>({});
     const [error, setError] = useState<string | null>(null);
 
-    // Apply or remove the profit-mode class to the body when state changes
     useEffect(() => {
         if (profitMode) {
             document.body.classList.add('profit-mode');
         } else {
             document.body.classList.remove('profit-mode');
         }
-        // Cleanup ensures we don't leave the class if component unmounts unexpectedly
         return () => {
             document.body.classList.remove('profit-mode');
         };
@@ -231,20 +253,16 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                     </div>
-                    <div>
-                        <h4 className="font-bold text-blue-400 dark:text-blue-300 mb-1">Optional: Automatic Indicator Detection</h4>
-                        <p className="text-sm text-gray-700 dark:text-blue-100/80 mb-2">
-                            Adding indicators to your chart is <strong>optional</strong>. If you include them, our AI will automatically detect and analyze them for better confluence:
+                    <div className="flex-1">
+                        <h4 className="font-bold text-blue-400 dark:text-blue-300 mb-1 uppercase text-xs tracking-widest">Optional Strategy Boosters</h4>
+                        <p className="text-xs text-gray-700 dark:text-blue-100/80 mb-2">
+                            For maximum AI precision, include these indicators in your screenshots:
                         </p>
-                        <ul className="text-sm text-gray-600 dark:text-blue-200/70 list-disc list-inside space-y-1 grid grid-cols-1 sm:grid-cols-2 gap-x-4">
-                            <li><strong className="text-gray-800 dark:text-blue-200">OBV:</strong> Volume confirmation</li>
-                            <li><strong className="text-gray-800 dark:text-blue-200">RSI:</strong> Momentum divergence</li>
-                            <li><strong className="text-gray-800 dark:text-blue-200">EMAs (50/200):</strong> Trend direction</li>
-                            <li><strong className="text-gray-800 dark:text-blue-200">MACD:</strong> Trend strength</li>
-                            <li><strong className="text-gray-800 dark:text-blue-200">Bollinger Bands:</strong> Volatility</li>
-                            <li><strong className="text-gray-800 dark:text-blue-200">Stochastic:</strong> Momentum oscillator</li>
-                            <li><strong className="text-gray-800 dark:text-blue-200">VWAP:</strong> Intraday value</li>
-                        </ul>
+                        <div className="flex flex-wrap gap-2">
+                            {['RSI (7/14)', 'MACD', 'Volume Profile', 'Liquidity Zones', 'S/R Levels', 'Fair Value Gaps'].map(tag => (
+                                <span key={tag} className="px-2 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded-md text-[10px] font-bold text-blue-300 uppercase">{tag}</span>
+                            ))}
+                        </div>
                     </div>
                 </div>
             </div>
