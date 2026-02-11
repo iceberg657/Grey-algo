@@ -21,28 +21,34 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
 
     **QX-TACTICAL PROTOCOLS (STRICT ENFORCEMENT):**
     
-    1. **DIRECTIONAL DELTA LOGIC:** 
+    1. **PRECISION ZONE VALIDATION:**
+       - Do not guess Support/Resistance levels. Strictly identify zones by locating where significant volume was traded OR where sharp price rejections previously occurred.
+       - These validated zones must be referenced in your analysis reasoning.
+
+    2. **DIRECTIONAL DELTA LOGIC:** 
        - Even in messy markets, calculate the "Probability Delta". If Buy probability is 65% and Sell is 35%, do NOT simply stay Neutral.
        - Select the higher probability side but APPLY A WAIT PROTOCOL.
        - **Immediate Market Execution:** ONLY for setups where the price is currently at the extreme tip of a Liquidity Sweep or an active impulsive expansion. Use this ONLY if you predict 0% drawdown.
        - **Wait for Pullback:** Use when the trend is valid but price is overextended. Specify the exact retrace level in Entry Points.
        - **Wait for Reversal:** Use for counter-trend setups or when price is approaching a major S/R flip.
 
-    2. **CALCULATED TIME WINDOWS:**
+    3. **CALCULATED TIME WINDOWS:**
        - Do NOT give generic hold times.
        - Calculate duration based on the distance between Entry and TP1/TP3 relative to the asset's current volatility (ATR).
        - If a trade hasn't hit target within this window, it is considered "Time-Invalidated".
 
-    3. **SMART MONEY CONCEPTS (SMC) FUSION:**
+    4. **SMART MONEY CONCEPTS (SMC) FUSION:**
        - Use Google Search to verify if any "Black Swan" events or high-impact news (NFP, CPI) are within 2 hours of the current window.
        - If news is imminent, the Wait Protocol is MANDATORY.
 
     **REQUIRED OUTPUT FORMAT RULES:**
     
-    - **Intelligence Sources:** EXACTLY 5 distinct URL sources.
+    - **Intelligence Sources:** EXACTLY 5 distinct URL sources. One source MUST inform a 30-minute outlook.
     - **Confluence Matrix:** EXACTLY 5 specific technical confirmations.
-    - **Analysis Logic:** 5-8 reasoning paragraphs detailing the "Why" and "When".
+    - **Analysis Logic:** 5-8 reasoning paragraphs detailing the "Why" and "When", referencing validated zones.
     - **Sentiment Score:** 0-100 (No negatives). 0-40: Bearish, 45-55: Neutral, 60-100: Bullish.
+    - **30-MINUTE TACTICAL OUTLOOK:** Provide a brief, one-sentence tactical outlook for the next 30 minutes, derived directly from one of your intelligence sources.
+    - **FORMAT:** RETURN ONLY RAW JSON. NO MARKDOWN. NO CODE BLOCKS.
 
     **CONTEXT:**
     - Risk/Reward: ${riskRewardRatio}
@@ -61,6 +67,7 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       "stopLoss": number,
       "takeProfits": [number, number, number],
       "expectedDuration": "string (e.g., '45m', '2h 15m' - MUST be calculated)", 
+      "outlook30Min": "string (e.g., 'Expecting short-term pullback to 1.0850 before rally continues.')",
       "reasoning": ["Paragraph 1", "Paragraph 2", "etc"],
       "checklist": ["Confirmation 1", "Confirmation 2", "etc"],
       "invalidationScenario": "Specific price or time event that kills the setup.",
@@ -94,18 +101,33 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             ai.models.generateContent({
                 model: modelId,
                 contents: [{ parts: promptParts }],
-                config: { tools: [{googleSearch: {}}], temperature: 0.1 },
+                config: { 
+                    tools: [{googleSearch: {}}], 
+                    temperature: 0.1,
+                    responseMimeType: 'application/json' 
+                },
             })
         );
 
         let text = response.text || '';
-        text = text.replace(/```json/g, '').replace(/```/g, '').trim();
+        // Improved regex to strip markdown code blocks of any language or plain ticks
+        text = text.replace(/```\w*\n?/g, '').replace(/```/g, '').trim();
 
         const start = text.indexOf('{');
         const end = text.lastIndexOf('}');
-        if (start === -1 || end === -1) throw new Error("Neural output misaligned.");
         
-        const data = JSON.parse(text.substring(start, end + 1));
+        if (start === -1 || end === -1) {
+            console.error("Neural output misaligned. Raw response:", text);
+            throw new Error("Neural output misaligned. Please retry analysis.");
+        }
+        
+        let data;
+        try {
+            data = JSON.parse(text.substring(start, end + 1));
+        } catch (e) {
+            console.error("JSON Parse Error:", e, "Raw Text:", text);
+            throw new Error("Neural output corruption. Please retry.");
+        }
         
         // Final sanity check and sanitization
         const safeSignal = (data.signal === 'BUY' || data.signal === 'SELL' || data.signal === 'NEUTRAL') ? data.signal : 'NEUTRAL';
@@ -123,6 +145,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
             expectedDuration: data.expectedDuration || "1h",
+            outlook30Min: data.outlook30Min || "Awaiting market action.",
             reasoning: data.reasoning || ["Analysis incomplete."],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Price violates structure.",
