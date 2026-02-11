@@ -256,9 +256,13 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     return `
     ${SELECTED_PROTOCOL}
 
+    **ADDITIONAL INSTRUCTION - NEWS INTELLIGENCE:**
+    - **Mandatory Search:** Use Google Search to query "MyFXBook economic calendar [asset]" and "Investing.com economic calendar [asset]" for high-impact events occurring in the next 24 hours.
+    - **Validation:** Ensure the "sources" array contains the direct links to these calendar pages or news articles found.
+
     **REQUIRED OUTPUT FORMAT RULES (STRICT JSON):**
     
-    - **Intelligence Sources:** EXACTLY 5 distinct URL sources. One source MUST inform a 30-minute outlook.
+    - **Intelligence Sources:** EXACTLY 5 distinct URL sources. Include MyFXBook or Investing.com links if used for news.
     - **Confluence Matrix:** EXACTLY 5 specific technical confirmations based on the protocol above (e.g. "Sweep Confirmed", "FVG Filled").
     - **Analysis Logic:** 5-8 reasoning paragraphs detailing the "Why" and "When", referencing valid zones from the protocol.
     - **Sentiment Score:** 0-100 (No negatives). 0-40: Bearish, 45-55: Neutral, 60-100: Bullish.
@@ -290,6 +294,9 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
         "score": number,
         "summary": "One sentence tactical summary."
       },
+      "economicEvents": [
+        { "name": "Event Name", "date": "Time/Date", "impact": "High" | "Medium" | "Low" }
+      ],
       "sources": [
         { "uri": "https://...", "title": "Source 1" },
         { "uri": "https://...", "title": "Source 2" },
@@ -368,6 +375,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 score: rawScore, 
                 summary: data.sentiment?.summary || "Neutral" 
             },
+            economicEvents: data.economicEvents || [],
             sources: data.sources || []
         };
     }, ANALYSIS_POOL);
