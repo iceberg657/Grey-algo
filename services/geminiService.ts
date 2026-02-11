@@ -104,7 +104,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 config: { 
                     tools: [{googleSearch: {}}], 
                     temperature: 0.1,
-                    responseMimeType: 'application/json' 
+                    // responseMimeType: 'application/json' // Removed: Incompatible with googleSearch tool
                 },
             })
         );
