@@ -1,7 +1,7 @@
 
 // A robust service worker for caching assets and handling updates.
 
-const CACHE_VERSION = 11; // Incremented version after removing predictor
+const CACHE_VERSION = 12; // Incremented to force update for AI Protocol v2
 const CACHE_NAME = `greyalpha-cache-v${CACHE_VERSION}`;
 const urlsToCache = [
   '/',

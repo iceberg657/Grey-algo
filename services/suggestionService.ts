@@ -62,24 +62,35 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
 
 export async function getOrRefreshSuggestions(profitMode: boolean = false, force: boolean = false) {
     const now = Date.now();
-    const cached = localStorage.getItem(CACHE_KEY);
+    let cachedData: any = null;
     
-    // 1. Return cached data if not forced and still within duration
-    if (!force && cached) {
+    // 1. Retrieve cache first
+    const cachedStr = localStorage.getItem(CACHE_KEY);
+    if (cachedStr) {
         try {
-            const { timestamp, mode, data } = JSON.parse(cached);
-            if (now - timestamp < CACHE_DURATION && mode === profitMode && Array.isArray(data) && data.length > 0) {
-                return { suggestions: data, nextUpdate: timestamp + CACHE_DURATION };
-            }
+            cachedData = JSON.parse(cachedStr);
         } catch (e) {
             localStorage.removeItem(CACHE_KEY);
         }
     }
 
-    // 2. Perform fresh scan if forced OR cache expired
+    // 2. Check if cache is valid
+    const isValid = cachedData && 
+                    (now - cachedData.timestamp < CACHE_DURATION) && 
+                    cachedData.mode === profitMode && 
+                    Array.isArray(cachedData.data) && 
+                    cachedData.data.length > 0;
+
+    if (!force && isValid) {
+        return { suggestions: cachedData.data, nextUpdate: cachedData.timestamp + CACHE_DURATION };
+    }
+
+    // 3. Attempt Refresh
     try {
         const suggestions = await fetchAssetSuggestions(profitMode);
+        
         if (suggestions && suggestions.length > 0) {
+            // SUCCESS: Update Cache
             localStorage.setItem(CACHE_KEY, JSON.stringify({
                 timestamp: now,
                 mode: profitMode,
@@ -88,16 +99,17 @@ export async function getOrRefreshSuggestions(profitMode: boolean = false, force
             return { suggestions, nextUpdate: now + CACHE_DURATION };
         }
     } catch (error) {
-        console.error("Queue sync failure", error);
+        console.error("Queue sync failure, falling back to cache:", error);
     }
 
-    // 3. Fallback to stale cache if API fails
-    if (cached) {
-        try {
-            const { data } = JSON.parse(cached);
-            if (Array.isArray(data) && data.length > 0) return { suggestions: data, nextUpdate: now + 30000 };
-        } catch (e) {}
+    // 4. FAIL-SAFE: Return stale cache if API failed
+    // This prevents the "disappearing content" issue after 30 mins
+    if (cachedData && Array.isArray(cachedData.data) && cachedData.data.length > 0) {
+        console.warn("Serving stale suggestion data due to API failure.");
+        // Extend the stale cache lifetime slightly to prevent hammering the API immediately again
+        return { suggestions: cachedData.data, nextUpdate: now + 60000 }; 
     }
 
+    // 5. Absolute Failure (No cache, API down)
     return { suggestions: [], nextUpdate: now + 5000 };
 }
