@@ -5,100 +5,66 @@ import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS }
 
 // --- PROTOCOL 1: SINGLE CHART ANALYSIS ---
 const SINGLE_CHART_PROTOCOL = `
-(Liquidity + Market Structure + Price Action Model)
-🔥 ROLE
-You are an institutional trading AI optimized for HIGH STRIKE RATE and ADAPTIVE ENTRY.
-Analyze the provided chart screenshot using:
-• Market Structure (BOS / CHOCH)
-• Liquidity Pools (BSL / SSL)
-• Momentum & Displacement (CRITICAL)
-• Order Blocks & FVG
+(Institutional Orderflow + Micro-Structure Logic)
 
-📌 PROFITABILITY RULE #1: MOMENTUM VS. PULLBACK (THE "MISSING TRADE" FIX)
-- **Analyze Candle Velocity:** Are the candles large, full-bodied, and moving fast with little overlap?
-- **IF YES (Runaway Trend):** DO NOT suggest waiting for a deep pullback (e.g., to an OB). You will miss the trade. Suggest **MARKET EXECUTION** or a shallow retest of the previous candle high/low.
-- **IF NO (Healthy Trend):** If price is chopping or moving at a 45-degree angle, THEN wait for a discount (0.5 Fib) or Order Block entry.
+🔥 CORE RULE: "TREND-LOCK" (NO COUNTER-TREND TRADING)
+1. **Identify Flow:** Look at the last 50 candles.
+   - Series of Lower Lows (LL) & Lower Highs (LH)? -> **BIAS IS BEARISH.** (ONLY SELL).
+   - Series of Higher Highs (HH) & Higher Lows (HL)? -> **BIAS IS BULLISH.** (ONLY BUY).
+   - **CRITICAL:** Do NOT confuse a pullback with a reversal. If price is falling, a green candle is a SELL entry (Premium), NOT a Buy signal.
 
-📌 PROFITABILITY RULE #2: CONSERVATIVE TARGETING
-- TP1 must be the NEAREST opposing structure (guaranteed profit).
-- Ensure the Risk:Reward to TP1 is at least 1:1.5.
+⏱️ TIMEFRAME FOCUS: M5 / M15 PRECISION
+- Ignore macro fundamentals. Focus purely on the visible Price Action.
+- **Entry Trigger:** We need a specific "Trigger Candle" on the smallest visible scale (e.g., Engulfing, Pinbar, Displacement).
 
-📌 STEP 1 — IDENTIFY CONTEXT
-From the screenshot:
-• Identify overall trend (Bullish/Bearish).
-• Detect Break of Structure (BOS) or Change of Character (CHOCH).
+🛡️ RISK PROTOCOL
+- **Stop Loss:** Must be structural (above LH for Sells, below HL for Buys).
+- **Wick Safety:** Add 2-3 pips/points buffer beyond the wick to prevent liquidity grabs.
 
-💧 STEP 2 — MARK LIQUIDITY ZONES
-• Identify Equal Highs/Lows and Swing points.
+📌 STEP 3 — EXECUTION MODEL
+Select ONE based on current Micro-Structure:
 
-🎯 STEP 3 — ENTRY SCENARIO SELECTION
-Select the BEST approach based on current momentum:
+🚀 MODEL A: CONTINUATION (Trend is Healthy)
+- Condition: Price broke structure and is pulling back.
+- Entry: 0.50 - 0.618 Fib retracement of the impulse leg.
+- Logic: "Join the trend at a discount."
 
-🚀 OPTION A: MOMENTUM EXECUTION (Price is running away)
-• Condition: Strong displacement, no wicks.
-• Entry: Market Execution or Break of current candle.
-• Stop: Tight, below previous candle.
-
-🔁 OPTION B: STANDARD PULLBACK (Price is stable)
-• Condition: Normal trend structure.
-• Entry: Retracement to FVG or Order Block.
+⚡ MODEL B: MOMENTUM BREAKOUT (Trend is Fast)
+- Condition: Price is consolidating near a key level (Flag/Pennant).
+- Entry: Break of the consolidation range.
+- Logic: "Catch the expansion."
 `;
 
 // --- PROTOCOL 2: MULTI-CHART MASTER PROMPT ---
 const MULTI_CHART_PROTOCOL = `
-🔥 AI TRADING SYSTEM MASTER PROMPT
-(Liquidity + Price Action + Structure Model)
+🔥 AI TRADING SYSTEM MASTER PROMPT (Trend-Following Specialist)
 
 📌 SYSTEM ROLE
-You are an institutional-style trading AI.
-Your objective is to trade using Smart Money Concepts (SMC) with ADAPTIVE ENTRY LOGIC.
+You are an Intraday Scalper Algo. Your priority is STRIKE RATE and MOMENTUM. 
+You DO NOT predict reversals. You ride the established wave.
 
-🧠 CORE MARKET LOGIC
-1️⃣ Determine Higher Timeframe Bias
-• HTF Bias (H4/Daily) dictates direction.
-• LTF (M15/M5) dictates entry type.
+🌊 FLOW ANALYSIS (MULTI-TIMEFRAME)
+1. **Higher Timeframe (HTF):** Is the Daily/H4 candle Bullish or Bearish?
+   - If H4 is Red -> **ONLY LOOK FOR SELLS** on M15.
+   - If H4 is Green -> **ONLY LOOK FOR BUYS** on M15.
+   - **VETO RULE:** If M5 structure contradicts H4 structure, **ABORT SIGNAL (NEUTRAL)**.
 
-💧 LIQUIDITY & DISPLACEMENT RULES
-Mark the following:
-• Liquidity Pools (BSL / SSL)
-• Displacement Candles (Large body, small wicks) -> THIS INDICATES INSTITUTIONAL SPONSORSHIP.
+🎯 PRECISION ENTRY LOGIC (THE "SNIPER" FIX)
+Do not suggest "zones". Suggest specific PRICE LEVELS.
+- **Entry Calculation:** 
+  - Find the "Decision Point" (The candle that caused the break of structure).
+  - Entry is the OPEN or 50% of that candle.
+- **Exit Calculation:**
+  - TP1: The nearest opposing Liquidity Pool (recent Swing High/Low). **Take 70% off here.**
+  - TP2: The external range liquidity (1:3 R:R).
 
-🔥 CRITICAL: THE "NO-RETRACEMENT" PROTOCOL
-**Problem:** Often price breaks out and never returns to the Order Block, causing missed trades.
-**Solution:** Analyze the *Aggression* of the move.
-- **Scenario 1: High Aggression (Runaway)**
-  - Huge candles, gaps (FVG) created but NOT filled immediately.
-  - **ACTION:** Suggest **MARKET EXECUTION** or entering on the "Breaker Block" (the failed supply/demand zone) rather than the extreme Order Block.
-- **Scenario 2: Low Aggression (Grind)**
-  - Overlapping candles, wicks.
-  - **ACTION:** Wait for deep pullback to Premium/Discount > 50%.
+🛑 STOP LOSS RULES
+- **Tight & Technical:** SL must be behind the "Invalidation Candle".
+- If the SL is hit, the trade idea was WRONG. Do not use wide stops to "give room". Ideally < 20 pips for FX, < 50 points for Indices.
 
-🧱 ORDER BLOCK & FVG RULES
-• Bullish OB: Last bearish candle before strong move up.
-• Bearish OB: Last bullish candle before strong move down.
-• FVG: Gap between candle 1 and 3.
-
-🎯 ENTRY MODEL SELECTION
-
-🚀 TYPE 1: BREAKOUT / MOMENTUM (For Fast Markets)
-• Conditions: Liquidity swept + Violent Displacement.
-• Entry: **Market Execution** or retest of the *Breaker*.
-• Stop Loss: Below the displacement candle (aggressive).
-• Logic: "Get in before the train leaves."
-
-🔄 TYPE 2: STANDARD REVERSAL (For Normal Markets)
-• Conditions: CHOCH + Gradual return.
-• Entry: Limit order at Extreme Order Block or 0.618 Fib.
-• Stop Loss: Protected behind the swing high/low.
-• Logic: "Buy cheap, Sell expensive."
-
-🧮 PREMIUM / DISCOUNT FILTER
-• Only use strict 50% rule if the market is SLOW.
-• If market is FAST, disregard deep discount and enter on momentum.
-
-📊 TRADE FILTERS
-• Confirm trend with HTF.
-• Ensure clear invalidation point.
+⏳ DURATION LOGIC
+- **Intraday Only:** We are not holding overnight.
+- **Target:** 15 minutes to 2 hours maximum.
 `;
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
@@ -131,20 +97,20 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     - **Analysis Logic:** 5-8 reasoning paragraphs detailing the "Why" and "When".
     - **Sentiment Score:** 0-100.
     
-    **CRITICAL - ENTRY POINT LOGIC:**
-    - **entryPoints**: Must provide an array of 3 levels to capture the move regardless of retracement depth.
-      - Index 0: **Aggressive/Market** (Current price or shallow pullback).
-      - Index 1: **Standard** (Breaker block or 0.382 Fib).
-      - Index 2: **Deep** (Order block or 0.618 Fib).
-    - **entryType**: Explicitly state "Market Execution" if momentum is strong, or "Wait for Pullback" if weak.
+    **CRITICAL - ENTRY POINT LOGIC (M5/M15 PRECISION):**
+    - **entryPoints**: Provide 3 precision levels based on LTF wicks/bodies.
+      - Index 0: **Sniper** (The ideal FVG/OB fill).
+      - Index 1: **Market/Momentum** (Current price if moving fast).
+      - Index 2: **Safety** (Deeper discount for limit orders).
+    - **entryType**: "Market Execution" (if high momentum) or "Limit Order" (if ranging).
 
     **CRITICAL - TIME DURATION FORMAT:**
-    - The "expectedDuration" field MUST be a SINGLE, SPECIFIC time value (e.g., "2h 15m").
-    - **STRICT CONSTRAINT:** The duration MUST be between **30m and 4h**.
+    - The "expectedDuration" field MUST be a SINGLE, SPECIFIC time value.
+    - **STRICT CONSTRAINT:** The duration MUST be between **15m and 3h** (Intraday/Scalp Focus).
     - **LOGIC:** 
-      - If calculation > 4h, hard cap it at "4h".
-      - If calculation < 30m, floor it at "30m".
-      - Do not output ranges (e.g. "2-4h"). Output a specific single value (e.g. "3h").
+      - Cap at "3h" maximum.
+      - Floor at "15m".
+      - Output example: "45m" or "1h 30m".
 
     - **FORMAT:** RETURN ONLY RAW JSON. NO MARKDOWN. NO CODE BLOCKS.
 
@@ -161,10 +127,10 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       "asset": "string",
       "timeframe": "string",
       "entryPoints": [number, number, number],
-      "entryType": "Market Execution" | "Wait for Pullback" | "Wait for Reversal",
+      "entryType": "Market Execution" | "Limit Order",
       "stopLoss": number,
       "takeProfits": [number, number, number],
-      "expectedDuration": "string (e.g., '2h 15m')", 
+      "expectedDuration": "string (e.g., '45m')", 
       "outlook30Min": "string",
       "reasoning": ["Paragraph 1", "Paragraph 2", "etc"],
       "checklist": ["Confirmation 1", "Confirmation 2", "etc"],
@@ -204,8 +170,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 contents: [{ parts: promptParts }],
                 config: { 
                     tools: [{googleSearch: {}}], 
-                    temperature: 0.1,
-                    // responseMimeType: 'application/json' // Removed: Incompatible with googleSearch tool
+                    temperature: 0.1, // Reduced temperature for strict logic adherence
                 },
             })
         );
@@ -236,9 +201,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         if (rawScore < 0) rawScore = 20; 
         rawScore = Math.min(100, Math.max(0, rawScore));
 
-        // Sanitization for Duration to ensure single value
-        let cleanDuration = data.expectedDuration || "1h";
-        // Attempt to clean up ranges if the AI still slips up (e.g. "2-3h" -> "2h 30m")
+        // Sanitization for Duration to ensure single value and range
+        let cleanDuration = data.expectedDuration || "45m";
         if (cleanDuration.includes('-') || cleanDuration.toLowerCase().includes('to')) {
              cleanDuration = cleanDuration.split('-')[0].split('to')[0].trim();
         }
@@ -249,7 +213,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             signal: safeSignal,
             confidence: data.confidence || 75,
             entryPoints: data.entryPoints || [0, 0, 0],
-            entryType: data.entryType || "Wait for Pullback",
+            entryType: data.entryType || "Limit Order",
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
             expectedDuration: cleanDuration,
