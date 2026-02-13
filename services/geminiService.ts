@@ -4,7 +4,7 @@ import type { AnalysisRequest, SignalData, UserSettings } from '../types';
 import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS } from './retryUtils';
 
 // --- PROTOCOL 1: SINGLE CHART ANALYSIS ---
-const SINGLE_CHART_PROTOCOL = `
+const SINGLE_CHART_PROTOCOL = (rrRatio: string) => `
 (Institutional Trend-Following + Micro-Structure Logic)
 
 🔥 CORE DIRECTIVE: "TREND-LOCK" (ABSOLUTE DIRECTION)
@@ -19,17 +19,23 @@ const SINGLE_CHART_PROTOCOL = `
 - **Trigger:** Look for a specific "Trigger Candle" on the smallest visible scale (e.g., M5/M15 Engulfing, Pinbar, or strong Displacement).
 - **Location:** Entry must be at a logical key level (Order Block, Breaker, or EMA retest). Do not chase price in the middle of nowhere.
 
-🛡️ RISK PROTOCOL
-- **Stop Loss:** Must be technical. Place SL exactly behind the invalidation structure (Swing High/Low).
-- **TP:** Target the next opposing Liquidity Pool (Swing High/Low).
+🛡️ RISK PROTOCOL (STRICT MATHEMATICAL ENFORCEMENT)
+- **Stop Loss:** Place SL exactly behind the invalidation structure (Swing High/Low).
+- **CRITICAL:** You MUST calculate the **Risk Distance** = |Entry - Stop Loss|.
+- **Take Profit 3 (Final Target):**
+  - Extract the multiplier from the user selected R:R of "${rrRatio}". (e.g., "1:3" -> Multiplier 3).
+  - **CALCULATION:** 
+    - Reward Distance = Risk Distance * Multiplier.
+    - TP3 = Entry +/- Reward Distance (Add for Buy, Subtract for Sell).
+  - **MANDATORY:** The "takeProfits" array must contain 3 values. The LAST value (Index 2) MUST be exactly this calculated TP3.
 
 📌 OUTPUT DECISION
 - If the trend is unclear or choppy -> Signal "NEUTRAL".
-- If the R:R is less than 1:2 -> Signal "NEUTRAL".
+- If a major Support/Resistance level blocks the path to the calculated TP3 -> Signal "NEUTRAL". Do not force a trade if the R:R cannot be met cleanly.
 `;
 
 // --- PROTOCOL 2: MULTI-CHART MASTER PROMPT ---
-const MULTI_CHART_PROTOCOL = `
+const MULTI_CHART_PROTOCOL = (rrRatio: string) => `
 🔥 AI TRADING SYSTEM MASTER PROMPT (Trend Continuation Specialist)
 
 📌 SYSTEM ROLE
@@ -45,14 +51,17 @@ We are NOT trying to catch the bottom or top. We are catching the meat of the mo
 🎯 EXECUTION LOGIC (SMALLER TIMEFRAMES)
 - **Entry:** Calculate specific price levels based on M5/M15 structure.
 - **Logic:** "Wait for price to pull back to value, then show rejection."
-- **Exit:** Purely based on Liquidity Pools (TP). We do not use time-based exits.
+- **Exit:** Strictly calculated based on the requested **${rrRatio}** Risk:Reward Ratio.
 
 🛑 STOP LOSS RULES
 - **Tight & Technical:** SL must be behind the "Invalidation Candle".
 - **Risk:** Calculate SL to be protected by structure, but tight enough to allow high R:R.
 
-✅ SUCCESS CRITERIA
-- Signal is valid ONLY if the setup offers at least 1:2 Risk-to-Reward.
+✅ SUCCESS CRITERIA & MATH CHECK
+- **Selected R:R:** ${rrRatio}
+- **Task:** Calculate the exact price for TP3.
+  - Formula: Price + (Direction * (Entry - SL) * Multiplier).
+  - Ensure the output JSON "takeProfits" array reflects this exact calculation for the final target.
 `;
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
@@ -62,14 +71,14 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
         userContext = `
     **USER ACCOUNT CONTEXT:**
     - Balance: $${userSettings.accountBalance.toLocaleString()}
-    - Risk Profile: ${userSettings.dailyDrawdown}% Daily Limit
+    - Risk Profile: ${userSettings.riskPerTrade}% Risk Per Trade (Calculate lots accordingly if asked, but focus on price levels here)
     - Trading Style: ${tradingStyle}
     - Target R:R: ${riskRewardRatio}
         `;
     }
 
-    // Select the specific protocol based on the mode
-    const SELECTED_PROTOCOL = isMultiDimensional ? MULTI_CHART_PROTOCOL : SINGLE_CHART_PROTOCOL;
+    // Select the specific protocol based on the mode, injecting the R:R constraint
+    const SELECTED_PROTOCOL = isMultiDimensional ? MULTI_CHART_PROTOCOL(riskRewardRatio) : SINGLE_CHART_PROTOCOL(riskRewardRatio);
     
     return `
     ${SELECTED_PROTOCOL}
@@ -91,6 +100,14 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       - Index 1: **Market** (Current price/Momentum entry).
       - Index 2: **Backup** (Deeper discount level).
     - **entryType**: "Market Execution" (if high momentum) or "Limit Order" (if ranging).
+
+    **CRITICAL - RISK & REWARD MATH:**
+    - **User Selected R:R:** ${riskRewardRatio}
+    - **Instruction:** You must mathematically verify the R:R.
+    - **takeProfits Array:**
+      - [0]: 1:1 R:R (Safe partial)
+      - [1]: Mid-way target
+      - [2]: **MUST BE EXACTLY ${riskRewardRatio} R:R.** (e.g. if Risk is 10pts and 1:3 selected, TP3 is 30pts away).
 
     **DURATION FIELD:**
     - Fill "expectedDuration" with "Intraday" or "Scalp". Do not calculate specific hours.

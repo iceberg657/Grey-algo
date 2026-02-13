@@ -132,6 +132,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
         const stored = localStorage.getItem('greyquant_user_settings');
         return stored ? JSON.parse(stored) as UserSettings : {
             accountBalance: 100000,
+            riskPerTrade: 1.0,
             dailyDrawdown: 5,
             maxDrawdown: 10,
             targetPercentage: 10,
@@ -178,13 +179,31 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
         let suggestedLot = "0.00";
         let monetaryRisk = 0;
-        let riskPercent = 1.0;
+        let riskPercent = userSettings.riskPerTrade || 1.0;
 
         if (userSettings) {
             monetaryRisk = userSettings.accountBalance * (riskPercent / 100);
             if (slDist > 0) {
-                let lot = monetaryRisk / (slDist * (pipValueUsd / (asset.includes('XAU') ? 10 : 1))); 
-                if (unit === 'Points' || unit === '$ Move') lot = monetaryRisk / slDist; 
+                // Formula: Risk / (StopLossDistanceInPips * PipValue)
+                // Note: pipValueUsd is approx for 1 lot. 
+                // XAU: 1.00 move (10 pips) = $100. pipValueUsd=100.
+                let lot = 0;
+                
+                if (asset.includes('XAU')) {
+                     // Gold: if slDist is 20 (meaning $2 move), and risk is $1000.
+                     // 1 lot move $2 = $200. 1000/200 = 5 lots.
+                     // formula: 1000 / (20/10 * 100) = 1000 / 200 = 5.
+                     // Adjusted logic: slDist is scaled by 10 for Gold.
+                     lot = monetaryRisk / ((slDist / 10) * 100);
+                } else if (unit === 'Points' || unit === '$ Move') {
+                     // Indices/Crypto: Risk / StopLossDistance
+                     lot = monetaryRisk / slDist;
+                } else {
+                     // Forex: Risk / (Pips * PipValue)
+                     // e.g. 1000 / (10 * 10) = 10 lots
+                     lot = monetaryRisk / (slDist * pipValueUsd);
+                }
+
                 suggestedLot = lot.toFixed(2);
                 if (asset.includes('BTC')) suggestedLot = lot.toFixed(3);
             }

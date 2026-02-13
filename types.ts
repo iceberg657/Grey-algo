@@ -7,6 +7,7 @@ export interface ImagePart {
 export interface UserSettings {
     accountType: 'Real' | 'Funded';
     accountBalance: number;
+    riskPerTrade: number;
     targetPercentage: number;
     dailyDrawdown: number;
     maxDrawdown: number;

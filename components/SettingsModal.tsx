@@ -9,6 +9,7 @@ interface SettingsModalProps {
 const DEFAULT_SETTINGS: UserSettings = {
     accountType: 'Funded',
     accountBalance: 100000,
+    riskPerTrade: 1.0,
     targetPercentage: 10,
     dailyDrawdown: 5,
     maxDrawdown: 10,
@@ -23,7 +24,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
         const stored = localStorage.getItem('greyquant_user_settings');
         if (stored) {
             try {
-                setSettings(JSON.parse(stored));
+                // Merge stored settings with defaults to ensure new fields like riskPerTrade exist
+                setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
             } catch (e) {
                 console.error("Failed to parse settings", e);
             }
@@ -49,6 +51,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
     // Calculate actual monetary values for preview
     const targetAmount = settings.accountBalance * (settings.targetPercentage / 100);
+    const riskAmount = settings.accountBalance * (settings.riskPerTrade / 100);
     const dailyLossLimit = settings.accountBalance * (settings.dailyDrawdown / 100);
     const maxLossLimit = settings.accountBalance * (settings.maxDrawdown / 100);
 
@@ -113,25 +116,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         </div>
 
                         {/* Account Balance */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Balance</label>
-                            <div className="relative">
-                                <span className="absolute left-3 top-2.5 text-gray-500">$</span>
-                                <input
-                                    type="number"
-                                    value={settings.accountBalance}
-                                    onChange={(e) => handleChange('accountBalance', e.target.value)}
-                                    className="w-full pl-8 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
-                                    placeholder="100000"
-                                    required
-                                />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Account Balance</label>
+                                <div className="relative">
+                                    <span className="absolute left-3 top-2.5 text-gray-500">$</span>
+                                    <input
+                                        type="number"
+                                        value={settings.accountBalance}
+                                        onChange={(e) => handleChange('accountBalance', e.target.value)}
+                                        className="w-full pl-8 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                        placeholder="100000"
+                                        required
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        {/* Targets & Time Limit */}
+                        {/* Risk Per Trade & Target */}
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Target (%)</label>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Risk Per Trade (%)</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        step="0.1"
+                                        value={settings.riskPerTrade}
+                                        onChange={(e) => handleChange('riskPerTrade', e.target.value)}
+                                        className="w-full pr-8 pl-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                        required
+                                    />
+                                    <span className="absolute right-3 top-2.5 text-gray-500">%</span>
+                                </div>
+                                <p className="text-[10px] text-blue-400 mt-1 font-mono">Risking: ${riskAmount.toLocaleString()}</p>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Profit Target (%)</label>
                                 <div className="relative">
                                     <input
                                         type="number"
@@ -143,21 +163,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     />
                                     <span className="absolute right-3 top-2.5 text-gray-500">%</span>
                                 </div>
-                                <p className="text-[10px] text-green-500 mt-1 font-mono">+${targetAmount.toLocaleString()}</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Time Limit</label>
-                                <div className="relative">
-                                    <input
-                                        type="number"
-                                        value={settings.timeLimit}
-                                        onChange={(e) => handleChange('timeLimit', e.target.value)}
-                                        className="w-full pr-12 pl-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white disabled:opacity-50"
-                                        disabled={settings.accountType === 'Real'}
-                                    />
-                                    <span className="absolute right-3 top-2.5 text-gray-500 text-xs mt-0.5">Days</span>
-                                </div>
-                                {settings.accountType === 'Real' && <p className="text-[10px] text-gray-400 mt-1">N/A for Real Acc</p>}
+                                <p className="text-[10px] text-green-500 mt-1 font-mono">Goal: +${targetAmount.toLocaleString()}</p>
                             </div>
                         </div>
 
