@@ -7,18 +7,25 @@ import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS }
 const SINGLE_CHART_PROTOCOL = `
 (Liquidity + Market Structure + Price Action Model)
 🔥 ROLE
-You are an institutional trading AI.
+You are an institutional trading AI optimized for HIGH STRIKE RATE.
 Analyze the provided chart screenshot using:
 • Market Structure (BOS / CHOCH)
 • Liquidity Pools (BSL / SSL)
-• Liquidity Sweeps
+• Liquidity Sweeps (CRITICAL FOR ENTRY)
 • Order Blocks
 • Fair Value Gaps (FVG)
 • Premium & Discount zones
-• Breakout vs Reversal logic
-• Price Action confirmation
-Do NOT use basic support/resistance alone.
-Focus on liquidity engineering and smart money behavior.
+
+📌 PROFITABILITY RULE #1: LIQUIDITY SWEEP
+You must identify if a "Stop Hunt" has happened. 
+- Did price just wick above a high or below a low? 
+- If YES -> High Probability Reversal.
+- If NO -> Wait for the sweep.
+
+📌 PROFITABILITY RULE #2: CONSERVATIVE TARGETING
+- TP1 must be the NEAREST opposing structure (guaranteed profit).
+- TP2/TP3 can be ambitious.
+- Ensure the Risk:Reward to TP1 is at least 1:1.5.
 
 📌 STEP 1 — IDENTIFY CONTEXT
 From the screenshot:
@@ -28,9 +35,6 @@ From the screenshot:
 • Lower Highs / Lower Lows → Bearish
 • Detect if a Break of Structure (BOS) occurred.
 • Detect if Change of Character (CHOCH) occurred.
-Output:
-• Current Bias: Bullish / Bearish / Neutral
-• Structural State: Trending / Pullback / Distribution / Accumulation
 
 💧 STEP 2 — MARK LIQUIDITY ZONES
 From visible price action, identify:
@@ -38,44 +42,13 @@ From visible price action, identify:
 • Equal lows (Sell Side Liquidity)
 • Obvious swing highs/lows
 • Session highs/lows (if visible)
-• Areas where stops likely sit
-Classify each as:
-• Internal liquidity
-• External liquidity
-State which liquidity is most likely to be targeted next.
 
-🧱 STEP 3 — IDENTIFY ORDER BLOCKS
+🧱 STEP 3 — IDENTIFY ORDER BLOCKS & FVG
 Locate:
 • Last opposite candle before strong displacement
-• Candle that caused Break of Structure
-Classify:
-• Bullish OB
-• Bearish OB
-Check:
-• Has it been mitigated?
-• Is price approaching it?
-• Is it aligned with bias?
+• Fair Value Gaps (Imbalance) to be filled.
 
-⚡ STEP 4 — DETECT FAIR VALUE GAPS (FVG)
-Identify any 3-candle imbalance:
-• Bullish FVG
-• Bearish FVG
-State:
-• Has it been filled?
-• Is price reacting inside it?
-• Does it align with an Order Block?
-
-🔥 STEP 5 — LIQUIDITY SWEEP ANALYSIS
-Check if:
-• Price wicked above a previous high then reversed
-• Price wicked below a previous low then reversed
-• There was displacement after sweep
-Classify:
-• Valid liquidity grab
-• Failed breakout
-• True breakout continuation
-
-🎯 STEP 6 — ENTRY SCENARIO ANALYSIS
+🎯 STEP 4 — ENTRY SCENARIO ANALYSIS
 Provide two scenarios:
 🔁 Reversal Setup (if present)
 Conditions:
@@ -83,31 +56,12 @@ Conditions:
 • CHOCH confirmed?
 • Displacement candle?
 • Retracement into OB or FVG?
-Provide:
-• Entry zone
-• Stop placement
-• Target liquidity
-• Estimated R:R
 
 🚀 Continuation Setup (if present)
 Conditions:
 • BOS confirmed?
 • Strong displacement?
 • Retracement forming?
-Provide:
-• Entry zone
-• Stop placement
-• Target
-• Probability assessment
-
-📊 STEP 7 — PREMIUM / DISCOUNT CHECK
-Using visible swing:
-• Is price in Premium (>50%)?
-• Is price in Discount (<50%)?
-State whether current location favors:
-• Buying
-• Selling
-• Waiting
 `;
 
 // --- PROTOCOL 2: MULTI-CHART MASTER PROMPT ---
@@ -151,7 +105,7 @@ Mark the following as liquidity zones:
 • Obvious retail stop clusters
 Liquidity priority: External liquidity (major swing highs/lows) > Internal liquidity (minor structure)
 
-🔥 LIQUIDITY SWEEP LOGIC
+🔥 LIQUIDITY SWEEP LOGIC (HIGH PROFITABILITY TRIGGER)
 A valid liquidity sweep requires:
 • Price wicks or closes beyond a liquidity zone
 • Stops are likely triggered
@@ -267,6 +221,13 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     - **Analysis Logic:** 5-8 reasoning paragraphs detailing the "Why" and "When", referencing valid zones from the protocol.
     - **Sentiment Score:** 0-100 (No negatives). 0-40: Bearish, 45-55: Neutral, 60-100: Bullish.
     - **30-MINUTE TACTICAL OUTLOOK:** Provide a brief, one-sentence tactical outlook for the next 30 minutes, derived directly from one of your intelligence sources.
+    
+    **CRITICAL - TIME DURATION FORMAT:**
+    - The "expectedDuration" field MUST be a SINGLE, SPECIFIC time value based on the distance to TP1 and current volatility.
+    - **CORRECT:** "2h", "3h 15m", "45m", "1h 30m"
+    - **INCORRECT:** "2-3h", "3 to 4 hours", "approx 2h"
+    - CALCULATION: (Distance to TP1 / Average Hourly Range). Be precise.
+
     - **FORMAT:** RETURN ONLY RAW JSON. NO MARKDOWN. NO CODE BLOCKS.
 
     **CONTEXT:**
@@ -285,7 +246,7 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       "entryType": "Market Execution" | "Wait for Pullback" | "Wait for Reversal",
       "stopLoss": number,
       "takeProfits": [number, number, number],
-      "expectedDuration": "string (e.g., '45m', '2h 15m' - MUST be calculated)", 
+      "expectedDuration": "string (e.g., '2h 15m' - SINGLE VALUE ONLY)", 
       "outlook30Min": "string (e.g., 'Expecting short-term pullback to 1.0850 before rally continues.')",
       "reasoning": ["Paragraph 1", "Paragraph 2", "etc"],
       "checklist": ["Confirmation 1", "Confirmation 2", "etc"],
@@ -357,6 +318,13 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         if (rawScore < 0) rawScore = 20; 
         rawScore = Math.min(100, Math.max(0, rawScore));
 
+        // Sanitization for Duration to ensure single value
+        let cleanDuration = data.expectedDuration || "1h";
+        // Attempt to clean up ranges if the AI still slips up (e.g. "2-3h" -> "2h 30m")
+        if (cleanDuration.includes('-') || cleanDuration.toLowerCase().includes('to')) {
+             cleanDuration = cleanDuration.split('-')[0].split('to')[0].trim();
+        }
+
         return {
             asset: data.asset || "Unknown Asset",
             timeframe: data.timeframe || "N/A",
@@ -366,7 +334,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             entryType: data.entryType || "Wait for Pullback",
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
-            expectedDuration: data.expectedDuration || "1h",
+            expectedDuration: cleanDuration,
             outlook30Min: data.outlook30Min || "Awaiting market action.",
             reasoning: data.reasoning || ["Analysis incomplete."],
             checklist: data.checklist || [],
