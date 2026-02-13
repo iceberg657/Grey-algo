@@ -211,7 +211,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
         } else {
             const { asset, signal, stopLoss, takeProfits, reasoning, confidence, entryType, expectedDuration } = data;
             let textToSpeak = `Blueprint for ${asset}. Operational bias ${signal}. `;
-            textToSpeak += `Strategic confidence ${confidence} percent. Execution protocol ${entryType}. Calculated hold time ${expectedDuration}. Stop loss ${stopLoss}. Primary target ${takeProfits[0]}. Reasoning: ${reasoning[0]}`;
+            textToSpeak += `Strategic confidence ${confidence} percent. Execution protocol ${entryType}. Stop loss ${stopLoss}. Primary target ${takeProfits[0]}. Reasoning: ${reasoning[0]}`;
             setTtsState('waiting');
             timeoutRef.current = setTimeout(async () => {
                 try {
@@ -256,7 +256,8 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  <InfoCard label="Bias" value={data.signal} isSignal signalType={data.signal} className="col-span-2 md:col-span-1" delay="100ms" />
                  <InfoCard label="Precision" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
                  <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
-                 <InfoCard label="Calculated Hold" value={data.expectedDuration || "N/A"} valueClassName="text-blue-500 dark:text-blue-400" subValue="Volatility Adjusted" delay="400ms" />
+                 {/* Replaced Calculated Hold with Target R:R */}
+                 <InfoCard label="Target R:R" value={`1:${quantCalculations.riskRewardRatio}`} valueClassName="text-blue-500 dark:text-blue-400" subValue="Math Expectancy" delay="400ms" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
