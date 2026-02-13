@@ -140,6 +140,11 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
 
     **CRITICAL - TIME DURATION FORMAT:**
     - The "expectedDuration" field MUST be a SINGLE, SPECIFIC time value (e.g., "2h 15m").
+    - **STRICT CONSTRAINT:** The duration MUST be between **30m and 4h**.
+    - **LOGIC:** 
+      - If calculation > 4h, hard cap it at "4h".
+      - If calculation < 30m, floor it at "30m".
+      - Do not output ranges (e.g. "2-4h"). Output a specific single value (e.g. "3h").
 
     - **FORMAT:** RETURN ONLY RAW JSON. NO MARKDOWN. NO CODE BLOCKS.
 
