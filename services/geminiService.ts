@@ -7,7 +7,7 @@ import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS }
 const SINGLE_CHART_PROTOCOL = (rrRatio: string) => `
 (Institutional Trend-Following + Micro-Structure Logic)
 
-🔥 CORE DIRECTIVE: "TREND-LOCK" (ABSOLUTE DIRECTION)
+🔥 CORE DIRECTIVE: "HIGH PRECISION SCALPER" (TARGET: 80% WIN RATE)
 1. **Identify the Dominant Flow:**
    - Scan the macro trend first.
    - If price is making **Lower Lows & Lower Highs** -> **BIAS IS BEARISH**.
@@ -30,9 +30,11 @@ const SINGLE_CHART_PROTOCOL = (rrRatio: string) => `
     - TP3 = Entry +/- Reward Distance (Add for Buy, Subtract for Sell).
   - **MANDATORY:** The "takeProfits" array must contain 3 values. The LAST value (Index 2) MUST be exactly this calculated TP3.
 
-📌 OUTPUT DECISION
-- If the M1 structure is unclear or choppy -> Signal "NEUTRAL".
-- If a major Support/Resistance level blocks the path to the calculated TP3 -> Signal "NEUTRAL". Do not force a trade if the R:R cannot be met cleanly.
+📌 OUTPUT DECISION (FILTERING FOR QUALITY)
+- **The "80% Rule":** Ask yourself: "Is this setup clear enough that 8 out of 10 times it works?"
+- If the M1 structure is unclear, range-bound, or choppy -> Signal "NEUTRAL".
+- If a major Support/Resistance level blocks the path to TP1 -> Signal "NEUTRAL".
+- **Better to be NEUTRAL than to force a losing trade.**
 `;
 
 // --- PROTOCOL 2: MULTI-CHART MASTER PROMPT ---
@@ -40,7 +42,7 @@ const MULTI_CHART_PROTOCOL = (rrRatio: string) => `
 🔥 AI TRADING SYSTEM MASTER PROMPT (Trend Continuation Specialist)
 
 📌 SYSTEM ROLE
-You are an Intraday Scalper/Day Trader. Your goal is high-precision execution.
+You are an Elite Intraday Scalper. Your mandate is to maintain a **70-80% Win Rate**.
 
 🌊 FLOW ANALYSIS (MULTI-TIMEFRAME)
 1. **Higher Timeframe (HTF):** Determine the directional bias.
@@ -63,6 +65,7 @@ You are an Intraday Scalper/Day Trader. Your goal is high-precision execution.
 - **Task:** Calculate the exact price for TP3.
   - Formula: Price + (Direction * (Entry - SL) * Multiplier).
   - Ensure the output JSON "takeProfits" array reflects this exact calculation for the final target.
+  - **Quality Filter:** If the setup is not perfect (A+ Grade), return "NEUTRAL".
 `;
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
