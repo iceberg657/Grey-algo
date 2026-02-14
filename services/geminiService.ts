@@ -9,18 +9,19 @@ const SINGLE_CHART_PROTOCOL = (rrRatio: string) => `
 
 🔥 CORE DIRECTIVE: "TREND-LOCK" (ABSOLUTE DIRECTION)
 1. **Identify the Dominant Flow:**
-   - Scan the last 50-100 candles.
+   - Scan the macro trend first.
    - If price is making **Lower Lows & Lower Highs** -> **BIAS IS BEARISH**.
    - If price is making **Higher Highs & Higher Lows** -> **BIAS IS BULLISH**.
    - **STRICT RULE:** You are FORBIDDEN from predicting reversals. If the trend is down, you ONLY SELL. If up, you ONLY BUY.
 
-🎯 ENTRY PRECISION (M5/M15 FOCUS)
-- Ignore macro fundamentals. Focus purely on the visible Price Action.
-- **Trigger:** Look for a specific "Trigger Candle" on the smallest visible scale (e.g., M5/M15 Engulfing, Pinbar, or strong Displacement).
-- **Location:** Entry must be at a logical key level (Order Block, Breaker, or EMA retest). Do not chase price in the middle of nowhere.
+🎯 ENTRY & EXIT PRECISION (M1 / LOWEST TIMEFRAME MANDATE)
+- **CRITICAL:** You must calculate Entry, Stop Loss, and Take Profits based **strictly on the 1-Minute (M1) or lowest visible timeframe structure**.
+- **Do not use H1/H4 levels for Entry/SL.** Use them only for bias.
+- **Trigger:** Look for specific M1 candle formations (e.g., M1 Engulfing, M1 Pinbar, M1 FVG).
+- **Location:** Entry must be at the precise M1 key level.
 
 🛡️ RISK PROTOCOL (STRICT MATHEMATICAL ENFORCEMENT)
-- **Stop Loss:** Place SL exactly behind the invalidation structure (Swing High/Low).
+- **Stop Loss:** Place SL exactly behind the immediate M1 invalidation structure (M1 Swing High/Low). This ensures a tight risk.
 - **CRITICAL:** You MUST calculate the **Risk Distance** = |Entry - Stop Loss|.
 - **Take Profit 3 (Final Target):**
   - Extract the multiplier from the user selected R:R of "${rrRatio}". (e.g., "1:3" -> Multiplier 3).
@@ -30,7 +31,7 @@ const SINGLE_CHART_PROTOCOL = (rrRatio: string) => `
   - **MANDATORY:** The "takeProfits" array must contain 3 values. The LAST value (Index 2) MUST be exactly this calculated TP3.
 
 📌 OUTPUT DECISION
-- If the trend is unclear or choppy -> Signal "NEUTRAL".
+- If the M1 structure is unclear or choppy -> Signal "NEUTRAL".
 - If a major Support/Resistance level blocks the path to the calculated TP3 -> Signal "NEUTRAL". Do not force a trade if the R:R cannot be met cleanly.
 `;
 
@@ -39,8 +40,7 @@ const MULTI_CHART_PROTOCOL = (rrRatio: string) => `
 🔥 AI TRADING SYSTEM MASTER PROMPT (Trend Continuation Specialist)
 
 📌 SYSTEM ROLE
-You are an Intraday Trend Follower. Your goal is consistent "Bread & Butter" setups, not hero calls.
-We are NOT trying to catch the bottom or top. We are catching the meat of the move.
+You are an Intraday Scalper/Day Trader. Your goal is high-precision execution.
 
 🌊 FLOW ANALYSIS (MULTI-TIMEFRAME)
 1. **Higher Timeframe (HTF):** Determine the directional bias.
@@ -48,14 +48,15 @@ We are NOT trying to catch the bottom or top. We are catching the meat of the mo
    - If HTF is Green/Up -> **ONLY LOOK FOR BUYS** on LTF.
    - **VETO:** If HTF and LTF disagree, the signal is **NEUTRAL**.
 
-🎯 EXECUTION LOGIC (SMALLER TIMEFRAMES)
-- **Entry:** Calculate specific price levels based on M5/M15 structure.
-- **Logic:** "Wait for price to pull back to value, then show rejection."
-- **Exit:** Strictly calculated based on the requested **${rrRatio}** Risk:Reward Ratio.
+🎯 EXECUTION LOGIC (M1 MICRO-STRUCTURE)
+- **Data Source:** Use the provided "Entry View" (Lowest Timeframe) image for ALL numerical calculations.
+- **Entry:** Calculate specific price levels based on M1/M5 structure.
+- **Logic:** "Wait for price to pull back to value on M1, then show rejection."
+- **Exit:** Strictly calculated based on the requested **${rrRatio}** Risk:Reward Ratio using M1 stops.
 
 🛑 STOP LOSS RULES
-- **Tight & Technical:** SL must be behind the "Invalidation Candle".
-- **Risk:** Calculate SL to be protected by structure, but tight enough to allow high R:R.
+- **Tight & Technical:** SL must be behind the "M1 Invalidation Candle".
+- **Risk:** Calculate SL to be protected by M1 structure to allow for high R:R with small moves.
 
 ✅ SUCCESS CRITERIA & MATH CHECK
 - **Selected R:R:** ${rrRatio}
@@ -96,9 +97,9 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     
     **CRITICAL - ENTRY POINT LOGIC (PRECISION):**
     - **entryPoints**: Provide 3 precision levels.
-      - Index 0: **Sniper** (Ideal limit order entry).
-      - Index 1: **Market** (Current price/Momentum entry).
-      - Index 2: **Backup** (Deeper discount level).
+      - Index 0: **Sniper** (Ideal limit order entry on M1).
+      - Index 1: **Market** (Current M1 price).
+      - Index 2: **Backup** (Deeper discount level on M1).
     - **entryType**: "Market Execution" (if high momentum) or "Limit Order" (if ranging).
 
     **CRITICAL - RISK & REWARD MATH:**
