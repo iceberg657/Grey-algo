@@ -72,41 +72,6 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                         {/* Interactive Scanline */}
                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent h-[200%] pointer-events-none animate-shimmer"></div>
                         
-                        {/* Predictive Path Visualizer */}
-                        {image && data.predictedPath && (
-                            <div className="mb-8 opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
-                                 <h3 className="flex items-center text-base font-black text-gray-800 dark:text-green-400 mb-4 uppercase tracking-tighter">
-                                    <span className="p-1.5 rounded-lg bg-green-500/10 mr-2 border border-green-500/20">
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" /></svg>
-                                    </span>
-                                    Predicted Trajectory
-                                </h3>
-                                <div className="relative rounded-lg overflow-hidden border-2 border-gray-300 dark:border-white/10 shadow-lg">
-                                    <img src={image} alt="Analyzed chart with predictive path" className="w-full h-auto" />
-                                    <svg
-                                        viewBox="0 0 1000 500" // Corresponds to the viewbox the AI was instructed to use
-                                        className="absolute top-0 left-0 w-full h-full"
-                                        style={{ preserveAspectRatio: 'none' }} // Stretch SVG to fit image container
-                                    >
-                                        <path
-                                            d={data.predictedPath}
-                                            stroke={isBuy ? 'rgba(74, 222, 128, 0.9)' : isSell ? 'rgba(239, 68, 68, 0.9)' : 'rgba(96, 165, 250, 0.9)'}
-                                            strokeWidth="8"
-                                            fill="none"
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            style={{
-                                                strokeDasharray: '1000', // A large value to cover most path lengths
-                                                strokeDashoffset: '1000', // Start with dash hidden
-                                                animation: 'draw-path 2.5s ease-out forwards 0.5s', // 0.5s delay
-                                                filter: `drop-shadow(0 0 8px ${isBuy ? 'rgba(74, 222, 128, 0.7)' : isSell ? 'rgba(239, 68, 68, 0.7)' : 'rgba(96, 165, 250, 0.7)'})`
-                                            }}
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                        )}
-                        
                         <SignalDisplay data={data} />
                     </div>
                     

@@ -61,7 +61,6 @@ export interface SignalData {
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;
-    predictedPath?: string; // SVG path data for predicted trajectory
     riskAnalysis?: RiskAnalysis;
     sentiment?: Sentiment;
     economicEvents?: EconomicEvent[];

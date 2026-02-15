@@ -186,6 +186,15 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     // --- Structural Sentiment Logic ---
     const [currentPair, setCurrentPair] = useState<string>('FX:EURUSD');
 
+    const isMarketOpen = useCallback(() => {
+        const now = new Date();
+        const day = now.getUTCDay();
+        const hour = now.getUTCHours();
+        // Market is closed from Friday 22:00 UTC to Sunday 22:00 UTC
+        return !( (day === 5 && hour >= 22) || day === 6 || (day === 0 && hour < 22) );
+    }, []);
+    const marketIsOpen = isMarketOpen();
+
     useEffect(() => {
         const updatePair = () => {
             const now = Date.now();
@@ -219,6 +228,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     };
 
     const fetchAssets = useCallback(async (force: boolean = false) => {
+        if (!marketIsOpen && !force) return; // Don't fetch if market is closed unless forced
         setIsUpdatingSuggestions(true);
         try {
             const { suggestions: data } = await getOrRefreshSuggestions(profitMode, force);
@@ -228,10 +238,17 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         } finally {
             setIsUpdatingSuggestions(false);
         }
-    }, [profitMode]);
+    }, [profitMode, marketIsOpen]);
 
     useEffect(() => {
         const tick = () => {
+            if (!marketIsOpen) {
+                setTimerStatus('COUNTDOWN');
+                setTimeLeftDisplay('CLOSED');
+                setTargetTimeString('CLOSED');
+                return;
+            }
+
             const now = Date.now();
             let targetStr = localStorage.getItem(SNIPER_TARGET_KEY);
             let windowEndStr = localStorage.getItem(SNIPER_WINDOW_KEY);
@@ -267,7 +284,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
                 if (windowEnd && now < windowEnd) {
                     setTimerStatus('ACTIVE');
-                    setTimeLeftDisplay('SYNCED');
+                    setTimeLeftDisplay('ACTIVE');
                     setTargetTimeString('ACTIVE');
                 } else if (windowEnd && now >= windowEnd) {
                     const newTarget = generateNewTarget(now);
@@ -285,7 +302,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         const interval = setInterval(tick, 1000);
         tick();
         return () => clearInterval(interval);
-    }, [timerStatus, fetchAssets]);
+    }, [timerStatus, fetchAssets, marketIsOpen]);
 
     useEffect(() => {
         const heartbeat = setInterval(() => {
@@ -301,14 +318,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         }
     }, [suggestions.length, isUpdatingSuggestions, fetchAssets]);
 
-    const isMarketOpen = () => {
-        const now = new Date();
-        const day = now.getUTCDay();
-        const hour = now.getUTCHours();
-        return !(day === 6 || (day === 0 && hour < 22) || (day === 5 && hour >= 22));
-    };
-
-    const isReady = timerStatus === 'ACTIVE';
+    const isReady = timerStatus === 'ACTIVE' && marketIsOpen;
 
     return (
         <div className="bg-white/80 dark:bg-dark-card/90 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl border-2 border-white/5 shadow-2xl mb-12">
@@ -324,24 +334,24 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         </div>
                         <div>
                             <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] mb-1 ${isReady ? 'text-green-400' : 'text-blue-400/70'}`}>
-                                {isReady ? 'PRECISION WINDOW ACTIVE' : 'NEURAL CALIBRATION IN PROGRESS'}
+                                {isReady ? 'OPPORTUNITY WINDOW ACTIVE' : 'SCANNING FOR OPPORTUNITY'}
                             </h3>
                             <p className={`text-2xl font-black uppercase tracking-tight ${isReady ? 'text-white' : 'text-gray-400'}`}>
-                                {isReady ? 'EXECUTE ALPHA PROTOCOL' : 'SCANNING FOR LIQUIDITY'}
+                                {isReady ? 'ALPHA QUEUE IS ACTIVE' : 'SCANNING FOR LIQUIDITY'}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-8 bg-black/60 px-8 py-4 rounded-2xl border border-white/5 shadow-inner">
                         <div className="text-center min-w-[120px]">
-                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Time to Sync</span>
+                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Next Scan In</span>
                             <span className={`font-mono text-3xl font-black ${isReady ? 'text-green-400 animate-pulse' : 'text-white'}`}>
                                 {timeLeftDisplay}
                             </span>
                         </div>
                         <div className="h-12 w-px bg-white/10"></div>
                         <div className="text-center">
-                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Target Gate</span>
+                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Scan Time</span>
                             <span className="font-mono text-2xl font-black text-yellow-500">
                                 {targetTimeString}
                             </span>
@@ -383,9 +393,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 <div className="bg-black/20 p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
                     <div className="flex justify-between items-center">
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Node Status</span>
-                        <div className={`flex items-center gap-2 text-[10px] font-black px-3 py-1 rounded-full ${isMarketOpen() ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-                            <span className={`w-2 h-2 rounded-full ${isMarketOpen() ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
-                            {isMarketOpen() ? 'OPERATIONAL' : 'DORMANT'}
+                        <div className={`flex items-center gap-2 text-[10px] font-black px-3 py-1 rounded-full ${marketIsOpen ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+                            <span className={`w-2 h-2 rounded-full ${marketIsOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
+                            {marketIsOpen ? 'OPERATIONAL' : 'MARKET CLOSED'}
                         </div>
                     </div>
                     <div className="text-center py-6">
@@ -422,8 +432,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative z-10">
-                    {isUpdatingSuggestions && suggestions.length === 0 ? (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 relative z-10 min-h-[150px]">
+                    {!marketIsOpen ? (
+                        <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500/50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6.364-6.364l-1.414-1.414M6.343 6.343l-1.414 1.414m12.728 0l1.414-1.414M17.657 17.657l1.414 1.414M4 12H2m10 10v-2m10 0h-2" /></svg>
+                            <p className="text-gray-400 font-black text-sm uppercase tracking-[0.2em]">MARKETS ARE CURRENTLY CLOSED</p>
+                            <p className="text-xs text-gray-500 mt-2">Asset queue will resume on market open.</p>
+                        </div>
+                    ) : isUpdatingSuggestions && suggestions.length === 0 ? (
                          <div className="col-span-full py-12 flex flex-col items-center justify-center gap-4">
                             <div className="w-10 h-10 border-4 border-t-cyan-500 border-gray-700 rounded-full animate-spin"></div>
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] animate-pulse">Scanning Global Orderflow...</span>

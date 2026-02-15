@@ -142,62 +142,85 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     }, []);
 
     const quantCalculations = useMemo(() => {
-        const entry = data.entryPoints[0];
-        const sl = data.stopLoss;
-        const tp3 = data.takeProfits[2] || data.takeProfits[data.takeProfits.length - 1];
+        const entry = data.entryPoints[0] || 0;
+        const sl = data.stopLoss || 0;
+        const tp3 = data.takeProfits[2] || data.takeProfits[0] || 0;
         const asset = data.asset.toUpperCase();
 
-        const diffSL = Math.abs(entry - sl);
-        const diffTP3 = Math.abs(tp3 - entry);
+        if (entry === 0 || sl === 0) {
+            return { slDist: 0, tp3Dist: 0, unit: 'N/A', suggestedLot: '0.00', monetaryRisk: 0, riskPercent: 0, riskRewardRatio: '0.00' };
+        }
+
+        // Improved Detection
+        const isJPY = asset.includes('JPY');
+        const isGold = asset.includes('XAU') || asset.includes('GOLD');
+        const isCrypto = ['BTC', 'ETH', 'SOL', 'LTC', 'XRP', 'BNB', 'ADA', 'DOGE', 'MATIC', 'AVAX'].some(c => asset.includes(c));
+        const isIndex = ['US30', 'NAS', 'SPX', 'DOW', 'GER', 'DAX', 'UK100', 'FTSE', 'JP225', 'NDX', 'WS30', 'CAC', 'S&P'].some(i => asset.includes(i));
 
         let pipScalar = 10000;
         let pipValueUsd = 10;
         let unit = 'Pips';
         let precision = 1;
 
-        if (asset.includes('JPY')) {
+        if (isJPY) {
             pipScalar = 100;
             pipValueUsd = 9; 
-        } else if (asset.includes('XAU') || asset.includes('GOLD')) {
-            pipScalar = 10; 
-            pipValueUsd = 100; 
+        } else if (isGold) {
+            // Gold standard: 1 Point ($1 move)
+            pipScalar = 1; 
+            pipValueUsd = 100; // 1 standard lot (100oz) * $1 move = $100
             unit = 'Points ($)';
-        } else if (asset.includes('BTC') || asset.includes('ETH')) {
+        } else if (isCrypto) {
             pipScalar = 1;
-            pipValueUsd = 1; 
+            pipValueUsd = 1; // 1 Lot = 1 Unit. $1 move = $1
             unit = '$ Move';
-            precision = 0;
-        } else if (['US30', 'NAS100', 'SPX500', 'GER30', 'UK100', 'FTSE'].some(idx => asset.includes(idx))) {
+            precision = 2;
+        } else if (isIndex) {
+            // Indices (US30 etc): 1 Point = $1 (Generic CFD)
             pipScalar = 1; 
             pipValueUsd = 1; 
             unit = 'Points';
-            precision = 0;
+            precision = 1;
         }
+
+        const diffSL = Math.abs(entry - sl);
+        const diffTP3 = Math.abs(tp3 - entry);
 
         const slDist = parseFloat((diffSL * pipScalar).toFixed(precision));
         const tp3Dist = parseFloat((diffTP3 * pipScalar).toFixed(precision));
 
+        const riskPercent = userSettings.riskPerTrade || 1.0;
+        const monetaryRisk = userSettings.accountBalance * (riskPercent / 100);
         let suggestedLot = "0.00";
-        let monetaryRisk = 0;
-        let riskPercent = userSettings.riskPerTrade || 1.0;
 
-        if (userSettings) {
-            monetaryRisk = userSettings.accountBalance * (riskPercent / 100);
-            if (slDist > 0) {
-                let lot = 0;
-                if (asset.includes('XAU')) {
-                     lot = monetaryRisk / ((slDist / 10) * 100);
-                } else if (unit === 'Points' || unit === '$ Move') {
-                     lot = monetaryRisk / slDist;
-                } else {
-                     lot = monetaryRisk / (slDist * pipValueUsd);
-                }
-                suggestedLot = lot.toFixed(2);
-                if (asset.includes('BTC')) suggestedLot = lot.toFixed(3);
+        if (diffSL > 0) {
+            let lot = 0;
+            // Calculate lots based on raw price distance and value per unit
+            // Formula: Risk / (Distance * ValuePerUnit)
+            // ValuePerUnit depends on asset. 
+            // Forex: Distance=0.0010 (10 pips). ValuePerUnit (for 1 lot) = $100,000 * 0.0010 = $100 ? No.
+            // Simplified: Risk / (Pips * PipValue)
+            // Our slDist is in 'Pips' or 'Points'. pipValueUsd is $ per Pip/Point per Lot.
+            
+            const riskPerPointOrPip = slDist * pipValueUsd;
+            
+            if (riskPerPointOrPip > 0) {
+                lot = monetaryRisk / riskPerPointOrPip;
+            }
+            
+            // Adjust precision based on asset class
+            if (isCrypto) {
+                suggestedLot = lot.toFixed(3);
+            } else if (isIndex || isGold) {
+                suggestedLot = lot.toFixed(2); 
+            } else {
+                suggestedLot = lot.toFixed(2); 
             }
         }
-
-        const riskRewardRatio = slDist > 0 ? (tp3Dist / slDist).toFixed(2) : "0.00";
+        
+        // Use raw difference for R:R to avoid intermediate rounding errors and scalar issues
+        const riskRewardRatio = diffSL > 0 ? (diffTP3 / diffSL).toFixed(2) : "0.00";
+        
         return { slDist, tp3Dist, unit, suggestedLot, monetaryRisk, riskPercent, riskRewardRatio };
     }, [data, userSettings]);
 
@@ -235,7 +258,6 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
     return (
         <div className="text-sm max-w-full overflow-hidden relative">
-            
             <header className="flex flex-wrap justify-between items-center mb-8 gap-4 opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
                 <div>
                     <h2 className="text-4xl sm:text-5xl font-black text-gray-800 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
@@ -332,9 +354,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                         <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/5">
                             <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Position Sizing ({quantCalculations.riskPercent}%)</h4>
                             <div className="text-center">
-                                <span className="block text-[10px] text-gray-400 uppercase font-black">Execution Size</span>
+                                <span className="block text-[10px] text-gray-400 uppercase font-black">Execution Size (Lots)</span>
                                 <span className="block text-4xl font-black text-blue-400 font-mono my-1">{quantCalculations.suggestedLot}</span>
-                                <span className="block text-[10px] text-blue-500/70 font-bold">Standard Units</span>
+                                <span className="block text-[10px] text-blue-500/70 font-bold">Recommended Volume</span>
                             </div>
                             <div className="h-px bg-white/10 w-full"></div>
                             <div className="flex justify-between items-center">
@@ -354,7 +376,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                             </svg>
                         </span>
-                        ANALYSIS LOGIC
+                        ANALYSIS LOGIC (MIN. 5 NODES)
                     </h3>
                     <div className="space-y-4">
                         {data.reasoning.map((text, i) => (
