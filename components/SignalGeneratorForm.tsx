@@ -177,7 +177,7 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
 };
 
 interface SignalGeneratorFormProps {
-    onSubmit: (request: AnalysisRequest) => void;
+    onSubmit: (request: AnalysisRequest, primaryImageFile: File) => void;
     isLoading: boolean;
     profitMode: boolean;
     onProfitModeChange: (mode: boolean) => void;
@@ -235,7 +235,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 tradingStyle,
                 isMultiDimensional,
                 profitMode
-            });
+            }, images.primary);
 
         } catch(err) {
             setError('Failed to process one of the image files. Please try again.');

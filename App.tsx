@@ -96,7 +96,7 @@ const App: React.FC = () => {
     const { isLoggedIn, login, logout } = useAuth();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
     const [appView, setAppView] = useState<AppView>(isLoggedIn ? 'home' : 'landing');
-    const [analysisData, setAnalysisData] = useState<SignalData | null>(null);
+    const [analysisData, setAnalysisData] = useState<{ data: SignalData, image: string | null } | null>(null);
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
     
@@ -149,15 +149,15 @@ const App: React.FC = () => {
         setAuthPage('login');
     };
 
-    const handleNavigateToAnalysis = (data: SignalData, from: AppView) => {
-        setAnalysisData(data);
+    const handleNavigateToAnalysis = (data: SignalData, from: AppView, image: string | null = null) => {
+        setAnalysisData({ data, image });
         setPreviousView(from);
         navigateTo('analysis');
     };
     
-    const handleNewAnalysis = (data: Omit<SignalData, 'id' | 'timestamp'>) => {
+    const handleNewAnalysis = (data: Omit<SignalData, 'id' | 'timestamp'>, image: string) => {
         const savedData = saveAnalysis(data);
-        handleNavigateToAnalysis(savedData, 'home');
+        handleNavigateToAnalysis(savedData, 'home', image);
     };
 
     const handleNavigateToHome = () => {
@@ -224,7 +224,7 @@ const App: React.FC = () => {
             const savedData = saveAnalysis(data);
             
             setIsAnalyzingChart(false);
-            handleNavigateToAnalysis(savedData, 'charting'); 
+            handleNavigateToAnalysis(savedData, 'charting', imageData); 
         } catch (error) {
             console.error("Chart Analysis Failed:", error);
             setIsAnalyzingChart(false);
@@ -303,7 +303,8 @@ const App: React.FC = () => {
             if (analysisData) {
                 content = (
                     <AnalysisPage 
-                        data={analysisData} 
+                        data={analysisData.data} 
+                        image={analysisData.image}
                         onBack={handleBackFromAnalysis} 
                         onLogout={handleLogout}
                     />

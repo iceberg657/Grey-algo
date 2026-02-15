@@ -15,7 +15,7 @@ import { PacificTimeClock } from './PacificTimeClock';
 
 interface HomePageProps {
     onLogout: () => void;
-    onAnalysisComplete: (data: Omit<SignalData, 'id' | 'timestamp'>) => void;
+    onAnalysisComplete: (data: Omit<SignalData, 'id' | 'timestamp'>, primaryImageDataUrl: string) => void;
     onNavigateToHistory: () => void;
     onNavigateToChat: () => void;
     onNavigateToCharting: () => void;
@@ -59,11 +59,19 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
         setAnalysisCount(0);
     }, []);
 
-    const handleGenerateSignal = useCallback(async (requestData: Omit<AnalysisRequest, 'userSettings' | 'globalContext' | 'learnedStrategies'>) => {
+    const handleGenerateSignal = useCallback(async (requestData: Omit<AnalysisRequest, 'userSettings' | 'globalContext' | 'learnedStrategies'>, primaryImageFile: File) => {
         setIsLoading(true);
         setError(null);
 
+        const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = error => reject(error);
+        });
+
         try {
+            const primaryImageDataUrl = await fileToDataUrl(primaryImageFile);
             const storedSettings = localStorage.getItem('greyquant_user_settings');
             const userSettings = storedSettings ? JSON.parse(storedSettings) as UserSettings : undefined;
 
@@ -75,7 +83,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             const data = await generateTradingSignal(fullRequest);
             const newCount = incrementAnalysisCount();
             setAnalysisCount(newCount);
-            onAnalysisComplete(data);
+            onAnalysisComplete(data, primaryImageDataUrl);
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : 'An unknown error occurred.');
@@ -233,7 +241,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                             ) : (
                                 <div className="relative z-10">
                                     <SignalGeneratorForm 
-                                        onSubmit={handleGenerateSignal} 
+                                        onSubmit={(req, file) => handleGenerateSignal(req, file!)} 
                                         isLoading={isLoading} 
                                         profitMode={profitMode}
                                         onProfitModeChange={setProfitMode}

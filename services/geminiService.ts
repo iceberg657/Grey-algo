@@ -73,6 +73,8 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
     return `
     ${SELECTED_PROTOCOL}
 
+    **PREDICTIVE PATH:** Based on your analysis, provide a likely future price trajectory as an SVG path string for a 1000x500 viewbox. The path should start at the most recent candle. This path should visually represent your reasoning (e.g., show a pullback, then an impulse move towards a target).
+
     **INTELLIGENCE PROTOCOL:**
     - Use Google Search to verify if there is any high-impact "RED FOLDER" news (CPI, FOMC, NFP) for this asset in the next 4 hours. 
     - If news is imminent, recommend staying FLAT (Neutral) or suggest a very wide Stop Loss if the bias is extreme.
@@ -88,6 +90,7 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       "stopLoss": number,
       "takeProfits": [TP1_1to1, TP2_Mid, TP3_Final],
       "expectedDuration": "Specific hold time (e.g., 'Hold 2-3 Hours')",
+      "predictedPath": "SVG path string (e.g., 'M100,450 Q250,300 400,200 T700,100')",
       "reasoning": [
         "Paragraph detailing HTF Bias and S/R Zones.",
         "Paragraph identifying the M1 Pullback POI (Order Block/FVG).",
@@ -159,6 +162,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
             expectedDuration: data.expectedDuration || "Unknown",
+            predictedPath: data.predictedPath || undefined,
             reasoning: data.reasoning || ["Analysis incomplete."],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Price violates structure.",
