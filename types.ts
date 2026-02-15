@@ -54,7 +54,7 @@ export interface SignalData {
     signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
     entryPoints: number[];
-    entryType: 'Market Execution' | 'Pullback' | 'Breakout'; // New field
+    entryType: 'Market Execution' | 'Limit Order'; // New field
     stopLoss: number;
     takeProfits: number[];
     expectedDuration: string; // New field for time duration

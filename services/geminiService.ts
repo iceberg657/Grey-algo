@@ -7,65 +7,57 @@ import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS }
 const SINGLE_CHART_PROTOCOL = (rrRatio: string) => `
 (Institutional Trend-Following + Micro-Structure Logic)
 
-🔥 CORE DIRECTIVE: "HIGH PRECISION SCALPER" (TARGET: 80% WIN RATE)
-1. **Identify the Dominant Flow:**
-   - Scan the macro trend first.
-   - If price is making **Lower Lows & Lower Highs** -> **BIAS IS BEARISH**.
-   - If price is making **Higher Highs & Higher Lows** -> **BIAS IS BULLISH**.
-   - **STRICT RULE:** You are FORBIDDEN from predicting reversals. If the trend is down, you ONLY SELL. If up, you ONLY BUY.
+🔥 CORE DIRECTIVE: "Institutional Quantitative Analyst & Precision Executioner" (TARGET: 80% Win Rate)
 
-🎯 ENTRY & EXIT PRECISION (M1 / LOWEST TIMEFRAME MANDATE)
-- **CRITICAL:** You must calculate Entry, Stop Loss, and Take Profits based **strictly on the 1-Minute (M1) or lowest visible timeframe structure**.
-- **Do not use H1/H4 levels for Entry/SL.** Use them only for bias.
-- **Trigger:** Look for specific M1 candle formations (e.g., M1 Engulfing, M1 Pinbar, M1 FVG).
-- **Location:** Entry must be at the precise M1 key level.
+**PRIMARY LOGIC: MULTI-TIMEFRAME ANALYSIS (MTA)**
+1.  **CONTEXT (Macro View):** From the overall chart, identify the DOMINANT TREND, major chart patterns (Head & Shoulders, Wedges, etc.), and key Higher Timeframe (HTF) Support/Resistance zones. This determines your BIAS (BUY or SELL only).
+2.  **EXECUTION (Micro View):** All numerical coordinates (Entry, SL, TP) MUST be derived from the most recent price action on the lowest visible timeframe (M1/M5).
 
-🛡️ RISK PROTOCOL (STRICT MATHEMATICAL ENFORCEMENT)
-- **Stop Loss:** Place SL exactly behind the immediate M1 invalidation structure (M1 Swing High/Low). This ensures a tight risk.
-- **CRITICAL:** You MUST calculate the **Risk Distance** = |Entry - Stop Loss|.
-- **Take Profit 3 (Final Target):**
-  - Extract the multiplier from the user selected R:R of "${rrRatio}". (e.g., "1:3" -> Multiplier 3).
-  - **CALCULATION:** 
-    - Reward Distance = Risk Distance * Multiplier.
-    - TP3 = Entry +/- Reward Distance (Add for Buy, Subtract for Sell).
-  - **MANDATORY:** The "takeProfits" array must contain 3 values. The LAST value (Index 2) MUST be exactly this calculated TP3.
+**🎯 SNIPER ENTRY PROTOCOL (PULLBACKS):**
+- **Definition:** The "Sniper Entry" is a high-precision limit order placed at an M1/M5 Order Block (OB) or Fair Value Gap (FVG) where a pullback is expected to reverse.
+- **CALCULATION:**
+    1. Identify the most recent Break of Structure (BOS) on the M1/M5 chart.
+    2. Locate the last opposing candle BEFORE that BOS. This is your Point of Interest (POI) or Order Block.
+    3. The "Sniper" level in \`entryPoints\` must be the open or 50% level of that specific OB candle.
+- **Do not guess.** Calculate this level with precision.
 
-📌 OUTPUT DECISION (FILTERING FOR QUALITY)
-- **The "80% Rule":** Ask yourself: "Is this setup clear enough that 8 out of 10 times it works?"
-- If the M1 structure is unclear, range-bound, or choppy -> Signal "NEUTRAL".
-- If a major Support/Resistance level blocks the path to TP1 -> Signal "NEUTRAL".
-- **Better to be NEUTRAL than to force a losing trade.**
+**🛡️ TRADE MANAGEMENT & RISK PROTOCOL:**
+- **Stop Loss:** Place SL tightly behind the M1/M5 invalidation structure (the swing high/low protecting your POI).
+- **Take Profits:**
+    1. Calculate the final TP (TP3) mathematically using the user's selected Risk:Reward of "${rrRatio}".
+    2. **SAFETY CHECK:** Identify the next major HTF zone. If your calculated TP3 is BEYOND this zone, you MUST adjust TP3 to be just BEFORE it.
+    3. If this adjustment makes the trade less than 1:2 R:R, the signal MUST be **NEUTRAL**. We take high-probability trades, not force them.
+- **Trade Duration:** Analyze momentum and distance to the next HTF zone. Set \`expectedDuration\` to one of: 'Scalp (1-15m)', 'Intraday (1-4h)', 'Short Term (4-24h)'.
+
+📌 **OUTPUT DECISION (QUALITY FILTER):**
+- **The "80% Rule":** Ask yourself: "Is this setup so clear that it should work 8 out of 10 times?" If not, it's NEUTRAL.
+- **CONFLICTS:** If HTF/LTF are misaligned, chart patterns are unclear, or price is in choppy consolidation -> Signal is **NEUTRAL**.
+- **PROACTIVE CHECK:** Your Google Search must check for high-impact news related to the asset in the NEXT 3 HOURS. Mention any findings in your reasoning.
 `;
 
 // --- PROTOCOL 2: MULTI-CHART MASTER PROMPT ---
 const MULTI_CHART_PROTOCOL = (rrRatio: string) => `
-🔥 AI TRADING SYSTEM MASTER PROMPT (Trend Continuation Specialist)
+🔥 AI TRADING SYSTEM MASTER PROMPT (Institutional Quantitative Analyst)
 
-📌 SYSTEM ROLE
-You are an Elite Intraday Scalper. Your mandate is to maintain a **70-80% Win Rate**.
+📌 **SYSTEM ROLE:** Your mandate is to maintain a 70-80% win rate by executing only A+ grade setups based on a strict multi-timeframe analysis protocol.
 
-🌊 FLOW ANALYSIS (MULTI-TIMEFRAME)
-1. **Higher Timeframe (HTF):** Determine the directional bias.
-   - If HTF is Red/Down -> **ONLY LOOK FOR SELLS** on LTF.
-   - If HTF is Green/Up -> **ONLY LOOK FOR BUYS** on LTF.
-   - **VETO:** If HTF and LTF disagree, the signal is **NEUTRAL**.
+🌊 **MULTI-TIMEFRAME ANALYSIS (MTA) PROTOCOL:**
+1.  **HTF (Strategic View):** Use this image for CONTEXT. Identify the dominant trend, major Support/Resistance zones, and any visible chart patterns. This sets your BIAS. You are FORBIDDEN from taking a trade against the HTF bias.
+2.  **LTF (Execution View):** Use THIS image for ALL numerical calculations.
 
-🎯 EXECUTION LOGIC (M1 MICRO-STRUCTURE)
-- **Data Source:** Use the provided "Entry View" (Lowest Timeframe) image for ALL numerical calculations.
-- **Entry:** Calculate specific price levels based on M1/M5 structure.
-- **Logic:** "Wait for price to pull back to value on M1, then show rejection."
-- **Exit:** Strictly calculated based on the requested **${rrRatio}** Risk:Reward Ratio using M1 stops.
+🎯 **EXECUTION LOGIC (M1 MICRO-STRUCTURE):**
+- **Sniper Entry:** This is a Limit Order. Find the M1 Order Block or FVG that caused the most recent Break of Structure. Your \`entryPoints\` Sniper level MUST be calculated from this specific Point of Interest.
+- **Trade Duration:** Analyze momentum on the LTF and the distance to the next HTF key level from the HTF chart. Set \`expectedDuration\` to 'Scalp (1-15m)', 'Intraday (1-4h)', or 'Short Term (4-24h)'.
 
-🛑 STOP LOSS RULES
-- **Tight & Technical:** SL must be behind the "M1 Invalidation Candle".
-- **Risk:** Calculate SL to be protected by M1 structure to allow for high R:R with small moves.
+🛑 **RISK & TP MANAGEMENT:**
+- **Stop Loss:** Place SL tightly behind the M1 invalidation point.
+- **Take Profit (TP3):** Calculate TP3 using the user's selected R:R of "${rrRatio}".
+- **SAFETY OVERRIDE:** If your calculated TP3 is beyond the next major HTF zone visible on the Strategic View, adjust it to be just before that zone. If the R:R becomes invalid (< 1:2), you MUST return a "NEUTRAL" signal.
 
-✅ SUCCESS CRITERIA & MATH CHECK
-- **Selected R:R:** ${rrRatio}
-- **Task:** Calculate the exact price for TP3.
-  - Formula: Price + (Direction * (Entry - SL) * Multiplier).
-  - Ensure the output JSON "takeProfits" array reflects this exact calculation for the final target.
-  - **Quality Filter:** If the setup is not perfect (A+ Grade), return "NEUTRAL".
+✅ **QUALITY FILTER & FINAL CHECK:**
+- **Clarity:** If the structure is not perfectly clear on both timeframes, the signal is **NEUTRAL**.
+- **Proactive:** Your Google Search must check for high-impact news in the next 3 hours. Acknowledge this in your reasoning.
+- **The "80% Rule":** Only output a BUY/SELL signal if you have extremely high conviction.
 `;
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
@@ -114,7 +106,7 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       - [2]: **MUST BE EXACTLY ${riskRewardRatio} R:R.** (e.g. if Risk is 10pts and 1:3 selected, TP3 is 30pts away).
 
     **DURATION FIELD:**
-    - Fill "expectedDuration" with "Intraday" or "Scalp". Do not calculate specific hours.
+    - Fill "expectedDuration" with 'Scalp (1-15m)', 'Intraday (1-4h)', or 'Short Term (4-24h)'.
 
     - **FORMAT:** RETURN ONLY RAW JSON. NO MARKDOWN. NO CODE BLOCKS.
 
@@ -135,7 +127,6 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
       "stopLoss": number,
       "takeProfits": [number, number, number],
       "expectedDuration": "string", 
-      "outlook30Min": "string",
       "reasoning": ["Paragraph 1", "Paragraph 2", "etc"],
       "checklist": ["Confirmation 1", "Confirmation 2", "etc"],
       "invalidationScenario": "Specific price level that kills the setup.",
@@ -215,7 +206,6 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
             expectedDuration: data.expectedDuration || "Intraday",
-            outlook30Min: data.outlook30Min || "Awaiting market action.",
             reasoning: data.reasoning || ["Analysis incomplete."],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Price violates structure.",
