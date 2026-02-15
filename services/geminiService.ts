@@ -5,59 +5,54 @@ import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS }
 
 // --- PROTOCOL 1: SINGLE CHART ANALYSIS ---
 const SINGLE_CHART_PROTOCOL = (rrRatio: string) => `
-(Institutional Trend-Following + Micro-Structure Logic)
+(Institutional Quantitative Analysis - Alpha Protocol)
 
-🔥 CORE DIRECTIVE: "Institutional Quantitative Analyst & Precision Executioner" (TARGET: 80% Win Rate)
+🔥 CORE DIRECTIVE: "Professional SMC Executioner" (TARGET: 85% Strike Rate)
 
-**PRIMARY LOGIC: MULTI-TIMEFRAME ANALYSIS (MTA)**
-1.  **CONTEXT (Macro View):** From the overall chart, identify the DOMINANT TREND, major chart patterns (Head & Shoulders, Wedges, etc.), and key Higher Timeframe (HTF) Support/Resistance zones. This determines your BIAS (BUY or SELL only).
-2.  **EXECUTION (Micro View):** All numerical coordinates (Entry, SL, TP) MUST be derived from the most recent price action on the lowest visible timeframe (M1/M5).
+1. **MACRO BIAS & CONTEXT:**
+   - Scan the entire chart for dominant market structure.
+   - Identify the "Golden Zones": Major Higher Timeframe (HTF) Support/Resistance, Supply/Demand zones, and Swing Highs/Lows.
+   - Bias is strictly trend-following. No reversal trades unless a clear "Change of Character" (CHoCH) is confirmed with high volume.
 
-**🎯 SNIPER ENTRY PROTOCOL (PULLBACKS):**
-- **Definition:** The "Sniper Entry" is a high-precision limit order placed at an M1/M5 Order Block (OB) or Fair Value Gap (FVG) where a pullback is expected to reverse.
-- **CALCULATION:**
-    1. Identify the most recent Break of Structure (BOS) on the M1/M5 chart.
-    2. Locate the last opposing candle BEFORE that BOS. This is your Point of Interest (POI) or Order Block.
-    3. The "Sniper" level in \`entryPoints\` must be the open or 50% level of that specific OB candle.
-- **Do not guess.** Calculate this level with precision.
+2. **MICRO EXECUTION (M1 SNIPER ENTRY):**
+   - Locate the most recent impulsive move that broke structure (BOS).
+   - Find the "POI" (Point of Interest): The M1 Order Block (OB) or Fair Value Gap (FVG) that originated that move.
+   - Your "Sniper Entry" must be a Limit Order set at the proximal edge of this M1 POI.
+   - **DO NOT** suggest market execution if price is far from the POI. Tell the user to WAIT for the pullback.
 
-**🛡️ TRADE MANAGEMENT & RISK PROTOCOL:**
-- **Stop Loss:** Place SL tightly behind the M1/M5 invalidation structure (the swing high/low protecting your POI).
-- **Take Profits:**
-    1. Calculate the final TP (TP3) mathematically using the user's selected Risk:Reward of "${rrRatio}".
-    2. **SAFETY CHECK:** Identify the next major HTF zone. If your calculated TP3 is BEYOND this zone, you MUST adjust TP3 to be just BEFORE it.
-    3. If this adjustment makes the trade less than 1:2 R:R, the signal MUST be **NEUTRAL**. We take high-probability trades, not force them.
-- **Trade Duration:** Analyze momentum and distance to the next HTF zone. Set \`expectedDuration\` to one of: 'Scalp (1-15m)', 'Intraday (1-4h)', 'Short Term (4-24h)'.
+3. **QUANTITATIVE RISK MANAGEMENT:**
+   - **Stop Loss:** Must be 1-2 ticks behind the M1 structural invalidation level (the low/high protecting the OB).
+   - **Take Profit (TP):** 
+     - TP1: 1:1 R:R (Risk reduction level).
+     - TP3 (Final): Calculated mathematically using "${rrRatio}" R:R.
+     - **REVERSAL CHECK:** Look ahead for the next major HTF Resistance/Support. If your TP3 is BEYOND this level, you MUST pull the TP3 back to 2-3 pips BEFORE that major level to ensure it hits before the market reverses.
+     - If this reduces the R:R to less than 1:2, return "NEUTRAL".
 
-📌 **OUTPUT DECISION (QUALITY FILTER):**
-- **The "80% Rule":** Ask yourself: "Is this setup so clear that it should work 8 out of 10 times?" If not, it's NEUTRAL.
-- **CONFLICTS:** If HTF/LTF are misaligned, chart patterns are unclear, or price is in choppy consolidation -> Signal is **NEUTRAL**.
-- **PROACTIVE CHECK:** Your Google Search must check for high-impact news related to the asset in the NEXT 3 HOURS. Mention any findings in your reasoning.
+4. **TRADE HORIZON (HOLD TIME):**
+   - Analyze current ATR and momentum. Determine exactly how many minutes/hours the trade needs to reach the target.
+   - Format: "Hold for [X] hours" or "Scalp (15-30m)".
 `;
 
 // --- PROTOCOL 2: MULTI-CHART MASTER PROMPT ---
 const MULTI_CHART_PROTOCOL = (rrRatio: string) => `
-🔥 AI TRADING SYSTEM MASTER PROMPT (Institutional Quantitative Analyst)
+🔥 AI QUANTITATIVE SYSTEM MASTER PROMPT (SMC Specialist)
 
-📌 **SYSTEM ROLE:** Your mandate is to maintain a 70-80% win rate by executing only A+ grade setups based on a strict multi-timeframe analysis protocol.
+📌 **SYSTEM ROLE:** You are a Quantitative Analyst managing institutional capital. Precision is your only metric.
 
-🌊 **MULTI-TIMEFRAME ANALYSIS (MTA) PROTOCOL:**
-1.  **HTF (Strategic View):** Use this image for CONTEXT. Identify the dominant trend, major Support/Resistance zones, and any visible chart patterns. This sets your BIAS. You are FORBIDDEN from taking a trade against the HTF bias.
-2.  **LTF (Execution View):** Use THIS image for ALL numerical calculations.
+🌊 **MULTI-DIMENSIONAL WORKFLOW:**
+1. **Strategic View (HTF):** Map out the "Battlefield". Identify major Liquidity Pools (Equal Highs/Lows) and Supply/Demand zones. Establish the 4-hour/1-hour bias.
+2. **Tactical View (Medium TF):** Identify the current cycle. Are we in an expansion, retracement, or consolidation phase?
+3. **Execution View (LTF - M1):** Find the "Sniper" trigger. Look for a Liquidity Sweep followed by a Break of Structure. 
 
-🎯 **EXECUTION LOGIC (M1 MICRO-STRUCTURE):**
-- **Sniper Entry:** This is a Limit Order. Find the M1 Order Block or FVG that caused the most recent Break of Structure. Your \`entryPoints\` Sniper level MUST be calculated from this specific Point of Interest.
-- **Trade Duration:** Analyze momentum on the LTF and the distance to the next HTF key level from the HTF chart. Set \`expectedDuration\` to 'Scalp (1-15m)', 'Intraday (1-4h)', or 'Short Term (4-24h)'.
+🎯 **SNIPER ENTRY LOGIC:**
+- Entry: Limit Order at the 50% (Mean Threshold) of the M1 Order Block.
+- Stop Loss: Hard stop behind the structural low/high that swept liquidity.
+- Take Profit: Mathematically derived from "${rrRatio}" but adjusted for "The Next Wall" (HTF S/R). We exit BEFORE the reversal.
 
-🛑 **RISK & TP MANAGEMENT:**
-- **Stop Loss:** Place SL tightly behind the M1 invalidation point.
-- **Take Profit (TP3):** Calculate TP3 using the user's selected R:R of "${rrRatio}".
-- **SAFETY OVERRIDE:** If your calculated TP3 is beyond the next major HTF zone visible on the Strategic View, adjust it to be just before that zone. If the R:R becomes invalid (< 1:2), you MUST return a "NEUTRAL" signal.
-
-✅ **QUALITY FILTER & FINAL CHECK:**
-- **Clarity:** If the structure is not perfectly clear on both timeframes, the signal is **NEUTRAL**.
-- **Proactive:** Your Google Search must check for high-impact news in the next 3 hours. Acknowledge this in your reasoning.
-- **The "80% Rule":** Only output a BUY/SELL signal if you have extremely high conviction.
+✅ **STRICT FILTRATION:**
+- If the HTF bias and M1 entry do not align, return "NEUTRAL".
+- If the "Path to Profit" is blocked by a major news event or dense consolidation, return "NEUTRAL".
+- If the win probability is not "A+ Grade" (8/10 confidence), return "NEUTRAL". We grow accounts through patience, not gambling.
 `;
 
 const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensional: boolean, profitMode: boolean, globalContext?: string, learnedStrategies: string[] = [], userSettings?: UserSettings) => {
@@ -67,83 +62,50 @@ const PROMPT = (riskRewardRatio: string, tradingStyle: string, isMultiDimensiona
         userContext = `
     **USER ACCOUNT CONTEXT:**
     - Balance: $${userSettings.accountBalance.toLocaleString()}
-    - Risk Profile: ${userSettings.riskPerTrade}% Risk Per Trade (Calculate lots accordingly if asked, but focus on price levels here)
-    - Trading Style: ${tradingStyle}
-    - Target R:R: ${riskRewardRatio}
+    - Account Type: ${userSettings.accountType}
+    - Objective: Growth while respecting ${userSettings.maxDrawdown}% Max Drawdown.
+    - Style: ${tradingStyle}
         `;
     }
 
-    // Select the specific protocol based on the mode, injecting the R:R constraint
     const SELECTED_PROTOCOL = isMultiDimensional ? MULTI_CHART_PROTOCOL(riskRewardRatio) : SINGLE_CHART_PROTOCOL(riskRewardRatio);
     
     return `
     ${SELECTED_PROTOCOL}
 
-    **ADDITIONAL INSTRUCTION - NEWS INTELLIGENCE:**
-    - **Mandatory Search:** Use Google Search to query "MyFXBook economic calendar [asset]" and "Investing.com economic calendar [asset]" for high-impact events occurring in the next 24 hours.
-    - **Validation:** Ensure the "sources" array contains the direct links to these calendar pages or news articles found.
+    **INTELLIGENCE PROTOCOL:**
+    - Use Google Search to verify if there is any high-impact "RED FOLDER" news (CPI, FOMC, NFP) for this asset in the next 4 hours. 
+    - If news is imminent, recommend staying FLAT (Neutral) or suggest a very wide Stop Loss if the bias is extreme.
 
-    **REQUIRED OUTPUT FORMAT RULES (STRICT JSON):**
-    
-    - **Intelligence Sources:** EXACTLY 5 distinct URL sources. Include MyFXBook or Investing.com links if used for news.
-    - **Confluence Matrix:** EXACTLY 5 specific technical confirmations.
-    - **Analysis Logic:** 5-8 reasoning paragraphs detailing the "Why" and "When".
-    - **Sentiment Score:** 0-100.
-    
-    **CRITICAL - ENTRY POINT LOGIC (PRECISION):**
-    - **entryPoints**: Provide 3 precision levels.
-      - Index 0: **Sniper** (Ideal limit order entry on M1).
-      - Index 1: **Market** (Current M1 price).
-      - Index 2: **Backup** (Deeper discount level on M1).
-    - **entryType**: "Market Execution" (if high momentum) or "Limit Order" (if ranging).
-
-    **CRITICAL - RISK & REWARD MATH:**
-    - **User Selected R:R:** ${riskRewardRatio}
-    - **Instruction:** You must mathematically verify the R:R.
-    - **takeProfits Array:**
-      - [0]: 1:1 R:R (Safe partial)
-      - [1]: Mid-way target
-      - [2]: **MUST BE EXACTLY ${riskRewardRatio} R:R.** (e.g. if Risk is 10pts and 1:3 selected, TP3 is 30pts away).
-
-    **DURATION FIELD:**
-    - Fill "expectedDuration" with 'Scalp (1-15m)', 'Intraday (1-4h)', or 'Short Term (4-24h)'.
-
-    - **FORMAT:** RETURN ONLY RAW JSON. NO MARKDOWN. NO CODE BLOCKS.
-
-    **CONTEXT:**
-    - Risk/Reward: ${riskRewardRatio}
-    - Style: ${tradingStyle}
-    - Mode: ${profitMode ? "STRICT ALPHA (MAX PRECISION)" : "Standard"}
-    ${userContext}
-
-    **REQUIRED JSON OUTPUT:**
+    **REQUIRED JSON OUTPUT (NO MARKDOWN, RAW ONLY):**
     {
       "signal": "BUY" | "SELL" | "NEUTRAL",
-      "confidence": number (70-98), 
+      "confidence": number (1-100),
       "asset": "string",
-      "timeframe": "string",
-      "entryPoints": [number, number, number],
-      "entryType": "Market Execution" | "Limit Order",
+      "timeframe": "M1 Execution",
+      "entryPoints": [Sniper_Limit, Market_Price, Safe_Reentry],
+      "entryType": "Limit Order" | "Market Execution",
       "stopLoss": number,
-      "takeProfits": [number, number, number],
-      "expectedDuration": "string", 
-      "reasoning": ["Paragraph 1", "Paragraph 2", "etc"],
-      "checklist": ["Confirmation 1", "Confirmation 2", "etc"],
-      "invalidationScenario": "Specific price level that kills the setup.",
-      "sentiment": {
-        "score": number,
-        "summary": "One sentence tactical summary."
-      },
-      "economicEvents": [
-        { "name": "Event Name", "date": "Time/Date", "impact": "High" | "Medium" | "Low" }
+      "takeProfits": [TP1_1to1, TP2_Mid, TP3_Final],
+      "expectedDuration": "Specific hold time (e.g., 'Hold 2-3 Hours')",
+      "reasoning": [
+        "Paragraph detailing HTF Bias and S/R Zones.",
+        "Paragraph identifying the M1 Pullback POI (Order Block/FVG).",
+        "Paragraph explaining the Liquidity target.",
+        "Paragraph on News/Sentiment check.",
+        "Paragraph on exact Risk:Reward math."
       ],
-      "sources": [
-        { "uri": "https://...", "title": "Source 1" },
-        { "uri": "https://...", "title": "Source 2" },
-        { "uri": "https://...", "title": "Source 3" },
-        { "uri": "https://...", "title": "Source 4" },
-        { "uri": "https://...", "title": "Source 5" }
-      ]
+      "checklist": [
+        "HTF Trend Alignment",
+        "Liquidity Sweep Confirmed",
+        "M1 BOS Confirmed",
+        "Price inside Discount POI",
+        "No High Impact News"
+      ],
+      "invalidationScenario": "If price closes below [level] on M5, the structure is broken. Close trade.",
+      "sentiment": { "score": 0-100, "summary": "Punchy professional summary." },
+      "economicEvents": [{ "name": "Event", "date": "ISO", "impact": "High" }],
+      "sources": [{ "uri": "https://...", "title": "Market Data Source" }]
     }
     `;
 };
@@ -165,54 +127,42 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 contents: [{ parts: promptParts }],
                 config: { 
                     tools: [{googleSearch: {}}], 
-                    temperature: 0.1, // Reduced temperature for strict logic adherence
+                    temperature: 0.1, // Near-zero temperature for consistent quantitative logic
                 },
             })
         );
 
         let text = response.text || '';
-        // Improved regex to strip markdown code blocks of any language or plain ticks
         text = text.replace(/```\w*\n?/g, '').replace(/```/g, '').trim();
 
         const start = text.indexOf('{');
         const end = text.lastIndexOf('}');
         
         if (start === -1 || end === -1) {
-            console.error("Neural output misaligned. Raw response:", text);
-            throw new Error("Neural output misaligned. Please retry analysis.");
+            throw new Error("Neural output misaligned. Analysis corrupted.");
         }
         
         let data;
         try {
             data = JSON.parse(text.substring(start, end + 1));
         } catch (e) {
-            console.error("JSON Parse Error:", e, "Raw Text:", text);
-            throw new Error("Neural output corruption. Please retry.");
+            throw new Error("Failed to parse neural data. Retrying...");
         }
         
-        // Final sanity check and sanitization
-        const safeSignal = (data.signal === 'BUY' || data.signal === 'SELL' || data.signal === 'NEUTRAL') ? data.signal : 'NEUTRAL';
-        let rawScore = data.sentiment?.score || 50;
-        if (rawScore < 0) rawScore = 20; 
-        rawScore = Math.min(100, Math.max(0, rawScore));
-
         return {
             asset: data.asset || "Unknown Asset",
             timeframe: data.timeframe || "N/A",
-            signal: safeSignal,
-            confidence: data.confidence || 75,
+            signal: data.signal || 'NEUTRAL',
+            confidence: data.confidence || 0,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Limit Order",
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
-            expectedDuration: data.expectedDuration || "Intraday",
+            expectedDuration: data.expectedDuration || "Unknown",
             reasoning: data.reasoning || ["Analysis incomplete."],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Price violates structure.",
-            sentiment: { 
-                score: rawScore, 
-                summary: data.sentiment?.summary || "Neutral" 
-            },
+            sentiment: data.sentiment || { score: 50, summary: "Neutral" },
             economicEvents: data.economicEvents || [],
             sources: data.sources || []
         };

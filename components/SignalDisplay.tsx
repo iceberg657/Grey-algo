@@ -184,26 +184,14 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
         if (userSettings) {
             monetaryRisk = userSettings.accountBalance * (riskPercent / 100);
             if (slDist > 0) {
-                // Formula: Risk / (StopLossDistanceInPips * PipValue)
-                // Note: pipValueUsd is approx for 1 lot. 
-                // XAU: 1.00 move (10 pips) = $100. pipValueUsd=100.
                 let lot = 0;
-                
                 if (asset.includes('XAU')) {
-                     // Gold: if slDist is 20 (meaning $2 move), and risk is $1000.
-                     // 1 lot move $2 = $200. 1000/200 = 5 lots.
-                     // formula: 1000 / (20/10 * 100) = 1000 / 200 = 5.
-                     // Adjusted logic: slDist is scaled by 10 for Gold.
                      lot = monetaryRisk / ((slDist / 10) * 100);
                 } else if (unit === 'Points' || unit === '$ Move') {
-                     // Indices/Crypto: Risk / StopLossDistance
                      lot = monetaryRisk / slDist;
                 } else {
-                     // Forex: Risk / (Pips * PipValue)
-                     // e.g. 1000 / (10 * 10) = 10 lots
                      lot = monetaryRisk / (slDist * pipValueUsd);
                 }
-
                 suggestedLot = lot.toFixed(2);
                 if (asset.includes('BTC')) suggestedLot = lot.toFixed(3);
             }
@@ -252,7 +240,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 <div>
                     <h2 className="text-4xl sm:text-5xl font-black text-gray-800 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
                     <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs sm:text-sm text-gray-500 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/5 px-2 py-0.5 rounded border border-white/5">{data.timeframe} FRAME</span>
+                        <span className="text-xs sm:text-sm text-gray-500 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/5 px-2 py-0.5 rounded border border-white/5">{data.timeframe}</span>
                         <span className="w-1 h-1 rounded-full bg-green-500 shadow-[0_0_5px_theme(colors.green.400)]"></span>
                         <span className="text-[10px] text-gray-400 font-mono bg-black/10 dark:bg-black/30 px-2 py-0.5 rounded uppercase">Protocol: {data.entryType}</span>
                     </div>
@@ -275,8 +263,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  <InfoCard label="Bias" value={data.signal} isSignal signalType={data.signal} className="col-span-2 md:col-span-1" delay="100ms" />
                  <InfoCard label="Precision" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
                  <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
-                 {/* Replaced Calculated Hold with Target R:R */}
-                 <InfoCard label="Target R:R" value={`1:${quantCalculations.riskRewardRatio}`} valueClassName="text-blue-500 dark:text-blue-400" subValue="Math Expectancy" delay="400ms" />
+                 <InfoCard label="Trade Horizon" value={data.expectedDuration} valueClassName="text-blue-500 dark:text-blue-400" subValue="Estimated Hold" delay="400ms" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -289,7 +276,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 {data.entryPoints.map((ep, i) => (
                                     <div key={i} className="text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border border-white/5 min-w-[100px] shadow-lg">
                                         <span className="font-mono text-xl font-black text-gray-800 dark:text-white block">{ep}</span>
-                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">LEVEL 0{i + 1}</span>
+                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">{i === 0 ? 'SNIPER' : i === 1 ? 'MARKET' : 'SAFE'}</span>
                                     </div>
                                 ))}
                              </div>
