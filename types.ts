@@ -4,14 +4,36 @@ export interface ImagePart {
     mimeType: string;
 }
 
+export interface TradingSessionConfig {
+    enabled: boolean;
+    startHour: number;
+    endHour: number;
+}
+
+export interface PartialCloseConfig {
+    tp1Percent: number;
+    tp2Percent: number;
+    tp3Percent: number;
+    moveToBreakeven: boolean;
+}
+
 export interface UserSettings {
     accountType: 'Real' | 'Funded';
     accountBalance: number;
+    accountSize?: number; // Alias often used interchangeably
     riskPerTrade: number;
     targetPercentage: number;
     dailyDrawdown: number;
     maxDrawdown: number;
     timeLimit: number; // days
+    
+    // Advanced Settings
+    allowedMarkets?: string[];
+    maxDailyLoss?: number; // Percent
+    maxTradesPerDay?: number;
+    tradingSession?: TradingSessionConfig;
+    riskRewardRatio?: string;
+    partialClose?: PartialCloseConfig;
 }
 
 export interface AnalysisRequest {
@@ -20,6 +42,7 @@ export interface AnalysisRequest {
         primary: ImagePart;
         entry?: ImagePart;
     };
+    asset?: string;
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
@@ -27,6 +50,16 @@ export interface AnalysisRequest {
     globalContext?: string;
     learnedStrategies?: string[];
     userSettings?: UserSettings;
+}
+
+export interface MarketConfig {
+    minStopLoss: number;
+    maxStopLoss: number;
+    tp1Distance: number;
+    tp2Distance: number;
+    tp3Distance: number;
+    minTimeframe: string;
+    spikeThreshold?: number;
 }
 
 export interface EconomicEvent {
@@ -68,6 +101,29 @@ export interface SignalData {
         uri: string;
         title: string;
     }[];
+    
+    // Extended Trade Setup Fields
+    calculatedRR?: string;
+    riskRewardRatio?: string;
+    lotSize?: number;
+    formattedLotSize?: string;
+    riskAmount?: number;
+    potentialProfit?: number[];
+    totalPotentialProfit?: number;
+    partialCloseAmounts?: number[];
+    partialCloseSizes?: string[];
+    moveToBreakeven?: boolean;
+    isValid?: boolean;
+    validationMessage?: string;
+    assetCategory?: string;
+    contractSize?: number;
+
+    // AI Analysis Details
+    priceAction?: any;
+    chartPatterns?: any;
+    technicalAnalysis?: any;
+    fundamentalContext?: any;
+    timeframeRationale?: string;
 }
 
 export interface AssetSuggestion {

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import type { SignalData, EconomicEvent, UserSettings } from '../types';
+import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { TiltCard } from './TiltCard';
 
@@ -112,7 +112,7 @@ const EventCard: React.FC<{ event: EconomicEvent }> = ({ event }) => {
     );
 };
 
-const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode; delay?: string }> = ({ title, children, icon, delay = '0ms' }) => (
+export const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode; delay?: string }> = ({ title, children, icon, delay = '0ms' }) => (
     <div className="pt-4 mt-4 border-t border-gray-300 dark:border-white/5 opacity-0 animate-flip-3d" style={{ animationDelay: delay }}>
         <h3 className="flex items-center text-base font-black text-gray-800 dark:text-green-400 mb-4 uppercase tracking-tighter">
             <span className="p-1.5 rounded-lg bg-green-500/10 mr-2 border border-green-500/20">
@@ -128,101 +128,34 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const userSettings = useMemo(() => {
-        const stored = localStorage.getItem('greyquant_user_settings');
-        return stored ? JSON.parse(stored) as UserSettings : {
-            accountBalance: 100000,
-            riskPerTrade: 1.0,
-            dailyDrawdown: 5,
-            maxDrawdown: 10,
-            targetPercentage: 10,
-            accountType: 'Funded',
-            timeLimit: 30
-        };
-    }, []);
-
-    const quantCalculations = useMemo(() => {
-        const entry = data.entryPoints[0] || 0;
-        const sl = data.stopLoss || 0;
-        const tp3 = data.takeProfits[2] || data.takeProfits[0] || 0;
-        const asset = data.asset.toUpperCase();
-
-        if (entry === 0 || sl === 0) {
-            return { slDist: 0, tp3Dist: 0, unit: 'N/A', suggestedLot: '0.00', monetaryRisk: 0, riskPercent: 0, riskRewardRatio: '0.00' };
+    // Determine unit and precision for display
+    const getUnitAndPrecision = (asset: string) => {
+        const normalized = asset.toUpperCase();
+        if (normalized.includes('JPY')) return { unit: 'Pips', precision: 1, scalar: 100 };
+        if (['EUR','GBP','AUD','NZD','USD','CAD','CHF'].some(c => normalized.includes(c)) && !normalized.includes('XAU') && !normalized.includes('BTC')) {
+            return { unit: 'Pips', precision: 1, scalar: 10000 };
         }
-
-        // Improved Detection
-        const isJPY = asset.includes('JPY');
-        const isGold = asset.includes('XAU') || asset.includes('GOLD');
-        const isCrypto = ['BTC', 'ETH', 'SOL', 'LTC', 'XRP', 'BNB', 'ADA', 'DOGE', 'MATIC', 'AVAX'].some(c => asset.includes(c));
-        const isIndex = ['US30', 'NAS', 'SPX', 'DOW', 'GER', 'DAX', 'UK100', 'FTSE', 'JP225', 'NDX', 'WS30', 'CAC', 'S&P'].some(i => asset.includes(i));
-
-        let pipScalar = 10000;
-        let pipValueUsd = 10;
-        let unit = 'Pips';
-        let precision = 1;
-
-        if (isJPY) {
-            pipScalar = 100;
-            pipValueUsd = 9; 
-        } else if (isGold) {
-            // Gold standard: 1 Point ($1 move)
-            pipScalar = 1; 
-            pipValueUsd = 100; // 1 standard lot (100oz) * $1 move = $100
-            unit = 'Points ($)';
-        } else if (isCrypto) {
-            pipScalar = 1;
-            pipValueUsd = 1; // 1 Lot = 1 Unit. $1 move = $1
-            unit = '$ Move';
-            precision = 2;
-        } else if (isIndex) {
-            // Indices (US30 etc): 1 Point = $1 (Generic CFD)
-            pipScalar = 1; 
-            pipValueUsd = 1; 
-            unit = 'Points';
-            precision = 1;
+        if (normalized.includes('XAU') || normalized.includes('BTC') || normalized.includes('ETH')) {
+            return { unit: 'Pts/$', precision: 2, scalar: 1 };
         }
+        return { unit: 'Pts', precision: 2, scalar: 1 };
+    };
 
-        const diffSL = Math.abs(entry - sl);
-        const diffTP3 = Math.abs(tp3 - entry);
-
-        const slDist = parseFloat((diffSL * pipScalar).toFixed(precision));
-        const tp3Dist = parseFloat((diffTP3 * pipScalar).toFixed(precision));
-
-        const riskPercent = userSettings.riskPerTrade || 1.0;
-        const monetaryRisk = userSettings.accountBalance * (riskPercent / 100);
-        let suggestedLot = "0.00";
-
-        if (diffSL > 0) {
-            let lot = 0;
-            // Calculate lots based on raw price distance and value per unit
-            // Formula: Risk / (Distance * ValuePerUnit)
-            // ValuePerUnit depends on asset. 
-            // Forex: Distance=0.0010 (10 pips). ValuePerUnit (for 1 lot) = $100,000 * 0.0010 = $100 ? No.
-            // Simplified: Risk / (Pips * PipValue)
-            // Our slDist is in 'Pips' or 'Points'. pipValueUsd is $ per Pip/Point per Lot.
-            
-            const riskPerPointOrPip = slDist * pipValueUsd;
-            
-            if (riskPerPointOrPip > 0) {
-                lot = monetaryRisk / riskPerPointOrPip;
-            }
-            
-            // Adjust precision based on asset class
-            if (isCrypto) {
-                suggestedLot = lot.toFixed(3);
-            } else if (isIndex || isGold) {
-                suggestedLot = lot.toFixed(2); 
-            } else {
-                suggestedLot = lot.toFixed(2); 
-            }
-        }
-        
-        // Use raw difference for R:R to avoid intermediate rounding errors and scalar issues
-        const riskRewardRatio = diffSL > 0 ? (diffTP3 / diffSL).toFixed(2) : "0.00";
-        
-        return { slDist, tp3Dist, unit, suggestedLot, monetaryRisk, riskPercent, riskRewardRatio };
-    }, [data, userSettings]);
+    const { unit, precision, scalar } = getUnitAndPrecision(data.asset);
+    
+    // Use pre-calculated data from SignalData if available (from tradeSetup.ts)
+    // fallback to basic calculation if raw AI data
+    const entry = data.entryPoints[0] || 0; // Use Sniper
+    const sl = data.stopLoss || 0;
+    const tp3 = data.takeProfits[2] || data.takeProfits[0] || 0;
+    
+    const diffSL = Math.abs(entry - sl);
+    const diffTP3 = Math.abs(tp3 - entry);
+    
+    const slDisplay = (diffSL * scalar).toFixed(precision);
+    const tp3Display = (diffTP3 * scalar).toFixed(precision);
+    
+    const formatCurrency = (val?: number) => val != null ? `$${val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '$0.00';
 
     useEffect(() => {
         return () => {
@@ -332,36 +265,54 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </div>
             </div>
 
+            {/* INTEGRATED QUANT METRICS SECTION */}
             <Section title="Quant Execution Metrics" delay="1000ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
-                <div className="bg-gray-900/10 dark:bg-black/40 rounded-2xl border-2 border-white/5 p-6 shadow-2xl relative overflow-hidden">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 relative z-10">
+                <div className="bg-gray-100 dark:bg-slate-800/50 rounded-2xl border border-gray-200 dark:border-white/5 p-6 shadow-xl relative overflow-hidden font-mono">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        
+                        {/* Left Column: Tactical Array */}
                         <div className="space-y-4">
-                            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Tactical Array</h4>
-                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
-                                <span className="text-xs font-bold text-red-400 uppercase">Risk Bound</span>
-                                <span className="font-mono text-white">{quantCalculations.slDist} <span className="text-[10px] opacity-50">{quantCalculations.unit}</span></span>
+                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Tactical Array</h4>
+                            
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-red-500 uppercase">Risk Bound</span>
+                                <span className="text-gray-800 dark:text-white font-bold">{slDisplay} <span className="text-[10px] text-gray-400">{unit}</span></span>
                             </div>
-                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
-                                <span className="text-xs font-bold text-green-400 uppercase">Reward Bound</span>
-                                <span className="font-mono text-white">{quantCalculations.tp3Dist} <span className="text-[10px] opacity-50">{quantCalculations.unit}</span></span>
+                            
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-green-500 uppercase">Reward Bound</span>
+                                <span className="text-gray-800 dark:text-white font-bold">{tp3Display} <span className="text-[10px] text-gray-400">{unit}</span></span>
                             </div>
-                            <div className="flex justify-between items-center bg-black/20 p-2 rounded-lg">
-                                <span className="text-xs font-bold text-blue-400 uppercase">Calculated R:R</span>
-                                <span className="font-mono text-white">1 : {quantCalculations.riskRewardRatio}</span>
+                            
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-blue-500 uppercase">Calculated R:R</span>
+                                <span className="text-gray-800 dark:text-white font-bold">{data.calculatedRR || data.riskRewardRatio || "1:0.00"}</span>
                             </div>
                         </div>
 
-                        <div className="space-y-4 bg-white/5 p-4 rounded-xl border border-white/5">
-                            <h4 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-4">Position Sizing ({quantCalculations.riskPercent}%)</h4>
-                            <div className="text-center">
-                                <span className="block text-[10px] text-gray-400 uppercase font-black">Execution Size (Lots)</span>
-                                <span className="block text-4xl font-black text-blue-400 font-mono my-1">{quantCalculations.suggestedLot}</span>
-                                <span className="block text-[10px] text-blue-500/70 font-bold">Recommended Volume</span>
+                        {/* Right Column: Position Sizing */}
+                        <div className="bg-gray-200/50 dark:bg-slate-900/50 p-6 rounded-xl border border-gray-300 dark:border-white/10 shadow-inner">
+                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6 text-center">Position Sizing</h4>
+                            
+                            <div className="text-center mb-6">
+                                <span className="block text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">Execution Size</span>
+                                <span className="block text-5xl font-bold text-blue-500 dark:text-blue-400 my-2">
+                                    {data.formattedLotSize || "CALC"}
+                                    <span className="text-lg font-medium text-gray-400 ml-2">Lots</span>
+                                </span>
                             </div>
-                            <div className="h-px bg-white/10 w-full"></div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-[10px] font-black text-gray-400 uppercase">Drawdown Limit</span>
-                                <span className="font-mono font-bold text-red-400">-${quantCalculations.monetaryRisk.toLocaleString()}</span>
+                            
+                            <div className="h-px bg-gray-300 dark:bg-white/10 w-full mb-4"></div>
+                            
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Risk Amount</span>
+                                    <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
+                                </div>
+                                <div className="flex justify-between items-center">
+                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Max Potential</span>
+                                    <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
