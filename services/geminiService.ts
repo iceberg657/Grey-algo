@@ -6,7 +6,7 @@ import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[] = []) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -14,11 +14,15 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string) => {
     ? MARKET_CONFIGS[marketConfigKey] 
     : MARKET_CONFIGS['EURUSD'];
 
+  const learnedContext = strategies.length > 0 
+    ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
+    : "";
+
   return `
 🔥 **CORE OBJECTIVE: Professional Multi-Dimensional Trading Analysis**
 
 You are analyzing ${asset || "the provided charts"} using a complete technical + fundamental approach.
-
+${learnedContext}
 📊 **MANDATORY ANALYSIS FRAMEWORK:**
 
 **1. PRICE ACTION ANALYSIS (REQUIRED):**
@@ -41,11 +45,10 @@ From the provided chart images, identify:
 - Volume patterns (if visible on chart)
 - Support/Resistance confluence zones
 
-**4. FUNDAMENTAL CONTEXT (REQUIRED):**
+**4. FUNDAMENTAL CONTEXT (REQUIRED - USE GOOGLE SEARCH):**
 Based on ${asset}:
 - Current market sentiment for this asset
-- Recent news impact (if any major events)
-- Economic calendar awareness (high-impact news in next 24h?)
+- **MANDATORY:** Identify the next 3 specific high-impact economic events (e.g., CPI, NFP, Rate Decisions) relevant to ${asset} in the next 24-48 hours.
 - Correlation with related assets (e.g., USD strength, gold vs USD)
 
 **5. TIMEFRAME ANALYSIS:**
@@ -95,16 +98,14 @@ If Risk:Reward is ${rrRatio}:
 - TP3 = Entry ± (SL_Distance × ${rrRatio.split(':')[1]} × 1.00)
 
 **Time Estimation (REQUIRED):**
-Based on timeframe analysis:
-- M1 trades: ~15-45 minutes to TP
-- M5 trades: ~45-120 minutes to TP
-- M15 trades: ~2-6 hours to TP
-- H1 trades: ~6-24 hours to TP
+Based on timeframe analysis (Fast Execution Focus):
+- M1/M5 trades: Target ~30m
+- M15 trades: Target ~1h
+- H1 trades: Target ~3h
 
-Provide single realistic estimate based on:
-- Current volatility visible on chart
-- Typical movement speed for ${asset}
-- Distance to TP targets
+**CRITICAL OUTPUT RULE:**
+Provide A SINGLE time value (e.g., "~45m", "~2h").
+DO NOT provide a range (e.g., "1-2 hours").
 
 ---
 
@@ -150,7 +151,7 @@ Provide single realistic estimate based on:
   "stopLoss": number (calculated with proper distance),
   "takeProfits": [TP1, TP2, TP3] (calculated using R:R ${rrRatio}),
   
-  "expectedDuration": "Single time estimate (e.g., ~45m, ~2h, ~8h)",
+  "expectedDuration": "Single time estimate (e.g., ~45m, ~2h)",
   "timeframeRationale": "Why this duration based on chart timeframe and volatility",
   
   "reasoning": [
@@ -174,7 +175,7 @@ Provide single realistic estimate based on:
   "economicEvents": [
     { "name": "Event Name", "date": "YYYY-MM-DD HH:MM", "impact": "High/Medium/Low" }
   ],
-  "sources": []
+  "sources": [{"uri": "Full URL", "title": "Page Title"}]
 }
 `;
 };
@@ -185,7 +186,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         
         const promptText = AI_TRADING_PLAN(
           request.riskRewardRatio, 
-          request.asset || ""
+          request.asset || "",
+          request.learnedStrategies
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -241,6 +243,21 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         
         const data = JSON.parse(text.substring(start, end + 1));
 
+        // Extract Grounding Metadata (Real Search Results)
+        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        const groundingSources = groundingChunks
+            .filter((chunk: any) => chunk.web?.uri && chunk.web?.title)
+            .map((chunk: any) => ({
+                uri: chunk.web.uri,
+                title: chunk.web.title
+            }));
+        
+        // Merge with JSON provided sources (prefer grounding sources for accuracy)
+        // We put grounding sources last to ensure they are visible, or first if we want to prioritize them.
+        // Let's combine and deduplicate.
+        const combinedSources = [...(data.sources || []), ...groundingSources];
+        const uniqueSources = Array.from(new Map(combinedSources.map((s: any) => [s.uri, s])).values());
+
         // Sanitization
         if (data.confidence && data.confidence > 0 && data.confidence <= 1) {
             data.confidence = Math.round(data.confidence * 100);
@@ -275,7 +292,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             invalidationScenario: data.invalidationScenario || "Structure break",
             sentiment: data.sentiment || { score: 50, summary: "Neutral" },
             economicEvents: safeEconomicEvents,
-            sources: data.sources || [],
+            sources: uniqueSources, // Use the verified sources
             
             // Enhanced fields passed through for logging/storage, 
             // even if not displayed by current UI

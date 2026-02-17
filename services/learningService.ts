@@ -3,6 +3,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { executeLaneCall, CHAT_POOL, CHAT_MODELS, runWithModelFallback } from './retryUtils';
 
 const STORAGE_KEY = 'greyalpha_automl_stats';
+const STRATEGIES_KEY = 'greyalpha_learned_strategies';
 const MAX_SESSIONS_PER_DAY = 2;
 
 interface DailyStats {
@@ -43,6 +44,24 @@ export const canLearnMoreToday = () => {
     return stats.count < stats.maxForDay;
 };
 
+export const getLearnedStrategies = (): string[] => {
+    try {
+        const stored = localStorage.getItem(STRATEGIES_KEY);
+        return stored ? JSON.parse(stored) : [];
+    } catch {
+        return [];
+    }
+};
+
+const saveStrategy = (strategy: string) => {
+    const current = getLearnedStrategies();
+    // Keep unique and limit to latest 20 to avoid context bloat
+    if (!current.includes(strategy)) {
+        const updated = [strategy, ...current].slice(0, 20);
+        localStorage.setItem(STRATEGIES_KEY, JSON.stringify(updated));
+    }
+};
+
 export const performAutoLearning = async (): Promise<string | null> => {
     if (!canLearnMoreToday()) return null;
 
@@ -54,14 +73,16 @@ export const performAutoLearning = async (): Promise<string | null> => {
             const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
                 ai.models.generateContent({
                     model: modelId,
-                    contents: "Discover a new actionable SMC/ICT trading rule. Concise text output.",
+                    contents: "Discover a new actionable SMC/ICT trading rule or insight based on recent market behavior. Output strictly the rule in one concise sentence.",
                     config: { tools: [{ googleSearch: {} }], temperature: 0.7 },
                 })
             );
             
-            return response.text?.trim() || null;
+            const strategy = response.text?.trim() || null;
+            if (strategy) {
+                saveStrategy(strategy);
+            }
+            return strategy;
         }, CHAT_POOL);
     } catch { return null; }
 };
-
-export const getLearnedStrategies = () => [];

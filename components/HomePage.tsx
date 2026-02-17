@@ -12,6 +12,8 @@ import { RiskCalculator } from './RiskCalculator';
 import { CheatSheet } from './CheatSheet';
 import { SettingsModal } from './SettingsModal';
 import { PacificTimeClock } from './PacificTimeClock';
+import { resetNeuralLanes } from '../services/retryUtils';
+import { getLearnedStrategies } from '../services/learningService';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -59,6 +61,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
         setAnalysisCount(0);
     }, []);
 
+    const handleReconnect = () => {
+        resetNeuralLanes(); // Fixes "Failed to fetch" by clearing retry blocks
+        setError(null);
+    };
+
     const handleGenerateSignal = useCallback(async (requestData: Omit<AnalysisRequest, 'userSettings' | 'globalContext' | 'learnedStrategies'>, primaryImageFile: File) => {
         setIsLoading(true);
         setError(null);
@@ -78,6 +85,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             const fullRequest: AnalysisRequest = {
                 ...requestData,
                 userSettings,
+                learnedStrategies: getLearnedStrategies(),
             };
 
             const data = await generateTradingSignal(fullRequest);
@@ -232,7 +240,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                                  <div className="min-h-[400px] flex flex-col items-center justify-center relative z-10">
                                     <ErrorMessage message={error} />
                                     <button
-                                        onClick={() => setError(null)}
+                                        onClick={handleReconnect}
                                         className="mt-6 px-6 py-2.5 text-xs font-black uppercase tracking-widest text-white bg-red-600 rounded-xl hover:bg-red-500 transition-all shadow-lg hover:shadow-red-500/30"
                                     >
                                         Reconnect Lane

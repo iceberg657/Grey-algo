@@ -71,6 +71,15 @@ function isThrottled(key: string): boolean {
 }
 
 /**
+ * Manually reset the cooldown map. 
+ * Used when the user clicks "Reconnect Lane" to force a fresh retry.
+ */
+export function resetNeuralLanes() {
+    cooldownMap.clear();
+    console.log("Neural Lanes (API Keys) have been manually reset.");
+}
+
+/**
  * Executes a call by rotating through API keys in a pool.
  * If a key hits 429, it goes to the Penalty Box.
  */

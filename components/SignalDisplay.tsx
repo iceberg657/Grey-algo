@@ -96,13 +96,15 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
 };
 
 const EventCard: React.FC<{ event: EconomicEvent }> = ({ event }) => {
-    const impactColors = {
-        High: 'bg-red-500/20 text-red-300 border-red-500/50',
-        Medium: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50',
-        Low: 'bg-blue-500/20 text-blue-300 border-blue-500/50',
-    };
+    const impact = event.impact.toLowerCase();
+    const impactColor = impact.includes('high') 
+        ? 'bg-red-500/20 text-red-300 border-red-500/50' 
+        : impact.includes('medium') 
+            ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50' 
+            : 'bg-blue-500/20 text-blue-300 border-blue-500/50';
+
     return (
-        <div className={`p-3 rounded-lg border ${impactColors[event.impact]} flex justify-between items-center shadow-md animate-fade-in`}>
+        <div className={`p-3 rounded-lg border ${impactColor} flex justify-between items-center shadow-md animate-fade-in`}>
             <div>
                 <p className="font-bold text-xs sm:text-sm tracking-tight">{event.name}</p>
                 <p className="text-[10px] opacity-70 mt-0.5 font-mono">{new Date(event.date).toLocaleString()}</p>
@@ -189,6 +191,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
         ? { label: "High Probability", color: "text-green-400" } 
         : { label: "Medium Probability", color: "text-yellow-400" };
 
+    const hasEconomicEvents = Array.isArray(data.economicEvents) && data.economicEvents.length > 0;
+    const hasSentiment = !!data.sentiment;
+
     return (
         <div className="text-sm max-w-full overflow-hidden relative">
             <header className="flex flex-wrap justify-between items-center mb-8 gap-4 opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
@@ -268,9 +273,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             {/* INTEGRATED QUANT METRICS SECTION */}
             <Section title="Quant Execution Metrics" delay="1000ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
                 <div className="bg-gray-100 dark:bg-slate-800/50 rounded-2xl border border-gray-200 dark:border-white/5 p-6 shadow-xl relative overflow-hidden font-mono">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 gap-6">
                         
-                        {/* Left Column: Tactical Array */}
+                        {/* Tactical Array (Full Width since Position Sizing is removed) */}
                         <div className="space-y-4">
                             <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Tactical Array</h4>
                             
@@ -285,35 +290,23 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                             </div>
                             
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-blue-500 uppercase">Calculated R:R</span>
-                                <span className="text-gray-800 dark:text-white font-bold">{data.calculatedRR || data.riskRewardRatio || "1:0.00"}</span>
-                            </div>
-                        </div>
-
-                        {/* Right Column: Position Sizing */}
-                        <div className="bg-gray-200/50 dark:bg-slate-900/50 p-6 rounded-xl border border-gray-300 dark:border-white/10 shadow-inner">
-                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-6 text-center">Position Sizing</h4>
-                            
-                            <div className="text-center mb-6">
-                                <span className="block text-xs text-gray-500 dark:text-gray-400 uppercase font-semibold">Execution Size</span>
-                                <span className="block text-5xl font-bold text-blue-500 dark:text-blue-400 my-2">
-                                    {data.formattedLotSize || "CALC"}
-                                    <span className="text-lg font-medium text-gray-400 ml-2">Lots</span>
-                                </span>
+                                <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
+                                <span className="text-gray-800 dark:text-white font-bold">{data.riskRewardRatio || "1:2"}</span>
                             </div>
                             
-                            <div className="h-px bg-gray-300 dark:bg-white/10 w-full mb-4"></div>
-                            
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Risk Amount</span>
+                            {data.riskAmount > 0 && (
+                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">Est. Risk</span>
                                     <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
                                 </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Max Potential</span>
+                            )}
+                            
+                            {data.totalPotentialProfit > 0 && (
+                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">Est. Potential</span>
                                     <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -364,19 +357,19 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </Section>
             </div>
 
-            {(data.sentiment || (data.economicEvents && data.economicEvents.length > 0)) && (
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                    {data.sentiment && (
+            {(hasSentiment || hasEconomicEvents) && (
+                 <div className={`grid grid-cols-1 ${hasSentiment && hasEconomicEvents ? 'md:grid-cols-2' : ''} gap-6 mt-4`}>
+                    {hasSentiment && (
                          <Section title="Structural Bias" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></svg>}>
-                            <div className="bg-white/5 p-5 rounded-2xl border border-white/5 shadow-inner">
-                                <SentimentGauge score={data.sentiment.score} summary={data.sentiment.summary} />
+                            <div className="bg-white/5 p-5 rounded-2xl border border-white/5 shadow-inner h-full flex flex-col justify-center">
+                                <SentimentGauge score={data.sentiment!.score} summary={data.sentiment!.summary} />
                             </div>
                          </Section>
                     )}
-                     {Array.isArray(data.economicEvents) && data.economicEvents.length > 0 && (
+                     {hasEconomicEvents && (
                         <Section title="Market Catalysts" delay="1500ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" /></svg>}>
                             <div className="space-y-3">
-                                {data.economicEvents.map((event, i) => <EventCard key={i} event={event} />)}
+                                {data.economicEvents!.map((event, i) => <EventCard key={i} event={event} />)}
                             </div>
                         </Section>
                      )}
@@ -389,7 +382,14 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                         {data.sources.map((source, i) => (
                             <li key={i} className="flex items-start bg-black/20 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 transition-all group overflow-hidden shadow-sm">
                                 <span className="mr-4 text-gray-500 flex-shrink-0 font-mono font-black">[{i+1}]</span>
-                                <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-400 group-hover:text-blue-300 truncate block flex-1 text-xs sm:text-sm font-bold tracking-tight">{source.title}</a>
+                                <div className="flex-1 overflow-hidden">
+                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-400 group-hover:text-blue-300 truncate block text-xs sm:text-sm font-bold tracking-tight mb-1">
+                                        {source.title || "External Source"}
+                                    </a>
+                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-500 hover:text-gray-400 truncate block font-mono">
+                                        {source.uri}
+                                    </a>
+                                </div>
                             </li>
                         ))}
                     </ul>
