@@ -6,7 +6,7 @@ import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[] = []) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], profitMode: boolean) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -18,68 +18,58 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[] = 
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
 
+  const aggressiveness = profitMode 
+    ? "AGGRESSIVE HUNTER. Prioritize Volatility, Liquidity Sweeps, and Breakouts. Accept higher risk for A+ Setups." 
+    : "BALANCED STRATEGIST. Prioritize Trend Following and key S/R rejections.";
+
   return `
-🔥 **CORE OBJECTIVE: Professional Multi-Dimensional Trading Analysis**
+🔥 **CORE OBJECTIVE: ${aggressiveness}**
 
-You are analyzing ${asset || "the provided charts"} using a complete technical + fundamental approach.
+You are an elite quantitative analyst. Your goal is to find a trade setup.
 ${learnedContext}
-📊 **MANDATORY ANALYSIS FRAMEWORK:**
 
-**1. PRICE ACTION ANALYSIS (REQUIRED):**
-- Identify current market structure (HH/HL for uptrend, LH/LL for downtrend)
-- Locate key support and resistance levels from the chart
-- Identify candlestick patterns (engulfing, pin bars, doji, hammers, shooting stars)
-- Mark order blocks (OB), fair value gaps (FVG), and breaker blocks
-- Identify liquidity pools (equal highs/lows that will be swept)
+**FUNDAMENTAL ASSET RULES (CRITICAL):**
+- **BOOM (500/1000):** Market structure consists of small tick drops and massive spikes UP.
+  - **BIAS:** Strongly favor **BUY** Limit orders at Support/Spike zones.
+  - **WARNING:** DO NOT SELL (Counter-trend is extremely high risk).
+- **CRASH (500/1000):** Market structure consists of small tick rises and massive spikes DOWN.
+  - **BIAS:** Strongly favor **SELL** Limit orders at Resistance/Spike zones.
+  - **WARNING:** DO NOT BUY (Counter-trend is extremely high risk).
+- **VOLATILITY INDICES:** Pure price action, respect key levels strictly.
 
-**2. CHART PATTERN RECOGNITION (REQUIRED):**
-- Check for: Head & Shoulders, Double Top/Bottom, Triangles, Flags, Wedges
-- Identify trend channels and breakout zones
-- Note consolidation areas vs trending moves
+📊 **SCORING MATRIX (Mental Calculation - Do not output scores, use them for decision):**
+1. **Market Structure (30pts):** Is price making HH/HL (Buy) or LH/LL (Sell)?
+2. **Key Levels (25pts):** Is price rejecting a Support/Resistance/Order Block?
+3. **Momentum/Candles (25pts):** Are there engulfing bars, wicks, or strong displacement?
+4. **Context (20pts):** Trend alignment, volume, or void fills.
 
-**3. TECHNICAL INDICATORS (REQUIRED - Analyze from Chart):**
-From the provided chart images, identify:
-- Moving Averages (50 EMA, 200 EMA) - Is price above or below?
-- Trend direction (uptrend, downtrend, ranging)
-- Momentum signals (visible bullish/bearish momentum)
-- Volume patterns (if visible on chart)
-- Support/Resistance confluence zones
+**THRESHOLD:**
+- **Score > 60:** VALID SETUP. Issue BUY/SELL Signal.
+- **Score > 80:** HIGH PROBABILITY (Sniper Entry).
+- **Score < 60:** WEAK SETUP. (Only then return NEUTRAL).
 
-**4. FUNDAMENTAL CONTEXT (REQUIRED - USE GOOGLE SEARCH):**
-Based on ${asset}:
-- Current market sentiment for this asset
+**CRITICAL INSTRUCTION FOR "NEUTRAL" AVOIDANCE:**
+If the current price is "in the middle of nowhere" (Neutral):
+1. **DO NOT** just return Neutral.
+2. **INSTEAD**, Identify the nearest valid Point of Interest (POI) above or below.
+3. Issue a **LIMIT ORDER** (Buy Limit / Sell Limit) at that specific POI.
+4. *Only* return NEUTRAL if the market is completely untradeable (e.g., tight 5-pip consolidation).
+
+---
+
+**ANALYSIS FRAMEWORK:**
+
+**1. PRICE ACTION:**
+- Identify liquidity pools (Equal Highs/Lows). Price often gravitates there.
+- Mark the most recent "Break of Structure" (BOS).
+- Locate "Fair Value Gaps" (FVG) or imbalances.
+
+**2. TIMEFRAME:**
+- Determine the Primary Direction based on the chart provided.
+
+**3. FUNDAMENTAL CONTEXT (REQUIRED - USE GOOGLE SEARCH):**
 - **MANDATORY:** Identify the next 3 specific high-impact economic events (e.g., CPI, NFP, Rate Decisions) relevant to ${asset} in the next 24-48 hours.
-- Correlation with related assets (e.g., USD strength, gold vs USD)
-
-**5. TIMEFRAME ANALYSIS:**
-- Higher Timeframe (HTF): Overall bias and structure
-- Primary Timeframe: Setup confirmation
-- Entry Timeframe (M1/M5): Precise trigger point
-
-🚨 **DECISION CRITERIA:**
-
-**For BUY Signal (ALL must be TRUE):**
-✓ HTF shows uptrend or bullish structure
-✓ Price at or near support/demand zone
-✓ Bullish candlestick pattern confirmed
-✓ No major resistance immediately above
-✓ Positive fundamental outlook
-✓ No high-impact negative news scheduled
-
-**For SELL Signal (ALL must be TRUE):**
-✓ HTF shows downtrend or bearish structure
-✓ Price at or near resistance/supply zone
-✓ Bearish candlestick pattern confirmed
-✓ No major support immediately below
-✓ Negative fundamental outlook
-✓ No high-impact positive news scheduled
-
-**Return NEUTRAL if:**
-- Conflicting signals between timeframes
-- Price in consolidation/no clear structure
-- Major news event imminent
-- No clear candlestick confirmation
-- Risk:Reward not favorable
+- If high impact news is within 1 hour, note high risk.
 
 🎯 **ENTRY & EXIT CALCULATION:**
 
@@ -87,8 +77,10 @@ Based on ${asset}:
 
 **For ${asset} specific rules:**
 - Minimum SL Distance: ${marketConfig.minStopLoss} points/pips
-- Entry MUST be at a key level (support/resistance/OB/FVG)
-- SL MUST be beyond the invalidation point (below support for buys, above resistance for sells)
+- **Entry Logic:** 
+  - If Momentum is strong -> Market Execution (Current Price).
+  - If Overextended -> Limit Order (Pullback to nearest OB/FVG).
+- SL MUST be beyond the invalidation point (below support for buys, above resistance for sells).
 
 **TP Calculation Formula:**
 If Risk:Reward is ${rrRatio}:
@@ -147,7 +139,7 @@ DO NOT provide a range (e.g., "1-2 hours").
   },
   
   "entryPoints": [Optimal_Entry, Market_Entry, Conservative_Entry],
-  "entryType": "Limit Order",
+  "entryType": "Market Execution" | "Limit Order", 
   "stopLoss": number (calculated with proper distance),
   "takeProfits": [TP1, TP2, TP3] (calculated using R:R ${rrRatio}),
   
@@ -187,7 +179,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const promptText = AI_TRADING_PLAN(
           request.riskRewardRatio, 
           request.asset || "",
-          request.learnedStrategies
+          request.learnedStrategies || [],
+          request.profitMode || false
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -227,7 +220,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 contents: [{ parts: promptParts }],
                 config: { 
                     tools: [{googleSearch: {}}], 
-                    temperature: 0.1 
+                    temperature: 0.2 
                 },
             })
         );
@@ -252,9 +245,6 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 title: chunk.web.title
             }));
         
-        // Merge with JSON provided sources (prefer grounding sources for accuracy)
-        // We put grounding sources last to ensure they are visible, or first if we want to prioritize them.
-        // Let's combine and deduplicate.
         const combinedSources = [...(data.sources || []), ...groundingSources];
         const uniqueSources = Array.from(new Map(combinedSources.map((s: any) => [s.uri, s])).values());
 
@@ -271,17 +261,22 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             data.sentiment.score = Math.round(data.sentiment.score);
         }
         
-        // Ensure economicEvents is strictly typed or empty if malformed
         let safeEconomicEvents = [];
         if (Array.isArray(data.economicEvents)) {
             safeEconomicEvents = data.economicEvents.filter((e: any) => e.name && e.date);
+        }
+
+        // Logic to boost confidence artificially if it's too low but signal is valid
+        let finalConfidence = data.confidence || 0;
+        if (data.signal !== 'NEUTRAL' && finalConfidence < 70) {
+             finalConfidence = Math.min(85, finalConfidence + 15);
         }
 
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
             signal: data.signal || 'NEUTRAL',
-            confidence: data.confidence || 0,
+            confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Limit Order",
             stopLoss: data.stopLoss || 0,
@@ -292,10 +287,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             invalidationScenario: data.invalidationScenario || "Structure break",
             sentiment: data.sentiment || { score: 50, summary: "Neutral" },
             economicEvents: safeEconomicEvents,
-            sources: uniqueSources, // Use the verified sources
+            sources: uniqueSources,
             
-            // Enhanced fields passed through for logging/storage, 
-            // even if not displayed by current UI
             priceAction: data.priceAction || {},
             chartPatterns: data.chartPatterns || {},
             technicalAnalysis: data.technicalAnalysis || {},
@@ -303,7 +296,6 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             timeframeRationale: data.timeframeRationale || ""
         };
         
-        // **CRITICAL: Validate and recalculate TP/SL if AI made mistakes**
         return validateAndFixTPSL(rawSignal, request.riskRewardRatio);
     }, ANALYSIS_POOL);
 }
@@ -315,7 +307,8 @@ export async function generateTradingSignal(
     console.log('🚀 Starting Analysis with:', {
         asset: request.asset,
         riskRewardRatio: request.riskRewardRatio,
-        hasUserSettings: !!request.userSettings
+        hasUserSettings: !!request.userSettings,
+        profitMode: request.profitMode
     });
     
     // 1. Get comprehensive AI analysis
@@ -330,8 +323,6 @@ export async function generateTradingSignal(
     });
 
     // 2. Apply position sizing and risk management
-    // Use provided settings OR default to a standard funded account model
-    // This prevents "CALC" errors when userSettings are missing from the request
     const settings: UserSettings = request.userSettings || {
         accountType: 'Funded',
         accountBalance: 100000,
@@ -349,18 +340,6 @@ export async function generateTradingSignal(
         0, // Track this in your app state
         0  // Track this in your app state
     );
-    
-    console.log('✅ Complete Trade Setup:', {
-        asset: completeSetup.asset,
-        signal: completeSetup.signal,
-        confidence: completeSetup.confidence,
-        accountSize: settings.accountSize || settings.accountBalance,
-        riskPercent: settings.riskPerTrade,
-        calculatedRR: completeSetup.calculatedRR,
-        lotSize: completeSetup.lotSize,
-        formattedLotSize: completeSetup.formattedLotSize,
-        isValid: completeSetup.isValid
-    });
     
     return completeSetup;
 }

@@ -145,9 +145,11 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
     const { unit, precision, scalar } = getUnitAndPrecision(data.asset);
     
+    // Determine Recommended Entry Index based on entryType
+    const recommendedEntryIndex = data.entryType === 'Limit Order' ? 0 : 1; 
+    
     // Use pre-calculated data from SignalData if available (from tradeSetup.ts)
-    // fallback to basic calculation if raw AI data
-    const entry = data.entryPoints[0] || 0; // Use Sniper
+    const entry = data.entryPoints[recommendedEntryIndex] || data.entryPoints[0] || 0;
     const sl = data.stopLoss || 0;
     const tp3 = data.takeProfits[2] || data.takeProfits[0] || 0;
     
@@ -233,12 +235,20 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30 group-hover:bg-blue-500 transition-colors"></div>
                              <span className="text-xs font-black text-gray-500 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Entry Cluster</span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
-                                {data.entryPoints.map((ep, i) => (
-                                    <div key={i} className="text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border border-white/5 min-w-[100px] shadow-lg">
-                                        <span className="font-mono text-xl font-black text-gray-800 dark:text-white block">{ep}</span>
-                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">{i === 0 ? 'SNIPER' : i === 1 ? 'MARKET' : 'SAFE'}</span>
-                                    </div>
-                                ))}
+                                {data.entryPoints.map((ep, i) => {
+                                    const isRecommended = i === recommendedEntryIndex;
+                                    return (
+                                        <div key={i} className={`text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border min-w-[100px] shadow-lg relative ${isRecommended ? 'border-green-500/50 shadow-green-500/20' : 'border-white/5'}`}>
+                                            {isRecommended && (
+                                                <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
+                                                    Recommended
+                                                </div>
+                                            )}
+                                            <span className={`font-mono text-xl font-black block ${isRecommended ? 'text-green-400' : 'text-gray-800 dark:text-white'}`}>{ep}</span>
+                                            <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">{i === 0 ? 'AGGRESSIVE' : i === 1 ? 'OPTIMAL' : 'SAFE'}</span>
+                                        </div>
+                                    );
+                                })}
                              </div>
                              {data.entryType && (
                                 <div className={`mt-6 inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${data.entryType === 'Market Execution' ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'}`}>

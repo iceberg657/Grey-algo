@@ -3,14 +3,22 @@ interface AssetConfig {
     contractSize: number;
     pipValue: number; // Value of 1 pip/point for 1 standard lot/contract
     decimals: number;
-    category: 'forex' | 'indices' | 'crypto' | 'metals';
+    category: 'forex' | 'indices' | 'crypto' | 'metals' | 'synthetics';
 }
 
 export function detectAssetConfig(asset: string): AssetConfig {
     const symbol = asset.toUpperCase().replace(/[^A-Z0-9]/g, '');
     
+    // Synthetics (Deriv)
+    if (symbol.includes('BOOM') || symbol.includes('CRASH')) {
+        return { contractSize: 1, pipValue: 1, decimals: 2, category: 'synthetics' }; // 1 Lot = $1 per point usually
+    }
+    if (symbol.startsWith('V') && (symbol.includes('75') || symbol.includes('100') || symbol.includes('50') || symbol.includes('25') || symbol.includes('10'))) {
+         return { contractSize: 1, pipValue: 1, decimals: 2, category: 'synthetics' };
+    }
+
     if (symbol.includes('XAU') || symbol.includes('GOLD')) {
-        return { contractSize: 100, pipValue: 1, decimals: 2, category: 'metals' }; // 1 lot = 100oz, $1 move = $100 PnL
+        return { contractSize: 100, pipValue: 1, decimals: 2, category: 'metals' }; // 1 lot = 100oz
     }
     if (symbol.includes('BTC')) {
         return { contractSize: 1, pipValue: 1, decimals: 2, category: 'crypto' }; // 1 lot = 1 BTC
@@ -48,19 +56,19 @@ export function calculatePositionSize(
     const riskAmount = accountSize * (riskPercentage / 100);
     const priceDifference = Math.abs(entryPrice - stopLoss);
 
-    if (priceDifference === 0) {
-        return { lotSize: 0, riskAmount, contractSize: config.contractSize, isValid: false, errorMessage: "Invalid Stop Loss (0 dist)" };
+    // Safety: Prevent division by zero or extremely small numbers that blow up calculation
+    if (priceDifference < 0.0000001) {
+        return { lotSize: 0, riskAmount, contractSize: config.contractSize, isValid: false, errorMessage: "Invalid Stop Loss (Too close to Entry)" };
     }
 
     // Standard Formula: Lots = Risk / (Distance * ContractSize)
-    // Note: For JPY pairs, pip value logic is handled by raw price difference * contract size usually works if currency matches account
-    // Assuming USD account for simplicity
-    
     let rawLots = riskAmount / (priceDifference * config.contractSize);
     
-    // Safety caps
-    if (rawLots < 0.01) rawLots = 0.01;
-    if (rawLots > 100) rawLots = 100; // Cap for safety
+    // Safety caps based on category
+    if (config.category === 'crypto' && rawLots < 0.001) rawLots = 0.001;
+    else if (rawLots < 0.01) rawLots = 0.01;
+    
+    if (rawLots > 1000) rawLots = 1000; // Cap for safety against bad data
 
     return {
         lotSize: rawLots,
@@ -85,6 +93,6 @@ export function calculatePnL(
 export function formatLotSize(lots: number, asset: string): string {
     const config = detectAssetConfig(asset);
     if (config.category === 'crypto') return lots.toFixed(3);
-    if (config.category === 'indices') return lots.toFixed(2);
+    if (config.category === 'indices' || config.category === 'synthetics') return lots.toFixed(2);
     return lots.toFixed(2);
 }

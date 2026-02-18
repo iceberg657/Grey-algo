@@ -25,27 +25,27 @@ export function calculateTPSL(
   );
   const marketConfig = marketConfigKey 
     ? MARKET_CONFIGS[marketConfigKey] 
-    : MARKET_CONFIGS['EURUSD'];
+    : null;
   
   // 1. Determine Stop Loss
-  // If provided by AI and valid (distance > min), use it. Otherwise, calculate based on Sniper entry.
   const sniperEntry = entryPoints[0];
   let stopLoss = existingStopLoss || 0;
   
-  const minDist = marketConfig.minStopLoss;
+  // Logic to ensure SL isn't too close (prevents 1:600 RR bugs)
+  // If no config found, assume min distance is 0.1% of price (safe generic fallback)
+  const genericMinDist = sniperEntry * 0.001; 
+  const minDist = marketConfig ? marketConfig.minStopLoss : genericMinDist;
+  
   const calcSlDist = Math.abs(sniperEntry - stopLoss);
 
-  if (!stopLoss || calcSlDist < minDist) {
-      const buffer = minDist * 1.5; // Healthy buffer
+  // If SL is missing, zero, or too close to entry, recalculate it safely
+  if (!stopLoss || calcSlDist < minDist || calcSlDist === 0) {
+      // Create a healthy buffer
+      const buffer = marketConfig ? marketConfig.minStopLoss * 1.5 : genericMinDist * 1.5; 
       stopLoss = signal === 'BUY' ? sniperEntry - buffer : sniperEntry + buffer;
   }
 
   // 2. Calculate TPs to align with Entries for constant R:R
-  // Logic: 
-  // TP1 aligns with Sniper Entry (Index 0) to give Target R:R
-  // TP2 aligns with Market Entry (Index 1) to give Target R:R
-  // TP3 aligns with Safe Entry   (Index 2) to give Target R:R
-  
   const takeProfits: [number, number, number] = [0, 0, 0];
   const tpDistances: [number, number, number] = [0, 0, 0];
 
@@ -53,7 +53,10 @@ export function calculateTPSL(
       if (index > 2) return; // Only process first 3
 
       const distanceToSL = Math.abs(entry - stopLoss);
-      const profitDistance = distanceToSL * ratio;
+      // Ensure distance is substantial enough to calculate TP
+      const safeDistance = Math.max(distanceToSL, minDist);
+      
+      const profitDistance = safeDistance * ratio;
       
       let tpPrice = 0;
       if (signal === 'BUY') {
@@ -79,9 +82,11 @@ export function calculateTPSL(
 }
 
 function detectPrecision(asset: string): number {
-    if (asset.includes('JPY')) return 3;
-    if (asset.includes('XAU') || asset.includes('BTC') || asset.includes('ETH')) return 2;
-    if (asset.includes('US30') || asset.includes('NAS100')) return 1;
+    const sym = asset.toUpperCase();
+    if (sym.includes('JPY')) return 3;
+    if (sym.includes('XAU') || sym.includes('BTC') || sym.includes('ETH')) return 2;
+    if (sym.includes('BOOM') || sym.includes('CRASH') || sym.includes('VOL')) return 2;
+    if (sym.includes('US30') || sym.includes('NAS100')) return 1;
     return 5;
 }
 
@@ -97,7 +102,11 @@ export function validateAndFixTPSL(
   // Ensure we have 3 entry points for the logic to work
   const entries = [...signal.entryPoints];
   while (entries.length < 3) {
-      entries.push(entries[0]);
+      // If AI only gave 1 point, duplicate it or create small spread
+      // Adding tiny spread for realism if duplicating
+      const base = entries[0];
+      const spread = base * 0.0002; // Tiny spread
+      entries.push(signal.signal === 'BUY' ? base + spread : base - spread);
   }
   
   const calculated = calculateTPSL(

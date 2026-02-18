@@ -17,6 +17,15 @@ export const MARKET_CONFIGS: Record<string, MarketConfig> = {
     'USDJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.08, tp1Distance: 0.20 },
     'XAUUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 1.5, tp1Distance: 3.0 }, // $1.50 Gold move
     'BTCUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 150, tp1Distance: 450 },
+    'ETHUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 10, tp1Distance: 30 },
     'US30': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 25, tp1Distance: 75 },
-    'NAS100': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 15, tp1Distance: 45 }
+    'NAS100': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 15, tp1Distance: 45 },
+    
+    // DERIV / SYNTHETICS
+    'BOOM500': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 5, tp1Distance: 15 },
+    'BOOM1000': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 5, tp1Distance: 15 },
+    'CRASH500': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 5, tp1Distance: 15 },
+    'CRASH1000': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 5, tp1Distance: 15 },
+    'V75': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 500, tp1Distance: 1500 }, // Volatility 75
+    'V100': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 200, tp1Distance: 600 }
 };
