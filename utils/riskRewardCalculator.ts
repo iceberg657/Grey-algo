@@ -7,78 +7,7 @@ interface TPSLCalculation {
   takeProfits: [number, number, number];
   slDistance: number;
   tpDistances: [number, number, number];
-}
-
-export function calculateTPSL(
-  entryPoints: number[],
-  signal: 'BUY' | 'SELL',
-  asset: string,
-  riskRewardRatio: string,
-  existingStopLoss?: number
-): TPSLCalculation {
-  
-  const [risk, reward] = riskRewardRatio.split(':').map(Number);
-  const ratio = (reward && risk) ? (reward / risk) : 2.0; // Default to 1:2 if parse fails
-  
-  const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
-    asset.toUpperCase().includes(k)
-  );
-  const marketConfig = marketConfigKey 
-    ? MARKET_CONFIGS[marketConfigKey] 
-    : null;
-  
-  // 1. Determine Stop Loss
-  const sniperEntry = entryPoints[0];
-  let stopLoss = existingStopLoss || 0;
-  
-  // Logic to ensure SL isn't too close (prevents 1:600 RR bugs)
-  // If no config found, assume min distance is 0.1% of price (safe generic fallback)
-  const genericMinDist = sniperEntry * 0.001; 
-  const minDist = marketConfig ? marketConfig.minStopLoss : genericMinDist;
-  
-  const calcSlDist = Math.abs(sniperEntry - stopLoss);
-
-  // If SL is missing, zero, or too close to entry, recalculate it safely
-  if (!stopLoss || calcSlDist < minDist || calcSlDist === 0) {
-      // Create a healthy buffer
-      const buffer = marketConfig ? marketConfig.minStopLoss * 1.5 : genericMinDist * 1.5; 
-      stopLoss = signal === 'BUY' ? sniperEntry - buffer : sniperEntry + buffer;
-  }
-
-  // 2. Calculate TPs to align with Entries for constant R:R
-  const takeProfits: [number, number, number] = [0, 0, 0];
-  const tpDistances: [number, number, number] = [0, 0, 0];
-
-  entryPoints.forEach((entry, index) => {
-      if (index > 2) return; // Only process first 3
-
-      const distanceToSL = Math.abs(entry - stopLoss);
-      // Ensure distance is substantial enough to calculate TP
-      const safeDistance = Math.max(distanceToSL, minDist);
-      
-      const profitDistance = safeDistance * ratio;
-      
-      let tpPrice = 0;
-      if (signal === 'BUY') {
-          tpPrice = entry + profitDistance;
-      } else {
-          tpPrice = entry - profitDistance;
-      }
-      
-      takeProfits[index] = Number(tpPrice.toFixed(detectPrecision(asset)));
-      tpDistances[index] = profitDistance;
-  });
-
-  // Fallback if less than 3 entries provided
-  if (takeProfits[1] === 0) takeProfits[1] = takeProfits[0];
-  if (takeProfits[2] === 0) takeProfits[2] = takeProfits[0];
-
-  return {
-    stopLoss: Number(stopLoss.toFixed(detectPrecision(asset))),
-    takeProfits,
-    slDistance: Math.abs(sniperEntry - stopLoss),
-    tpDistances
-  };
+  entryPoints: number[];
 }
 
 function detectPrecision(asset: string): number {
@@ -90,6 +19,111 @@ function detectPrecision(asset: string): number {
     return 5;
 }
 
+export function calculateTPSL(
+  entryPoints: number[],
+  signal: 'BUY' | 'SELL',
+  asset: string,
+  riskRewardRatio: string,
+  existingStopLoss?: number
+): TPSLCalculation {
+  
+  const precision = detectPrecision(asset);
+  const [risk, reward] = riskRewardRatio.split(':').map(Number);
+  const targetRatio = (reward && risk) ? (reward / risk) : 3.0;
+  
+  const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
+    asset.toUpperCase().includes(k)
+  );
+  const marketConfig = marketConfigKey 
+    ? MARKET_CONFIGS[marketConfigKey] 
+    : null;
+  
+  // 1. Validate & Fix Entries (Ensure they are distinct)
+  // Entry 0 = Aggressive (Current/Breakout)
+  // Entry 1 = Optimal (Standard Deviation / Retracement)
+  // Entry 2 = Safe (Deep Pullback)
+  
+  let validEntries = [...entryPoints];
+  // Ensure we have at least one valid entry
+  if (validEntries.length === 0 || !validEntries[0]) validEntries = [0, 0, 0]; // Will fail downstream if 0, handled by UI
+  
+  // Fill missing entries
+  if (validEntries.length < 3) {
+      while (validEntries.length < 3) validEntries.push(validEntries[0]);
+  }
+
+  // 2. Validate Stop Loss
+  let stopLoss = existingStopLoss || 0;
+  const baseEntry = validEntries[0];
+  
+  const genericMinDist = baseEntry * 0.0015; // 0.15% price min distance
+  const configMinDist = marketConfig ? marketConfig.minStopLoss : genericMinDist;
+  
+  let currentSlDist = Math.abs(baseEntry - stopLoss);
+
+  // If SL is invalid, too close, or on wrong side, Recalculate
+  const isSlValid = stopLoss > 0 && currentSlDist >= configMinDist;
+  const isSlCorrectSide = signal === 'BUY' ? stopLoss < baseEntry : stopLoss > baseEntry;
+
+  if (!isSlValid || !isSlCorrectSide) {
+      // Create SL based on ATR-like logic (using config or generic)
+      const buffer = configMinDist * 2.5; // Healthy breathing room
+      stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
+      currentSlDist = buffer;
+  }
+
+  // 3. ENFORCE DISTINCT ENTRIES (Fixing the Glitch)
+  // If entries are identical, create a "Standard Deviation" spread
+  // We use the SL distance as a proxy for volatility
+  const volatilityUnit = currentSlDist * 0.25; // 25% of SL distance
+
+  // Check if entries are too close (glitch detection)
+  if (Math.abs(validEntries[1] - validEntries[0]) < Number.EPSILON) {
+      if (signal === 'BUY') {
+          validEntries[1] = Number((validEntries[0] - volatilityUnit).toFixed(precision)); // Lower (better buy)
+          validEntries[2] = Number((validEntries[0] - (volatilityUnit * 2)).toFixed(precision)); // Lowest (best buy)
+      } else {
+          validEntries[1] = Number((validEntries[0] + volatilityUnit).toFixed(precision)); // Higher (better sell)
+          validEntries[2] = Number((validEntries[0] + (volatilityUnit * 2)).toFixed(precision)); // Highest (best sell)
+      }
+  }
+
+  // 4. Calculate Distinct Take Profits based on R:R
+  // We calculate TPs based on the *Optimal* entry (index 1) to be realistic, 
+  // but ensure they scale from the base.
+  
+  const takeProfits: [number, number, number] = [0, 0, 0];
+  const tpDistances: [number, number, number] = [0, 0, 0];
+  
+  // TP1 = 1R (Secure the bag)
+  // TP2 = Target Ratio (e.g., 3R)
+  // TP3 = Moonbag (e.g., 5R or Target + Standard Deviation extension)
+  
+  const rUnit = currentSlDist; 
+
+  const ratios = [1.0, targetRatio, targetRatio + 2.0]; // e.g. 1:1, 1:3, 1:5
+
+  ratios.forEach((r, idx) => {
+      const dist = rUnit * r;
+      let tpPrice = 0;
+      if (signal === 'BUY') {
+          tpPrice = baseEntry + dist;
+      } else {
+          tpPrice = baseEntry - dist;
+      }
+      takeProfits[idx] = Number(tpPrice.toFixed(precision));
+      tpDistances[idx] = dist;
+  });
+
+  return {
+    stopLoss: Number(stopLoss.toFixed(precision)),
+    takeProfits,
+    slDistance: currentSlDist,
+    tpDistances,
+    entryPoints: validEntries
+  };
+}
+
 export function validateAndFixTPSL(
   signal: Omit<SignalData, 'id' | 'timestamp'>,
   riskRewardRatio: string
@@ -99,27 +133,17 @@ export function validateAndFixTPSL(
     return signal; 
   }
   
-  // Ensure we have 3 entry points for the logic to work
-  const entries = [...signal.entryPoints];
-  while (entries.length < 3) {
-      // If AI only gave 1 point, duplicate it or create small spread
-      // Adding tiny spread for realism if duplicating
-      const base = entries[0];
-      const spread = base * 0.0002; // Tiny spread
-      entries.push(signal.signal === 'BUY' ? base + spread : base - spread);
-  }
-  
   const calculated = calculateTPSL(
-    entries,
+    signal.entryPoints,
     signal.signal as 'BUY' | 'SELL',
     signal.asset,
     riskRewardRatio,
-    signal.stopLoss // Pass existing SL to check validity
+    signal.stopLoss
   );
     
   return {
     ...signal,
-    entryPoints: entries,
+    entryPoints: calculated.entryPoints,
     stopLoss: calculated.stopLoss,
     takeProfits: calculated.takeProfits
   };
