@@ -293,7 +293,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     useEffect(() => {
         const heartbeat = setInterval(() => {
             if (timerStatus !== 'ACTIVE') fetchAssets(false);
-        }, 30 * 60 * 1000);
+        }, 60 * 60 * 1000); // Update every one hour
         return () => clearInterval(heartbeat);
     }, [fetchAssets, timerStatus]);
 
@@ -309,48 +309,6 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     return (
         <div className="bg-white/80 dark:bg-dark-card/90 backdrop-blur-2xl p-4 sm:p-8 rounded-2xl border-2 border-white/5 shadow-2xl mb-12">
             
-            {/* Neural Calibration Timer */}
-            <div className={`mb-8 rounded-2xl border-2 relative overflow-hidden transition-all duration-700 shadow-2xl ${isReady ? 'bg-green-500/10 border-green-500/50 shadow-[0_0_40px_rgba(34,197,94,0.3)]' : 'bg-black/60 border-white/5'}`}>
-                <div className="flex flex-col sm:flex-row items-center justify-between p-6 relative z-10 gap-6">
-                    <div className="flex items-center gap-5">
-                        <div className={`flex items-center justify-center w-16 h-16 rounded-2xl border-2 transition-all duration-500 ${isReady ? 'border-green-400 bg-green-500/20 animate-pulse scale-110' : 'border-blue-400/30 bg-blue-500/10'}`}>
-                            <svg xmlns="http://www.w3.org/2000/svg" className={`h-8 w-8 ${isReady ? 'text-green-400' : 'text-blue-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] mb-1 ${isReady ? 'text-green-400' : 'text-blue-400/70'}`}>
-                                SYSTEM STATUS
-                            </h3>
-                            <p className={`text-2xl font-black uppercase tracking-tight ${isReady ? 'text-white' : 'text-gray-400'}`}>
-                                {isReady ? 'ACTIVE' : 'STANDBY'}
-                            </p>
-                        </div>
-                    </div>
-
-                    <div className="flex items-center gap-8 bg-black/60 px-8 py-4 rounded-2xl border border-white/5 shadow-inner">
-                        <div className="text-center min-w-[120px]">
-                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">{nextKillzone.status === 'ACTIVE' ? 'SESSION' : 'NEXT SESSION'}</span>
-                            <span className={`font-mono text-3xl font-black ${isReady ? 'text-green-400 animate-pulse' : 'text-white'}`}>
-                                {nextKillzone.name}
-                            </span>
-                        </div>
-                        <div className="h-12 w-px bg-white/10"></div>
-                        <div className="text-center">
-                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">{nextKillzone.status === 'ACTIVE' ? 'STATUS' : 'IN'}</span>
-                            <span className="font-mono text-2xl font-black text-yellow-500">
-                                {nextKillzone.time}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-                {!isReady && (
-                    <div className="h-1 w-full bg-black/60 relative overflow-hidden">
-                        <div className="absolute inset-0 bg-blue-500/30 animate-shimmer"></div>
-                    </div>
-                )}
-            </div>
-
             <div className="mb-8">
                 <MarketTicker onAssetClick={onAssetSelect} />
             </div>
@@ -407,13 +365,13 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUpdatingSuggestions ? 'bg-cyan-400' : (isReady ? 'bg-green-400' : 'bg-gray-400')}`}></span>
                                 <span className={`relative inline-flex rounded-full h-4 w-4 ${isUpdatingSuggestions ? 'bg-cyan-500' : (isReady ? 'bg-green-500' : 'bg-gray-500')}`}></span>
                             </span>
-                            MARKET ANALYSIS
+                            TOP TRADED ASSETS
                         </h3>
                     </div>
                      <div className="text-right">
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Queue Sync</span>
+                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Update Cycle</span>
                         <span className={`font-mono text-xl font-black ${isUpdatingSuggestions ? 'text-cyan-400 animate-pulse' : (isReady ? 'text-green-400' : 'text-gray-500')}`}>
-                            {isUpdatingSuggestions ? 'BUSY' : (isReady ? 'OPTIMAL' : 'STANDBY')}
+                            {isUpdatingSuggestions ? 'REFRESHING' : 'HOURLY'}
                         </span>
                     </div>
                 </div>

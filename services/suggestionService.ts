@@ -5,7 +5,7 @@ import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MO
 import type { MomentumAsset } from '../types';
 
 const CACHE_KEY = 'greyquant_asset_suggestions';
-const CACHE_DURATION = 30 * 60 * 1000; // Standard 30-minute refresh cycle
+const CACHE_DURATION = 60 * 60 * 1000; // 1-hour refresh cycle
 
 const ALLOWED_ASSETS = `
 1. MAJOR FX: EURUSD, USDJPY, GBPUSD, USDCHF, AUDUSD
@@ -20,15 +20,16 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
-        **TASK:** You are a specialized Market Scanner. Identify the top 3 bullish and top 3 bearish currency pairs from the allowed list based on real-time momentum.
+        **TASK:** You are a specialized Market Scanner. Identify the top 3 bullish and top 3 bearish currency pairs from the allowed list that are being most actively traded at the start of the current trading day.
 
         **ALLOWED ASSET POOL:**
         ${ALLOWED_ASSETS}
 
         **CRITERIA:**
-        - Use Google Search to analyze the most recent price action (last 1-4 hours).
-        - **BULLISH:** Identify pairs showing strong upward momentum, breaking resistance, or in a clear uptrend.
-        - **BEARISH:** Identify pairs showing strong downward momentum, breaking support, or in a clear downtrend.
+        - Use Google Search to analyze the most recent price action and volume (last 1-4 hours).
+        - Focus on assets with the highest trading volume and activity at the start of the day.
+        - **BULLISH:** Identify pairs showing strong upward momentum or high-volume buying pressure.
+        - **BEARISH:** Identify pairs showing strong downward momentum or high-volume selling pressure.
         - Provide a concise, one-sentence reason for each selection.
 
         **JSON OUTPUT FORMAT:**
