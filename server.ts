@@ -7,7 +7,18 @@ async function startServer() {
 
   // API routes
   app.get('/api/config', (req, res) => {
-    res.json({ apiKey: process.env.API_KEY });
+    res.json({ 
+      apiKey: process.env.API_KEY || process.env.API_KEY_1,
+      keys: {
+        k1: process.env.API_KEY_1,
+        k2: process.env.API_KEY_2,
+        k3: process.env.API_KEY_3,
+        k4: process.env.API_KEY_4,
+        k5: process.env.API_KEY_5,
+        k6: process.env.API_KEY_6,
+        k7: process.env.API_KEY_7,
+      }
+    });
   });
 
   // Vite middleware for development

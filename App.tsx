@@ -131,18 +131,6 @@ const App: React.FC = () => {
         init();
     }, []);
 
-    useEffect(() => {
-        const init = async () => {
-            try {
-                await initializeApiKey();
-                setIsApiKeyInitialized(true);
-            } catch (e: any) {
-                setError(e.message);
-            }
-        };
-        init();
-    }, []);
-
     const navigateTo = useCallback((view: AppView) => {
         setAppView(view);
     }, []);
