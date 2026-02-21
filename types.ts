@@ -40,13 +40,13 @@ export interface AnalysisRequest {
     images: {
         higher?: ImagePart;
         primary: ImagePart;
-        entry?: ImagePart;
+
     };
     asset?: string;
     riskRewardRatio: string;
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
-    profitMode: boolean; // New field for strict filtering
+
     globalContext?: string;
     learnedStrategies?: string[];
     userSettings?: UserSettings;
@@ -90,7 +90,6 @@ export interface SignalData {
     entryType: 'Market Execution' | 'Limit Order'; // New field
     stopLoss: number;
     takeProfits: number[];
-    expectedDuration: string; // New field for time duration
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;
@@ -124,6 +123,12 @@ export interface SignalData {
     technicalAnalysis?: any;
     fundamentalContext?: any;
     timeframeRationale?: string;
+}
+
+export interface MomentumAsset {
+    symbol: string;
+    momentum: 'Bullish' | 'Bearish';
+    reason: string;
 }
 
 export interface AssetSuggestion {
@@ -161,7 +166,7 @@ export interface NewsArticle {
     date: string; // ISO 8601 format
 }
 
-export type TradingStyle = 'Scalp' | 'Short Term' | 'Day Trading';
+export type TradingStyle = 'Scalping (10 to 15min)' | 'Scalping (15 to 30min)' | 'Day Trading (1 to 2hrs)' | 'Day Trading (2 to 4hrs)';
 
 export interface ChatMessage {
     id: string;

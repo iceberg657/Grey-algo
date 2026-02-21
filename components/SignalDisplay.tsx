@@ -176,7 +176,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
             setTtsState('idle');
         } else {
-            const { asset, signal, stopLoss, takeProfits, reasoning, confidence, entryType, expectedDuration } = data;
+            const { asset, signal, stopLoss, takeProfits, reasoning, confidence, entryType } = data;
             let textToSpeak = `Blueprint for ${asset}. Operational bias ${signal}. `;
             textToSpeak += `Strategic confidence ${confidence} percent. Execution protocol ${entryType}. Stop loss ${stopLoss}. Primary target ${takeProfits[0]}. Reasoning: ${reasoning[0]}`;
             setTtsState('waiting');
@@ -225,7 +225,6 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  <InfoCard label="Bias" value={data.signal} isSignal signalType={data.signal} className="col-span-2 md:col-span-1" delay="100ms" />
                  <InfoCard label="Precision" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
                  <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
-                 <InfoCard label="Trade Horizon" value={data.expectedDuration} valueClassName="text-blue-500 dark:text-blue-400" subValue="Estimated Hold" delay="400ms" />
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -235,7 +234,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30 group-hover:bg-blue-500 transition-colors"></div>
                              <span className="text-xs font-black text-gray-500 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Entry Cluster</span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
-                                {data.entryPoints.map((ep, i) => {
+                                {data.entryPoints.slice(0, 1).map((ep, i) => {
                                     const isRecommended = i === recommendedEntryIndex;
                                     return (
                                         <div key={i} className={`text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border min-w-[100px] shadow-lg relative ${isRecommended ? 'border-green-500/50 shadow-green-500/20' : 'border-white/5'}`}>
@@ -245,7 +244,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                                 </div>
                                             )}
                                             <span className={`font-mono text-xl font-black block ${isRecommended ? 'text-green-400' : 'text-gray-800 dark:text-white'}`}>{ep}</span>
-                                            <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">{i === 0 ? 'AGGRESSIVE' : i === 1 ? 'OPTIMAL' : 'SAFE'}</span>
+                                            <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">ENTRY</span>
                                         </div>
                                     );
                                 })}
@@ -264,7 +263,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                              <div className="absolute top-0 left-0 w-full h-1 bg-green-500/30 group-hover:bg-green-500 transition-colors"></div>
                              <span className="text-xs font-black text-gray-500 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Liquidation Array</span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
-                                {data.takeProfits.map((tp, i) => (
+                                {data.takeProfits.slice(0, 2).map((tp, i) => (
                                     <div key={i} className="text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border border-white/5 min-w-[100px] shadow-lg">
                                         <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{tp}</span>
                                         <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">TARGET 0{i + 1}</span>

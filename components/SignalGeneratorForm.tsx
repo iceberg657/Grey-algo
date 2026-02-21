@@ -179,29 +179,19 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
 interface SignalGeneratorFormProps {
     onSubmit: (request: AnalysisRequest, primaryImageFile: File) => void;
     isLoading: boolean;
-    profitMode: boolean;
-    onProfitModeChange: (mode: boolean) => void;
+
 }
 
-export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading, profitMode, onProfitModeChange }) => {
+export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
-    const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[1]);
-    const [images, setImages] = useState<{ higher?: File, primary?: File, entry?: File }>({});
+    const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[0]);
+    const [images, setImages] = useState<{ higher?: File, primary?: File }>({});
     const [error, setError] = useState<string | null>(null);
 
-    useEffect(() => {
-        if (profitMode) {
-            document.body.classList.add('profit-mode');
-        } else {
-            document.body.classList.remove('profit-mode');
-        }
-        return () => {
-            document.body.classList.remove('profit-mode');
-        };
-    }, [profitMode]);
 
-    const handleFileChange = (id: 'higher' | 'primary' | 'entry', file: File | null) => {
+
+    const handleFileChange = (id: 'higher' | 'primary', file: File | null) => {
         setImages(prev => file ? { ...prev, [id]: file } : { ...prev, [id]: undefined });
     };
     
@@ -214,8 +204,8 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             return;
         }
 
-        if (isMultiDimensional && (!images.higher || !images.entry)) {
-             setError('For Multi-Dimensional Analysis, all three charts are required.');
+        if (isMultiDimensional && !images.higher) {
+             setError('For Multi-Dimensional Analysis, both charts are required.');
              return;
         }
 
@@ -226,7 +216,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
             if (isMultiDimensional) {
                 if (images.higher) imageParts.higher = await fileToImagePart(images.higher);
-                if (images.entry) imageParts.entry = await fileToImagePart(images.entry);
+
             }
             
             onSubmit({ 
@@ -234,7 +224,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 riskRewardRatio, 
                 tradingStyle,
                 isMultiDimensional,
-                profitMode
+
             }, images.primary);
 
         } catch(err) {
@@ -287,38 +277,17 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                         </span>
                     </div>
 
-                    {/* Profit Mode Toggle */}
-                    <div className={`flex items-center justify-center space-x-3 p-2 rounded-lg w-full sm:w-auto border transition-all duration-300 ${profitMode ? 'bg-yellow-500/10 border-yellow-500/50' : 'bg-gray-200 dark:bg-dark-bg/60 border-transparent'}`}>
-                        <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Standard</span>
-                        <label htmlFor="profit-mode-toggle" className="relative inline-flex items-center cursor-pointer">
-                            <input 
-                                type="checkbox" 
-                                id="profit-mode-toggle" 
-                                className="sr-only peer"
-                                checked={profitMode}
-                                onChange={() => onProfitModeChange(!profitMode)}
-                            />
-                            <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-yellow-500/50 dark:peer-focus:ring-yellow-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-yellow-500"></div>
-                        </label>
-                        <span className={`text-sm font-bold transition-colors flex items-center gap-1 ${profitMode ? 'text-yellow-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
-                            Profit Mode
-                            {profitMode && <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>}
-                        </span>
-                    </div>
+
                 </div>
-                {profitMode && (
-                    <p className="text-xs text-center text-yellow-600 dark:text-yellow-400 animate-fade-in font-medium">
-                        Strict filtering enabled: Trend Alignment • Liquidity Sweeps • No News • Optimal Time
-                    </p>
-                )}
+
             </div>
 
-            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-2 lg:grid-cols-3' : ''}`}>
+            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-2' : ''}`}>
                 {isMultiDimensional && (
                      <ImageUploader 
                         id="higher" 
                         title="Strategic View" 
-                        subtitle="Higher TF"
+                        subtitle="H4 / H1 Timeframe"
                         onFileChange={(file) => handleFileChange('higher', file)}
                         required={isMultiDimensional}
                      />
@@ -326,19 +295,11 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 <ImageUploader 
                     id="primary" 
                     title="Tactical View" 
-                    subtitle="Primary TF"
+                    subtitle="M15 / M5 Timeframe"
                     onFileChange={(file) => handleFileChange('primary', file)}
                     required
                 />
-                 {isMultiDimensional && (
-                    <ImageUploader 
-                        id="entry" 
-                        title="Execution View" 
-                        subtitle="Entry TF"
-                        onFileChange={(file) => handleFileChange('entry', file)}
-                        required={isMultiDimensional}
-                    />
-                 )}
+
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
@@ -377,9 +338,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     type="submit" 
                     disabled={isLoading}
                     className={`w-full text-white font-bold rounded-lg text-base px-5 py-3.5 text-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-4 focus:outline-none ${
-                        profitMode 
-                        ? 'bg-gradient-to-r from-yellow-600 to-orange-600 hover:from-yellow-500 hover:to-orange-500 focus:ring-yellow-500/50 shadow-[0_0_15px_rgba(234,179,8,0.3)]'
-                        : tradingStyle === 'Scalp'
+                        tradingStyle.includes('Scalping')
                             ? 'bg-red-600 hover:bg-red-500 focus:ring-red-500/50 animate-glowing-border-red' 
                             : 'bg-green-600 hover:bg-green-500 focus:ring-green-500/50'
                     }`}
@@ -390,12 +349,11 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            {profitMode ? 'Running Strict Analysis...' : 'Analyzing Chart...'}
+                            Analyzing Chart...
                         </>
                     ) : (
                         <>
-                            {profitMode && <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" /></svg>}
-                            {profitMode ? 'Find A+ Setup' : 'Analyze Chart'}
+                            Analyze Chart
                         </>
                     )}
                  </button>

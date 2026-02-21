@@ -6,7 +6,7 @@ import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], profitMode: boolean) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[]) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -18,9 +18,7 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], p
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
 
-  const aggressiveness = profitMode 
-    ? "AGGRESSIVE HUNTER. Prioritize Volatility, Liquidity Sweeps, and Breakouts. Accept higher risk for A+ Setups." 
-    : "BALANCED STRATEGIST. Prioritize Trend Following and key S/R rejections.";
+  const aggressiveness = "AGGRESSIVE HUNTER. Prioritize Volatility, Liquidity Sweeps, and Breakouts. Accept higher risk for A+ Setups.";
 
   return `
 🔥 **CORE OBJECTIVE: ${aggressiveness}**
@@ -56,12 +54,11 @@ ${learnedContext}
 ---
 
 📊 **SCORING MATRIX (Mental Calculation):**
-1.  **Market Structure (30pts):** Is price alignment valid? (e.g., Boom = Uptrend/Support).
-2.  **Standard Deviation (25pts):**
-    *   *Synthetics:* Is price at an extreme deviation (Bollinger Band squeeze or 2.5 SD)?
-    *   *Boom/Crash:* Is price "stretched" in the tick direction (ready to snap back/spike)?
-3.  **Key Levels (25pts):** Order Blocks, Breakers, Psychological numbers.
-4.  **Momentum (20pts):** Volume exhaustion candles (Pin bars, Dojis).
+1.  **Live Market Data (50% Weight):** Use Google Search to get real-time price action, order flow, and news sentiment for the asset. This is the most critical factor.
+2.  **Chart Analysis (50% Weight):**
+    *   **Market Structure (30pts):** Is price alignment valid on the provided charts?
+    *   **Key Levels (25pts):** Order Blocks, Breakers, FVGs identified on the charts.
+    *   **Momentum (20pts):** Volume exhaustion, candlestick patterns on the charts.
 
 **THRESHOLD:**
 - **Score > 60:** VALID SETUP. Issue BUY/SELL Signal.
@@ -108,8 +105,10 @@ If price is ranging or unclear:
 
 **Time Estimation:**
 - Synthetics move fast.
-- M1/M5 trades: ~15-30m.
-- H1 trades: ~2-4h.
+- Scalping (10 to 15min): Trades last minutes.
+- Scalping (15 to 30min): Trades last up to an hour.
+- Day Trading (1 to 2hrs): Trades last a few hours.
+- Day Trading (2 to 4hrs): Trades can last for a full session.
 
 ---
 
@@ -156,7 +155,6 @@ If price is ranging or unclear:
   "stopLoss": number,
   "takeProfits": [TP1, TP2, TP3],
   
-  "expectedDuration": "e.g., ~45m",
   "timeframeRationale": "Why this duration",
   
   "reasoning": [
@@ -187,8 +185,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const promptText = AI_TRADING_PLAN(
           request.riskRewardRatio, 
           request.asset || "",
-          request.learnedStrategies || [],
-          request.profitMode || false
+          request.learnedStrategies || []
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -211,15 +208,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             }}
         );
         
-        if (request.isMultiDimensional && request.images.entry) {
-            promptParts.push(
-                { text: "ENTRY CHART (Lower Timeframe for Precision Entry)" }, 
-                { inlineData: { 
-                    data: request.images.entry.data, 
-                    mimeType: request.images.entry.mimeType 
-                }}
-            );
-        }
+
 
         const response = await runWithModelFallback<GenerateContentResponse>(
             ANALYSIS_MODELS, 
@@ -289,7 +278,6 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             entryType: data.entryType || "Limit Order",
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
-            expectedDuration: data.expectedDuration || "Unknown",
             reasoning: data.reasoning || [],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Structure break",
@@ -316,7 +304,7 @@ export async function generateTradingSignal(
         asset: request.asset,
         riskRewardRatio: request.riskRewardRatio,
         hasUserSettings: !!request.userSettings,
-        profitMode: request.profitMode
+
     });
     
     // 1. Get comprehensive AI analysis

@@ -3,20 +3,34 @@
  * GreyAlpha Lane Orchestrator with Neural Cooldown & Model Cascading
  */
 
+let API_KEY: string | null = null;
+
+export async function initializeApiKey() {
+    if (API_KEY) return;
+    try {
+        const response = await fetch('/api/config');
+        const config = await response.json();
+        API_KEY = config.apiKey;
+    } catch (error) {
+        console.error('Failed to fetch API key from server:', error);
+        throw new Error('API key not available. Please check server configuration.');
+    }
+}
+
 const K = {
-    P: process.env.API_KEY || '',
-    K1: process.env.API_KEY_1 || '',
-    K2: process.env.API_KEY_2 || '',
-    K3: process.env.API_KEY_3 || '',
-    K4: process.env.API_KEY_4 || '',
-    K5: process.env.API_KEY_5 || '',
-    K6: process.env.API_KEY_6 || '',
-    K7: process.env.API_KEY_7 || ''
+    P: () => API_KEY || '',
+    K1: () => API_KEY || '',
+    K2: () => API_KEY || '',
+    K3: () => API_KEY || '',
+    K4: () => API_KEY || '',
+    K5: () => API_KEY || '',
+    K6: () => API_KEY || '',
+    K7: () => API_KEY || ''
 };
 
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4)
 // Models: 3.0 Pro -> 3.0 Flash -> 2.5 Pro -> 2.5 Flash -> 2.0 Flash
-export const ANALYSIS_POOL = [K.K1, K.K2, K.K3, K.K4].filter(k => !!k);
+export const ANALYSIS_POOL = [K.K1(), K.K2(), K.K3(), K.K4()].filter(k => !!k);
 export const ANALYSIS_MODELS = [
     'gemini-3-pro-preview',
     'gemini-3-flash-preview',
@@ -28,7 +42,7 @@ export const ANALYSIS_MODELS = [
 // 2. CHAT & NEWS (Key 5)
 // Models: 2.5 Pro -> 2.5 Flash -> 2.0 Flash
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
-export const CHAT_POOL = [K.K5].filter(k => !!k);
+export const CHAT_POOL = [K.K5()].filter(k => !!k);
 export const CHAT_MODELS = [
     'gemini-2.5-pro',
     'gemini-2.5-flash',
@@ -37,7 +51,7 @@ export const CHAT_MODELS = [
 
 // 3. AI ASSETS SUGGESTION (Key 6)
 // Models: 2.5 Flash -> Lite -> 2.0
-export const SUGGESTION_POOL = [K.K6].filter(k => !!k);
+export const SUGGESTION_POOL = [K.K6()].filter(k => !!k);
 export const SUGGESTION_MODELS = [
     'gemini-2.5-flash',
     'gemini-flash-lite-latest',
@@ -54,7 +68,7 @@ export const LANE_2_MODELS = [
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
-export const TTS_KEY = [K.K3].filter(k => !!k);
+export const TTS_KEY = [K.K3()].filter(k => !!k);
 
 // Global Penalty Box for exhausted keys
 const cooldownMap = new Map<string, number>();
@@ -87,7 +101,7 @@ export async function executeLaneCall<T>(
     operationFactory: (apiKey: string) => Promise<T>,
     pool: string[]
 ): Promise<T> {
-    const activePool = pool.length > 0 ? pool : [K.P];
+    const activePool = pool.length > 0 ? pool : [K.P()];
     let lastError: any = null;
 
     const availableKeys = activePool.filter(k => !isThrottled(k));
@@ -112,7 +126,8 @@ export async function executeLaneCall<T>(
 }
 
 export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?: string[]): Promise<T> {
-    const activePool = pool || [K.P, ...ANALYSIS_POOL];
+    await initializeApiKey(); // Ensure API key is initialized
+    const activePool = pool || [K.P(), ...ANALYSIS_POOL];
     return executeLaneCall(op, activePool);
 }
 

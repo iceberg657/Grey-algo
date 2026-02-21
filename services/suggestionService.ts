@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import type { AssetSuggestion } from '../types';
+
 import { executeLaneCall, SUGGESTION_POOL, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
 
 const CACHE_KEY = 'greyquant_asset_suggestions';
@@ -14,30 +14,35 @@ const ALLOWED_ASSETS = `
 5. CRYPTO: BTCUSD, ETHUSD
 `;
 
-export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetSuggestion[]> {
-    return await executeLaneCall<AssetSuggestion[]>(async (apiKey) => {
+export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[], bearish: MomentumAsset[] }> {
+    return await executeLaneCall<{ bullish: MomentumAsset[], bearish: MomentumAsset[] }>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
-        **TASK:** You are a specialized Market Scanner. Select exactly 4 high-probability trading assets ONLY from the allowed list below.
-        
+        **TASK:** You are a specialized Market Scanner. Identify the top 3 bullish and top 3 bearish currency pairs from the allowed list based on real-time momentum.
+
         **ALLOWED ASSET POOL:**
         ${ALLOWED_ASSETS}
-        
+
         **CRITERIA:**
-        - Use Google Search to check real-time volume and volatility.
-        - ${profitMode ? "STRICT ALPHA: Select assets nearing key Institutional Order Blocks or Liquidity pools." : "HIGH MOMENTUM: Select assets with the highest percentage change in the last hour."}
-        - DIVERSITY: Try to mix Asset Classes (e.g., 1 FX, 1 Index, 1 Crypto).
-        
+        - Use Google Search to analyze the most recent price action (last 1-4 hours).
+        - **BULLISH:** Identify pairs showing strong upward momentum, breaking resistance, or in a clear uptrend.
+        - **BEARISH:** Identify pairs showing strong downward momentum, breaking support, or in a clear downtrend.
+        - Provide a concise, one-sentence reason for each selection.
+
         **JSON OUTPUT FORMAT:**
-        [
-          { 
-            "symbol": "string (Use standard ticker, e.g., GBPJPY)", 
-            "type": "Major" | "Minor" | "Index" | "Crypto", 
-            "reason": "One concise sentence on why this asset is valid right now.", 
-            "volatilityWarning": boolean 
-          }
-        ]
+        {
+          "bullish": [
+            { "symbol": "string", "momentum": "Bullish", "reason": "string" },
+            { "symbol": "string", "momentum": "Bullish", "reason": "string" },
+            { "symbol": "string", "momentum": "Bullish", "reason": "string" }
+          ],
+          "bearish": [
+            { "symbol": "string", "momentum": "Bearish", "reason": "string" },
+            { "symbol": "string", "momentum": "Bearish", "reason": "string" },
+            { "symbol": "string", "momentum": "Bearish", "reason": "string" }
+          ]
+        }
         `;
 
         const response = await runWithModelFallback<GenerateContentResponse>(SUGGESTION_MODELS, (modelId) => 
@@ -48,11 +53,11 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
             })
         );
 
-        let text = response.text || '[]';
+        let text = response.text || '{}';
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
         
-        const start = text.indexOf('[');
-        const end = text.lastIndexOf(']');
+        const start = text.indexOf('{');
+        const end = text.lastIndexOf('}');
         
         if (start === -1 || end === -1) throw new Error("Neural Queue Desync.");
         
@@ -60,7 +65,7 @@ export async function fetchAssetSuggestions(profitMode: boolean): Promise<AssetS
     }, SUGGESTION_POOL);
 }
 
-export async function getOrRefreshSuggestions(profitMode: boolean = false, force: boolean = false) {
+export async function getOrRefreshSuggestions(force: boolean = false) {
     const now = Date.now();
     let cachedData: any = null;
     
@@ -77,26 +82,26 @@ export async function getOrRefreshSuggestions(profitMode: boolean = false, force
     // 2. Check if cache is valid
     const isValid = cachedData && 
                     (now - cachedData.timestamp < CACHE_DURATION) && 
-                    cachedData.mode === profitMode && 
-                    Array.isArray(cachedData.data) && 
-                    cachedData.data.length > 0;
+ 
+                    cachedData.data && 
+                    Array.isArray(cachedData.data.bullish) && 
+                    Array.isArray(cachedData.data.bearish);
 
     if (!force && isValid) {
-        return { suggestions: cachedData.data, nextUpdate: cachedData.timestamp + CACHE_DURATION };
+        return { bullish: cachedData.data.bullish || [], bearish: cachedData.data.bearish || [], nextUpdate: cachedData.timestamp + CACHE_DURATION };
     }
 
     // 3. Attempt Refresh
     try {
-        const suggestions = await fetchAssetSuggestions(profitMode);
+        const { bullish, bearish } = await fetchAssetSuggestions();
         
-        if (suggestions && suggestions.length > 0) {
+        if (bullish.length > 0 || bearish.length > 0) {
             // SUCCESS: Update Cache
             localStorage.setItem(CACHE_KEY, JSON.stringify({
                 timestamp: now,
-                mode: profitMode,
-                data: suggestions
+                data: { bullish, bearish }
             }));
-            return { suggestions, nextUpdate: now + CACHE_DURATION };
+            return { bullish, bearish, nextUpdate: now + CACHE_DURATION };
         }
     } catch (error) {
         console.error("Queue sync failure, falling back to cache:", error);
@@ -104,12 +109,12 @@ export async function getOrRefreshSuggestions(profitMode: boolean = false, force
 
     // 4. FAIL-SAFE: Return stale cache if API failed
     // This prevents the "disappearing content" issue after 30 mins
-    if (cachedData && Array.isArray(cachedData.data) && cachedData.data.length > 0) {
+    if (cachedData && cachedData.data && Array.isArray(cachedData.data.bullish) && Array.isArray(cachedData.data.bearish)) {
         console.warn("Serving stale suggestion data due to API failure.");
         // Extend the stale cache lifetime slightly to prevent hammering the API immediately again
-        return { suggestions: cachedData.data, nextUpdate: now + 60000 }; 
+        return { bullish: cachedData.data.bullish, bearish: cachedData.data.bearish, nextUpdate: now + 60000 }; 
     }
 
     // 5. Absolute Failure (No cache, API down)
-    return { suggestions: [], nextUpdate: now + 5000 };
+    return { bullish: [], bearish: [], nextUpdate: now + 5000 };
 }

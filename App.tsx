@@ -19,6 +19,7 @@ import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
+import { initializeApiKey } from './services/retryUtils';
 
 
 type AuthPage = 'login' | 'signup';
@@ -102,6 +103,8 @@ const App: React.FC = () => {
     
     // State for chart analysis from the charting view
     const [isAnalyzingChart, setIsAnalyzingChart] = useState(false);
+    const [isApiKeyInitialized, setIsApiKeyInitialized] = useState<boolean>(false);
+    const [error, setError] = useState<string | null>(null);
     
     // State to handle redirects to chat with a prompt
     const [pendingChatQuery, setPendingChatQuery] = useState<string | null>(null);
@@ -115,6 +118,30 @@ const App: React.FC = () => {
             return [];
         }
     });
+
+    useEffect(() => {
+        const init = async () => {
+            try {
+                await initializeApiKey();
+                setIsApiKeyInitialized(true);
+            } catch (e: any) {
+                setError(e.message);
+            }
+        };
+        init();
+    }, []);
+
+    useEffect(() => {
+        const init = async () => {
+            try {
+                await initializeApiKey();
+                setIsApiKeyInitialized(true);
+            } catch (e: any) {
+                setError(e.message);
+            }
+        };
+        init();
+    }, []);
 
     const navigateTo = useCallback((view: AppView) => {
         setAppView(view);
@@ -217,7 +244,7 @@ const App: React.FC = () => {
                 riskRewardRatio: '1:3',
                 tradingStyle: 'Day Trading',
                 isMultiDimensional: false,
-                profitMode: false 
+
             };
 
             const data = await generateTradingSignal(request);
@@ -234,17 +261,26 @@ const App: React.FC = () => {
     
     // --- Render Logic ---
 
-    // 1. Transition Loader
+    // 1. API Key Initialization Check
+    if (!isApiKeyInitialized && !error) {
+        return <div className="flex items-center justify-center min-h-screen text-lg text-gray-400">Initializing API Key...</div>;
+    }
+
+    if (error) {
+        return <div className="flex items-center justify-center min-h-screen text-lg text-red-500">Error: {error}</div>;
+    }
+
+    // 2. Transition Loader
     if (isTransitioning) {
         return <TransitionLoader />;
     }
 
-    // 2. Landing Page
+    // 3. Landing Page
     if (appView === 'landing') {
         return <LandingPage onEnterApp={handleEnterApp} />;
     }
 
-    // 3. Auth Pages
+    // 4. Auth Pages
     if (!isLoggedIn) {
         if (authPage === 'signup') {
             return <SignUpPage onSignUp={handleSignUp} onNavigateToLogin={() => setAuthPage('login')} />;

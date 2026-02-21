@@ -47,7 +47,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
-    const [profitMode, setProfitMode] = useState<boolean>(false);
+
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
     const [showSettings, setShowSettings] = useState<boolean>(false);
@@ -221,7 +221,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                             analysisCount={analysisCount} 
                             onResetCount={handleResetAnalysisCount} 
                             onAssetSelect={onAssetSelect}
-                            profitMode={profitMode}
+
                        />
                    </div>
 
@@ -251,8 +251,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                                     <SignalGeneratorForm 
                                         onSubmit={(req, file) => handleGenerateSignal(req, file!)} 
                                         isLoading={isLoading} 
-                                        profitMode={profitMode}
-                                        onProfitModeChange={setProfitMode}
+
                                     />
                                 </div>
                             )}

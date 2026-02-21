@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getOrRefreshSuggestions } from '../services/suggestionService';
-import type { AssetSuggestion } from '../types';
+import type { MomentumAsset } from '../types';
 import { MarketTicker } from './MarketTicker';
 import { KillzoneClock } from './KillzoneClock';
 import { useTheme } from '../contexts/ThemeContext';
@@ -17,7 +17,7 @@ interface MarketOverviewProps {
     analysisCount: number;
     onResetCount: () => void;
     onAssetSelect?: (asset: string) => void;
-    profitMode: boolean; 
+
 }
 
 const MAJORS_POOL = ['FX:EURUSD', 'FX:GBPUSD', 'FX:USDJPY', 'FX:USDCHF', 'FX:AUDUSD', 'FX:USDCAD', 'FX:NZDUSD'];
@@ -170,17 +170,16 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
     );
 };
 
-export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect, profitMode }) => {
+export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect }) => {
     const { theme } = useTheme();
     
     // --- Shared Timer Logic ---
-    const [timeLeftDisplay, setTimeLeftDisplay] = useState<string>('--:--');
-    const [targetTimeString, setTargetTimeString] = useState<string>('');
+    const [nextKillzone, setNextKillzone] = useState<{ name: string, time: string, status: 'ACTIVE' | 'UPCOMING' }>({ name: 'SYNCING...', time: '--:--', status: 'UPCOMING' });
     const [timerStatus, setTimerStatus] = useState<TimerState>('COUNTDOWN');
-    const lastTriggeredRef = useRef<number | null>(null);
     
     // --- Assets Logic ---
-    const [suggestions, setSuggestions] = useState<AssetSuggestion[]>([]);
+    const [bullishSuggestions, setBullishSuggestions] = useState<MomentumAsset[]>([]);
+    const [bearishSuggestions, setBearishSuggestions] = useState<MomentumAsset[]>([]);
     const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
 
     // --- Structural Sentiment Logic ---
@@ -220,82 +219,69 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     }, []);
 
     // Standardized 40m to 2h range
-    const generateNewTarget = (baseTime: number) => {
-        const minMs = 40 * 60 * 1000;
-        const maxMs = 120 * 60 * 1000;
-        const randomMs = Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
-        return baseTime + (Math.round(randomMs / 60000) * 60000);
-    };
+
 
     const fetchAssets = useCallback(async (force: boolean = false) => {
         if (!marketIsOpen && !force) return; // Don't fetch if market is closed unless forced
         setIsUpdatingSuggestions(true);
         try {
-            const { suggestions: data } = await getOrRefreshSuggestions(profitMode, force);
-            setSuggestions(data || []);
+            const { bullish, bearish } = await getOrRefreshSuggestions(force);
+            setBullishSuggestions(bullish || []);
+            setBearishSuggestions(bearish || []);
         } catch (e) {
             console.error("Neural Queue Sync Failure:", e);
         } finally {
             setIsUpdatingSuggestions(false);
         }
-    }, [profitMode, marketIsOpen]);
+    }, [marketIsOpen]);
 
     useEffect(() => {
         const tick = () => {
             if (!marketIsOpen) {
                 setTimerStatus('COUNTDOWN');
-                setTimeLeftDisplay('CLOSED');
-                setTargetTimeString('CLOSED');
+                setNextKillzone({ name: 'MARKET', time: 'CLOSED', status: 'UPCOMING' });
                 return;
             }
 
-            const now = Date.now();
-            let targetStr = localStorage.getItem(SNIPER_TARGET_KEY);
-            let windowEndStr = localStorage.getItem(SNIPER_WINDOW_KEY);
+            const now = new Date();
+            const londonOpen = 8;
+            const londonClose = 16;
+            const nyOpen = 13;
+            const nyClose = 21;
+            const currentHour = now.getUTCHours();
 
-            let target = targetStr ? parseInt(targetStr, 10) : null;
-            let windowEnd = windowEndStr ? parseInt(windowEndStr, 10) : null;
+            const isLondonActive = currentHour >= londonOpen && currentHour < londonClose;
+            const isNYActive = currentHour >= nyOpen && currentHour < nyClose;
 
-            if (!target) {
-                const newTarget = generateNewTarget(now);
-                localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
-                target = newTarget;
-            }
-
-            if (now < target) {
+            if (isLondonActive || isNYActive) {
+                setTimerStatus('ACTIVE');
+                setNextKillzone({ name: isLondonActive ? 'LONDON KILLZONE' : 'NEW YORK KILLZONE', time: 'ACTIVE', status: 'ACTIVE' });
+                if (timerStatus !== 'ACTIVE') {
+                    fetchAssets(true);
+                }
+            } else {
                 setTimerStatus('COUNTDOWN');
-                const diff = target - now;
+                let nextSessionName = 'LONDON KILLZONE';
+                let nextSessionHour = londonOpen;
+                if (currentHour >= londonClose) {
+                    nextSessionName = 'NEW YORK KILLZONE';
+                    nextSessionHour = nyOpen;
+                }
+                if (currentHour >= nyClose) {
+                    nextSessionName = 'LONDON KILLZONE';
+                    nextSessionHour = londonOpen;
+                }
+
+                const nextSessionTime = new Date();
+                nextSessionTime.setUTCHours(nextSessionHour, 0, 0, 0);
+                if (nextSessionTime < now) {
+                    nextSessionTime.setUTCDate(nextSessionTime.getUTCDate() + 1);
+                }
+
+                const diff = nextSessionTime.getTime() - now.getTime();
                 const h = Math.floor(diff / (1000 * 60 * 60));
                 const m = Math.floor((diff / (1000 * 60)) % 60);
-                const s = Math.floor((diff / 1000) % 60);
-                
-                const hDisplay = h > 0 ? `${h}h ` : "";
-                const mDisplay = `${m}m `;
-                const sDisplay = h === 0 ? `${s}s` : "";
-                setTimeLeftDisplay(`${hDisplay}${mDisplay}${sDisplay}`.trim());
-                
-                setTargetTimeString(new Date(target).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-            } else {
-                if (timerStatus === 'COUNTDOWN' || (target !== lastTriggeredRef.current)) {
-                    setTimerStatus('ACTIVE');
-                    lastTriggeredRef.current = target;
-                    fetchAssets(true); 
-                }
-
-                if (windowEnd && now < windowEnd) {
-                    setTimerStatus('ACTIVE');
-                    setTimeLeftDisplay('ACTIVE');
-                    setTargetTimeString('ACTIVE');
-                } else if (windowEnd && now >= windowEnd) {
-                    const newTarget = generateNewTarget(now);
-                    localStorage.setItem(SNIPER_TARGET_KEY, newTarget.toString());
-                    localStorage.removeItem(SNIPER_WINDOW_KEY);
-                } else if (!windowEnd) {
-                    const activeMinutes = Math.floor(Math.random() * (15 - 8 + 1)) + 8;
-                    const newWindowEnd = now + (activeMinutes * 60 * 1000);
-                    localStorage.setItem(SNIPER_WINDOW_KEY, newWindowEnd.toString());
-                    setTimerStatus('ACTIVE');
-                }
+                setNextKillzone({ name: nextSessionName, time: `${h}h ${m}m`, status: 'UPCOMING' });
             }
         };
 
@@ -313,10 +299,10 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
     // Initial load
     useEffect(() => {
-        if (suggestions.length === 0 && !isUpdatingSuggestions) {
+        if (bullishSuggestions.length === 0 && bearishSuggestions.length === 0 && !isUpdatingSuggestions) {
             fetchAssets(false);
         }
-    }, [suggestions.length, isUpdatingSuggestions, fetchAssets]);
+    }, [bullishSuggestions.length, bearishSuggestions.length, isUpdatingSuggestions, fetchAssets]);
 
     const isReady = timerStatus === 'ACTIVE' && marketIsOpen;
 
@@ -334,26 +320,26 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         </div>
                         <div>
                             <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] mb-1 ${isReady ? 'text-green-400' : 'text-blue-400/70'}`}>
-                                {isReady ? 'OPPORTUNITY WINDOW ACTIVE' : 'SCANNING FOR OPPORTUNITY'}
+                                SYSTEM STATUS
                             </h3>
                             <p className={`text-2xl font-black uppercase tracking-tight ${isReady ? 'text-white' : 'text-gray-400'}`}>
-                                {isReady ? 'ALPHA QUEUE IS ACTIVE' : 'SCANNING FOR LIQUIDITY'}
+                                {isReady ? 'ACTIVE' : 'STANDBY'}
                             </p>
                         </div>
                     </div>
 
                     <div className="flex items-center gap-8 bg-black/60 px-8 py-4 rounded-2xl border border-white/5 shadow-inner">
                         <div className="text-center min-w-[120px]">
-                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Next Scan In</span>
+                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">{nextKillzone.status === 'ACTIVE' ? 'SESSION' : 'NEXT SESSION'}</span>
                             <span className={`font-mono text-3xl font-black ${isReady ? 'text-green-400 animate-pulse' : 'text-white'}`}>
-                                {timeLeftDisplay}
+                                {nextKillzone.name}
                             </span>
                         </div>
                         <div className="h-12 w-px bg-white/10"></div>
                         <div className="text-center">
-                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">Scan Time</span>
+                            <span className="text-[10px] text-gray-500 uppercase font-black tracking-widest block mb-1">{nextKillzone.status === 'ACTIVE' ? 'STATUS' : 'IN'}</span>
                             <span className="font-mono text-2xl font-black text-yellow-500">
-                                {targetTimeString}
+                                {nextKillzone.time}
                             </span>
                         </div>
                     </div>
@@ -411,17 +397,17 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
             </div>
 
             {/* Neural Assets Queue - Always Visible, Syncs on hit */}
-             <div className={`p-6 rounded-2xl border-2 relative overflow-hidden transition-all duration-500 ${isReady ? (profitMode ? 'bg-yellow-900/10 border-yellow-500/40' : 'bg-green-900/10 border-green-500/40') : 'bg-black/40 border-white/5'}`}>
+             <div className={`p-6 rounded-2xl border-2 relative overflow-hidden transition-all duration-500 ${isReady ? 'bg-green-900/10 border-green-500/40' : 'bg-black/40 border-white/5'}`}>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none"></div>
                 
                 <div className="flex flex-wrap justify-between items-center mb-6 relative z-10 gap-4">
                     <div>
-                        <h3 className={`text-xl font-black flex items-center gap-3 uppercase tracking-tighter ${isUpdatingSuggestions ? 'text-cyan-400' : (isReady ? (profitMode ? 'text-yellow-500' : 'text-green-500') : 'text-gray-400')}`}>
+                        <h3 className={`text-xl font-black flex items-center gap-3 uppercase tracking-tighter ${isUpdatingSuggestions ? 'text-cyan-400' : (isReady ? 'text-green-500' : 'text-gray-400')}`}>
                              <span className="relative flex h-4 w-4">
-                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUpdatingSuggestions ? 'bg-cyan-400' : (isReady ? (profitMode ? 'bg-yellow-400' : 'bg-green-400') : 'bg-gray-400')}`}></span>
-                                <span className={`relative inline-flex rounded-full h-4 w-4 ${isUpdatingSuggestions ? 'bg-cyan-500' : (isReady ? (profitMode ? 'bg-yellow-500' : 'bg-green-500') : 'bg-gray-500')}`}></span>
+                                <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUpdatingSuggestions ? 'bg-cyan-400' : (isReady ? 'bg-green-400' : 'bg-gray-400')}`}></span>
+                                <span className={`relative inline-flex rounded-full h-4 w-4 ${isUpdatingSuggestions ? 'bg-cyan-500' : (isReady ? 'bg-green-500' : 'bg-gray-500')}`}></span>
                             </span>
-                            {isUpdatingSuggestions ? 'SYNCHRONIZING ALPHA...' : (isReady ? 'TACTICAL ALPHA UNLOCKED' : 'NEURAL ASSET QUEUE')}
+                            MARKET ANALYSIS
                         </h3>
                     </div>
                      <div className="text-right">
@@ -439,29 +425,50 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                             <p className="text-gray-400 font-black text-sm uppercase tracking-[0.2em]">MARKETS ARE CURRENTLY CLOSED</p>
                             <p className="text-xs text-gray-500 mt-2">Asset queue will resume on market open.</p>
                         </div>
-                    ) : isUpdatingSuggestions && suggestions.length === 0 ? (
+                    ) : isUpdatingSuggestions && bullishSuggestions.length === 0 ? (
                          <div className="col-span-full py-12 flex flex-col items-center justify-center gap-4">
                             <div className="w-10 h-10 border-4 border-t-cyan-500 border-gray-700 rounded-full animate-spin"></div>
                             <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] animate-pulse">Scanning Global Orderflow...</span>
                         </div>
-                    ) : suggestions.length > 0 ? (
-                        suggestions.map((asset, idx) => (
-                            <div 
-                                key={idx} 
-                                onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group ${isUpdatingSuggestions ? 'opacity-50 pointer-events-none' : ''} ${profitMode ? 'bg-black/60 hover:bg-yellow-500/10 border-yellow-500/20 shadow-xl' : 'bg-black/60 hover:bg-green-500/10 border-white/5'}`}
-                            >
-                                <div className="flex justify-between items-center">
-                                    <span className="font-black text-white text-xl tracking-tighter group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
-                                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest ${profitMode ? 'bg-yellow-500/20 text-yellow-400 border border-yellow-500/30' : 'bg-blue-500/20 text-blue-300'}`}>{asset.type}</span>
-                                </div>
-                                <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
-                                <div className="flex justify-between items-center mt-2 border-t border-white/10 pt-4">
-                                    <span className="text-[9px] font-black text-gray-500 uppercase group-hover:text-white transition-colors">Analyze Setup</span>
-                                    <svg xmlns="http://www.w3.org/2000/svg" className={`h-5 w-5 transform group-hover:translate-x-1 transition-transform ${profitMode ? 'text-yellow-500' : 'text-green-500'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
+                    ) : bullishSuggestions.length > 0 ? (
+                        <>
+                            <div className="col-span-2">
+                                <h4 className="text-lg font-black text-green-400 mb-4 uppercase tracking-widest">Bullish Momentum</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {bullishSuggestions.map((asset, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
+                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-black/60 hover:bg-green-500/10 border-green-500/20`}
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-black text-white text-xl tracking-tighter group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
+                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-300`}>{asset.momentum}</span>
+                                            </div>
+                                            <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
-                        ))
+                            <div className="col-span-2">
+                                <h4 className="text-lg font-black text-red-400 mb-4 uppercase tracking-widest">Bearish Momentum</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {bearishSuggestions.map((asset, idx) => (
+                                        <div 
+                                            key={idx} 
+                                            onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
+                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-black/60 hover:bg-red-500/10 border-red-500/20`}
+                                        >
+                                            <div className="flex justify-between items-center">
+                                                <span className="font-black text-white text-xl tracking-tighter group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
+                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-300`}>{asset.momentum}</span>
+                                            </div>
+                                            <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
                     ) : (
                         <div className="col-span-full py-12 text-center">
                             <p className="text-gray-600 font-black text-sm uppercase tracking-[0.2em]">Queue Depleted. Initiating Priority Scan...</p>

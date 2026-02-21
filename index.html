@@ -68,7 +68,7 @@
                         'glowing-text-green': 'glowingTextGreen 1.5s ease-in-out infinite alternate',
                         'glowing-text-red': 'glowingTextRed 1.5s ease-in-out infinite alternate',
                         'glowing-edge': 'glowingEdge 8s ease-in-out infinite alternate',
-                        'glowing-edge-profit': 'glowingEdgeProfit 8s ease-in-out infinite alternate',
+
                         'marquee': 'marquee 20s linear infinite',
                         'flip-3d': 'flip3D 0.4s cubic-bezier(0.2, 1.1, 0.4, 1.0) forwards',
                         'shimmer': 'shimmer 2s linear infinite',
@@ -129,14 +129,7 @@
                                 boxShadow: 'inset 0 0 50px rgba(96, 165, 250, 0.3), inset 0 0 30px rgba(168, 85, 247, 0.25)'
                             }
                         },
-                        glowingEdgeProfit: {
-                            'from': {
-                                boxShadow: 'inset 0 0 100px rgba(245, 158, 11, 0.3), inset 0 0 60px rgba(234, 88, 12, 0.25)'
-                            },
-                            'to': {
-                                boxShadow: 'inset 0 0 140px rgba(245, 158, 11, 0.4), inset 0 0 80px rgba(234, 88, 12, 0.35)'
-                            }
-                        },
+
                         glowingEdgeLearning: {
                             'from': {
                                 boxShadow: 'inset 0 0 60px rgba(34, 197, 94, 0.3), inset 0 0 30px rgba(52, 211, 153, 0.2)'
@@ -173,11 +166,7 @@
             transition: box-shadow 1s ease, animation 1s ease;
         }
         
-        /* Profit Mode Active State - Golden Glow */
-        body.profit-mode::after {
-            animation: glowing-edge-profit 8s ease-in-out infinite alternate !important;
-            box-shadow: inset 0 0 100px rgba(245, 158, 11, 0.3), inset 0 0 60px rgba(234, 88, 12, 0.25);
-        }
+
         
         /* Machine Learning Active State - Green/Emerald Glow (Prioritized) */
         body.learning-mode::after {
