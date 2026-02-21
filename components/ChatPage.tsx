@@ -74,7 +74,6 @@ const ChatBubble: React.FC<{
                   {!isUser && (
                      <button
                         onClick={() => onToggleSpeech(message)}
-                        disabled={!process.env.API_KEY}
                         className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-300/90 dark:bg-dark-card/90 text-green-600 dark:text-green-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed shadow-sm z-10"
                         aria-label={isBusy ? "Stop reading message" : "Read message aloud"}
                     >
@@ -212,8 +211,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
-        getChatInstance(); 
-        setCurrentModelName(getCurrentModelName());
+        const init = async () => {
+            await getChatInstance(); 
+            setCurrentModelName(getCurrentModelName());
+        };
+        init();
         return () => {
             stopAudio();
             if (timeoutRef.current) clearTimeout(timeoutRef.current);

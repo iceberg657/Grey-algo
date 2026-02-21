@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, CHAT_POOL, CHAT_MODELS, runWithModelFallback } from './retryUtils';
+import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
 
 const BASE_SYSTEM_INSTRUCTION = `You are 'Oracle', a high-frequency trading AI.
 Confidence is mandatory. Treat capital as a $100k funded account. 1% risk per trade.
@@ -25,9 +25,10 @@ export function initializeChat(apiKey: string, model: string): Chat {
     return currentChat;
 }
 
-export function getChatInstance(): Chat {
+export async function getChatInstance(): Promise<Chat> {
+    await initializeApiKey();
     // Default to Lane 4 Key (K7)
-    const key = process.env.API_KEY_7 || process.env.API_KEY || '';
+    const key = getChatPool()[0] || '';
     if (!currentChat) return initializeChat(key, CHAT_MODELS[0]);
     return currentChat;
 }
@@ -53,5 +54,5 @@ export async function sendMessageStreamWithRetry(
             }
             return await currentChat!.sendMessageStream({ message: messageParts });
         }, onRetry);
-    }, CHAT_POOL);
+    }, getChatPool());
 }

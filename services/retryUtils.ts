@@ -81,7 +81,7 @@ const K = {
 
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4)
 // Models: 3.0 Pro -> 3.0 Flash -> 2.5 Pro -> 2.5 Flash -> 2.0 Flash
-export const ANALYSIS_POOL = [K.K1(), K.K2(), K.K3(), K.K4()].filter(k => !!k);
+export const getAnalysisPool = () => [K.K1(), K.K2(), K.K3(), K.K4()].filter(k => !!k);
 export const ANALYSIS_MODELS = [
     'gemini-3-pro-preview',
     'gemini-3-flash-preview',
@@ -93,7 +93,7 @@ export const ANALYSIS_MODELS = [
 // 2. CHAT & NEWS (Key 5)
 // Models: 2.5 Pro -> 2.5 Flash -> 2.0 Flash
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
-export const CHAT_POOL = [K.K5()].filter(k => !!k);
+export const getChatPool = () => [K.K5()].filter(k => !!k);
 export const CHAT_MODELS = [
     'gemini-2.5-pro',
     'gemini-2.5-flash',
@@ -102,7 +102,7 @@ export const CHAT_MODELS = [
 
 // 3. AI ASSETS SUGGESTION (Key 6)
 // Models: 2.5 Flash -> Lite -> 2.0
-export const SUGGESTION_POOL = [K.K6()].filter(k => !!k);
+export const getSuggestionPool = () => [K.K6()].filter(k => !!k);
 export const SUGGESTION_MODELS = [
     'gemini-2.5-flash',
     'gemini-flash-lite-latest',
@@ -110,8 +110,8 @@ export const SUGGESTION_MODELS = [
 ];
 
 // Shared Pools
-export const SERVICE_POOL = CHAT_POOL; // News uses Chat Pool (K5)
-export const SUGGESTION_STRUCTURE_POOL = CHAT_POOL; // Global Market uses Chat Pool (K5) to save other keys
+export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
+export const getSuggestionStructurePool = () => getChatPool(); // Global Market uses Chat Pool (K5) to save other keys
 
 export const LANE_2_MODELS = [
     'gemini-flash-lite-latest',
@@ -119,7 +119,7 @@ export const LANE_2_MODELS = [
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
-export const TTS_KEY = [K.K3()].filter(k => !!k);
+export const getTtsKey = () => [K.K3()].filter(k => !!k);
 
 // Global Penalty Box for exhausted keys
 const cooldownMap = new Map<string, number>();
@@ -178,7 +178,7 @@ export async function executeLaneCall<T>(
 
 export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?: string[]): Promise<T> {
     await initializeApiKey(); // Ensure API key is initialized
-    const activePool = pool || [K.P(), ...ANALYSIS_POOL];
+    const activePool = pool || [K.P(), ...getAnalysisPool()];
     return executeLaneCall(op, activePool);
 }
 

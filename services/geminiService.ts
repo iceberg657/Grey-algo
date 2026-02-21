@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { AnalysisRequest, SignalData, UserSettings } from '../types';
-import { runWithModelFallback, executeLaneCall, ANALYSIS_POOL, ANALYSIS_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, getAnalysisPool, ANALYSIS_MODELS } from './retryUtils';
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
@@ -293,7 +293,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         };
         
         return validateAndFixTPSL(rawSignal, request.riskRewardRatio);
-    }, ANALYSIS_POOL);
+    }, getAnalysisPool());
 }
 
 export async function generateTradingSignal(

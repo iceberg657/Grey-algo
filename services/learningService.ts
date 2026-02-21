@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, CHAT_POOL, CHAT_MODELS, runWithModelFallback } from './retryUtils';
+import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback } from './retryUtils';
 
 const STORAGE_KEY = 'greyalpha_automl_stats';
 const STRATEGIES_KEY = 'greyalpha_learned_strategies';
@@ -83,6 +83,6 @@ export const performAutoLearning = async (): Promise<string | null> => {
                 saveStrategy(strategy);
             }
             return strategy;
-        }, CHAT_POOL);
+        }, getChatPool());
     } catch { return null; }
 };

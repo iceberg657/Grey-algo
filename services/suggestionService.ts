@@ -1,7 +1,8 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-import { executeLaneCall, SUGGESTION_POOL, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
+import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
+import type { MomentumAsset } from '../types';
 
 const CACHE_KEY = 'greyquant_asset_suggestions';
 const CACHE_DURATION = 30 * 60 * 1000; // Standard 30-minute refresh cycle
@@ -62,7 +63,7 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         if (start === -1 || end === -1) throw new Error("Neural Queue Desync.");
         
         return JSON.parse(text.substring(start, end + 1));
-    }, SUGGESTION_POOL);
+    }, getSuggestionPool());
 }
 
 export async function getOrRefreshSuggestions(force: boolean = false) {

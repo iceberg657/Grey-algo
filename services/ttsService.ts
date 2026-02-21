@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
-import { executeGeminiCall, runWithRetry, TTS_KEY } from './retryUtils';
+import { executeGeminiCall, runWithRetry, getTtsKey } from './retryUtils';
 
 // Audio context for playback
 let audioContext: AudioContext | null = null;
@@ -63,7 +63,7 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
                   },
                 });
             }, 3, 3000); 
-        }, TTS_KEY);
+        }, getTtsKey());
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 
