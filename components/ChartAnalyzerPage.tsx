@@ -7,6 +7,28 @@ import { ErrorMessage } from './ErrorMessage';
 import { generateTradingSignal } from '../services/geminiService';
 import type { SignalData, AnalysisRequest } from '../types';
 
+const formatAnalysisForClipboard = (data: SignalData) => {
+    return `
+🚨 **SIGNAL ALERT: ${data.asset}** 🚨
+--------------------------------
+**BIAS:** ${data.signal} ${data.signal === 'BUY' ? '🟢' : data.signal === 'SELL' ? '🔴' : '⚪'}
+**CONFIDENCE:** ${data.confidence}%
+**TIMEFRAME:** ${data.timeframe}
+**STYLE:** ${data.entryType}
+
+📍 **ENTRY:** ${data.entryPoints.join(' | ')}
+🛑 **STOP LOSS:** ${data.stopLoss}
+🎯 **TAKE PROFIT:** ${data.takeProfits.join(' | ')}
+
+📝 **LOGIC:**
+${data.reasoning.map((r, i) => `${i+1}. ${r}`).join('\n')}
+
+⚠️ **INVALIDATION:** ${data.invalidationScenario}
+
+📊 **SENTIMENT:** ${data.sentiment?.summary || 'N/A'}
+`.trim();
+};
+
 interface ChartAnalyzerPageProps {
     onLogout: () => void;
 }
@@ -18,6 +40,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
     const [profitMode, setProfitMode] = useState<boolean>(false);
     const [lastRequest, setLastRequest] = useState<AnalysisRequest | null>(null);
+    const [isCopied, setIsCopied] = useState(false);
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -63,6 +86,14 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
             handleGenerateSignal(lastRequest);
         }
     }, [lastRequest, handleGenerateSignal]);
+
+    const handleCopyAnalysis = useCallback(() => {
+        if (!signalData) return;
+        const text = formatAnalysisForClipboard(signalData);
+        navigator.clipboard.writeText(text);
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    }, [signalData]);
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300">
@@ -136,6 +167,23 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                                             Re-Analyze
                                         </button>
                                     )}
+                                    <button 
+                                        onClick={handleCopyAnalysis}
+                                        className="text-gray-500 dark:text-green-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-xs p-1 flex items-center font-medium"
+                                        aria-label="Copy analysis"
+                                    >
+                                        {isCopied ? (
+                                            <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                                                Copy
+                                            </>
+                                        )}
+                                    </button>
                                     <button 
                                         onClick={handleClearAnalysis}
                                         className="text-gray-500 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs p-1 flex items-center font-medium"
