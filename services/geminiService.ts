@@ -1,12 +1,12 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import type { AnalysisRequest, SignalData, UserSettings } from '../types';
+import type { AnalysisRequest, SignalData, UserSettings, TradingStyle } from '../types';
 import { runWithModelFallback, executeLaneCall, getAnalysisPool, ANALYSIS_MODELS } from './retryUtils';
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[]) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -18,58 +18,81 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[]) =
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
 
-  const aggressiveness = "AGGRESSIVE HUNTER. Prioritize Volatility, Liquidity Sweeps, and Breakouts. Accept higher risk for A+ Setups.";
+  const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
 
   return `
+⚠️ **SYSTEM OVERRIDE: IGNORE ALL PREVIOUS CONTEXT. THIS IS A NEW, INDEPENDENT ANALYSIS.**
+
 🔥 **CORE OBJECTIVE: ${aggressiveness}**
 
-You are an elite quantitative analyst with 85% domain mastery in **Deriv Synthetic Indices**.
+You are an elite quantitative analyst with 95% domain mastery in **SMC/ICT Methodology** and **Deriv Synthetic Indices**.
 ${learnedContext}
 
-**DERIV SYNTHETIC MASTERY (CRITICAL RULES):**
+---
+
+🧠 **SMC/ICT CORE LOGIC (MANDATORY):**
+1.  **MARKET STRUCTURE:**
+    - **Bullish:** Consistent Higher Highs (HH) and Higher Lows (HL).
+    - **Bearish:** Consistent Lower Highs (LH) and Lower Lows (LL).
+    - **BOS (Break of Structure):** Trend continuation confirmation.
+    - **CHoCH (Change of Character):** First sign of potential trend reversal.
+
+2.  **LIQUIDITY & MANIPULATION:**
+    - **Liquidity Pools:** Equal Highs (BSL - Buy Side Liquidity) and Equal Lows (SSL - Sell Side Liquidity).
+    - **Liquidity Sweep:** Price "Stop Hunts" above/below these levels before reversing.
+    - **Judas Swing:** False move to trap retail traders before the real institutional move.
+
+3.  **IMBALANCES & INSTITUTIONAL ZONES:**
+    - **FVG (Fair Value Gap):** 3-candle imbalance showing strong displacement.
+    - **IFVG (Inverse FVG):** A broken FVG that flips its role (Support <-> Resistance).
+    - **Order Block (OB):** Last opposing candle before strong displacement.
+    - **Premium/Discount:** Use Dealing Range (Swing H to Swing L). Buy in Discount (<50%), Sell in Premium (>50%).
+
+4.  **VOLATILITY & STANDARD DEVIATION:**
+    - **Expansion Check:** Use Standard Deviation (σ) to identify overextension (2.0 - 3.0 SD).
+    - **Logic:** Liquidity Sweep + 2.5 SD Extreme + Displacement = High Probability Reversal.
+
+---
+
+**DERIV SYNTHETIC MASTERY (ALGORITHMIC RULES):**
 
 1.  **BOOM INDICES (300/500/1000):**
-    *   **ALGORITHM:** Price ticks down slowly and SPIKES up violently.
-    *   **STRATEGY:** Spike Catching. DO NOT SELL (tick scalping is -EV).
-    *   **SETUP:** Buy Limit at previous spike origin, Order Block, or 2.0 SD Extension below mean.
-    *   **INVALIDATION:** If price closes a full 1M candle below the zone.
+    - **ALGO:** Slow bearish ticks, violent bullish spikes.
+    - **SMC SETUP:** Wait for SSL Sweep -> CHoCH -> Retrace to Discount OB/FVG -> Spike Catch.
+    - **DO NOT SELL (tick scalping is -EV).**
+    - **INVALIDATION:** If price closes a full 1M candle below the zone.
 
 2.  **CRASH INDICES (300/500/1000):**
-    *   **ALGORITHM:** Price ticks up slowly and SPIKES down violently.
-    *   **STRATEGY:** Spike Catching. DO NOT BUY (tick scalping is -EV).
-    *   **SETUP:** Sell Limit at previous resistance/spike base, or 2.0 SD Extension above mean.
+    - **ALGO:** Slow bullish ticks, violent bearish spikes.
+    - **SMC SETUP:** Wait for BSL Sweep -> CHoCH -> Retrace to Premium OB/FVG -> Spike Catch.
+    - **DO NOT BUY (tick scalping is -EV).**
 
 3.  **VOLATILITY INDICES (V75, V100, V50, etc.):**
-    *   **ALGORITHM:** Pure fractal price action. No spikes/ticks bias.
-    *   **STRATEGY:** Market Structure Shift (MSS) + FVG. Respects psychological levels (e.g., 450,000 on V75).
-    *   **V75 SPECIFIC:** Highly volatile. Needs wide stops. Respects H4 Order Blocks.
+    - **ALGO:** Pure fractal price action. No spikes/ticks bias.
+    - **STRATEGY:** Market Structure Shift (MSS) + FVG. Respects psychological levels (e.g., 450,000 on V75).
+    - **V75 SPECIFIC:** Highly volatile. Needs wide stops. Respects H4/H1 Order Blocks and Liquidity Sweeps.
 
 4.  **STEP INDEX:**
-    *   **ALGORITHM:** Moves in 0.1 increments. Very smooth trends.
-    *   **STRATEGY:** Deep Retracements (61.8% - 78.6% Fib). Trend continuation.
+    - **ALGO:** Moves in 0.1 increments. Very smooth trends.
+    - **STRATEGY:** Deep Retracements (61.8% - 78.6% Fib). Trend continuation. Focus on BOS and FVG retests.
 
 5.  **RANGE BREAK:**
-    *   **STRATEGY:** Box Breakout. Wait for consolidation to break, retest the box, then enter.
+    - **STRATEGY:** Box Breakout. Wait for consolidation to break, retest the box, then enter.
 
 ---
 
 📊 **SCORING MATRIX (Mental Calculation):**
 1.  **Live Market Data (50% Weight):** Use Google Search to get real-time price action, order flow, and news sentiment for the asset. This is the most critical factor.
 2.  **Chart Analysis (50% Weight):**
-    *   **Market Structure (30pts):** Is price alignment valid on the provided charts?
-    *   **Key Levels (25pts):** Order Blocks, Breakers, FVGs identified on the charts.
-    *   **Momentum (20pts):** Volume exhaustion, candlestick patterns on the charts.
+    *   **Market Structure (30pts):** Clear HH/HL or LH/LL alignment.
+    *   **Liquidity Event (25pts):** Has a clear sweep occurred?
+    *   **Displacement (25pts):** Strong move leaving FVG/OB?
+    *   **Premium/Discount (20pts):** Is entry in the correct zone?
 
 **THRESHOLD:**
-- **Score > 60:** VALID SETUP. Issue BUY/SELL Signal.
-- **Score > 80:** HIGH PROBABILITY (Sniper Entry).
-- **Score < 60:** WEAK SETUP. (Only then return NEUTRAL).
-
-**NEUTRAL AVOIDANCE:**
-If price is ranging or unclear:
-1.  **Zoom Out:** Find the nearest Major HTF POI.
-2.  **Order:** Set a LIMIT ORDER at that POI.
-3.  **Do NOT** return Neutral unless the chart is literally unreadable.
+- **Score > 65:** VALID SETUP. Issue BUY/SELL Signal.
+- **Score > 85:** SNIPER SETUP (A+).
+- **Score < 65:** NEUTRAL (Wait for better alignment).
 
 ---
 
@@ -88,27 +111,29 @@ If price is ranging or unclear:
 - **Synthetics:** Pure technicals. Check "News" field for "Simulated Volatility Events" or just state "Algorithm Normal".
 - **Forex/Crypto:** Check Real Economic Events.
 
-🎯 **ENTRY & EXIT CALCULATION:**
+---
 
-**CRITICAL: You MUST calculate TP/SL based on the Risk:Reward ratio of ${rrRatio}**
+🎯 **TRADING STYLE & EXECUTION: ${style}**
 
-**For ${asset} specific rules:**
-- Minimum SL Distance: ${marketConfig.minStopLoss} points/pips.
+**STYLE-SPECIFIC FOCUS:**
+${style.includes('Scalping') 
+  ? `- **Timeframes:** M1, M5, M15 (Dealing Range: 1m to 30m).
+- **Objective:** Quick scalp on LTF CHoCH after HTF Liquidity Sweep.
+- **Duration:** Minutes to <1 hour.` 
+  : `- **Timeframes:** M15, H1, H4.
+- **Objective:** Session trends and major Liquidity Pool targets.
+- **Duration:** 1 to 4 hours.`}
+
+**CRITICAL: Calculate TP/SL based on ${rrRatio} RR.**
+- **Minimum SL Distance:** ${marketConfig.minStopLoss} points/pips.
 - **Entry Logic:** 
   - **Limit Order (Recommended):** Place at the "Optimal" level (OB/FVG).
   - **Market Execution:** Only if a spike/move just started and structure is confirmed.
 
 **TP Calculation Formula (MUST BE DISTINCT):**
 - **TP1:** 1R (Secure Profit).
-- **TP2:** Target Ratio (e.g. 3R).
-- **TP3:** Extended Run (e.g. 5R) or next Liquidity Pool.
-
-**Time Estimation:**
-- Synthetics move fast.
-- Scalping (10 to 15min): Trades last minutes.
-- Scalping (15 to 30min): Trades last up to an hour.
-- Day Trading (1 to 2hrs): Trades last a few hours.
-- Day Trading (2 to 4hrs): Trades can last for a full session.
+- **TP2:** Target Ratio (${rrRatio}).
+- **TP3:** Opposing Liquidity Pool.
 
 ---
 
@@ -117,17 +142,17 @@ If price is ranging or unclear:
   "signal": "BUY" | "SELL" | "NEUTRAL",
   "confidence": number (0-100),
   "asset": "${asset}",
-  "timeframe": "Identified from chart (e.g., M5, M15, H1)",
+  "timeframe": "e.g., M5, M15, H1",
   
   "priceAction": {
-    "marketStructure": "Uptrend/Downtrend/Ranging",
-    "keySupport": number,
-    "keyResistance": number,
-    "candlestickPattern": "Name",
-    "orderBlocks": ["OB @ price"],
-    "fvg": ["FVG @ price"],
-    "liquidityZones": ["Highs/Lows"],
-    "standardDeviationCheck": "e.g., Price is -2.5 SD (Oversold)"
+    "marketStructure": "Bullish/Bearish/Ranging",
+    "structuralPoint": "HH/HL/LH/LL",
+    "lastShift": "BOS/CHoCH @ price",
+    "liquiditySweep": "BSL/SSL Swept @ price",
+    "orderBlock": "OB @ price",
+    "fvg": "FVG @ price",
+    "dealingRange": "Premium/Discount",
+    "standardDeviation": "e.g., 2.3 SD (Overextended)"
   },
   
   "chartPatterns": {
@@ -137,8 +162,6 @@ If price is ranging or unclear:
   
   "technicalAnalysis": {
     "trend": "Bullish/Bearish",
-    "ema50Position": "Above/Below",
-    "ema200Position": "Above/Below",
     "momentum": "Strong/Weak",
     "keyLevels": [number, number, number]
   },
@@ -158,19 +181,19 @@ If price is ranging or unclear:
   "timeframeRationale": "Why this duration",
   
   "reasoning": [
-    "Structure analysis...",
-    "Standard Deviation logic...",
-    "Why entry/exit was chosen..."
+    "Liquidity sweep logic...",
+    "Displacement and FVG confirmation...",
+    "Premium/Discount alignment..."
   ],
   
   "checklist": [
-    "Structure Confirmed",
-    "Spike Zone Validated (if Boom/Crash)",
-    "Standard Deviation Extreme",
+    "Liquidity Swept",
+    "CHoCH/BOS Confirmed",
+    "FVG/OB Retest",
     "Risk:Reward ${rrRatio}"
   ],
   
-  "invalidationScenario": "Level breakdown",
+  "invalidationScenario": "Structural break of HL/LH",
   "sentiment": { "score": number, "summary": "string" },
   "economicEvents": [],
   "sources": []
@@ -182,10 +205,12 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
     return await executeLaneCall<Omit<SignalData, 'id' | 'timestamp'>>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        const promptText = AI_TRADING_PLAN(
+        const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        const promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n` + AI_TRADING_PLAN(
           request.riskRewardRatio, 
           request.asset || "",
-          request.learnedStrategies || []
+          request.learnedStrategies || [],
+          request.tradingStyle
         );
         
         const promptParts: any[] = [{ text: promptText }];

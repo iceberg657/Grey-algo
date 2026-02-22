@@ -17,6 +17,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
     const [error, setError] = useState<string | null>(null);
     const [theme, setTheme] = useState<'light' | 'dark'>('dark');
     const [profitMode, setProfitMode] = useState<boolean>(false);
+    const [lastRequest, setLastRequest] = useState<AnalysisRequest | null>(null);
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -31,12 +32,15 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
     const handleClearAnalysis = () => {
         setSignalData(null);
         setError(null);
+        // We keep lastRequest so user can still re-analyze if they want, or maybe clear it? 
+        // Let's keep it for now.
     };
 
     const handleGenerateSignal = useCallback(async (request: AnalysisRequest) => {
         setIsLoading(true);
         setError(null);
         setSignalData(null);
+        setLastRequest(request);
 
         try {
             const data = await generateTradingSignal(request);
@@ -53,6 +57,12 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
             setIsLoading(false);
         }
     }, []);
+
+    const handleReAnalyze = useCallback(() => {
+        if (lastRequest) {
+            handleGenerateSignal(lastRequest);
+        }
+    }, [lastRequest, handleGenerateSignal]);
 
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans p-4 sm:p-6 lg:p-8 flex flex-col transition-colors duration-300">
@@ -115,14 +125,26 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                         
                         <div className="mt-8 pt-8 border-t border-gray-300 dark:border-green-500/50 min-h-[200px] relative">
                              {(signalData || error) && !isLoading && (
-                                <button 
-                                    onClick={handleClearAnalysis}
-                                    className="absolute -top-5 right-0 text-gray-500 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs p-1 flex items-center font-medium"
-                                    aria-label="Clear analysis"
-                                >
-                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                    Clear
-                                </button>
+                                <div className="absolute -top-5 right-0 flex gap-4">
+                                    {lastRequest && (
+                                        <button 
+                                            onClick={handleReAnalyze}
+                                            className="text-gray-500 dark:text-green-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-xs p-1 flex items-center font-medium"
+                                            aria-label="Re-analyze chart"
+                                        >
+                                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                            Re-Analyze
+                                        </button>
+                                    )}
+                                    <button 
+                                        onClick={handleClearAnalysis}
+                                        className="text-gray-500 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs p-1 flex items-center font-medium"
+                                        aria-label="Clear analysis"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                                        Clear
+                                    </button>
+                                </div>
                             )}
                             <div className="flex items-center justify-center">
                                 {isLoading && <Loader />}

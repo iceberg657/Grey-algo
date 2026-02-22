@@ -219,6 +219,7 @@ const App: React.FC = () => {
     };
 
     const handleChartAnalysis = useCallback(async (imageData: string) => {
+        setAnalysisData(null); // Clear previous analysis data to ensure a fresh start
         setIsAnalyzingChart(true);
         try {
             const base64Data = imageData.split(',')[1];
