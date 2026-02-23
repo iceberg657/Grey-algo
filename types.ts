@@ -115,7 +115,8 @@ export interface SignalData {
     isValid?: boolean;
     validationMessage?: string;
     assetCategory?: string;
-    contractSize?: number;
+    contractSize: number;
+    pipValue: number;
 
     // AI Analysis Details
     priceAction?: any;

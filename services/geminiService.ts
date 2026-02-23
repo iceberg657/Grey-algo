@@ -5,6 +5,7 @@ import { runWithModelFallback, executeLaneCall, getAnalysisPool, ANALYSIS_MODELS
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
+import { calculateLotSize } from '../utils/lotSizeCalculator';
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
@@ -164,6 +165,8 @@ ${(() => {
   "confidence": number (0-100),
   "asset": "${asset}",
   "timeframe": "e.g., M5, M15, H1",
+  "contractSize": number, // e.g., 100000 for standard FX lot
+  "pipValue": number, // e.g., 10 for EURUSD standard lot
   
   "priceAction": {
     "marketStructure": "Bullish/Bearish/Ranging",
@@ -335,7 +338,9 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             chartPatterns: data.chartPatterns || {},
             technicalAnalysis: data.technicalAnalysis || {},
             fundamentalContext: data.fundamentalContext || {},
-            timeframeRationale: data.timeframeRationale || ""
+            timeframeRationale: data.timeframeRationale || "",
+            contractSize: data.contractSize,
+            pipValue: data.pipValue
         };
         
         return validateAndFixTPSL(rawSignal, request.riskRewardRatio);
@@ -379,6 +384,8 @@ export async function generateTradingSignal(
     const completeSetup = buildCompleteTradeSetup(
         rawSignal,
         settings,
+        rawSignal.contractSize, // Pass contractSize
+        rawSignal.pipValue, // Pass pipValue
         0, // Track this in your app state
         0  // Track this in your app state
     );

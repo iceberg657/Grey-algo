@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
 import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
@@ -20,7 +19,7 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
-        **TASK:** You are a specialized Market Scanner. Identify the top 3 bullish and top 3 bearish currency pairs from the allowed list that are being most actively traded at the start of the current trading day.
+        **TASK:** You are a specialized Market Scanner. Identify the top 4 bullish and top 4 bearish currency pairs from the allowed list that are being most actively traded at the start of the current trading day.
 
         **ALLOWED ASSET POOL:**
         ${ALLOWED_ASSETS}
@@ -37,9 +36,11 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
           "bullish": [
             { "symbol": "string", "momentum": "Bullish", "reason": "string" },
             { "symbol": "string", "momentum": "Bullish", "reason": "string" },
+            { "symbol": "string", "momentum": "Bullish", "reason": "string" },
             { "symbol": "string", "momentum": "Bullish", "reason": "string" }
           ],
           "bearish": [
+            { "symbol": "string", "momentum": "Bearish", "reason": "string" },
             { "symbol": "string", "momentum": "Bearish", "reason": "string" },
             { "symbol": "string", "momentum": "Bearish", "reason": "string" },
             { "symbol": "string", "momentum": "Bearish", "reason": "string" }
@@ -48,7 +49,7 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         `;
 
         const response = await runWithModelFallback<GenerateContentResponse>(SUGGESTION_MODELS, (modelId) => 
-            ai.models.generateContent({
+            ai.models.generateContent({ 
                 model: modelId,
                 contents: prompt,
                 config: { tools: [{googleSearch: {}}], temperature: 0.2 },

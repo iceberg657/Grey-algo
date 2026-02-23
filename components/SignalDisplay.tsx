@@ -303,6 +303,13 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 <span className="text-gray-800 dark:text-white font-bold">{data.riskRewardRatio || "1:2"}</span>
                             </div>
                             
+                            {data.lotSize > 0 && (
+                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                    <span className="text-sm font-bold text-cyan-500 uppercase">Lot Size</span>
+                                    <span className="font-bold text-cyan-500 dark:text-cyan-400">{data.formattedLotSize}</span>
+                                </div>
+                            )}
+                            
                             {data.riskAmount > 0 && (
                                 <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                     <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">Est. Risk</span>
