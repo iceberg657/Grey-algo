@@ -1,4 +1,4 @@
 import type { TradingStyle } from './types';
 
 export const RISK_REWARD_RATIOS = ['1:1', '1:1.5', '1:2', '1:3', '1:5'];
-export const TRADING_STYLES: TradingStyle[] = ['Scalp', 'Short Term', 'Day Trading'];
+export const TRADING_STYLES: TradingStyle[] = ['scalping(1 to 15mins)', 'scalping(15 to 30mins)', 'day trading(1 to 2hrs)', 'day trading(2 to 4hrs)', 'swing trading'];
