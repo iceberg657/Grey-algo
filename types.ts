@@ -166,7 +166,7 @@ export interface NewsArticle {
     date: string; // ISO 8601 format
 }
 
-export type TradingStyle = 'scalp(1 to 15mins)' | 'scalp(15 to 30mins)' | 'day trading(1 to 2hrs)' | 'day trading(2 to 4hrs)';
+export type TradingStyle = 'scalping(1 to 15mins)' | 'scalping(15 to 30mins)' | 'day trading(1 to 2hrs)' | 'day trading(2 to 4hrs)' | 'swing trading';
 
 export interface ChatMessage {
     id: string;

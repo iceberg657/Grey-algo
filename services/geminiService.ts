@@ -116,13 +116,34 @@ ${learnedContext}
 🎯 **TRADING STYLE & EXECUTION: ${style}**
 
 **STYLE-SPECIFIC FOCUS:**
-${style.includes('Scalping') 
-  ? `- **Timeframes:** M1, M5, M15 (Dealing Range: 1m to 30m).
+${(() => {
+    switch (style) {
+        case 'scalping(1 to 15mins)':
+            return `- **Timeframes:** M1, M5, M15.
 - **Objective:** Quick scalp on LTF CHoCH after HTF Liquidity Sweep.
-- **Duration:** Minutes to <1 hour.` 
-  : `- **Timeframes:** M15, H1, H4.
-- **Objective:** Session trends and major Liquidity Pool targets.
-- **Duration:** 1 to 4 hours.`}
+- **Duration:** 1 to 15 minutes.`;
+        case 'scalping(15 to 30mins)':
+            return `- **Timeframes:** M5, M15, M30.
+- **Objective:** Scalp within session trends, targeting minor liquidity.
+- **Duration:** 15 to 30 minutes.`;
+        case 'day trading(1 to 2hrs)':
+            return `- **Timeframes:** M15, H1.
+- **Objective:** Capture intra-day moves within a single session.
+- **Duration:** 1 to 2 hours.`;
+        case 'day trading(2 to 4hrs)':
+            return `- **Timeframes:** H1, H4.
+- **Objective:** Capture larger intra-day or multi-session moves.
+- **Duration:** 2 to 4 hours.`;
+        case 'swing trading':
+            return `- **Timeframes:** H4, Daily, Weekly.
+- **Objective:** Capture major trend shifts and long-term liquidity targets.
+- **Duration:** Days to weeks.`;
+        default:
+            return `- **Timeframes:** Adapt based on market.
+- **Objective:** General market analysis.
+- **Duration:** Variable.`;
+    }
+})()}
 
 **CRITICAL: Calculate TP/SL based on ${rrRatio} RR.**
 - **Minimum SL Distance:** ${marketConfig.minStopLoss} points/pips.
