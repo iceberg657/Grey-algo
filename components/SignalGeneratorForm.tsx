@@ -185,7 +185,7 @@ interface SignalGeneratorFormProps {
 export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
-    const [tradingStyle, setTradingStyle] = useState<TradingStyle>(TRADING_STYLES[0]);
+    const [tradingStyle, setTradingStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
     const [images, setImages] = useState<{ higher?: File, primary?: File }>({});
     const [error, setError] = useState<string | null>(null);
 
