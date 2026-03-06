@@ -124,6 +124,17 @@ export interface SignalData {
     technicalAnalysis?: any;
     fundamentalContext?: any;
     timeframeRationale?: string;
+    confluenceMatrix?: {
+        latestPrice: number;
+        fvg: { type: "bullish" | "bearish"; upper: number; lower: number } | null;
+        triggeredEntries: {
+            fvg: boolean;
+            fvgRetest: boolean;
+            sdLong: boolean;
+            sdShort: boolean;
+            sdPlusFVGConfluence: boolean;
+        };
+    };
 }
 
 export interface MomentumAsset {

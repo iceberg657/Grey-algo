@@ -41,6 +41,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
     const [profitMode, setProfitMode] = useState<boolean>(false);
     const [lastRequest, setLastRequest] = useState<AnalysisRequest | null>(null);
     const [isCopied, setIsCopied] = useState(false);
+    const [formKey, setFormKey] = useState(0);
 
     useEffect(() => {
         const root = window.document.documentElement;
@@ -55,8 +56,10 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
     const handleClearAnalysis = () => {
         setSignalData(null);
         setError(null);
-        // We keep lastRequest so user can still re-analyze if they want, or maybe clear it? 
-        // Let's keep it for now.
+        setLastRequest(null);
+        setProfitMode(false);
+        setIsCopied(false);
+        setFormKey(prev => prev + 1); // Force complete reset of the form
     };
 
     const handleGenerateSignal = useCallback(async (request: AnalysisRequest) => {
@@ -75,7 +78,13 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
             setSignalData(fullData);
         } catch (err) {
             console.error(err);
-            setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+            let errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+            
+            if (errorMessage.toLowerCase().includes('fetch') || errorMessage.toLowerCase().includes('network')) {
+                errorMessage = "Network Error: Failed to connect to the analysis engine. Please check your internet connection or API configuration.";
+            }
+            
+            setError(errorMessage);
         } finally {
             setIsLoading(false);
         }
@@ -148,6 +157,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                 <main>
                    <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl">
                         <SignalGeneratorForm 
+                            key={formKey}
                             onSubmit={handleGenerateSignal} 
                             isLoading={isLoading} 
                             profitMode={profitMode}
@@ -187,10 +197,10 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                                     <button 
                                         onClick={handleClearAnalysis}
                                         className="text-gray-500 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs p-1 flex items-center font-medium"
-                                        aria-label="Clear analysis"
+                                        aria-label="Back to Upload"
                                     >
-                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-                                        Clear
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                                        Back
                                     </button>
                                 </div>
                             )}

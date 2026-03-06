@@ -302,22 +302,27 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
                                 <span className="text-gray-800 dark:text-white font-bold">{data.riskRewardRatio || "1:2"}</span>
                             </div>
+
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-purple-500 uppercase">Entry Style</span>
+                                <span className="text-gray-800 dark:text-white font-bold">{data.entryType}</span>
+                            </div>
                             
-                            {data.lotSize > 0 && (
+                            {data.lotSize && data.lotSize > 0 && (
                                 <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                     <span className="text-sm font-bold text-cyan-500 uppercase">Lot Size</span>
                                     <span className="font-bold text-cyan-500 dark:text-cyan-400">{data.formattedLotSize}</span>
                                 </div>
                             )}
                             
-                            {data.riskAmount > 0 && (
+                            {data.riskAmount && data.riskAmount > 0 && (
                                 <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                     <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">Est. Risk</span>
                                     <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
                                 </div>
                             )}
                             
-                            {data.totalPotentialProfit > 0 && (
+                            {data.totalPotentialProfit && data.totalPotentialProfit > 0 && (
                                 <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                     <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">Est. Potential</span>
                                     <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
@@ -327,6 +332,54 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     </div>
                 </div>
             </Section>
+
+            {data.confluenceMatrix && (
+                <Section title="Algorithmic Confluence" delay="1100ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>}>
+                    <div className="bg-gray-100 dark:bg-slate-800/50 rounded-2xl border border-gray-200 dark:border-white/5 p-6 shadow-xl font-mono">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* FVG Status */}
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">FVG Detected</span>
+                                <span className={`font-bold ${data.confluenceMatrix.fvg ? 'text-green-500' : 'text-gray-500'}`}>
+                                    {data.confluenceMatrix.fvg ? `${data.confluenceMatrix.fvg.type.toUpperCase()} (${data.confluenceMatrix.fvg.lower} - ${data.confluenceMatrix.fvg.upper})` : 'NONE'}
+                                </span>
+                            </div>
+                            
+                            {/* FVG Retest */}
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">FVG Retest</span>
+                                <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.fvgRetest ? 'text-green-500' : 'text-red-500'}`}>
+                                    {data.confluenceMatrix.triggeredEntries.fvgRetest ? 'CONFIRMED' : 'NO'}
+                                </span>
+                            </div>
+
+                            {/* SD Long */}
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">SD Long Entry</span>
+                                <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.sdLong ? 'text-green-500' : 'text-gray-500'}`}>
+                                    {data.confluenceMatrix.triggeredEntries.sdLong ? 'TRIGGERED' : 'WAITING'}
+                                </span>
+                            </div>
+
+                            {/* SD Short */}
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">SD Short Entry</span>
+                                <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.sdShort ? 'text-green-500' : 'text-gray-500'}`}>
+                                    {data.confluenceMatrix.triggeredEntries.sdShort ? 'TRIGGERED' : 'WAITING'}
+                                </span>
+                            </div>
+
+                            {/* Confluence Status */}
+                            <div className="col-span-1 md:col-span-2 mt-4 p-4 bg-black/20 rounded-xl border border-white/10 text-center">
+                                <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">SD + FVG Confluence</span>
+                                <span className={`text-xl font-black ${data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? 'text-green-400 animate-pulse' : 'text-gray-600'}`}>
+                                    {data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? '✅ CONFLUENCE VERIFIED' : '❌ NO CONFLUENCE'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </Section>
+            )}
 
             <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1100ms' }}>
                 <div className="mt-8">

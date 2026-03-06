@@ -21,6 +21,81 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 
   const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
 
+  const ALGO_LOGIC = `
+// -----------------------------
+// ALGORITHMIC ENTRY LOGIC (MENTAL MODEL)
+// -----------------------------
+// Execute this logic mentally based on the chart image data.
+// Estimate the last 20 candles (OHLC) from the image.
+
+const TICK_PRECISION = 0.01;
+const SD_LOOKBACK = 20;
+const SD_FACTOR = 1;
+
+function roundTick(price, tick) {
+  return Math.round(price / tick) * tick;
+}
+
+function calculateSD(prices, factor = 1) {
+  const mean = prices.reduce((a, b) => a + b, 0) / prices.length;
+  const variance = prices.reduce((sum, p) => sum + (p - mean) ** 2, 0) / prices.length;
+  return { sd: Math.sqrt(variance) * factor, mean };
+}
+
+function calculateFVG(candles) {
+  const c1 = candles[candles.length - 3];
+  const c3 = candles[candles.length - 1];
+  if (c1.high < c3.low) return { type: "bullish", upper: c1.high, lower: c3.low };
+  if (c1.low > c3.high) return { type: "bearish", upper: c3.high, lower: c1.low };
+  return null;
+}
+
+function checkFVGRetest(price, fvg) {
+  if (!fvg) return false;
+  return price >= fvg.lower && price <= fvg.upper;
+}
+
+function checkSDEntry(price, prices, factor, tick) {
+  const { sd, mean } = calculateSD(prices, factor);
+  const longLevel = roundTick(mean - sd, tick);
+  const shortLevel = roundTick(mean + sd, tick);
+  const priceRounded = roundTick(price, tick);
+
+  return {
+    longEntry: priceRounded <= longLevel,
+    shortEntry: priceRounded >= shortLevel,
+    longLevel,
+    shortLevel
+  };
+}
+
+function detectEntries(candles) {
+  const latestPrice = candles[candles.length - 1].close;
+  const pricesForSD = candles.slice(-SD_LOOKBACK).map(c => c.close);
+
+  const fvg = calculateFVG(candles);
+  const fvgRetest = checkFVGRetest(latestPrice, fvg);
+  const { longEntry: sdLong, shortEntry: sdShort } = checkSDEntry(
+    latestPrice,
+    pricesForSD,
+    SD_FACTOR,
+    TICK_PRECISION
+  );
+
+  return {
+    latestPrice,
+    fvg,
+    triggeredEntries: {
+        fvg: !!fvg,
+        fvgRetest,
+        sdLong,
+        sdShort,
+        sdPlusFVGConfluence: fvgRetest && (sdLong || sdShort)
+    }
+  };
+}
+`;
+
   return `
 ⚠️ **SYSTEM OVERRIDE: IGNORE ALL PREVIOUS CONTEXT. THIS IS A NEW, INDEPENDENT ANALYSIS.**
 
@@ -28,6 +103,20 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 
 You are an elite quantitative analyst with 95% domain mastery in **SMC/ICT Methodology** and **Deriv Synthetic Indices**.
 ${learnedContext}
+
+---
+
+🧠 **ALGORITHMIC ENTRY LOGIC (MANDATORY EXECUTION):**
+You must mentally execute the following logic to determine entry confluence.
+Estimate the OHLC values of the last 20 candles from the chart image to populate the 'candles' array.
+Use 'SD_LOOKBACK = 20' and 'SD_FACTOR = 1'.
+
+${ALGO_LOGIC}
+
+**INSTRUCTION:**
+1. Extract the last 20 candles from the image (approximate OHLC).
+2. Run the 'detectEntries' logic mentally.
+3. Include the result in the JSON output under key "confluenceMatrix".
 
 ---
 
@@ -204,6 +293,18 @@ ${(() => {
   
   "timeframeRationale": "Why this duration",
   
+  "confluenceMatrix": {
+    "latestPrice": number,
+    "fvg": { "type": "bullish" | "bearish", "upper": number, "lower": number } | null,
+    "triggeredEntries": {
+        "fvg": boolean,
+        "fvgRetest": boolean,
+        "sdLong": boolean,
+        "sdShort": boolean,
+        "sdPlusFVGConfluence": boolean
+    }
+  },
+
   "reasoning": [
     "Liquidity sweep logic...",
     "Displacement and FVG confirmation...",
@@ -339,6 +440,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             technicalAnalysis: data.technicalAnalysis || {},
             fundamentalContext: data.fundamentalContext || {},
             timeframeRationale: data.timeframeRationale || "",
+            confluenceMatrix: data.confluenceMatrix,
             contractSize: data.contractSize,
             pipValue: data.pipValue
         };
