@@ -61,9 +61,23 @@ function checkSDEntry(price, prices, factor, tick) {
   const shortLevel = roundTick(mean + sd, tick);
   const priceRounded = roundTick(price, tick);
 
+  let longEntry = priceRounded <= longLevel;
+  let shortEntry = priceRounded >= shortLevel;
+
+  // Prevent both triggering
+  if (longEntry && shortEntry) {
+      const distToLong = Math.abs(price - longLevel);
+      const distToShort = Math.abs(price - shortLevel);
+      if (distToLong < distToShort) {
+          shortEntry = false;
+      } else {
+          longEntry = false;
+      }
+  }
+
   return {
-    longEntry: priceRounded <= longLevel,
-    shortEntry: priceRounded >= shortLevel,
+    longEntry,
+    shortEntry,
     longLevel,
     shortLevel
   };

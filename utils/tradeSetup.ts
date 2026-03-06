@@ -1,8 +1,9 @@
 
-import { calculatePnL, formatLotSize, detectAssetConfig } from './positionSizing';
+import { formatLotSize, detectAssetConfig } from './positionSizing';
 import { validateTrade } from './tradeValidator';
 import type { SignalData, UserSettings } from '../types';
 import { calculateLotSize } from './lotSizeCalculator';
+import { estimatePotential } from './profitCalculator';
 
 export function buildCompleteTradeSetup(
   signal: Omit<SignalData, 'id' | 'timestamp'>,
@@ -65,15 +66,13 @@ export function buildCompleteTradeSetup(
   
   const accountSize = settings.accountSize || settings.accountBalance;
   
-  const stopLossPips = Math.abs(entryPrice - signal.stopLoss);
+  const stopLossDistance = Math.abs(entryPrice - signal.stopLoss);
   const riskAmount = (accountSize * settings.riskPerTrade) / 100;
 
   const lotSize = calculateLotSize(
-    accountSize,
-    settings.riskPerTrade,
-    stopLossPips,
-    contractSize,
-    pipValue
+    settings,
+    stopLossDistance,
+    contractSize
   );
 
   if (lotSize === 0) {
@@ -100,12 +99,11 @@ export function buildCompleteTradeSetup(
   const potentialProfit = signal.takeProfits.map((tp, index) => {
     if (tp === 0) return 0;
     
-    return calculatePnL(
+    return estimatePotential(
       partialAmounts[index],
       entryPrice,
       tp,
-      signal.asset,
-      signal.signal as 'BUY' | 'SELL'
+      contractSize
     );
   });
   

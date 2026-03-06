@@ -17,14 +17,22 @@ export interface PartialCloseConfig {
     moveToBreakeven: boolean;
 }
 
-export interface UserSettings {
+export interface AccountSettings {
+    accountBalance: number;      // e.g., 2000 USD
+    riskPerTradePercent: number; // e.g., 2 (%)
+    profitTargetPercent: number; // e.g., 5 (%)
+    dailyDrawdownPercent: number; // e.g., 2.5 (%)
+    maxDrawdownPercent: number;   // e.g., 5 (%)
+}
+
+export interface UserSettings extends Partial<AccountSettings> {
     accountType: 'Real' | 'Funded';
     accountBalance: number;
     accountSize?: number; // Alias often used interchangeably
-    riskPerTrade: number;
-    targetPercentage: number;
-    dailyDrawdown: number;
-    maxDrawdown: number;
+    riskPerTrade: number; // Maps to riskPerTradePercent
+    targetPercentage: number; // Maps to profitTargetPercent
+    dailyDrawdown: number; // Maps to dailyDrawdownPercent
+    maxDrawdown: number; // Maps to maxDrawdownPercent
     timeLimit: number; // days
     
     // Advanced Settings
