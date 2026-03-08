@@ -40,8 +40,8 @@ export const Loader: React.FC = () => {
                 <CandleIcon color="#2563eb" className="animate-bounce-candle [animation-delay:-0.5s]" />
                 <CandleIcon color="#3b82f6" className="animate-bounce-candle [animation-delay:-0.25s]" />
             </div>
-            <p className="mt-6 text-lg font-semibold text-gray-700 dark:text-dark-text">AI is Analyzing the Market...</p>
-            <p key={message} className="text-sm text-gray-600 dark:text-dark-text/70 animate-fade-in min-h-[20px]">
+            <p className="mt-6 text-lg font-semibold text-gray-800 dark:text-dark-text">AI is Analyzing the Market...</p>
+            <p key={message} className="text-sm text-gray-700 dark:text-dark-text/70 animate-fade-in min-h-[20px]">
                 {message}
             </p>
         </div>

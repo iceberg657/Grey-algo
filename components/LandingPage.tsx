@@ -33,9 +33,9 @@ const landingPageCss = `
     --primary-blue: #2980b9;
     --light-bg: #f4f7f9;
     --card-bg-light: rgba(255, 255, 255, 0.3); /* High transparency */
-    --text-dark: #2c3e50;
-    --text-muted: #7f8c8d;
-    --border-color-light: #e0e0e0;
+    --text-dark: #1e293b;
+    --text-muted: #475569;
+    --border-color-light: #cbd5e1;
 }
 .landing-body {
     background: var(--dark-bg);

@@ -197,7 +197,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                             GreyAlpha
                         </h1>
                     </button>
-                    <p className="mt-3 text-sm font-black text-gray-500 dark:text-dark-text/40 uppercase tracking-[0.4em]">
+                    <p className="mt-3 text-sm font-black text-gray-600 dark:text-dark-text/40 uppercase tracking-[0.4em]">
                         Autonomous Neural Trading Architecture
                     </p>
                 </header>
@@ -259,7 +259,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                    </div>
                 </main>
             </div>
-            <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-600 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
+            <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-700 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
                 <div className="flex flex-col items-center">
                     <p className="max-w-xl mx-auto opacity-70">
                         Operational parameters within acceptable bounds. Preserve capital at all costs.

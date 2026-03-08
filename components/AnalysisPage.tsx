@@ -28,7 +28,7 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in pb-20">
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                 <header className="relative mb-12 flex justify-between items-center">
-                    <button onClick={onBack} className="group flex items-center text-sm font-black text-gray-600 dark:text-green-400 hover:text-green-300 transition-all uppercase tracking-widest">
+                    <button onClick={onBack} className="group flex items-center text-sm font-black text-gray-700 dark:text-green-400 hover:text-green-300 transition-all uppercase tracking-widest">
                         <div className="bg-gray-200 dark:bg-green-500/10 p-2 rounded-full mr-3 group-hover:scale-110 transition-transform">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
@@ -49,7 +49,7 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                         <ThemeToggleButton />
                         <button
                             onClick={onLogout}
-                            className="bg-gray-100 dark:bg-white/5 border border-white/5 text-gray-500 dark:text-green-400 hover:bg-red-500/10 hover:text-red-400 px-4 py-2 rounded-xl transition-all text-xs font-black uppercase tracking-widest"
+                            className="bg-gray-100 dark:bg-white/5 border border-white/5 text-gray-700 dark:text-green-400 hover:bg-red-500/10 hover:text-red-400 px-4 py-2 rounded-xl transition-all text-xs font-black uppercase tracking-widest"
                             aria-label="Logout"
                         >
                             Exit
@@ -77,12 +77,12 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                     
                     {/* Decorative Data Streamers */}
                     <div className="absolute top-1/2 -left-12 transform -rotate-90 hidden lg:block">
-                        <span className="text-[10px] font-mono text-gray-500 opacity-30 uppercase tracking-[1em]">SYSTEM_STABLE_V4.2</span>
+                        <span className="text-[10px] font-mono text-gray-600 dark:text-gray-500 opacity-30 uppercase tracking-[1em]">SYSTEM_STABLE_V4.2</span>
                     </div>
                 </main>
             </div>
             
-            <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-600 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
+            <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-700 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
                  <div className="flex flex-col items-center">
                     <p className="max-w-xl mx-auto opacity-70 mb-2">
                         Institutional analysis strictly for data validation. Follow the edge. Preserve the capital.

@@ -53,10 +53,10 @@ export const CheatSheet: React.FC<CheatSheetProps> = ({ onClose }) => {
                         </div>
                         <div>
                             <h3 className="text-lg font-bold text-gray-800 dark:text-white">Trader's Academy</h3>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">Tactical Reference Guide</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">Tactical Reference Guide</p>
                         </div>
                     </div>
-                    <button onClick={onClose} className="text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white p-2">
+                    <button onClick={onClose} className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white p-2">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
@@ -74,7 +74,7 @@ export const CheatSheet: React.FC<CheatSheetProps> = ({ onClose }) => {
                                 className={`w-full text-left px-4 py-4 text-sm font-semibold transition-colors border-l-4 ${
                                     openCategory === cat.category 
                                     ? 'bg-white dark:bg-slate-800/80 border-blue-500 text-blue-600 dark:text-blue-400' 
-                                    : 'border-transparent text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800/40'
+                                    : 'border-transparent text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800/40'
                                 }`}
                             >
                                 {cat.category}
@@ -95,7 +95,7 @@ export const CheatSheet: React.FC<CheatSheetProps> = ({ onClose }) => {
                                         <span className="w-1.5 h-1.5 rounded-full bg-blue-500 mr-2"></span>
                                         {item.term}
                                     </h5>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 ml-3.5 leading-relaxed">
+                                    <p className="text-sm text-gray-700 dark:text-gray-300 ml-3.5 leading-relaxed">
                                         {item.def}
                                     </p>
                                 </div>

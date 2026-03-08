@@ -139,7 +139,7 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
                                 x={pos.x} y={pos.y} 
                                 textAnchor="middle" 
                                 dominantBaseline="middle" 
-                                fill={isDark ? "#94a3b8" : "#475569"} 
+                                fill={isDark ? "#94a3b8" : "#334155"} 
                                 fontSize="10" 
                                 fontWeight="bold" 
                                 className="uppercase tracking-widest"
@@ -315,14 +315,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
             {/* --- Structural Sentiment Arc (Single Rotating Neural Radar) --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="lg:col-span-2 bg-black/20 p-6 rounded-2xl border border-white/5 shadow-inner flex flex-col">
+                <div className="lg:col-span-2 bg-gray-200/50 dark:bg-black/20 p-6 rounded-2xl border border-white/5 shadow-inner flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-400">Structural Sentiment Vectors</h2>
+                        <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 dark:text-gray-400">Structural Sentiment Vectors</h2>
                         <div className="flex items-center gap-2">
                             <span className="text-[9px] font-bold text-white bg-blue-500/20 px-2 py-1 rounded border border-blue-500/30 uppercase">
                                 {currentPair}
                             </span>
-                            <span className="text-[9px] font-bold text-gray-600 bg-black/40 px-2 py-1 rounded border border-white/5">
+                            <span className="text-[9px] font-bold text-gray-700 dark:text-gray-600 bg-black/10 dark:bg-black/40 px-2 py-1 rounded border border-white/5">
                                 ROTATES EVERY 2H
                             </span>
                         </div>
@@ -334,19 +334,19 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     </div>
                 </div>
 
-                <div className="bg-black/20 p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
+                <div className="bg-gray-200/50 dark:bg-black/20 p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
                     <div className="flex justify-between items-center">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-500">Node Status</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-500">Node Status</span>
                         <div className={`flex items-center gap-2 text-[10px] font-black px-3 py-1 rounded-full ${marketIsOpen ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                             <span className={`w-2 h-2 rounded-full ${marketIsOpen ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></span>
                             {marketIsOpen ? 'OPERATIONAL' : 'MARKET CLOSED'}
                         </div>
                     </div>
                     <div className="text-center py-6">
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.3em] block mb-2">Daily Iterations</span>
-                        <span className="text-6xl font-black text-white tracking-tighter font-mono">{analysisCount}</span>
+                        <span className="text-[10px] font-black text-gray-600 dark:text-gray-500 uppercase tracking-[0.3em] block mb-2">Daily Iterations</span>
+                        <span className="text-6xl font-black text-gray-800 dark:text-white tracking-tighter font-mono">{analysisCount}</span>
                     </div>
-                    <button onClick={onResetCount} className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-400 hover:text-cyan-300 transition-colors">Reset Logs</button>
+                    <button onClick={onResetCount} className="text-[10px] font-black uppercase tracking-[0.3em] text-cyan-600 dark:text-cyan-400 hover:text-cyan-500 dark:hover:text-cyan-300 transition-colors">Reset Logs</button>
                 </div>
             </div>
 
@@ -360,7 +360,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                 
                 <div className="flex flex-wrap justify-between items-center mb-6 relative z-10 gap-4">
                     <div>
-                        <h3 className={`text-xl font-black flex items-center gap-3 uppercase tracking-tighter ${isUpdatingSuggestions ? 'text-cyan-400' : (isReady ? 'text-green-500' : 'text-gray-400')}`}>
+                        <h3 className={`text-xl font-black flex items-center gap-3 uppercase tracking-tighter ${isUpdatingSuggestions ? 'text-cyan-600 dark:text-cyan-400' : (isReady ? 'text-green-600 dark:text-green-500' : 'text-gray-600 dark:text-gray-400')}`}>
                              <span className="relative flex h-4 w-4">
                                 <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isUpdatingSuggestions ? 'bg-cyan-400' : (isReady ? 'bg-green-400' : 'bg-gray-400')}`}></span>
                                 <span className={`relative inline-flex rounded-full h-4 w-4 ${isUpdatingSuggestions ? 'bg-cyan-500' : (isReady ? 'bg-green-500' : 'bg-gray-500')}`}></span>
@@ -369,8 +369,8 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         </h3>
                     </div>
                      <div className="text-right">
-                        <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest block mb-1">Update Cycle</span>
-                        <span className={`font-mono text-xl font-black ${isUpdatingSuggestions ? 'text-cyan-400 animate-pulse' : (isReady ? 'text-green-400' : 'text-gray-500')}`}>
+                        <span className="text-[10px] font-black text-gray-600 dark:text-gray-500 uppercase tracking-widest block mb-1">Update Cycle</span>
+                        <span className={`font-mono text-xl font-black ${isUpdatingSuggestions ? 'text-cyan-600 dark:text-cyan-400 animate-pulse' : (isReady ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-500')}`}>
                             {isUpdatingSuggestions ? 'REFRESHING' : 'HOURLY'}
                         </span>
                     </div>
@@ -380,48 +380,48 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     {!marketIsOpen ? (
                         <div className="col-span-full py-12 flex flex-col items-center justify-center text-center">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 text-red-500/50 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6.364-6.364l-1.414-1.414M6.343 6.343l-1.414 1.414m12.728 0l1.414-1.414M17.657 17.657l1.414 1.414M4 12H2m10 10v-2m10 0h-2" /></svg>
-                            <p className="text-gray-400 font-black text-sm uppercase tracking-[0.2em]">MARKETS ARE CURRENTLY CLOSED</p>
-                            <p className="text-xs text-gray-500 mt-2">Asset queue will resume on market open.</p>
+                            <p className="text-gray-600 dark:text-gray-400 font-black text-sm uppercase tracking-[0.2em]">MARKETS ARE CURRENTLY CLOSED</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-500 mt-2">Asset queue will resume on market open.</p>
                         </div>
                     ) : isUpdatingSuggestions && bullishSuggestions.length === 0 ? (
                          <div className="col-span-full py-12 flex flex-col items-center justify-center gap-4">
                             <div className="w-10 h-10 border-4 border-t-cyan-500 border-gray-700 rounded-full animate-spin"></div>
-                            <span className="text-[10px] font-black text-gray-500 uppercase tracking-[0.5em] animate-pulse">Scanning Global Orderflow...</span>
+                            <span className="text-[10px] font-black text-gray-600 dark:text-gray-500 uppercase tracking-[0.5em] animate-pulse">Scanning Global Orderflow...</span>
                         </div>
                     ) : bullishSuggestions.length > 0 ? (
                         <>
                             <div className="col-span-2">
-                                <h4 className="text-lg font-black text-green-400 mb-4 uppercase tracking-widest">Bullish Momentum</h4>
+                                <h4 className="text-lg font-black text-green-600 dark:text-green-400 mb-4 uppercase tracking-widest">Bullish Momentum</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {bullishSuggestions.map((asset, idx) => (
                                         <div 
                                             key={idx} 
                                             onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-black/60 hover:bg-green-500/10 border-green-500/20`}
+                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-gray-100 dark:bg-black/60 hover:bg-green-500/10 border-green-500/20`}
                                         >
                                             <div className="flex justify-between items-center">
-                                                <span className="font-black text-white text-xl tracking-tighter group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
-                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-300`}>{asset.momentum}</span>
+                                                <span className="font-black text-gray-800 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
+                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-600 dark:text-green-300`}>{asset.momentum}</span>
                                             </div>
-                                            <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                             <div className="col-span-2">
-                                <h4 className="text-lg font-black text-red-400 mb-4 uppercase tracking-widest">Bearish Momentum</h4>
+                                <h4 className="text-lg font-black text-red-600 dark:text-red-400 mb-4 uppercase tracking-widest">Bearish Momentum</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     {bearishSuggestions.map((asset, idx) => (
                                         <div 
                                             key={idx} 
                                             onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-black/60 hover:bg-red-500/10 border-red-500/20`}
+                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-gray-100 dark:bg-black/60 hover:bg-red-500/10 border-red-500/20`}
                                         >
                                             <div className="flex justify-between items-center">
-                                                <span className="font-black text-white text-xl tracking-tighter group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
-                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-300`}>{asset.momentum}</span>
+                                                <span className="font-black text-gray-800 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
+                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-600 dark:text-red-300`}>{asset.momentum}</span>
                                             </div>
-                                            <p className="text-xs text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                            <p className="text-xs text-gray-600 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
                                         </div>
                                     ))}
                                 </div>
@@ -429,7 +429,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                         </>
                     ) : (
                         <div className="col-span-full py-12 text-center">
-                            <p className="text-gray-600 font-black text-sm uppercase tracking-[0.2em]">Queue Depleted. Initiating Priority Scan...</p>
+                            <p className="text-gray-700 dark:text-gray-600 font-black text-sm uppercase tracking-[0.2em]">Queue Depleted. Initiating Priority Scan...</p>
                         </div>
                     )}
                 </div>

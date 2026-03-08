@@ -140,13 +140,13 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                     <h1 className="text-4xl sm:text-5xl font-extrabold tracking-tight animated-gradient-text animate-animated-gradient">
                         GreyAlpha Chart Analyzer
                     </h1>
-                    <p className="mt-3 text-lg text-gray-600 dark:text-dark-text/80">
+                    <p className="mt-3 text-lg text-gray-700 dark:text-dark-text/80">
                         Upload your chart and let AI find your next trade.
                     </p>
                     <div className="absolute top-0 right-0">
                         <button 
                             onClick={onLogout} 
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm p-2"
+                            className="text-gray-700 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm p-2"
                             aria-label="Logout"
                         >
                             Logout
@@ -170,7 +170,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                                     {lastRequest && (
                                         <button 
                                             onClick={handleReAnalyze}
-                                            className="text-gray-500 dark:text-green-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-xs p-1 flex items-center font-medium"
+                                            className="text-gray-600 dark:text-green-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-xs p-1 flex items-center font-medium"
                                             aria-label="Re-analyze chart"
                                         >
                                             <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -179,7 +179,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                                     )}
                                     <button 
                                         onClick={handleCopyAnalysis}
-                                        className="text-gray-500 dark:text-green-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-xs p-1 flex items-center font-medium"
+                                        className="text-gray-600 dark:text-green-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors text-xs p-1 flex items-center font-medium"
                                         aria-label="Copy analysis"
                                     >
                                         {isCopied ? (
@@ -196,7 +196,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                                     </button>
                                     <button 
                                         onClick={handleClearAnalysis}
-                                        className="text-gray-500 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs p-1 flex items-center font-medium"
+                                        className="text-gray-600 dark:text-green-400 hover:text-red-500 dark:hover:text-red-400 transition-colors text-xs p-1 flex items-center font-medium"
                                         aria-label="Back to Upload"
                                     >
                                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
@@ -211,7 +211,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                                 {!signalData && !isLoading && !error && (
                                     <div className="text-center">
                                         <h3 className="text-base font-medium text-gray-800 dark:text-green-400">Your trade analysis will appear here.</h3>
-                                        <p className="mt-1 text-sm text-gray-600 dark:text-dark-text-secondary">Upload a chart and click "Analyze" to begin.</p>
+                                        <p className="mt-1 text-sm text-gray-700 dark:text-dark-text-secondary">Upload a chart and click "Analyze" to begin.</p>
                                     </div>
                                 )}
                             </div>
@@ -219,7 +219,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                    </div>
                 </main>
             </div>
-            <footer className="text-center mt-auto pt-12 text-gray-600 dark:text-dark-text/60 text-sm">
+            <footer className="text-center mt-auto pt-12 text-gray-700 dark:text-dark-text/60 text-sm">
                 <p>This is not financial advice. All analysis is for informational purposes only.</p>
                 <p className="mt-2">
                     Contact: <a href="mailto:ma8138498@gmail.com" className="font-medium text-green-600 dark:text-green-400 hover:underline">ma8138498@gmail.com</a>

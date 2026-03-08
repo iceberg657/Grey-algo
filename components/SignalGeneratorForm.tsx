@@ -167,11 +167,11 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                 </>
             ) : (
                 <div className="flex flex-col items-center justify-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-500 dark:text-dark-text-secondary group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-600 dark:text-dark-text-secondary group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p className="font-semibold text-gray-700 dark:text-dark-text text-center text-sm">{title} {required && <span className="text-red-500">*</span>}</p>
-                    <p className="text-[10px] text-gray-500 dark:text-dark-text-secondary text-center uppercase tracking-tight">Paste Image or Click to Select</p>
+                    <p className="font-semibold text-gray-800 dark:text-dark-text text-center text-sm">{title} {required && <span className="text-red-500">*</span>}</p>
+                    <p className="text-[10px] text-gray-600 dark:text-dark-text-secondary text-center uppercase tracking-tight">Paste Image or Click to Select</p>
                 </div>
             )}
         </div>
@@ -247,7 +247,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     </div>
                     <div className="flex-1">
                         <h4 className="font-bold text-blue-400 dark:text-blue-300 mb-1 uppercase text-xs tracking-widest">Optional Strategy Boosters</h4>
-                        <p className="text-xs text-gray-700 dark:text-blue-100/80 mb-2">
+                        <p className="text-xs text-gray-800 dark:text-blue-100/80 mb-2">
                             For maximum AI precision, include these indicators in your screenshots:
                         </p>
                         <div className="flex flex-wrap gap-2">
@@ -263,7 +263,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     {/* Top-Down Toggle */}
                     <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg w-full sm:w-auto">
-                        <span className="text-sm font-medium text-gray-700 dark:text-dark-text/80">Top-Down</span>
+                        <span className="text-sm font-medium text-gray-800 dark:text-dark-text/80">Top-Down</span>
                         <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
                             <input 
                                 type="checkbox" 
@@ -274,7 +274,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                             />
                             <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
                         </label>
-                        <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-700 dark:text-dark-text/80'}`}>
+                        <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-800 dark:text-dark-text/80'}`}>
                             Multi-Dim
                         </span>
                     </div>
@@ -306,7 +306,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
                  <div>
-                    <label htmlFor="tradingStyle" className="block text-sm font-medium text-gray-700 dark:text-dark-text/80 mb-2">Trading Style</label>
+                    <label htmlFor="tradingStyle" className="block text-sm font-medium text-gray-800 dark:text-dark-text/80 mb-2">Trading Style</label>
                     <select
                         id="tradingStyle"
                         value={tradingStyle}
@@ -317,7 +317,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     </select>
                 </div>
                  <div>
-                    <label htmlFor="riskRewardRatio" className="block text-sm font-medium text-gray-700 dark:text-dark-text/80 mb-2">Risk/Reward Ratio</label>
+                    <label htmlFor="riskRewardRatio" className="block text-sm font-medium text-gray-800 dark:text-dark-text/80 mb-2">Risk/Reward Ratio</label>
                     <select
                         id="riskRewardRatio"
                         value={riskRewardRatio}

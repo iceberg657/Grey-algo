@@ -26,7 +26,7 @@ const HistoryItem: React.FC<{ data: SignalData; onSelect: (data: SignalData) => 
         >
             <div>
                 <p className="font-bold text-gray-900 dark:text-green-400">{data.asset}</p>
-                <p className="text-xs text-gray-500 dark:text-dark-text/70">
+                <p className="text-xs text-gray-600 dark:text-dark-text/70">
                     {new Date(data.timestamp).toLocaleString()}
                 </p>
             </div>
@@ -102,7 +102,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
          <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
              <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                  <header className="relative mb-6 flex justify-between items-center">
-                    <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
+                    <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-700 dark:text-green-400 hover:underline">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                         </svg>
@@ -115,7 +115,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
                         <ThemeToggleButton />
                         <button 
                             onClick={onLogout} 
-                            className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium"
+                            className="text-gray-700 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium"
                             aria-label="Logout"
                         >
                             Logout
@@ -176,7 +176,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
                               <path strokeLinecap="round" strokeLinejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                             </svg>
                             <h3 className="mt-2 text-lg font-medium text-gray-800 dark:text-green-400">No History Found</h3>
-                            <p className="mt-1 text-sm text-gray-600 dark:text-dark-text-secondary">Your completed analyses will appear here.</p>
+                            <p className="mt-1 text-sm text-gray-700 dark:text-dark-text-secondary">Your completed analyses will appear here.</p>
                         </div>
                     )}
                 </main>

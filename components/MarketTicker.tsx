@@ -17,9 +17,9 @@ const TickerItem: React.FC<TickerItemProps> = ({ item, onClick }) => {
             onClick={() => onClick(item.symbol)}
             className="flex items-center flex-shrink-0 mr-8 text-sm cursor-pointer hover:bg-white/10 dark:hover:bg-white/5 px-2 py-1 rounded transition-colors"
         >
-            <span className="font-semibold text-gray-800 dark:text-dark-text/90 mr-3">{item.symbol}</span>
-            <span className="font-mono text-gray-800 dark:text-dark-text mr-3">{item.price.toFixed(pricePrecision)}</span>
-            <div className={`flex items-center font-mono ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+            <span className="font-semibold text-gray-900 dark:text-dark-text/90 mr-3">{item.symbol}</span>
+            <span className="font-mono text-gray-900 dark:text-dark-text mr-3">{item.price.toFixed(pricePrecision)}</span>
+            <div className={`flex items-center font-mono ${isPositive ? 'text-green-700 dark:text-green-400' : 'text-red-700 dark:text-red-400'}`}>
                 <span className="mr-1">{isPositive ? '▲' : '▼'}</span>
                 <span>{Math.abs(item.change).toFixed(pricePrecision)} ({Math.abs(item.changePercent).toFixed(2)}%)</span>
             </div>

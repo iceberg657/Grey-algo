@@ -29,7 +29,7 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
     <div className="opacity-0 animate-flip-3d" style={{ animationDelay: delay }}>
         <TiltCard>
             <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 border border-white/5 hover:border-green-500/30 transition-all transform hover:scale-[1.03] shadow-lg ${className} h-full min-h-[90px]`}>
-                <span className="text-[10px] sm:text-xs text-gray-600 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
+                <span className="text-[10px] sm:text-xs text-gray-700 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
                 {isSignal ? (
                     <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'NEUTRAL')}`}>
                         {value}
@@ -40,7 +40,7 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
                     </span>
                 )}
                 {subValue && (
-                    <span className={`text-[9px] sm:text-[10px] font-bold uppercase mt-1 text-center ${subValueClassName || 'text-gray-500'}`}>
+                    <span className={`text-[9px] sm:text-[10px] font-bold uppercase mt-1 text-center ${subValueClassName || 'text-gray-600'}`}>
                         {subValue}
                     </span>
                 )}
@@ -65,12 +65,12 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                     <div className={`text-2xl sm:text-3xl ${trend.color}`}>{trend.icon}</div>
                     <div>
                         <div className={`text-base sm:text-lg font-extrabold uppercase ${trend.color} leading-none`}>{trend.label}</div>
-                        <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono uppercase tracking-wider mt-1 font-bold">Structural Sentiment</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase tracking-wider mt-1 font-bold">Structural Sentiment</div>
                     </div>
                 </div>
                 <div className="text-right">
                     <div className={`text-xl sm:text-2xl font-bold ${trend.color} leading-none font-mono`}>{score}</div>
-                    <div className="text-[10px] text-gray-500 dark:text-gray-400 font-mono uppercase mt-1">AI Score</div>
+                    <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase mt-1">AI Score</div>
                 </div>
             </div>
 
@@ -80,14 +80,14 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                     style={{ width: `${score}%` }}
                 ></div>
             </div>
-            <div className="flex justify-between text-[10px] text-gray-500 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
+            <div className="flex justify-between text-[10px] text-gray-600 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
                 <span>Bearish (10-40)</span>
                 <span>Neutral</span>
                 <span>Bullish (60-100)</span>
             </div>
 
             <div className="bg-gray-100 dark:bg-black/20 p-3 rounded-lg border-l-4 border-gray-400 dark:border-gray-600 shadow-sm">
-                <p className="text-xs text-gray-600 dark:text-dark-text italic leading-relaxed font-medium">
+                <p className="text-xs text-gray-800 dark:text-dark-text italic leading-relaxed font-medium">
                     "{summary}"
                 </p>
             </div>
@@ -202,9 +202,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 <div>
                     <h2 className="text-4xl sm:text-5xl font-black text-gray-800 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
                     <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs sm:text-sm text-gray-500 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/5 px-2 py-0.5 rounded border border-white/5">{data.timeframe}</span>
+                        <span className="text-xs sm:text-sm text-gray-700 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/5 px-2 py-0.5 rounded border border-white/5">{data.timeframe}</span>
                         <span className="w-1 h-1 rounded-full bg-green-500 shadow-[0_0_5px_theme(colors.green.400)]"></span>
-                        <span className="text-[10px] text-gray-400 font-mono bg-black/10 dark:bg-black/30 px-2 py-0.5 rounded uppercase">Protocol: {data.entryType}</span>
+                        <span className="text-[10px] text-gray-600 dark:text-gray-400 font-mono bg-black/10 dark:bg-black/30 px-2 py-0.5 rounded uppercase">Protocol: {data.entryType}</span>
                     </div>
                 </div>
                  <button
@@ -232,7 +232,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     <TiltCard>
                         <div className="p-6 rounded-2xl bg-gray-200/50 dark:bg-dark-bg/60 border-2 border-white/5 h-full flex flex-col items-center shadow-inner group overflow-hidden relative">
                              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30 group-hover:bg-blue-500 transition-colors"></div>
-                             <span className="text-xs font-black text-gray-500 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Entry Cluster</span>
+                             <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Entry Cluster</span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
                                 {data.entryPoints.slice(0, 1).map((ep, i) => {
                                     const isRecommended = i === recommendedEntryIndex;
@@ -244,7 +244,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                                 </div>
                                             )}
                                             <span className={`font-mono text-xl font-black block ${isRecommended ? 'text-green-400' : 'text-gray-800 dark:text-white'}`}>{ep}</span>
-                                            <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">ENTRY</span>
+                                            <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">ENTRY</span>
                                         </div>
                                     );
                                 })}
@@ -261,12 +261,12 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     <TiltCard>
                         <div className="p-6 rounded-2xl bg-gray-200/50 dark:bg-dark-bg/60 border-2 border-white/5 h-full flex flex-col items-center shadow-inner group overflow-hidden relative">
                              <div className="absolute top-0 left-0 w-full h-1 bg-green-500/30 group-hover:bg-green-500 transition-colors"></div>
-                             <span className="text-xs font-black text-gray-500 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Liquidation Array</span>
+                             <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Liquidation Array</span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
                                 {data.takeProfits.slice(0, 2).map((tp, i) => (
                                     <div key={i} className="text-center bg-black/10 dark:bg-black/40 px-4 py-3 rounded-xl border border-white/5 min-w-[100px] shadow-lg">
                                         <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{tp}</span>
-                                        <span className="block text-[10px] text-gray-500 uppercase font-black mt-1">TARGET 0{i + 1}</span>
+                                        <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">TARGET 0{i + 1}</span>
                                     </div>
                                 ))}
                              </div>
@@ -286,16 +286,16 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                         
                         {/* Tactical Array (Full Width since Position Sizing is removed) */}
                         <div className="space-y-4">
-                            <h4 className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] mb-4">Tactical Array</h4>
+                            <h4 className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4">Tactical Array</h4>
                             
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-red-500 uppercase">Risk Bound</span>
-                                <span className="text-gray-800 dark:text-white font-bold">{slDisplay} <span className="text-[10px] text-gray-400">{unit}</span></span>
+                                <span className="text-gray-800 dark:text-white font-bold">{slDisplay} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
                             </div>
                             
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-green-500 uppercase">Reward Bound</span>
-                                <span className="text-gray-800 dark:text-white font-bold">{tp3Display} <span className="text-[10px] text-gray-400">{unit}</span></span>
+                                <span className="text-gray-800 dark:text-white font-bold">{tp3Display} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
                             </div>
                             
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
@@ -317,14 +317,14 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                             
                             {data.riskAmount && data.riskAmount > 0 && (
                                 <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">Est. Risk</span>
+                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Risk</span>
                                     <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
                                 </div>
                             )}
                             
                             {data.totalPotentialProfit && data.totalPotentialProfit > 0 && (
                                 <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">Est. Potential</span>
+                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Potential</span>
                                     <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
                                 </div>
                             )}
@@ -353,15 +353,15 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* FVG Status */}
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">FVG Detected</span>
-                                <span className={`font-bold ${data.confluenceMatrix.fvg ? 'text-green-500' : 'text-gray-500'}`}>
+                                <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">FVG Detected</span>
+                                <span className={`font-bold ${data.confluenceMatrix.fvg ? 'text-green-500' : 'text-gray-600'}`}>
                                     {data.confluenceMatrix.fvg ? `${data.confluenceMatrix.fvg.type.toUpperCase()} (${data.confluenceMatrix.fvg.lower} - ${data.confluenceMatrix.fvg.upper})` : 'NONE'}
                                 </span>
                             </div>
                             
                             {/* FVG Retest */}
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">FVG Retest</span>
+                                <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">FVG Retest</span>
                                 <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.fvgRetest ? 'text-green-500' : 'text-red-500'}`}>
                                     {data.confluenceMatrix.triggeredEntries.fvgRetest ? 'CONFIRMED' : 'NO'}
                                 </span>
@@ -369,24 +369,24 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
                             {/* SD Long */}
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">SD Long Entry</span>
-                                <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.sdLong ? 'text-green-500' : 'text-gray-500'}`}>
+                                <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">SD Long Entry</span>
+                                <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.sdLong ? 'text-green-500' : 'text-gray-600'}`}>
                                     {data.confluenceMatrix.triggeredEntries.sdLong ? 'TRIGGERED' : 'WAITING'}
                                 </span>
                             </div>
 
                             {/* SD Short */}
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase">SD Short Entry</span>
-                                <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.sdShort ? 'text-green-500' : 'text-gray-500'}`}>
+                                <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">SD Short Entry</span>
+                                <span className={`font-bold ${data.confluenceMatrix.triggeredEntries.sdShort ? 'text-green-500' : 'text-gray-600'}`}>
                                     {data.confluenceMatrix.triggeredEntries.sdShort ? 'TRIGGERED' : 'WAITING'}
                                 </span>
                             </div>
 
                             {/* Confluence Status */}
-                            <div className="col-span-1 md:col-span-2 mt-4 p-4 bg-black/20 rounded-xl border border-white/10 text-center">
-                                <span className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2">SD + FVG Confluence</span>
-                                <span className={`text-xl font-black ${data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? 'text-green-400 animate-pulse' : 'text-gray-600'}`}>
+                            <div className="col-span-1 md:col-span-2 mt-4 p-4 bg-black/10 dark:bg-black/20 rounded-xl border border-white/10 text-center">
+                                <span className="block text-xs font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-2">SD + FVG Confluence</span>
+                                <span className={`text-xl font-black ${data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? 'text-green-500 dark:text-green-400 animate-pulse' : 'text-gray-700 dark:text-gray-600'}`}>
                                     {data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? '✅ CONFLUENCE VERIFIED' : '❌ NO CONFLUENCE'}
                                 </span>
                             </div>
@@ -407,11 +407,11 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     </h3>
                     <div className="space-y-4">
                         {data.reasoning.map((text, i) => (
-                            <div key={i} className="flex p-5 rounded-2xl border border-white/5 bg-gray-900/40 dark:bg-[#0f172a]/60 relative overflow-hidden group hover:border-green-500/30 transition-all hover:bg-black/40">
+                            <div key={i} className="flex p-5 rounded-2xl border border-white/5 bg-gray-100 dark:bg-[#0f172a]/60 relative overflow-hidden group hover:border-green-500/30 transition-all hover:bg-white dark:hover:bg-black/40">
                                 <span className="text-3xl font-mono font-bold text-green-500 mr-6 opacity-80 flex-shrink-0">
                                     {(i + 1).toString().padStart(2, '0')}
                                 </span>
-                                <p className="text-gray-300 text-sm leading-relaxed font-medium pt-1.5">{text}</p>
+                                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed font-medium pt-1.5">{text}</p>
                             </div>
                         ))}
                     </div>
@@ -463,13 +463,13 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  <Section title="Intelligence Sources" delay="1600ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.937 7.937 0 0112 4c1.232 0 2.403.28 3.444.782l1.556-1.556a1 1 0 011.414 1.414l-1.556 1.556c.496 1.056.782 2.227.782 3.444 0 1.241-.3 2.413-.834 3.443L19.293 17.707a1 1 0 01-1.414 1.414l-3.483-3.484A7.935 7.935 0 0112 16a7.937 7.937 0 01-3-4.804l-1.556 1.556a1 1 0 01-1.414-1.414l1.556-1.556A7.935 7.935 0 014 12a7.937 7.937 0 013-4.804L5.444 5.64a1 1 0 011.414-1.414l1.556 1.556C9.403 5.084 10.574 4.804 12 4.804z" /></svg>}>
                     <ul className="space-y-3">
                         {data.sources.map((source, i) => (
-                            <li key={i} className="flex items-start bg-black/20 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 transition-all group overflow-hidden shadow-sm">
-                                <span className="mr-4 text-gray-500 flex-shrink-0 font-mono font-black">[{i+1}]</span>
+                            <li key={i} className="flex items-start bg-gray-100 dark:bg-black/20 p-4 rounded-xl border border-white/5 hover:border-blue-500/50 transition-all group overflow-hidden shadow-sm">
+                                <span className="mr-4 text-gray-600 dark:text-gray-500 flex-shrink-0 font-mono font-black">[{i+1}]</span>
                                 <div className="flex-1 overflow-hidden">
-                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-400 group-hover:text-blue-300 truncate block text-xs sm:text-sm font-bold tracking-tight mb-1">
+                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 group-hover:text-blue-400 dark:group-hover:text-blue-300 truncate block text-xs sm:text-sm font-bold tracking-tight mb-1">
                                         {source.title || "External Source"}
                                     </a>
-                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-500 hover:text-gray-400 truncate block font-mono">
+                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-gray-600 dark:text-gray-500 hover:text-gray-500 dark:hover:text-gray-400 truncate block font-mono">
                                         {source.uri}
                                     </a>
                                 </div>
