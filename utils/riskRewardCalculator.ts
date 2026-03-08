@@ -1,6 +1,6 @@
 
 import { MARKET_CONFIGS } from './marketConfigs';
-import type { SignalData } from '../types';
+import type { SignalData, TradingStyle } from '../types';
 
 interface TPSLCalculation {
   stopLoss: number;
@@ -24,7 +24,8 @@ export function calculateTPSL(
   signal: 'BUY' | 'SELL',
   asset: string,
   riskRewardRatio: string,
-  existingStopLoss?: number
+  existingStopLoss?: number,
+  tradingStyle?: TradingStyle
 ): TPSLCalculation {
   
   const precision = detectPrecision(asset);
@@ -38,6 +39,8 @@ export function calculateTPSL(
     ? MARKET_CONFIGS[marketConfigKey] 
     : null;
   
+  const isScalping = tradingStyle?.toLowerCase().includes('scalping');
+
   // 1. Validate & Fix Entries (Ensure they are distinct)
   // Entry 0 = Aggressive (Current/Breakout)
   // Entry 1 = Optimal (Standard Deviation / Retracement)
@@ -57,7 +60,12 @@ export function calculateTPSL(
   const baseEntry = validEntries[0];
   
   const genericMinDist = baseEntry * 0.0015; // 0.15% price min distance
-  const configMinDist = marketConfig ? marketConfig.minStopLoss : genericMinDist;
+  let configMinDist = marketConfig ? marketConfig.minStopLoss : genericMinDist;
+  
+  // For scalping, allow tighter stops (50% of config)
+  if (isScalping) {
+      configMinDist = configMinDist * 0.5;
+  }
   
   let currentSlDist = Math.abs(baseEntry - stopLoss);
 
@@ -67,7 +75,9 @@ export function calculateTPSL(
 
   if (!isSlValid || !isSlCorrectSide) {
       // Create SL based on ATR-like logic (using config or generic)
-      const buffer = configMinDist * 2.5; // Healthy breathing room
+      // For scalping, use tighter buffer (1.5x min) vs standard (2.5x min)
+      const bufferMultiplier = isScalping ? 1.5 : 2.5;
+      const buffer = configMinDist * bufferMultiplier; 
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
   }
@@ -75,7 +85,9 @@ export function calculateTPSL(
   // 3. ENFORCE DISTINCT ENTRIES (Fixing the Glitch)
   // If entries are identical, create a "Standard Deviation" spread
   // We use the SL distance as a proxy for volatility
-  const volatilityUnit = currentSlDist * 0.25; // 25% of SL distance
+  // For scalping, keep entries tighter (10% of SL dist) vs standard (25%)
+  const spreadFactor = isScalping ? 0.10 : 0.25;
+  const volatilityUnit = currentSlDist * spreadFactor;
 
   // Check if entries are too close (glitch detection)
   if (Math.abs(validEntries[1] - validEntries[0]) < Number.EPSILON) {
@@ -126,7 +138,8 @@ export function calculateTPSL(
 
 export function validateAndFixTPSL(
   signal: Omit<SignalData, 'id' | 'timestamp'>,
-  riskRewardRatio: string
+  riskRewardRatio: string,
+  tradingStyle?: TradingStyle
 ): Omit<SignalData, 'id' | 'timestamp'> {
   
   if (signal.signal === 'NEUTRAL') {
@@ -138,7 +151,8 @@ export function validateAndFixTPSL(
     signal.signal as 'BUY' | 'SELL',
     signal.asset,
     riskRewardRatio,
-    signal.stopLoss
+    signal.stopLoss,
+    tradingStyle
   );
     
   return {

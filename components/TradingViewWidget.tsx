@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef, memo, useState } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from './contexts/ThemeContext';
 
 export const TradingViewWidget: React.FC = memo(() => {
   const container = useRef<HTMLDivElement>(null);

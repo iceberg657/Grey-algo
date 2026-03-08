@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { ThemeToggleButton } from './ThemeToggleButton';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from './contexts/ThemeContext';
 import { NeuralBackground } from './NeuralBackground';
 
 interface LoginPageProps {

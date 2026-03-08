@@ -134,6 +134,27 @@ ${ALGO_LOGIC}
 
 ---
 
+🚫 **STRICT FILTERING RULES (ZERO TOLERANCE):**
+1. **TREND CONFLUENCE (MANDATORY):**
+   - **BULLISH TREND:** ONLY look for BUYS. Ignore all sell signals.
+   - **BEARISH TREND:** ONLY look for SELLS. Ignore all buy signals.
+   - **RANGING:** ONLY trade extremes (Premium/Discount).
+   - If the trend is unclear or conflicting, return **NEUTRAL**.
+
+2. **CONFIDENCE THRESHOLD:**
+   - If confidence is < 85%, return **NEUTRAL**.
+   - If the setup is not "crystal clear" or feels like a guess, return **NEUTRAL**.
+   - DO NOT force a trade. "No Trade" is a profitable position.
+   - **SCALPING RULE:** Ideally, there should be NO LOSS. If you are not absolutely sure, do not signal.
+
+3. **INVALIDATION LOGIC:**
+   - Invalidation is NOT hitting SL.
+   - Invalidation is when **Market Structure Shifts (MSS)** against the trade idea.
+   - If price closes beyond the invalidation level, the trade is dead immediately.
+   - If price starts declining (for buys) or inclining (for sells) at a certain level against the setup, CLOSE immediately. Do not wait for SL.
+
+---
+
 🧠 **SMC/ICT CORE LOGIC (MANDATORY):**
 1.  **MARKET STRUCTURE:**
     - **Bullish:** Consistent Higher Highs (HH) and Higher Lows (HL).
@@ -223,13 +244,17 @@ ${ALGO_LOGIC}
 ${(() => {
     switch (style) {
         case 'scalping(1 to 15mins)':
-            return `- **Timeframes:** M1, M5, M15.
-- **Objective:** Quick scalp on LTF CHoCH after HTF Liquidity Sweep.
-- **Duration:** 1 to 15 minutes.`;
+            return `- **Timeframes:** M1, M5.
+- **Objective:** HYPER-SCALPING. In and out within 15-45 minutes max.
+- **Strict Rule:** ONLY trade with the M15/H1 Trend.
+- **Philosophy:** "No Loss". Either a clear signal or NEUTRAL.
+- **Invalidation:** Immediate exit if M1 structure shifts against entry or price stalls. Do not wait for SL.`;
         case 'scalping(15 to 30mins)':
-            return `- **Timeframes:** M5, M15, M30.
-- **Objective:** Scalp within session trends, targeting minor liquidity.
-- **Duration:** 15 to 30 minutes.`;
+            return `- **Timeframes:** M5, M15.
+- **Objective:** SESSION MOMENTUM. In and out within 45 minutes max.
+- **Strict Rule:** ONLY trade with the H1 Trend.
+- **Philosophy:** High probability only.
+- **Invalidation:** Immediate exit if M5 candle closes against bias.`;
         case 'day trading(1 to 2hrs)':
             return `- **Timeframes:** M15, H1.
 - **Objective:** Capture intra-day moves within a single session.
@@ -383,7 +408,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 contents: [{ parts: promptParts }],
                 config: { 
                     tools: [{googleSearch: {}}], 
-                    temperature: 0.2 
+                    temperature: 0 
                 },
             })
         );
@@ -431,9 +456,10 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         // Logic to boost confidence artificially if it's too low but signal is valid
         let finalConfidence = data.confidence || 0;
-        if (data.signal !== 'NEUTRAL' && finalConfidence < 70) {
-             finalConfidence = Math.min(85, finalConfidence + 15);
-        }
+        // REMOVED: Artificial boost. User requested strict accuracy.
+        // if (data.signal !== 'NEUTRAL' && finalConfidence < 70) {
+        //      finalConfidence = Math.min(85, finalConfidence + 15);
+        // }
 
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
@@ -463,7 +489,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             pipValue: data.pipValue
         };
         
-        return validateAndFixTPSL(rawSignal, request.riskRewardRatio);
+        return validateAndFixTPSL(rawSignal, request.riskRewardRatio, request.tradingStyle);
     }, getAnalysisPool());
 }
 

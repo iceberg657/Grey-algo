@@ -1,6 +1,6 @@
 
 import React, { useEffect, useRef } from 'react';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from './contexts/ThemeContext';
 
 export const NeuralBackground: React.FC = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);

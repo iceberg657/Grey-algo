@@ -80,23 +80,21 @@ const K = {
 };
 
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4)
-// Models: 3.0 Pro -> 3.0 Flash -> 3.1 Flash Lite -> 2.5 Pro -> 2.5 Flash -> 2.0 Flash
+// Models: 3.0 Flash -> 3.1 Flash Lite -> 3.0 Pro -> 2.5 Flash -> 2.0 Flash
 export const getAnalysisPool = () => [K.K1(), K.K2(), K.K3(), K.K4()].filter(k => !!k);
 export const ANALYSIS_MODELS = [
-    'gemini-3-pro-preview',
     'gemini-3-flash-preview',
     'gemini-3.1-flash-lite-preview',
-    'gemini-2.5-pro',
+    'gemini-3-pro-preview',
     'gemini-2.5-flash',
     'gemini-2.0-flash'
 ];
 
 // 2. CHAT & NEWS (Key 5)
-// Models: 2.5 Pro -> 2.5 Flash -> 3.1 Flash Lite -> 2.0 Flash
+// Models: 2.5 Flash -> 3.1 Flash Lite -> 2.0 Flash
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
 export const getChatPool = () => [K.K5()].filter(k => !!k);
 export const CHAT_MODELS = [
-    'gemini-2.5-pro',
     'gemini-2.5-flash',
     'gemini-3.1-flash-lite-preview',
     'gemini-2.0-flash'
@@ -117,9 +115,9 @@ export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
 export const getSuggestionStructurePool = () => getChatPool(); // Global Market uses Chat Pool (K5) to save other keys
 
 export const LANE_2_MODELS = [
+    'gemini-2.5-flash',
     'gemini-3.1-flash-lite-preview',
-    'gemini-flash-lite-latest',
-    'gemini-2.5-flash'
+    'gemini-flash-lite-latest'
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
@@ -127,7 +125,7 @@ export const getTtsKey = () => [K.K3()].filter(k => !!k);
 
 // Global Penalty Box for exhausted keys
 const cooldownMap = new Map<string, number>();
-const COOLDOWN_DURATION = 60000; // 60 seconds penalty for 429s
+const COOLDOWN_DURATION = 30000; // Reduced to 30s for faster recovery
 
 function isThrottled(key: string): boolean {
     const expiry = cooldownMap.get(key);
@@ -188,8 +186,8 @@ export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?:
 
 export async function runWithRetry<T>(
     operation: () => Promise<T>,
-    retries: number = 2,
-    baseDelay: number = 3000,
+    retries: number = 1, // Reduced default retries
+    baseDelay: number = 1000, // Reduced base delay
     onRetry?: (delayMs: number) => void
 ): Promise<T> {
     try {
@@ -199,7 +197,7 @@ export async function runWithRetry<T>(
         const msg = (error.message || '').toLowerCase();
         
         // OPTIMIZATION: Do NOT retry 429s here. Let them bubble up to `runWithModelFallback`
-        // so we can switch models immediately without waiting 3 seconds.
+        // so we can switch models immediately without waiting.
         // We DO retry 500s, 503s, and network/XHR errors which are often transient.
         if (
             msg.includes('503') || 
@@ -215,7 +213,7 @@ export async function runWithRetry<T>(
                 onRetry(baseDelay);
             }
             await new Promise(r => setTimeout(r, baseDelay));
-            return runWithRetry(operation, retries - 1, baseDelay * 2, onRetry);
+            return runWithRetry(operation, retries - 1, baseDelay * 1.5, onRetry); // Reduced backoff multiplier
         }
         throw error;
     }
@@ -229,7 +227,7 @@ export async function runWithModelFallback<T>(
     modelIds: string[],
     operationFactory: (modelId: string) => Promise<T>,
     onRetry?: (delayMs: number) => void,
-    loopCount: number = 2 // Try the whole sequence twice by default
+    loopCount: number = 1 // Reduced default loop count to 1 for speed
 ): Promise<T> {
     let lastError: any;
     
@@ -238,7 +236,7 @@ export async function runWithModelFallback<T>(
             const model = modelIds[j];
             try {
                 // Internal retry for 500/503 errors (network blips)
-                return await runWithRetry(() => operationFactory(model), 1, 3000, onRetry);
+                return await runWithRetry(() => operationFactory(model), 1, 1000, onRetry);
             } catch (error: any) {
                 lastError = error;
                 const errorMsg = (error.message || '').toLowerCase();

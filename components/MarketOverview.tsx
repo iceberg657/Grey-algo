@@ -4,7 +4,7 @@ import { getOrRefreshSuggestions } from '../services/suggestionService';
 import type { MomentumAsset } from '../types';
 import { MarketTicker } from './MarketTicker';
 import { KillzoneClock } from './KillzoneClock';
-import { useTheme } from '../contexts/ThemeContext';
+import { useTheme } from './contexts/ThemeContext';
 
 const SNIPER_TARGET_KEY = 'greyquant_sniper_target';
 const SNIPER_WINDOW_KEY = 'greyquant_sniper_window_end';
