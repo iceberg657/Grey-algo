@@ -304,7 +304,9 @@ ${(() => {
   "entryType": "Limit Order", 
   "stopLoss": number,
   "takeProfits": [TP1, TP2, TP3],
-  
+  "possiblePips": number, // Estimated pips from Entry to TP3
+  "winProbability": number, // Estimated probability (0-100) of hitting TP1
+
   "timeframeRationale": "Why this duration",
   
   "confluenceMatrix": {
@@ -442,6 +444,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             entryType: data.entryType || "Limit Order",
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
+            possiblePips: data.possiblePips || 0,
+            winProbability: data.winProbability || 0,
             reasoning: data.reasoning || [],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Structure break",

@@ -117,6 +117,8 @@ export interface SignalData {
     riskAmount?: number;
     potentialProfit?: number[];
     totalPotentialProfit?: number;
+    possiblePips?: number; // New field for estimated pips to target
+    winProbability?: number; // Estimated probability of hitting the target
     partialCloseAmounts?: number[];
     partialCloseSizes?: string[];
     moveToBreakeven?: boolean;

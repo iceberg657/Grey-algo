@@ -117,6 +117,34 @@ export function buildCompleteTradeSetup(
       // Fallback to requested ratio if calculation fails (e.g. invalid lots) but trade is valid
       calculatedRR = settings.riskRewardRatio || '1:3';
   }
+
+  // Calculate Possible Pips if AI didn't provide it
+  let possiblePips = signal.possiblePips || 0;
+  if (possiblePips === 0 && entryPrice > 0 && signal.takeProfits[2] > 0 && pipValue > 0) {
+      // Pips = PriceDiff / PipValue (roughly, depends on asset class but good enough for display)
+      // Actually, for display "Possible Pips", we usually mean points or pips.
+      // Let's use the standard formula: Distance / PipSize (which we don't have directly, but pipValue helps)
+      // Wait, pipValue is $ value per pip per lot.
+      // We just want the raw distance in pips.
+      // Let's assume standard forex 0.0001 or 0.01 for JPY.
+      // Since we don't have the exact pip size (0.0001 vs 0.01) readily available in a generic way without config,
+      // we can try to infer or just use the raw price difference if it's an index, or normalize for FX.
+      
+      // Simpler approach: Use the raw price difference and let the user interpret, 
+      // OR try to use the `detectAssetConfig` to get decimals.
+      const config = detectAssetConfig(signal.asset);
+      const diff = Math.abs(signal.takeProfits[2] - entryPrice);
+      
+      if (config.category === 'forex') {
+          const pipSize = signal.asset.includes('JPY') ? 0.01 : 0.0001;
+          possiblePips = Math.round(diff / pipSize);
+      } else if (config.category === 'indices' || config.category === 'synthetics') {
+          // For indices/synthetics, "pips" usually means points.
+          possiblePips = Math.round(diff); // Points
+      } else {
+          possiblePips = Math.round(diff * 100) / 100; // Raw difference for others
+      }
+  }
   
   return {
     ...signal,
@@ -125,6 +153,7 @@ export function buildCompleteTradeSetup(
     riskAmount: riskAmount,
     potentialProfit,
     totalPotentialProfit,
+    possiblePips,
     partialCloseAmounts: partialAmounts,
     partialCloseSizes: partialAmounts.map(lots => formatLotSize(lots, signal.asset)),
     moveToBreakeven: partialClose.moveToBreakeven,

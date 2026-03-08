@@ -328,6 +328,20 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                     <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
                                 </div>
                             )}
+
+                            {data.possiblePips !== undefined && data.possiblePips > 0 && (
+                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                    <span className="text-sm font-bold text-orange-500 uppercase">Possible Pips</span>
+                                    <span className="font-bold text-orange-500 dark:text-orange-400">{data.possiblePips} pips</span>
+                                </div>
+                            )}
+
+                            {data.winProbability !== undefined && data.winProbability > 0 && (
+                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                    <span className="text-sm font-bold text-pink-500 uppercase">Win Probability</span>
+                                    <span className="font-bold text-pink-500 dark:text-pink-400">{data.winProbability}%</span>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
