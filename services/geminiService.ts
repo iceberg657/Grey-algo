@@ -135,19 +135,30 @@ ${ALGO_LOGIC}
 ---
 
 🚫 **STRICT FILTERING RULES (ZERO TOLERANCE):**
-1. **TREND CONFLUENCE (MANDATORY):**
-   - **BULLISH TREND:** ONLY look for BUYS. Ignore all sell signals.
-   - **BEARISH TREND:** ONLY look for SELLS. Ignore all buy signals.
-   - **RANGING:** ONLY trade extremes (Premium/Discount).
-   - If the trend is unclear or conflicting, return **NEUTRAL**.
+1. **STRUCTURAL BIAS & MARKET TREND (MANDATORY):**
+   - Scan the timeframes to determine **Structural Bias** (Bullish/Bearish) and **Market Trend** (Bullish/Bearish).
+   - If Structural Bias == Bearish AND Market Trend == Bearish -> **SELL SIGNAL**.
+   - If Structural Bias == Bullish AND Market Trend == Bullish -> **BUY SIGNAL**.
+   - If Structural Bias == Bullish AND Market Trend == Bearish -> Wait for a **retrace entry for a BEARISH setup**.
+   - If Structural Bias == Bearish AND Market Trend == Bullish -> Wait for a **retrace entry for a BULLISH setup**.
 
-2. **CONFIDENCE THRESHOLD:**
+2. **VOLATILITY & ATR CHECK:**
+   - Watch out for market volatility to prevent entering trades in choppy regions.
+   - Use **ATR (Average True Range)** to determine if the market has enough movement to justify a trade.
+   - Many fake setups happen during low volatility. If ATR is low or price action is choppy, return NEUTRAL or wait.
+
+3. **ECONOMIC EVENTS & NEWS (CRITICAL):**
+   - Use Google Search to find **High Impact Economic News Events** related to the asset/pair.
+   - Provide accurate news events happening in the **next 30 minutes to 1 hour**, and **15 minutes before** the current time.
+   - You MUST provide at least **5 visited links** from your Google Search in the "sources" array.
+
+4. **CONFIDENCE THRESHOLD:**
    - If confidence is < 85%, return **NEUTRAL**.
    - If the setup is not "crystal clear" or feels like a guess, return **NEUTRAL**.
    - DO NOT force a trade. "No Trade" is a profitable position.
    - **SCALPING RULE:** Ideally, there should be NO LOSS. If you are not absolutely sure, do not signal.
 
-3. **INVALIDATION LOGIC:**
+5. **INVALIDATION LOGIC:**
    - Invalidation is NOT hitting SL.
    - Invalidation is when **Market Structure Shifts (MSS)** against the trade idea.
    - If price closes beyond the invalidation level, the trade is dead immediately.
@@ -343,7 +354,22 @@ ${(() => {
         "sdLong": boolean,
         "sdShort": boolean,
         "sdPlusFVGConfluence": boolean
-    }
+    },
+    "structuralBias": "Bullish" | "Bearish",
+    "marketTrend": "Bullish" | "Bearish",
+    "atrVolatility": "High" | "Low" | "Choppy",
+    "executionChecklist": [
+      "1. Structural Bias Alignment: [Pass/Fail]",
+      "2. Market Trend Alignment: [Pass/Fail]",
+      "3. ATR Volatility Sufficient: [Pass/Fail]",
+      "4. Liquidity Swept: [Pass/Fail]",
+      "5. CHoCH/BOS Confirmed: [Pass/Fail]",
+      "6. FVG/OB Retest: [Pass/Fail]",
+      "7. Premium/Discount Zone: [Pass/Fail]",
+      "8. Economic News Cleared: [Pass/Fail]",
+      "9. Risk:Reward Acceptable: [Pass/Fail]",
+      "10. No Choppy Price Action: [Pass/Fail]"
+    ]
   },
 
   "reasoning": [
@@ -372,7 +398,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const ai = new GoogleGenAI({ apiKey });
         
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-        const promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n` + AI_TRADING_PLAN(
+        const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }); // Or use a generic format
+        const promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n[CURRENT LOCAL TIME: ${new Date().toISOString()}]\n` + AI_TRADING_PLAN(
           request.riskRewardRatio, 
           request.asset || "",
           request.learnedStrategies || [],

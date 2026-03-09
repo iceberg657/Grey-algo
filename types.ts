@@ -144,6 +144,10 @@ export interface SignalData {
             sdShort: boolean;
             sdPlusFVGConfluence: boolean;
         };
+        structuralBias?: "Bullish" | "Bearish";
+        marketTrend?: "Bullish" | "Bearish";
+        atrVolatility?: "High" | "Low" | "Choppy";
+        executionChecklist?: string[];
     };
 }
 

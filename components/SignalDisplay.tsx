@@ -390,6 +390,51 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                     {data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? '✅ CONFLUENCE VERIFIED' : '❌ NO CONFLUENCE'}
                                 </span>
                             </div>
+
+                            {/* Market Context */}
+                            {data.confluenceMatrix.structuralBias && (
+                                <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                                    <div className="p-4 bg-black/10 dark:bg-black/20 rounded-xl border border-white/10 text-center">
+                                        <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">Structural Bias</span>
+                                        <span className={`text-lg font-black ${data.confluenceMatrix.structuralBias.toLowerCase() === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+                                            {data.confluenceMatrix.structuralBias.toUpperCase()}
+                                        </span>
+                                    </div>
+                                    <div className="p-4 bg-black/10 dark:bg-black/20 rounded-xl border border-white/10 text-center">
+                                        <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">Market Trend</span>
+                                        <span className={`text-lg font-black ${data.confluenceMatrix.marketTrend?.toLowerCase() === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
+                                            {data.confluenceMatrix.marketTrend?.toUpperCase() || 'N/A'}
+                                        </span>
+                                    </div>
+                                    <div className="p-4 bg-black/10 dark:bg-black/20 rounded-xl border border-white/10 text-center">
+                                        <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">ATR Volatility</span>
+                                        <span className={`text-lg font-black ${data.confluenceMatrix.atrVolatility?.toLowerCase() === 'high' ? 'text-green-500' : data.confluenceMatrix.atrVolatility?.toLowerCase() === 'choppy' ? 'text-red-500' : 'text-yellow-500'}`}>
+                                            {data.confluenceMatrix.atrVolatility?.toUpperCase() || 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Execution Checklist */}
+                            {data.confluenceMatrix.executionChecklist && data.confluenceMatrix.executionChecklist.length > 0 && (
+                                <div className="col-span-1 md:col-span-2 mt-4">
+                                    <h4 className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">10-Point Execution Checklist</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {data.confluenceMatrix.executionChecklist.map((item, i) => {
+                                            const isPass = item.toLowerCase().includes('pass');
+                                            const isFail = item.toLowerCase().includes('fail');
+                                            return (
+                                                <div key={i} className="flex items-center bg-black/5 dark:bg-black/20 p-2.5 rounded-lg border border-white/5 shadow-sm">
+                                                    <span className={`mr-3 font-black ${isPass ? 'text-green-500' : isFail ? 'text-red-500' : 'text-gray-500'}`}>
+                                                        {isPass ? '✓' : isFail ? '✗' : '○'}
+                                                    </span>
+                                                    <span className="text-xs font-bold opacity-80">{item.replace(/\[(Pass|Fail)\]/i, '').trim()}</span>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </Section>
@@ -421,12 +466,20 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 <Section title="Confluence Matrix" delay="1200ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>}>
                     <div className="space-y-2">
-                        {data.checklist?.map((item, i) => (
-                            <div key={i} className="flex items-center bg-green-500/5 p-3 rounded-lg border border-green-500/20 shadow-sm transition-all hover:bg-green-500/10">
-                                <span className="text-green-500 mr-4 font-black">✓</span>
-                                <span className="text-xs sm:text-sm font-bold opacity-80">{item}</span>
-                            </div>
-                        ))}
+                        {(data.confluenceMatrix?.executionChecklist || data.checklist)?.map((item, i) => {
+                            const isPass = item.toLowerCase().includes('pass');
+                            const isFail = item.toLowerCase().includes('fail');
+                            const icon = isFail ? '❌' : '✓';
+                            const colorClass = isFail ? 'text-red-500' : 'text-green-500';
+                            const bgClass = isFail ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10' : 'bg-green-500/5 border-green-500/20 hover:bg-green-500/10';
+                            
+                            return (
+                                <div key={i} className={`flex items-center p-3 rounded-lg border shadow-sm transition-all ${bgClass}`}>
+                                    <span className={`${colorClass} mr-4 font-black`}>{icon}</span>
+                                    <span className="text-xs sm:text-sm font-bold opacity-80">{item}</span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </Section>
                 <Section title="Critical Invalidation" delay="1300ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>}>
