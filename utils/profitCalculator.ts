@@ -16,7 +16,7 @@ export function potentialProfitPercent(
     settings: UserSettings, 
     potentialProfit: number
 ): number {
-    const accountBalance = settings.accountSize || settings.accountBalance;
+    const accountBalance = settings.accountSize || settings.accountBalance || 0;
     if (accountBalance === 0) return 0;
     return (potentialProfit / accountBalance) * 100;
 }

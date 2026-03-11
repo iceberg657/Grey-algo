@@ -146,7 +146,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const { unit, precision, scalar } = getUnitAndPrecision(data.asset);
     
     // Determine Recommended Entry Index based on entryType
-    const recommendedEntryIndex = data.entryType === 'Limit Order' ? 0 : 1; 
+    const recommendedEntryIndex = data.entryType === 'Market Execution' ? 1 : 0; 
     
     // Use pre-calculated data from SignalData if available (from tradeSetup.ts)
     const entry = data.entryPoints[recommendedEntryIndex] || data.entryPoints[0] || 0;
@@ -196,6 +196,32 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const hasEconomicEvents = Array.isArray(data.economicEvents) && data.economicEvents.length > 0;
     const hasSentiment = !!data.sentiment;
 
+    const getEntryTypeColor = (type: string) => {
+        switch (type) {
+            case 'Market Execution': return 'text-purple-600 dark:text-purple-400 bg-purple-500/10 border-purple-500/20';
+            case 'Buy Limit': return 'text-blue-600 dark:text-blue-400 bg-blue-500/10 border-blue-500/20';
+            case 'Sell Limit': return 'text-orange-600 dark:text-orange-400 bg-orange-500/10 border-orange-500/20';
+            case 'Buy Stop': return 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+            case 'Sell Stop': return 'text-rose-600 dark:text-rose-400 bg-rose-500/10 border-rose-500/20';
+            case 'Buy Stop Limit': return 'text-teal-600 dark:text-teal-400 bg-teal-500/10 border-teal-500/20';
+            case 'Sell Stop Limit': return 'text-pink-600 dark:text-pink-400 bg-pink-500/10 border-pink-500/20';
+            default: return 'text-gray-600 dark:text-gray-400 bg-black/10 dark:bg-black/30 border-transparent';
+        }
+    };
+
+    const getEntryTypeBadgeColor = (type: string) => {
+        switch (type) {
+            case 'Market Execution': return 'bg-purple-600 text-white animate-pulse shadow-[0_0_15px_rgba(147,51,234,0.4)]';
+            case 'Buy Limit': return 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]';
+            case 'Sell Limit': return 'bg-orange-600 text-white shadow-[0_0_15px_rgba(234,88,12,0.4)]';
+            case 'Buy Stop': return 'bg-emerald-600 text-white shadow-[0_0_15px_rgba(5,150,105,0.4)]';
+            case 'Sell Stop': return 'bg-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]';
+            case 'Buy Stop Limit': return 'bg-teal-600 text-white shadow-[0_0_15px_rgba(13,148,136,0.4)]';
+            case 'Sell Stop Limit': return 'bg-pink-600 text-white shadow-[0_0_15px_rgba(219,39,119,0.4)]';
+            default: return 'bg-gray-600 text-white shadow-[0_0_15px_rgba(75,85,99,0.4)]';
+        }
+    };
+
     return (
         <div className="text-sm max-w-full overflow-hidden relative">
             <header className="flex flex-wrap justify-between items-center mb-8 gap-4 opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
@@ -204,7 +230,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     <div className="flex items-center gap-2 mt-2">
                         <span className="text-xs sm:text-sm text-gray-700 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/5 px-2 py-0.5 rounded border border-white/5">{data.timeframe}</span>
                         <span className="w-1 h-1 rounded-full bg-green-500 shadow-[0_0_5px_theme(colors.green.400)]"></span>
-                        <span className="text-[10px] text-gray-600 dark:text-gray-400 font-mono bg-black/10 dark:bg-black/30 px-2 py-0.5 rounded uppercase">Protocol: {data.entryType}</span>
+                        <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase ${getEntryTypeColor(data.entryType)}`}>Protocol: {data.entryType}</span>
                     </div>
                 </div>
                  <button
@@ -250,7 +276,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 })}
                              </div>
                              {data.entryType && (
-                                <div className={`mt-6 inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${data.entryType === 'Market Execution' ? 'bg-red-600 text-white animate-pulse' : 'bg-blue-600 text-white shadow-[0_0_15px_rgba(37,99,235,0.4)]'}`}>
+                                <div className={`mt-6 inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${getEntryTypeBadgeColor(data.entryType)}`}>
                                     {data.entryType}
                                 </div>
                              )}
@@ -448,10 +474,10 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                             </svg>
                         </span>
-                        ANALYSIS LOGIC (MIN. 5 NODES)
+                        10-POINT REASONING LOGIC
                     </h3>
                     <div className="space-y-4">
-                        {data.reasoning.map((text, i) => (
+                        {data.reasoning?.map((text, i) => (
                             <div key={i} className="flex p-5 rounded-2xl border border-white/5 bg-gray-100 dark:bg-[#0f172a]/60 relative overflow-hidden group hover:border-green-500/30 transition-all hover:bg-white dark:hover:bg-black/40">
                                 <span className="text-3xl font-mono font-bold text-green-500 mr-6 opacity-80 flex-shrink-0">
                                     {(i + 1).toString().padStart(2, '0')}
@@ -466,20 +492,12 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
                 <Section title="Confluence Matrix" delay="1200ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>}>
                     <div className="space-y-2">
-                        {(data.confluenceMatrix?.executionChecklist || data.checklist)?.map((item, i) => {
-                            const isPass = item.toLowerCase().includes('pass');
-                            const isFail = item.toLowerCase().includes('fail');
-                            const icon = isFail ? '❌' : '✓';
-                            const colorClass = isFail ? 'text-red-500' : 'text-green-500';
-                            const bgClass = isFail ? 'bg-red-500/5 border-red-500/20 hover:bg-red-500/10' : 'bg-green-500/5 border-green-500/20 hover:bg-green-500/10';
-                            
-                            return (
-                                <div key={i} className={`flex items-center p-3 rounded-lg border shadow-sm transition-all ${bgClass}`}>
-                                    <span className={`${colorClass} mr-4 font-black`}>{icon}</span>
-                                    <span className="text-xs sm:text-sm font-bold opacity-80">{item}</span>
-                                </div>
-                            );
-                        })}
+                        {data.checklist?.map((item, i) => (
+                            <div key={i} className="flex items-center bg-green-500/5 p-3 rounded-lg border border-green-500/20 shadow-sm transition-all hover:bg-green-500/10">
+                                <span className="text-green-500 mr-4 font-black">✓</span>
+                                <span className="text-xs sm:text-sm font-bold opacity-80">{item}</span>
+                            </div>
+                        ))}
                     </div>
                 </Section>
                 <Section title="Critical Invalidation" delay="1300ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>}>

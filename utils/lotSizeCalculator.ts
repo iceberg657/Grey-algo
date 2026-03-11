@@ -5,19 +5,20 @@ export function calculateLotSize(
     stopLossDistance: number, // Price difference (Entry - SL)
     contractSize: number = 100000 // Default to standard lot if 0
 ): number {
-    const accountBalance = settings.accountSize || settings.accountBalance;
-    const riskPercentage = settings.riskPerTrade;
+    const accountBalance = settings.accountSize || settings.accountBalance || 0;
     
-    if (stopLossDistance === 0 || contractSize === 0) {
+    // Standard Risk: I default to a strict 1% risk per trade based on your total account balance.
+    const riskPercentage = settings.riskPerTrade || 1;
+    
+    if (stopLossDistance === 0 || contractSize === 0 || accountBalance === 0) {
         return 0;
     }
 
-    const riskAmount = (accountBalance * riskPercentage) / 100;
+    // The Formula: Risk Amount = Account Balance * 0.01 (or user's risk percentage)
+    const riskAmount = accountBalance * (riskPercentage / 100);
     
-    // lotSize = Risk / (PriceDiff * ContractSize)
-    // Example: Risk $100, Diff 0.01, Contract 100,000
-    // lotSize = 100 / (0.01 * 100,000) = 100 / 1000 = 0.1
-    
+    // Lot Size = Risk Amount / (Stop Loss in Pips * Pip Value per Standard Lot)
+    // Note: stopLossDistance * contractSize is mathematically equivalent to (Stop Loss in Pips * Pip Value per Standard Lot)
     const lotSize = riskAmount / (stopLossDistance * contractSize);
 
     // Round to 2 decimal places (0.01 lots)

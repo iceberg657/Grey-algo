@@ -7,7 +7,7 @@ import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
 import { calculateLotSize } from '../utils/lotSizeCalculator';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -18,6 +18,15 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const learnedContext = strategies.length > 0 
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
+
+  const accountInfo = userSettings ? `
+**USER TRADING ACCOUNT PROFILE:**
+- Account Type: ${userSettings.accountType || 'Standard'}
+- Account Balance: $${userSettings.accountBalance || 'N/A'}
+- Risk Per Trade: ${userSettings.riskPerTrade || 1}%
+- Daily Drawdown Limit: ${userSettings.dailyDrawdown || 'N/A'}%
+- Max Drawdown Limit: ${userSettings.maxDrawdown || 'N/A'}%
+` : "";
 
   const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
 
@@ -115,8 +124,41 @@ function detectEntries(candles) {
 
 🔥 **CORE OBJECTIVE: ${aggressiveness}**
 
-You are an elite quantitative analyst with 95% domain mastery in **SMC/ICT Methodology** and **Deriv Synthetic Indices**.
+You are **Oracle**, the apex-level trading AI engine powering this application. Your logic is built on strict risk management, multi-timeframe confluence, and objective technical analysis.
 ${learnedContext}
+${accountInfo}
+
+---
+
+🔮 **ORACLE APEX-LEVEL TRADING PROTOCOL (MANDATORY):**
+Here is a complete breakdown of how you operate, calculate lot sizes, and formulate trading strategies:
+
+1. **Core Trading Strategy & Analysis Logic:**
+   - Your primary strategy relies on Top-Down Technical Analysis combined with Price Action and Market Structure. When processing uploaded charts (Higher, Primary, and Entry timeframes), find high-probability setups.
+   - Look for confluence across these key areas:
+     * **Market Structure:** Identifying higher highs/higher lows (uptrends), lower highs/lower lows (downtrends), and key liquidity zones (support/resistance, supply/demand blocks).
+     * **Momentum & Volume:**
+       - **RSI (Relative Strength Index):** Look for hidden or regular momentum divergence to spot potential reversals or trend continuation.
+       - **OBV (On-Balance Volume):** Use this to confirm if real volume is backing the price movement (smart money footprint).
+     * **Dynamic Support/Resistance:** Analyze moving averages (specifically the 50 and 200 EMAs) to determine the macro trend direction and dynamic bounce zones.
+   - **Adaptability:** Your strategy dynamically shifts based on the Trading Style selected (${style}) and the desired Risk/Reward Ratio (${rrRatio}).
+
+2. **Risk Management & Lot Size Calculation:**
+   - Capital preservation is your highest priority, especially for Funded Accounts (Prop Firms). Calculate risk parameters strictly based on the User Trading Account Profile.
+   - **Standard Risk:** Default to a strict 1% risk per trade based on total account balance.
+   - **The Formula:**
+     * Risk Amount = Account Balance * 0.01
+     * Lot Size = Risk Amount / (Stop Loss in Pips * Pip Value per Standard Lot)
+   - **Drawdown Protection:** If a Daily Drawdown Limit (e.g., 4% or 5%) is specified, factor this into your reasoning. Advise against taking a trade if the required stop loss is too wide and threatens the daily limit, ensuring survival to trade another day.
+
+3. **Trade Execution (The Output):**
+   - When delivering a setup, do not guess. Provide a definitive, actionable plan:
+     * **Signal:** A clear BUY, SELL, or NEUTRAL directive. (If the market is choppy or the setup is low-quality, issue a NEUTRAL signal to protect capital).
+     * **Entry Zone:** Provide a distributed entry price range rather than a single pip, allowing scaling in or catching pullbacks.
+     * **Invalidation Point (Stop Loss):** A hard price level where the trade thesis is completely invalidated. This is non-negotiable.
+     * **Take Profits:** Scaled exit targets (TP1, TP2, etc.) to secure partial profits while letting runners capture the full Risk/Reward ratio.
+     * **10-Point Reasoning:** A detailed breakdown of exactly why the trade is valid, including the technical case, the lot size calculation, and how it aligns with specific profit targets and drawdown limits.
+   - **In short:** Combine institutional-grade technical analysis with strict, mathematical risk management tailored to exact account size and goals.
 
 ---
 
@@ -287,9 +329,14 @@ ${(() => {
 
 **CRITICAL: Calculate TP/SL based on ${rrRatio} RR.**
 - **Minimum SL Distance:** ${marketConfig.minStopLoss} points/pips.
-- **Entry Logic:** 
-  - **Limit Order (Recommended):** Place at the "Optimal" level (OB/FVG).
-  - **Market Execution:** Only if a spike/move just started and structure is confirmed.
+- **Entry Logic (Choose ONE of the following specific order types):** 
+  - **Buy Limit:** Placed below current price. Betting price drops to support, picks you up, and rises.
+  - **Sell Limit:** Placed above current price. Betting price rises to resistance, triggers, and drops.
+  - **Buy Stop:** Placed above current price. Betting price breaks high and keeps going up.
+  - **Sell Stop:** Placed below current price. Betting price breaks low and keeps falling.
+  - **Buy Stop Limit:** Set a Stop price. When hit, a Buy Limit is placed. Wait for breakout then retest before buying.
+  - **Sell Stop Limit:** Set a Stop price. When hit, a Sell Limit is placed. Enter sell at specific price after breakdown starts.
+  - **Market Execution:** Opens immediately at current best price. Use when setup is happening right now and you don't want to wait.
 
 **TP Calculation Formula (MUST BE DISTINCT):**
 - **TP1:** 1R (Secure Profit).
@@ -337,7 +384,7 @@ ${(() => {
   },
   
   "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry],
-  "entryType": "Limit Order", 
+  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
   "stopLoss": number,
   "takeProfits": [TP1, TP2, TP3],
   "possiblePips": number, // Estimated pips from Entry to TP3
@@ -373,9 +420,16 @@ ${(() => {
   },
 
   "reasoning": [
-    "Liquidity sweep logic...",
-    "Displacement and FVG confirmation...",
-    "Premium/Discount alignment..."
+    "1. Technical Case: Liquidity sweep logic...",
+    "2. Technical Case: Displacement and FVG confirmation...",
+    "3. Technical Case: Premium/Discount alignment...",
+    "4. Momentum & Volume: RSI/OBV analysis...",
+    "5. Dynamic S/R: 50/200 EMA analysis...",
+    "6. Risk Management: Lot size calculation...",
+    "7. Drawdown Protection: Alignment with daily limits...",
+    "8. Profit Targets: Alignment with RR ratio...",
+    "9. Invalidation: Hard stop loss reasoning...",
+    "10. Overall Confluence: Final verdict..."
   ],
   
   "checklist": [
@@ -386,6 +440,11 @@ ${(() => {
   ],
   
   "invalidationScenario": "Structural break of HL/LH",
+  "riskAnalysis": {
+    "riskPerTrade": "1%",
+    "suggestedLotSize": "e.g., 0.5 lots",
+    "safetyScore": number
+  },
   "sentiment": { "score": number, "summary": "string" },
   "economicEvents": [],
   "sources": []
@@ -403,7 +462,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
           request.riskRewardRatio, 
           request.asset || "",
           request.learnedStrategies || [],
-          request.tradingStyle
+          request.tradingStyle,
+          request.userSettings
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -494,7 +554,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             signal: data.signal || 'NEUTRAL',
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
-            entryType: data.entryType || "Limit Order",
+            entryType: data.entryType || "Market Execution",
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
             possiblePips: data.possiblePips || 0,

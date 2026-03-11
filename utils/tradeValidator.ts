@@ -21,16 +21,26 @@ export function validateTrade(
       }
   }
   
-  const maxDailyLoss = settings.maxDailyLoss || 0;
-  const accountSize = settings.accountSize || settings.accountBalance;
+  const maxDailyLoss = settings.maxDailyLoss || settings.dailyDrawdown || 0;
+  const accountSize = settings.accountSize || settings.accountBalance || 0;
+  const riskPercentage = settings.riskPerTrade || 1; // Default 1%
 
-  // Note: settings uses 'maxDailyLoss' (percent) and 'accountSize'
+  // Drawdown Protection Logic
   if (maxDailyLoss > 0 && accountSize > 0) {
       const dailyLossPercent = (Math.abs(currentDailyLoss) / accountSize) * 100;
+      
       if (dailyLossPercent >= maxDailyLoss) {
         return {
           isValid: false,
-          reason: `Daily loss limit reached`
+          reason: `Daily loss limit reached (${maxDailyLoss}%)`
+        };
+      }
+      
+      // Advise against taking a trade if the required stop loss threatens the daily limit
+      if (dailyLossPercent + riskPercentage > maxDailyLoss) {
+        return {
+          isValid: false,
+          reason: `Drawdown Protection: Trade risk (${riskPercentage}%) threatens remaining daily limit (${(maxDailyLoss - dailyLossPercent).toFixed(2)}%)`
         };
       }
   }

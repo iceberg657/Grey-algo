@@ -64,10 +64,11 @@ export function buildCompleteTradeSetup(
     };
   }
   
-  const accountSize = settings.accountSize || settings.accountBalance;
+  const accountSize = settings.accountSize || settings.accountBalance || 0;
+  const riskPercentage = settings.riskPerTrade || 1;
   
   const stopLossDistance = Math.abs(entryPrice - signal.stopLoss);
-  const riskAmount = (accountSize * settings.riskPerTrade) / 100;
+  const riskAmount = accountSize * (riskPercentage / 100);
 
   const lotSize = calculateLotSize(
     settings,

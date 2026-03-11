@@ -95,7 +95,7 @@ export interface SignalData {
     signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
     entryPoints: number[];
-    entryType: 'Market Execution' | 'Limit Order'; // New field
+    entryType: 'Market Execution' | 'Buy Limit' | 'Sell Limit' | 'Buy Stop' | 'Sell Stop' | 'Buy Stop Limit' | 'Sell Stop Limit';
     stopLoss: number;
     takeProfits: number[];
     reasoning: string[];
