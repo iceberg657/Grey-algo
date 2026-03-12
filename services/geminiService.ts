@@ -169,9 +169,9 @@ Use 'SD_LOOKBACK = 20' and 'SD_FACTOR = 1'.
 
 ${ALGO_LOGIC}
 
-**INSTRUCTION:**
-1. Extract the last 20 candles from the image (approximate OHLC).
-2. Run the 'detectEntries' logic mentally.
+**STRICT EXECUTION PROTOCOL (TIME-BOUND < 20s):**
+1. **Phase 1 (10s - Chart Analysis):** Extract last 20 candles (OHLC), analyze structure, RSI, OBV, and 50/200 EMAs.
+2. **Phase 2 (10s - Protocol & Trade Setup):** Calculate risk, lot size, and formulate the final trade setup based on Phase 1 data.
 3. Include the result in the JSON output under key "confluenceMatrix".
 
 ---
@@ -301,29 +301,35 @@ ${(() => {
 - **Objective:** HYPER-SCALPING. In and out within 15-45 minutes max.
 - **Strict Rule:** ONLY trade with the M15/H1 Trend.
 - **Philosophy:** "No Loss". Either a clear signal or NEUTRAL.
-- **Invalidation:** Immediate exit if M1 structure shifts against entry or price stalls. Do not wait for SL.`;
+- **Invalidation:** Immediate exit if M1 structure shifts against entry or price stalls. Do not wait for SL.
+- **SL/TP Logic:** Very tight SL (5-10 pips), quick TP (1:1.5 - 1:2 RR). Focus on immediate momentum.`;
         case 'scalping(15 to 30mins)':
             return `- **Timeframes:** M5, M15.
 - **Objective:** SESSION MOMENTUM. In and out within 45 minutes max.
 - **Strict Rule:** ONLY trade with the H1 Trend.
 - **Philosophy:** High probability only.
-- **Invalidation:** Immediate exit if M5 candle closes against bias.`;
+- **Invalidation:** Immediate exit if M5 candle closes against bias.
+- **SL/TP Logic:** Tight SL (10-15 pips), TP (1:2 - 1:2.5 RR). Focus on session range.`;
         case 'day trading(1 to 2hrs)':
             return `- **Timeframes:** M15, H1.
 - **Objective:** Capture intra-day moves within a single session.
-- **Duration:** 1 to 2 hours.`;
+- **Duration:** 1 to 2 hours.
+- **SL/TP Logic:** Moderate SL (15-25 pips), TP (1:2.5 - 1:3 RR). Focus on intra-day structure.`;
         case 'day trading(2 to 4hrs)':
             return `- **Timeframes:** H1, H4.
 - **Objective:** Capture larger intra-day or multi-session moves.
-- **Duration:** 2 to 4 hours.`;
+- **Duration:** 2 to 4 hours.
+- **SL/TP Logic:** Moderate SL (20-35 pips), TP (1:3 - 1:4 RR). Focus on H4 structure.`;
         case 'swing trading':
             return `- **Timeframes:** H4, Daily, Weekly.
 - **Objective:** Capture major trend shifts and long-term liquidity targets.
-- **Duration:** Days to weeks.`;
+- **Duration:** Days to weeks.
+- **SL/TP Logic:** Wide SL (50+ pips), TP (1:4 - 1:6+ RR). Focus on major liquidity pools and trend reversal.`;
         default:
             return `- **Timeframes:** Adapt based on market.
 - **Objective:** General market analysis.
-- **Duration:** Variable.`;
+- **Duration:** Variable.
+- **SL/TP Logic:** Standard SL/TP based on market volatility and structure.`;
     }
 })()}
 
