@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useEffect, type ErrorInfo, type ReactNode, Component } from 'react';
+import { SessionFilter } from './components/SessionFilter';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { HomePage } from './components/HomePage';
@@ -21,9 +22,8 @@ import { Loader } from './components/Loader';
 import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
 
-
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'charting' | 'products';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'charting' | 'products' | 'session';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -192,6 +192,10 @@ const App: React.FC = () => {
         navigateTo('charting');
     };
 
+    const handleNavigateToSession = () => {
+        navigateTo('session');
+    };
+
     const handleNavigateToProducts = () => {
         navigateTo('products');
     };
@@ -290,6 +294,7 @@ const App: React.FC = () => {
                     onNavigateToChat={handleNavigateToChat}
                     onNavigateToCharting={handleNavigateToCharting}
                     onNavigateToProducts={handleNavigateToProducts}
+                    onNavigateToSession={handleNavigateToSession}
                     onAssetSelect={handleAssetSelect}
                 />
             );
@@ -322,6 +327,14 @@ const App: React.FC = () => {
                     onBack={handleNavigateToHome} 
                     onLogout={handleLogout}
                 />
+            );
+            break;
+        case 'session':
+            content = (
+                <div className="p-6">
+                    <button onClick={handleNavigateToHome} className="mb-4 text-blue-500">Back to Home</button>
+                    <SessionFilter />
+                </div>
             );
             break;
         case 'analysis':

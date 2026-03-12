@@ -5,7 +5,7 @@
 
 let API_KEY: string | null = null;
 const KEYS: Record<string, string | null> = {
-    k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null
+    k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null, k8: null
 };
 
 export async function initializeApiKey() {
@@ -21,6 +21,7 @@ export async function initializeApiKey() {
         k5: import.meta.env.VITE_API_KEY_5,
         k6: import.meta.env.VITE_API_KEY_6,
         k7: import.meta.env.VITE_API_KEY_7,
+        k8: import.meta.env.VITE_API_KEY_8,
     };
 
     if (envKeys.k1) {
@@ -61,6 +62,7 @@ export async function initializeApiKey() {
         KEYS.k5 = process.env.API_KEY_5;
         KEYS.k6 = process.env.API_KEY_6;
         KEYS.k7 = process.env.API_KEY_7;
+        KEYS.k8 = process.env.VITE_API_KEY_8;
     }
 
     if (!API_KEY && !KEYS.k1) {
@@ -76,7 +78,8 @@ const K = {
     K4: () => KEYS.k4 || KEYS.k1 || API_KEY || '',
     K5: () => KEYS.k5 || KEYS.k1 || API_KEY || '',
     K6: () => KEYS.k6 || KEYS.k1 || API_KEY || '',
-    K7: () => KEYS.k7 || KEYS.k1 || API_KEY || ''
+    K7: () => KEYS.k7 || KEYS.k1 || API_KEY || '',
+    K8: () => KEYS.k8 || KEYS.k1 || API_KEY || ''
 };
 
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4)

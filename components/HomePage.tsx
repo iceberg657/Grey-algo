@@ -22,6 +22,7 @@ interface HomePageProps {
     onNavigateToChat: () => void;
     onNavigateToCharting: () => void;
     onNavigateToProducts: () => void; 
+    onNavigateToSession: () => void;
     onAssetSelect?: (asset: string) => void;
 }
 
@@ -43,7 +44,7 @@ const NavButton: React.FC<{
     </button>
 );
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToCharting, onNavigateToProducts, onAssetSelect }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToCharting, onNavigateToProducts, onNavigateToSession, onAssetSelect }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
@@ -132,6 +133,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             label: 'Products',
             ariaLabel: 'Open GreyAlpha Products',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+        },
+        {
+            onClick: onNavigateToSession,
+            label: 'Sessions',
+            ariaLabel: 'Open Session Filter',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
         },
         {
             onClick: onNavigateToHistory,
