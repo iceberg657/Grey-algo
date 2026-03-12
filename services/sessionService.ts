@@ -15,7 +15,7 @@ function getAiClient(): GoogleGenAI {
 
 export async function fetchSessionAnalysis(session: string) {
   const ai = getAiClient();
-  const prompt = `Analyze the ${session} session. Provide a market signal (BUY, SELL, or NEUTRAL) based on technical analysis. Do not default to NEUTRAL; only use it if market conditions are truly indecisive. Return ONLY valid JSON: {
+  const prompt = `Analyze the ${session} session. Provide a market signal (BUY or SELL) based on technical analysis. You MUST choose either BUY or SELL. Do not use NEUTRAL. Return ONLY valid JSON: {
   "signal": "string",
   "confidence": number,
   "economic_events": [{"event": "string", "impact": "string", "significance": "string"}],

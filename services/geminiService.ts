@@ -153,7 +153,7 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
 
 3. **Trade Execution (The Output):**
    - When delivering a setup, do not guess. Provide a definitive, actionable plan:
-     * **Signal:** A clear BUY, SELL, or NEUTRAL directive. (If the market is choppy or the setup is low-quality, issue a NEUTRAL signal to protect capital).
+     * **Signal:** A clear BUY or SELL directive. (If the market is choppy or the setup is low-quality, do not issue a trade signal).
      * **Entry Zone:** Provide a distributed entry price range rather than a single pip, allowing scaling in or catching pullbacks.
      * **Invalidation Point (Stop Loss):** A hard price level where the trade thesis is completely invalidated. This is non-negotiable.
      * **Take Profits:** Scaled exit targets (TP1, TP2, etc.) to secure partial profits while letting runners capture the full Risk/Reward ratio.
@@ -353,7 +353,7 @@ ${(() => {
 
 **JSON OUTPUT (RAW ONLY - NO MARKDOWN):**
 {
-  "signal": "BUY" | "SELL" | "NEUTRAL",
+  "signal": "BUY" | "SELL",
   "confidence": number (0-100),
   "asset": "${asset}",
   "timeframe": "e.g., M5, M15, H1",

@@ -92,7 +92,7 @@ export interface SignalData {
     timestamp: number;
     asset: string;
     timeframe: string;
-    signal: 'BUY' | 'SELL' | 'NEUTRAL';
+    signal: 'BUY' | 'SELL';
     confidence: number;
     entryPoints: number[];
     entryType: 'Market Execution' | 'Buy Limit' | 'Sell Limit' | 'Buy Stop' | 'Sell Stop' | 'Buy Stop Limit' | 'Sell Stop Limit';
