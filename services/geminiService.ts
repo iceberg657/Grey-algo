@@ -195,10 +195,10 @@ ${ALGO_LOGIC}
    - You MUST provide at least **5 visited links** from your Google Search in the "sources" array.
 
 4. **CONFIDENCE THRESHOLD:**
-   - If confidence is < 85%, return **NEUTRAL**.
-   - If the setup is not "crystal clear" or feels like a guess, return **NEUTRAL**.
-   - DO NOT force a trade. "No Trade" is a profitable position.
-   - **SCALPING RULE:** Ideally, there should be NO LOSS. If you are not absolutely sure, do not signal.
+   - If confidence is < 60%, return **NEUTRAL**.
+   - If the setup is not clear, return **NEUTRAL**.
+   - Aim to provide a BUY or SELL signal whenever possible if the setup has reasonable confluence.
+   - **SCALPING RULE:** If you are reasonably sure, provide a signal.
 
 5. **INVALIDATION LOGIC:**
    - Invalidation is NOT hitting SL.
