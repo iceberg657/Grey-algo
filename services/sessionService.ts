@@ -15,13 +15,12 @@ function getAiClient(): GoogleGenAI {
 
 export async function fetchSessionAnalysis(session: string) {
   const ai = getAiClient();
-  const prompt = `Act as a professional market analyst. Provide a detailed analysis for the ${session} trading session. Include:
-1. Major economic events happening within this session.
-2. Affected pairs and assets.
-3. Volatile pairs and assets.
-4. Bullish and bearish pairs and assets.
-5. Desired assets to trade at this time.
-Return the result in a structured JSON format.`;
+  const prompt = `Act as a professional market analyst. Provide a detailed, comprehensive analysis for the ${session} trading session. Return the result in a structured JSON format with the following structure:
+{
+  "economic_events": [{"event": "string", "impact": "High/Medium/Low", "significance": "string"}],
+  "market_sentiment": {"bullish": ["string"], "bearish": ["string"]},
+  "suggested_trading_assets": [{"asset": "string", "reasoning": "string"}]
+}`;
 
   const response = await ai.models.generateContent({
     model: "gemini-3.1-flash-lite-preview",
