@@ -15,9 +15,10 @@ function getAiClient(): GoogleGenAI {
 
 export async function fetchSessionAnalysis(session: string) {
   const ai = getAiClient();
-  const prompt = `Act as a professional market analyst. Provide a detailed, comprehensive analysis for the ${session} trading session. Return the result in a structured JSON format with the following structure:
-{
-  "economic_events": [{"event": "string", "impact": "High/Medium/Low", "significance": "string"}],
+  const prompt = `Analyze the ${session} session. Provide a market signal (BUY, SELL, or NEUTRAL) based on technical analysis. Do not default to NEUTRAL; only use it if market conditions are truly indecisive. Return ONLY valid JSON: {
+  "signal": "string",
+  "confidence": number,
+  "economic_events": [{"event": "string", "impact": "string", "significance": "string"}],
   "market_sentiment": {"bullish": ["string"], "bearish": ["string"]},
   "suggested_trading_assets": [{"asset": "string", "reasoning": "string"}]
 }`;
@@ -27,6 +28,7 @@ export async function fetchSessionAnalysis(session: string) {
     contents: prompt,
     config: {
       responseMimeType: "application/json",
+      temperature: 0,
     },
   });
 
