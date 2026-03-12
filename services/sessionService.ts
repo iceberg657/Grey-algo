@@ -1,8 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.VITE_API_KEY_8! });
+let aiClient: GoogleGenAI | null = null;
+
+function getAiClient(): GoogleGenAI {
+  if (!aiClient) {
+    const apiKey = import.meta.env.VITE_API_KEY_8;
+    if (!apiKey) {
+      throw new Error("VITE_API_KEY_8 is not defined");
+    }
+    aiClient = new GoogleGenAI({ apiKey });
+  }
+  return aiClient;
+}
 
 export async function fetchSessionAnalysis(session: string) {
+  const ai = getAiClient();
   const prompt = `Act as a professional market analyst. Provide a detailed analysis for the ${session} trading session. Include:
 1. Major economic events happening within this session.
 2. Affected pairs and assets.
