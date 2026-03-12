@@ -82,12 +82,17 @@ export function calculateTPSL(
       currentSlDist = buffer;
   }
 
+  const originalSlDist = currentSlDist;
+  // Reduce SL distance by 20%
+  currentSlDist = currentSlDist * 0.8;
+  stopLoss = signal === 'BUY' ? baseEntry - currentSlDist : baseEntry + currentSlDist;
+
   // 3. ENFORCE DISTINCT ENTRIES (Fixing the Glitch)
   // If entries are identical, create a "Standard Deviation" spread
   // We use the SL distance as a proxy for volatility
   // For scalping, keep entries tighter (10% of SL dist) vs standard (25%)
   const spreadFactor = isScalping ? 0.10 : 0.25;
-  const volatilityUnit = currentSlDist * spreadFactor;
+  const volatilityUnit = originalSlDist * spreadFactor;
 
   // Check if entries are too close (glitch detection)
   if (Math.abs(validEntries[1] - validEntries[0]) < Number.EPSILON) {
@@ -111,7 +116,7 @@ export function calculateTPSL(
   // TP2 = Target Ratio (e.g., 3R)
   // TP3 = Moonbag (e.g., 5R or Target + Standard Deviation extension)
   
-  const rUnit = currentSlDist; 
+  const rUnit = originalSlDist; 
 
   const ratios = [1.0, targetRatio, targetRatio + 2.0]; // e.g. 1:1, 1:3, 1:5
 
