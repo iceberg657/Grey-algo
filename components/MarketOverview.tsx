@@ -43,12 +43,12 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
     }, [symbol]);
 
     const overallScore = Math.floor(stats.reduce((a, b) => a + b, 0) / stats.length);
-    const bias = overallScore > 65 ? 'BULLISH' : overallScore < 45 ? 'BEARISH' : 'NEUTRAL';
+    const bias = overallScore >= 50 ? 'BULLISH' : 'BEARISH';
     
     // Colors
     const isDark = theme === 'dark';
-    const primaryColor = bias === 'BULLISH' ? '#4ade80' : bias === 'BEARISH' ? '#ef4444' : '#60a5fa'; // Green, Red, Blue
-    const bgFill = bias === 'BULLISH' ? 'rgba(74, 222, 128, 0.2)' : bias === 'BEARISH' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(96, 165, 250, 0.2)';
+    const primaryColor = bias === 'BULLISH' ? '#4ade80' : '#ef4444'; // Green, Red
+    const bgFill = bias === 'BULLISH' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(239, 68, 68, 0.2)';
     
     // SVG Calc
     const size = 300;
@@ -153,7 +153,7 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
                 {/* Center Info */}
                 <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
                     <div className="text-[10px] font-black text-gray-500 uppercase tracking-widest">VECTOR</div>
-                    <div className={`text-3xl font-black ${bias === 'BULLISH' ? 'text-green-500' : bias === 'BEARISH' ? 'text-red-500' : 'text-blue-500'}`}>
+                    <div className={`text-3xl font-black ${bias === 'BULLISH' ? 'text-green-500' : 'text-red-500'}`}>
                         {overallScore}
                     </div>
                 </div>
@@ -162,7 +162,7 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
             {/* Corner Info */}
             <div className="absolute bottom-4 right-4 text-right">
                 <div className="text-[9px] font-bold text-gray-500 uppercase tracking-widest">Calculated Bias</div>
-                <div className={`text-sm font-black uppercase ${bias === 'BULLISH' ? 'text-green-400' : bias === 'BEARISH' ? 'text-red-400' : 'text-blue-400'}`}>
+                <div className={`text-sm font-black uppercase ${bias === 'BULLISH' ? 'text-green-400' : 'text-red-400'}`}>
                     {bias}
                 </div>
             </div>

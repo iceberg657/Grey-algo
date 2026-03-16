@@ -88,10 +88,10 @@ export function validateTrade(
     };
   }
   
-  if (signal.signal === 'NEUTRAL') {
+  if (signal.signal !== 'BUY' && signal.signal !== 'SELL') {
     return {
       isValid: false,
-      reason: 'Signal is NEUTRAL'
+      reason: 'Invalid signal type'
     };
   }
   

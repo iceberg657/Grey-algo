@@ -14,7 +14,7 @@ const getSignalClasses = (signal: SignalData['signal']) => {
     switch (signal) {
         case 'BUY': return 'text-green-300 bg-green-900/40';
         case 'SELL': return 'text-red-300 bg-red-900/40';
-        case 'NEUTRAL': return 'text-blue-300 bg-blue-900/40';
+        default: return 'text-gray-300 bg-gray-900/40';
     }
 };
 

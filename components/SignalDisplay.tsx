@@ -20,7 +20,6 @@ const getSignalTextClasses = (signal: SignalData['signal']) => {
     switch(signal) {
         case 'BUY': return 'text-green-400 animate-glowing-text-green';
         case 'SELL': return 'text-red-400 animate-glowing-text-red';
-        case 'NEUTRAL': return 'text-blue-400 dark:text-blue-300';
         default: return 'text-gray-800 dark:text-dark-text';
     }
 };
@@ -31,7 +30,7 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
             <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-gray-200/50 dark:bg-dark-bg/50 border border-white/5 hover:border-green-500/30 transition-all transform hover:scale-[1.03] shadow-lg ${className} h-full min-h-[90px]`}>
                 <span className="text-[10px] sm:text-xs text-gray-700 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
                 {isSignal ? (
-                    <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'NEUTRAL')}`}>
+                    <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'BUY')}`}>
                         {value}
                     </span>
                 ) : (
@@ -52,10 +51,9 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
 const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, summary }) => {
     const trend = useMemo(() => {
         if (score >= 85) return { label: 'Strong Bullish', color: 'text-green-500', bg: 'bg-green-500', icon: '🚀' };
-        if (score >= 60) return { label: 'Bullish', color: 'text-green-400', bg: 'bg-green-400', icon: '↗️' };
+        if (score >= 50) return { label: 'Bullish', color: 'text-green-400', bg: 'bg-green-400', icon: '↗️' };
         if (score <= 15) return { label: 'Strong Bearish', color: 'text-red-500', bg: 'bg-red-500', icon: '🔻' };
-        if (score <= 40) return { label: 'Bearish', color: 'text-red-400', bg: 'bg-red-400', icon: '↘️' };
-        return { label: 'Neutral', color: 'text-blue-400', bg: 'bg-blue-400', icon: '➡️' };
+        return { label: 'Bearish', color: 'text-red-400', bg: 'bg-red-400', icon: '↘️' };
     }, [score]);
 
     return (
@@ -81,9 +79,8 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                 ></div>
             </div>
             <div className="flex justify-between text-[10px] text-gray-600 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
-                <span>Bearish (10-40)</span>
-                <span>Neutral</span>
-                <span>Bullish (60-100)</span>
+                <span>Bearish (0-49)</span>
+                <span>Bullish (50-100)</span>
             </div>
 
             <div className="bg-gray-100 dark:bg-black/20 p-3 rounded-lg border-l-4 border-gray-400 dark:border-gray-600 shadow-sm">

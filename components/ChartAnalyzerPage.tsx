@@ -44,6 +44,10 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
     const [formKey, setFormKey] = useState(0);
 
     useEffect(() => {
+        handleClearAnalysis();
+    }, []);
+
+    useEffect(() => {
         const root = window.document.documentElement;
         root.classList.remove('light', 'dark');
         root.classList.add(theme);
@@ -60,6 +64,31 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
         setProfitMode(false);
         setIsCopied(false);
         setFormKey(prev => prev + 1); // Force complete reset of the form
+        
+        // Clear any potentially stale cached data related to analysis
+        try {
+            localStorage.removeItem('greyquant_asset_suggestions');
+            localStorage.removeItem('greyquant_sentiment_update');
+            localStorage.removeItem('greyquant_sentiment_pair');
+            // We do not clear history or settings here, only transient analysis caches
+            
+            // Also attempt to clear browser Cache API if supported
+            if ('caches' in window) {
+                caches.keys().then((names) => {
+                    // We only clear dynamic caches if we had them, but just in case,
+                    // we can clear specific ones or all if needed. 
+                    // To be safe and not break offline mode, we won't delete the main app shell cache,
+                    // but we can clear any other caches.
+                    names.forEach(name => {
+                        if (!name.includes('greyalpha-cache-v')) {
+                            caches.delete(name);
+                        }
+                    });
+                });
+            }
+        } catch (e) {
+            console.warn("Failed to clear localStorage caches", e);
+        }
     };
 
     const handleGenerateSignal = useCallback(async (request: AnalysisRequest) => {

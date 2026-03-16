@@ -179,6 +179,7 @@ ${ALGO_LOGIC}
 🚫 **STRICT FILTERING RULES (ZERO TOLERANCE):**
 1. **STRUCTURAL BIAS & MARKET TREND (MANDATORY):**
    - Scan the timeframes to determine **Structural Bias** (Bullish/Bearish) and **Market Trend** (Bullish/Bearish).
+   - **STRICT PROHIBITION:** Do NOT perform Day Trading on the 1-minute (M1) timeframe. M1 is strictly reserved for scalping.
    - If Structural Bias == Bearish AND Market Trend == Bearish -> **SELL SIGNAL**.
    - If Structural Bias == Bullish AND Market Trend == Bullish -> **BUY SIGNAL**.
    - If Structural Bias == Bullish AND Market Trend == Bearish -> Wait for a **retrace entry for a BEARISH setup**.
@@ -187,7 +188,7 @@ ${ALGO_LOGIC}
 2. **VOLATILITY & ATR CHECK:**
    - Watch out for market volatility to prevent entering trades in choppy regions.
    - Use **ATR (Average True Range)** to determine if the market has enough movement to justify a trade.
-   - Many fake setups happen during low volatility. If ATR is low or price action is choppy, return NEUTRAL or wait.
+   - Many fake setups happen during low volatility. If ATR is low or price action is choppy, DO NOT ISSUE A SIGNAL (wait for better conditions).
 
 3. **ECONOMIC EVENTS & NEWS (CRITICAL):**
    - Use Google Search to find **High Impact Economic News Events** related to the asset/pair.
@@ -195,8 +196,8 @@ ${ALGO_LOGIC}
    - You MUST provide at least **5 visited links** from your Google Search in the "sources" array.
 
 4. **CONFIDENCE THRESHOLD:**
-   - If confidence is < 60%, return **NEUTRAL**.
-   - If the setup is not clear, return **NEUTRAL**.
+   - If confidence is < 60%, DO NOT ISSUE A SIGNAL.
+   - If the setup is not clear, DO NOT ISSUE A SIGNAL.
    - Aim to provide a BUY or SELL signal whenever possible if the setup has reasonable confluence.
    - **SCALPING RULE:** If you are reasonably sure, provide a signal.
 
@@ -205,6 +206,73 @@ ${ALGO_LOGIC}
    - Invalidation is when **Market Structure Shifts (MSS)** against the trade idea.
    - If price closes beyond the invalidation level, the trade is dead immediately.
    - If price starts declining (for buys) or inclining (for sells) at a certain level against the setup, CLOSE immediately. Do not wait for SL.
+
+---
+
+✅ **MANDATORY PRE-TRADE CHECKLIST & CONTEXT RULES:**
+The biggest difference between beginners and professional traders is context — not just the entry signal. You MUST evaluate the following before issuing any signal:
+
+1. **Trading Session (Very Important):**
+   - Market sessions dictate volume and volatility.
+   - **London session:** Known for strong moves, high liquidity, and establishing the daily trend.
+   - **New York session:** Known for continuation of the London trend or sharp reversals (especially around 10:00 AM EST).
+   - **Asian session:** Known for slow movement, consolidation, and range-bound price action.
+   - A good setup during low volume hours (like late Asian session before London open) may fail due to lack of institutional sponsorship. Evaluate the current time and session.
+
+2. **News and Fundamental Events:**
+   - A lot of traders ignore economic news, which is a fatal mistake.
+   - High-impact news can move the market incredibly fast and unpredictably. Examples include:
+     - Interest rate decisions (FOMC, ECB, BOE)
+     - Inflation reports (CPI, PPI)
+     - Employment data (NFP, Unemployment Claims)
+   - Even perfect technical setups can fail during big news events due to spread widening and slippage. Check for upcoming high-impact events and avoid entering right before them.
+
+3. **Liquidity Zones:**
+   - Many retail traders enter before liquidity is taken, resulting in them becoming the liquidity.
+   - Smart money and institutional algorithms often:
+     - Sweep equal highs (Buy Side Liquidity - BSL)
+     - Sweep equal lows (Sell Side Liquidity - SSL)
+     - Trigger stop losses of early entrants
+   - Wait for the liquidity sweep to occur. After that, the real institutional move starts.
+
+4. **Higher Timeframe Bias:**
+   - Some traders only look at small timeframes (M1, M5) and get chopped up by market noise.
+   - Always check the Higher Timeframes (HTF):
+     - 4H (4-Hour)
+     - 1H (1-Hour)
+     - Daily
+   - This helps you see the bigger macroeconomic trend. Trade in the direction of the HTF bias.
+
+5. **Market Manipulation / False Breakouts:**
+   - Breakouts are not always real. Retail breakout traders are often trapped.
+   - Sometimes price:
+     - Breaks a key level (Support/Resistance)
+     - Traps breakout traders
+     - Then aggressively reverses back into the range (Turtle Soup).
+   - Wait for confirmation (a close outside the zone and a successful retest) after the breakout.
+
+6. **Spread and Pair Behavior:**
+   - Some pairs have large spreads or move differently depending on the time of day.
+   - Examples:
+     - Some cross pairs (e.g., GBPNZD, EURAUD) move slower but have wider spreads.
+     - Some pairs spike quickly and erratically (e.g., Gold/XAUUSD, GBPJPY).
+   - This heavily affects scalping and precise entries. Factor this into your stop loss placement.
+
+7. **Risk-to-Reward (Very Important):**
+   - Many amateur traders focus only on winning trades and high win rates.
+   - Professionals focus on asymmetric risk profiles:
+     - 1:2 Risk-to-Reward minimum.
+     - 1:3 Risk-to-Reward preferred.
+   - Even with a 40-50% win rate, you can still be highly profitable if your winners are 3x larger than your losers.
+
+✅ **Simple checklist before entering a trade:**
+1️⃣ Higher timeframe trend aligns with the trade direction.
+2️⃣ Key level reached (support/resistance, Order Block, FVG, etc.).
+3️⃣ Liquidity sweep occurred (Stop hunt complete).
+4️⃣ Session time is optimal (High volume expected).
+5️⃣ Risk-to-reward is sufficient (Minimum 1:2).
+
+If all align, the trade is significantly stronger. Do not issue a signal if these criteria are not met.
 
 ---
 
@@ -270,7 +338,7 @@ ${ALGO_LOGIC}
 **THRESHOLD:**
 - **Score > 65:** VALID SETUP. Issue BUY/SELL Signal.
 - **Score > 85:** SNIPER SETUP (A+).
-- **Score < 65:** NEUTRAL (Wait for better alignment).
+- **Score < 65:** DO NOT ISSUE A SIGNAL (Wait for better alignment).
 
 ---
 
@@ -300,7 +368,7 @@ ${(() => {
             return `- **Timeframes:** M1, M5.
 - **Objective:** HYPER-SCALPING. In and out within 15-45 minutes max.
 - **Strict Rule:** ONLY trade with the M15/H1 Trend.
-- **Philosophy:** "No Loss". Either a clear signal or NEUTRAL.
+- **Philosophy:** "No Loss". Only issue a clear, high-probability signal.
 - **Invalidation:** Immediate exit if M1 structure shifts against entry or price stalls. Do not wait for SL.
 - **SL/TP Logic:** Very tight SL (5-10 pips), quick TP (1:1.5 - 1:2 RR). Focus on immediate momentum.`;
         case 'scalping(15 to 30mins)':
@@ -314,16 +382,19 @@ ${(() => {
             return `- **Timeframes:** M15, H1.
 - **Objective:** Capture intra-day moves within a single session.
 - **Duration:** 1 to 2 hours.
+- **Entry Logic:** Wait for M15/H1 structure shift. DO NOT use M1 for entry.
 - **SL/TP Logic:** Moderate SL (15-25 pips), TP (1:2.5 - 1:3 RR). Focus on intra-day structure.`;
         case 'day trading(2 to 4hrs)':
             return `- **Timeframes:** H1, H4.
 - **Objective:** Capture larger intra-day or multi-session moves.
 - **Duration:** 2 to 4 hours.
+- **Entry Logic:** Wait for H1 structure shift. DO NOT use M1 or M5 for entry.
 - **SL/TP Logic:** Moderate SL (20-35 pips), TP (1:3 - 1:4 RR). Focus on H4 structure.`;
         case 'swing trading':
             return `- **Timeframes:** H4, Daily, Weekly.
 - **Objective:** Capture major trend shifts and long-term liquidity targets.
 - **Duration:** Days to weeks.
+- **Entry Logic:** Wait for H4 or Daily structure shift. DO NOT use M1, M5, or M15 for entry.
 - **SL/TP Logic:** Wide SL (50+ pips), TP (1:4 - 1:6+ RR). Focus on major liquidity pools and trend reversal.`;
         default:
             return `- **Timeframes:** Adapt based on market.
@@ -557,7 +628,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
-            signal: data.signal || 'NEUTRAL',
+            signal: data.signal as 'BUY' | 'SELL',
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",

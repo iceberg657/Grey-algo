@@ -191,7 +191,11 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     const [images, setImages] = useState<{ higher?: File, primary?: File }>({});
     const [error, setError] = useState<string | null>(null);
 
-
+    // Reset local state when formKey changes (which happens on "Back")
+    useEffect(() => {
+        setImages({});
+        setError(null);
+    }, []);
 
     const handleFileChange = (id: 'higher' | 'primary', file: File | null) => {
         setImages(prev => file ? { ...prev, [id]: file } : { ...prev, [id]: undefined });

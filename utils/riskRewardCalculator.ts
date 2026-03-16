@@ -147,7 +147,7 @@ export function validateAndFixTPSL(
   tradingStyle?: TradingStyle
 ): Omit<SignalData, 'id' | 'timestamp'> {
   
-  if (signal.signal === 'NEUTRAL') {
+  if (signal.signal !== 'BUY' && signal.signal !== 'SELL') {
     return signal; 
   }
   
