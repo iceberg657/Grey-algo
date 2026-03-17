@@ -232,7 +232,6 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </div>
                  <button
                     onClick={handleToggleSpeech}
-                    disabled={!process.env.API_KEY}
                     className={`p-4 rounded-xl transition-all duration-300 shadow-xl border ${ttsState !== 'idle' ? 'bg-red-500 text-white animate-pulse border-red-400' : 'bg-gray-100 dark:bg-dark-card text-green-600 dark:text-green-400 border-white/10 hover:border-green-500/50 hover:scale-110 active:scale-95'}`}
                     aria-label="Read analysis aloud"
                 >

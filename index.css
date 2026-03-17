@@ -1,0 +1,148 @@
+@import "tailwindcss";
+
+@theme {
+    --color-green-300: #6ee7b7;
+    --color-green-400: #34d399;
+    --color-green-500: #10b981;
+    --color-green-600: #059669;
+    --color-green-700: #047857;
+
+    --color-red-300: #fca5a5;
+    --color-red-400: #f87171;
+    --color-red-500: #ef4444;
+    --color-red-600: #dc2626;
+
+    --color-blue-300: #93c5fd;
+    --color-blue-400: #60a5fa;
+    --color-blue-500: #3b82f6;
+    --color-blue-600: #2563eb;
+    --color-blue-700: #1d4ed8;
+
+    --color-dark-bg: #0f172a;
+    --color-dark-card: #1e293b;
+    --color-dark-text: #e2e8f0;
+    --color-dark-text-secondary: #94a3b8;
+
+    --font-sans: "Inter", sans-serif;
+    --font-mono: "JetBrains Mono", monospace;
+
+    --animate-fade-in: fadeIn 0.3s ease-in-out;
+    --animate-bounce-candle: bounceCandle 1.2s ease-in-out infinite;
+    --animate-glowing-border: glowingBorder 2s ease-in-out infinite;
+    --animate-glowing-border-red: glowingBorderRed 1.5s ease-in-out infinite alternate;
+    --animate-animated-gradient: animatedGradient 10s ease infinite;
+    --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    --animate-glowing-text-green: glowingTextGreen 1.5s ease-in-out infinite alternate;
+    --animate-glowing-text-red: glowingTextRed 1.5s ease-in-out infinite alternate;
+    --animate-glowing-edge: glowingEdge 8s ease-in-out infinite alternate;
+    --animate-marquee: marquee 20s linear infinite;
+    --animate-flip-3d: flip3D 0.4s cubic-bezier(0.2, 1.1, 0.4, 1.0) forwards;
+    --animate-shimmer: shimmer 2s linear infinite;
+}
+
+@keyframes fadeIn {
+    0% { opacity: 0; transform: translateY(10px); }
+    100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+}
+@keyframes flip3D {
+    0% { opacity: 0; transform: perspective(1000px) rotateX(-45deg) translateY(20px); }
+    100% { opacity: 1; transform: perspective(1000px) rotateX(0deg) translateY(0); }
+}
+@keyframes glowingBorder {
+    0%, 100% { box-shadow: 0 0 3px var(--color-green-500), inset 0 0 3px var(--color-green-500); border-color: var(--color-green-500); }
+    50% { box-shadow: 0 0 10px var(--color-green-400), inset 0 0 10px var(--color-green-400); border-color: var(--color-green-300); }
+}
+@keyframes bounceCandle {
+    0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+    50% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+}
+@keyframes animatedGradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+@keyframes glowingTextGreen {
+    from { text-shadow: 0 0 4px var(--color-green-500), 0 0 8px var(--color-green-400), 0 0 12px var(--color-green-600); }
+    to { text-shadow: 0 0 8px var(--color-green-400), 0 0 16px var(--color-green-300), 0 0 24px var(--color-green-500); }
+}
+@keyframes glowingTextRed {
+    from { text-shadow: 0 0 4px var(--color-red-500), 0 0 8px var(--color-red-400), 0 0 12px var(--color-red-600); }
+    to { text-shadow: 0 0 8px var(--color-red-400), 0 0 16px var(--color-red-300), 0 0 24px var(--color-red-500); }
+}
+@keyframes glowingBorderRed {
+    from { box-shadow: 0 0 5px var(--color-red-500), 0 0 10px var(--color-red-400), 0 0 15px var(--color-red-600); }
+    to { box-shadow: 0 0 10px var(--color-red-400), 0 0 20px var(--color-red-300), 0 0 30px var(--color-red-500); }
+}
+@keyframes marquee {
+    0% { transform: translateX(0%); }
+    100% { transform: translateX(-50%); }
+}
+@keyframes glowingEdge {
+    from { box-shadow: inset 0 0 80px rgba(59, 130, 246, 0.25), inset 0 0 50px rgba(147, 51, 234, 0.2); }
+    to { box-shadow: inset 0 0 50px rgba(96, 165, 250, 0.3), inset 0 0 30px rgba(168, 85, 247, 0.25); }
+}
+@keyframes glowingEdgeLearning {
+    from { box-shadow: inset 0 0 60px rgba(34, 197, 94, 0.3), inset 0 0 30px rgba(52, 211, 153, 0.2); }
+    to { box-shadow: inset 0 0 120px rgba(34, 197, 94, 0.6), inset 0 0 80px rgba(16, 185, 129, 0.5); }
+}
+
+body {
+    background-color: #f3f4f6; /* gray-100 */
+    transition: background-color 0.3s ease;
+}
+.dark body {
+    background-color: #020617; /* slate-950, a deeper base */
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    position: relative;
+}
+/* Default glowing edge for all themes */
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 999;
+    animation: glowingEdge 8s ease-in-out infinite alternate;
+    box-shadow: inset 0 0 80px rgba(59, 130, 246, 0.25), inset 0 0 50px rgba(147, 51, 234, 0.2);
+    transition: box-shadow 1s ease, animation 1s ease;
+}
+
+/* Machine Learning Active State - Green/Emerald Glow (Prioritized) */
+body.learning-mode::after {
+    animation: glowingEdgeLearning 1s ease-in-out infinite alternate !important;
+    box-shadow: inset 0 0 100px rgba(34, 197, 94, 0.6), inset 0 0 60px rgba(16, 185, 129, 0.5);
+}
+
+.animated-gradient-text {
+    background: linear-gradient(to right, #4ade80, #06b6d4, #3b82f6, #9333ea); /* green-400, cyan-500, blue-500, purple-600 */
+    background-size: 300% auto;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+    background-clip: text;
+}
+
+/* Smooth Custom Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+}
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+}
+::-webkit-scrollbar-thumb {
+    background: rgba(16, 185, 129, 0.3);
+    border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: rgba(16, 185, 129, 0.5);
+}
+@keyframes draw-path {
+    to {
+        stroke-dashoffset: 0;
+    }
+}

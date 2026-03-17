@@ -1,5 +1,5 @@
 
-const { GoogleGenAI, Type } = require("@google/genai");
+import { GoogleGenAI, Type } from "@google/genai";
 
 const KEYS = [
     process.env.API_KEY_4,
@@ -36,7 +36,7 @@ async function fetchFromGemini() {
     return marketDataCache.data;
 }
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
     const isStale = !marketDataCache.timestamp || (Date.now() - marketDataCache.timestamp > CACHE_DURATION);
     const data = isStale ? await fetchFromGemini() : marketDataCache.data;
     res.status(200).json(data || []);

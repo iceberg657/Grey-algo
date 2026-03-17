@@ -1,10 +1,14 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import marketDataHandler from './api/marketData.js';
+import fetchDataHandler from './api/fetchData.js';
 
 async function startServer() {
   const app = express();
   const PORT = 3000;
+
+  app.use(express.json());
 
   // API routes
   app.get('/api/config', (req, res) => {
@@ -22,6 +26,9 @@ async function startServer() {
     });
   });
 
+  app.all('/api/marketData', marketDataHandler);
+  app.all('/api/fetchData', fetchDataHandler);
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -32,7 +39,7 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('*all', (req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

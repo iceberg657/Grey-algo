@@ -1,5 +1,5 @@
 
-const { GoogleGenAI } = require("@google/genai");
+import { GoogleGenAI } from "@google/genai";
 
 const KEYS = [
     process.env.API_KEY_1,
@@ -8,7 +8,7 @@ const KEYS = [
     process.env.API_KEY
 ].filter(k => !!k);
 
-module.exports = async (req, res) => {
+export default async (req, res) => {
     if (req.method !== 'POST') return res.status(405).end();
     
     for (const key of KEYS) {
