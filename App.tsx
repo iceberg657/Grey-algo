@@ -374,16 +374,16 @@ const App: React.FC = () => {
         >
             <NeuralBackground />
             <div className="absolute inset-0 z-0">
-                <TradingViewWidget />
+                {isCharting && <TradingViewWidget />}
             </div>
 
             {/* Changed from top-0 left-0 right-0 to inset-0 to ensure full coverage */}
             <div className="absolute inset-0 z-10 pointer-events-none">
                 <div className="pointer-events-auto h-full">
-                    <SignalOverlay 
+                    {isCharting && <SignalOverlay 
                         onAnalyzeClick={handleChartAnalysis} 
                         onBack={handleNavigateToHome}
-                    />
+                    />}
                 </div>
             </div>
 

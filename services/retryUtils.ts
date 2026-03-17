@@ -53,16 +53,20 @@ export async function initializeApiKey() {
     }
 
     // 3. Last resort: check process.env (for some environments that might inject it)
-    if (!API_KEY && typeof process !== 'undefined') {
-        API_KEY = process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY;
-        KEYS.k1 = process.env.API_KEY_1 || API_KEY;
-        KEYS.k2 = process.env.API_KEY_2;
-        KEYS.k3 = process.env.API_KEY_3;
-        KEYS.k4 = process.env.API_KEY_4;
-        KEYS.k5 = process.env.API_KEY_5;
-        KEYS.k6 = process.env.API_KEY_6;
-        KEYS.k7 = process.env.API_KEY_7;
-        KEYS.k8 = process.env.VITE_API_KEY_8;
+    try {
+        if (!API_KEY && typeof process !== 'undefined' && process.env) {
+            API_KEY = (process.env as any).GEMINI_API_KEY || (process.env as any).API_KEY_1 || (process.env as any).API_KEY;
+            KEYS.k1 = (process.env as any).API_KEY_1 || API_KEY;
+            KEYS.k2 = (process.env as any).API_KEY_2;
+            KEYS.k3 = (process.env as any).API_KEY_3;
+            KEYS.k4 = (process.env as any).API_KEY_4;
+            KEYS.k5 = (process.env as any).API_KEY_5;
+            KEYS.k6 = (process.env as any).API_KEY_6;
+            KEYS.k7 = (process.env as any).API_KEY_7;
+            KEYS.k8 = (process.env as any).VITE_API_KEY_8;
+        }
+    } catch (e) {
+        // Ignore process.env errors in browser
     }
 
     if (!API_KEY && !KEYS.k1) {
