@@ -26,22 +26,22 @@
     --font-sans: "Inter", sans-serif;
     --font-mono: "JetBrains Mono", monospace;
 
-    --animate-fade-in: fadeIn 0.3s ease-in-out;
-    --animate-bounce-candle: bounceCandle 1.2s ease-in-out infinite;
-    --animate-glowing-border: glowingBorder 2s ease-in-out infinite;
-    --animate-glowing-border-red: glowingBorderRed 1.5s ease-in-out infinite alternate;
-    --animate-animated-gradient: animatedGradient 10s ease infinite;
-    --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    --animate-glowing-text-green: glowingTextGreen 1.5s ease-in-out infinite alternate;
-    --animate-glowing-text-red: glowingTextRed 1.5s ease-in-out infinite alternate;
-    --animate-glowing-edge: glowingEdge 8s ease-in-out infinite alternate;
-    --animate-marquee: marquee 20s linear infinite;
-    --animate-flip-3d: flip3D 0.4s cubic-bezier(0.2, 1.1, 0.4, 1.0) forwards;
-    --animate-shimmer: shimmer 2s linear infinite;
+    --animate-fade-in: fadeIn 0.2s ease-out;
+    --animate-bounce-candle: bounceCandle 1.5s ease-in-out infinite;
+    --animate-glowing-border: glowingBorder 3s ease-in-out infinite;
+    --animate-glowing-border-red: glowingBorderRed 2s ease-in-out infinite alternate;
+    --animate-animated-gradient: animatedGradient 15s ease infinite;
+    --animate-pulse-slow: pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    --animate-glowing-text-green: glowingTextGreen 2s ease-in-out infinite alternate;
+    --animate-glowing-text-red: glowingTextRed 2s ease-in-out infinite alternate;
+    --animate-glowing-edge: glowingEdge 10s ease-in-out infinite alternate;
+    --animate-marquee: marquee 30s linear infinite;
+    --animate-flip-3d: flip3D 0.3s ease-out forwards;
+    --animate-shimmer: shimmer 3s linear infinite;
 }
 
 @keyframes fadeIn {
-    0% { opacity: 0; transform: translateY(10px); }
+    0% { opacity: 0; transform: translateY(4px); }
     100% { opacity: 1; transform: translateY(0); }
 }
 @keyframes shimmer {
@@ -49,16 +49,16 @@
     100% { transform: translateX(100%); }
 }
 @keyframes flip3D {
-    0% { opacity: 0; transform: perspective(1000px) rotateX(-45deg) translateY(20px); }
+    0% { opacity: 0; transform: perspective(1000px) rotateX(-10deg) translateY(10px); }
     100% { opacity: 1; transform: perspective(1000px) rotateX(0deg) translateY(0); }
 }
 @keyframes glowingBorder {
-    0%, 100% { box-shadow: 0 0 3px var(--color-green-500), inset 0 0 3px var(--color-green-500); border-color: var(--color-green-500); }
-    50% { box-shadow: 0 0 10px var(--color-green-400), inset 0 0 10px var(--color-green-400); border-color: var(--color-green-300); }
+    0%, 100% { border-color: var(--color-green-500); opacity: 0.8; }
+    50% { border-color: var(--color-green-300); opacity: 1; }
 }
 @keyframes bounceCandle {
-    0%, 100% { transform: translateY(0); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
-    50% { transform: translateY(-25%); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10%); }
 }
 @keyframes animatedGradient {
     0% { background-position: 0% 50%; }
@@ -66,28 +66,28 @@
     100% { background-position: 0% 50%; }
 }
 @keyframes glowingTextGreen {
-    from { text-shadow: 0 0 4px var(--color-green-500), 0 0 8px var(--color-green-400), 0 0 12px var(--color-green-600); }
-    to { text-shadow: 0 0 8px var(--color-green-400), 0 0 16px var(--color-green-300), 0 0 24px var(--color-green-500); }
+    from { color: var(--color-green-500); opacity: 0.7; }
+    to { color: var(--color-green-300); opacity: 1; }
 }
 @keyframes glowingTextRed {
-    from { text-shadow: 0 0 4px var(--color-red-500), 0 0 8px var(--color-red-400), 0 0 12px var(--color-red-600); }
-    to { text-shadow: 0 0 8px var(--color-red-400), 0 0 16px var(--color-red-300), 0 0 24px var(--color-red-500); }
+    from { color: var(--color-red-500); opacity: 0.7; }
+    to { color: var(--color-red-300); opacity: 1; }
 }
 @keyframes glowingBorderRed {
-    from { box-shadow: 0 0 5px var(--color-red-500), 0 0 10px var(--color-red-400), 0 0 15px var(--color-red-600); }
-    to { box-shadow: 0 0 10px var(--color-red-400), 0 0 20px var(--color-red-300), 0 0 30px var(--color-red-500); }
+    from { border-color: var(--color-red-500); opacity: 0.6; }
+    to { border-color: var(--color-red-400); opacity: 1; }
 }
 @keyframes marquee {
     0% { transform: translateX(0%); }
     100% { transform: translateX(-50%); }
 }
 @keyframes glowingEdge {
-    from { box-shadow: inset 0 0 80px rgba(59, 130, 246, 0.25), inset 0 0 50px rgba(147, 51, 234, 0.2); }
-    to { box-shadow: inset 0 0 50px rgba(96, 165, 250, 0.3), inset 0 0 30px rgba(168, 85, 247, 0.25); }
+    from { opacity: 0.15; }
+    to { opacity: 0.3; }
 }
 @keyframes glowingEdgeLearning {
-    from { box-shadow: inset 0 0 60px rgba(34, 197, 94, 0.3), inset 0 0 30px rgba(52, 211, 153, 0.2); }
-    to { box-shadow: inset 0 0 120px rgba(34, 197, 94, 0.6), inset 0 0 80px rgba(16, 185, 129, 0.5); }
+    from { opacity: 0.3; }
+    to { opacity: 0.6; }
 }
 
 body {
@@ -107,15 +107,15 @@ body::after {
     inset: 0;
     pointer-events: none;
     z-index: 999;
-    animation: glowingEdge 8s ease-in-out infinite alternate;
-    box-shadow: inset 0 0 80px rgba(59, 130, 246, 0.25), inset 0 0 50px rgba(147, 51, 234, 0.2);
-    transition: box-shadow 1s ease, animation 1s ease;
+    animation: glowingEdge 10s ease-in-out infinite alternate;
+    box-shadow: inset 0 0 100px rgba(59, 130, 246, 0.15);
+    transition: opacity 1s ease;
 }
 
 /* Machine Learning Active State - Green/Emerald Glow (Prioritized) */
 body.learning-mode::after {
-    animation: glowingEdgeLearning 1s ease-in-out infinite alternate !important;
-    box-shadow: inset 0 0 100px rgba(34, 197, 94, 0.6), inset 0 0 60px rgba(16, 185, 129, 0.5);
+    animation: glowingEdgeLearning 2s ease-in-out infinite alternate !important;
+    box-shadow: inset 0 0 120px rgba(34, 197, 94, 0.4);
 }
 
 .animated-gradient-text {

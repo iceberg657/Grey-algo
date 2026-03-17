@@ -130,6 +130,15 @@ ${accountInfo}
 
 ---
 
+📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. No "maybe" or "potential".
+2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
+3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
+4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
+5. **THOU SHALT SPEAK WITH AUTHORITY:** Deliver your analysis with professional, institutional-grade confidence.
+
+---
+
 🔮 **ORACLE APEX-LEVEL TRADING PROTOCOL (MANDATORY):**
 Here is a complete breakdown of how you operate, calculate lot sizes, and formulate trading strategies:
 
@@ -406,14 +415,20 @@ ${(() => {
 
 **CRITICAL: Calculate TP/SL based on ${rrRatio} RR.**
 - **Minimum SL Distance:** ${marketConfig.minStopLoss} points/pips.
-- **Entry Logic (Choose ONE of the following specific order types):** 
-  - **Buy Limit:** Placed below current price. Betting price drops to support, picks you up, and rises.
-  - **Sell Limit:** Placed above current price. Betting price rises to resistance, triggers, and drops.
-  - **Buy Stop:** Placed above current price. Betting price breaks high and keeps going up.
-  - **Sell Stop:** Placed below current price. Betting price breaks low and keeps falling.
-  - **Buy Stop Limit:** Set a Stop price. When hit, a Buy Limit is placed. Wait for breakout then retest before buying.
-  - **Sell Stop Limit:** Set a Stop price. When hit, a Sell Limit is placed. Enter sell at specific price after breakdown starts.
-  - **Market Execution:** Opens immediately at current best price. Use when setup is happening right now and you don't want to wait.
+
+---
+
+⚖️ **ORDER TYPE DETECTION RULES (STRICT RELATIONSHIP):**
+You MUST correctly classify the order type based on the strict relationship between the Current Market Price (CMP) and your suggested Entry Price:
+- **'Market Execution'**: Entry Price is EXACTLY at the Current Market Price.
+- **'Buy Limit'**: Entry Price is STRICTLY BELOW the Current Market Price. (Waiting for price to drop to support).
+- **'Sell Limit'**: Entry Price is STRICTLY ABOVE the Current Market Price. (Waiting for price to rise to resistance).
+- **'Buy Stop'**: Entry Price is STRICTLY ABOVE the Current Market Price. (Waiting for price to break out upwards).
+- **'Sell Stop'**: Entry Price is STRICTLY BELOW the Current Market Price. (Waiting for price to break down lower).
+- **'Buy Stop Limit'**: Stop Price is ABOVE current price, Limit Price is BELOW the Stop Price.
+- **'Sell Stop Limit'**: Stop Price is BELOW current price, Limit Price is ABOVE the Stop Price.
+
+---
 
 **TP Calculation Formula (MUST BE DISTINCT):**
 - **TP1:** 1R (Secure Profit).
@@ -517,6 +532,7 @@ ${(() => {
   ],
   
   "invalidationScenario": "Structural break of HL/LH",
+  "counterArgumentRejection": "Detailed explanation of why the opposing scenario was rejected",
   "riskAnalysis": {
     "riskPerTrade": "1%",
     "suggestedLotSize": "e.g., 0.5 lots",
@@ -639,6 +655,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             reasoning: data.reasoning || [],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Structure break",
+            counterArgumentRejection: data.counterArgumentRejection || "",
             sentiment: data.sentiment || { score: 50, summary: "Neutral" },
             economicEvents: safeEconomicEvents,
             sources: uniqueSources,

@@ -173,9 +173,13 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
             setTtsState('idle');
         } else {
-            const { asset, signal, stopLoss, takeProfits, reasoning, confidence, entryType } = data;
+            const { asset, signal, stopLoss, takeProfits, reasoning, confidence, entryType, counterArgumentRejection } = data;
             let textToSpeak = `Blueprint for ${asset}. Operational bias ${signal}. `;
-            textToSpeak += `Strategic confidence ${confidence} percent. Execution protocol ${entryType}. Stop loss ${stopLoss}. Primary target ${takeProfits[0]}. Reasoning: ${reasoning[0]}`;
+            textToSpeak += `Strategic confidence ${confidence} percent. Execution protocol ${entryType}. Stop loss ${stopLoss}. Primary target ${takeProfits[0]}. `;
+            if (counterArgumentRejection) {
+                textToSpeak += `Counter-argument rejected: ${counterArgumentRejection}. `;
+            }
+            textToSpeak += `Reasoning: ${reasoning[0]}`;
             setTtsState('waiting');
             timeoutRef.current = setTimeout(async () => {
                 try {
@@ -506,6 +510,16 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     </div>
                 </Section>
             </div>
+
+            {data.counterArgumentRejection && (
+                <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1350ms' }}>
+                    <Section title="Counter-Argument Rejection" delay="1350ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}>
+                        <div className="bg-orange-500/5 p-5 rounded-2xl border-2 border-orange-500/20 text-sm leading-relaxed font-medium text-orange-700 dark:text-orange-300 shadow-inner">
+                            <p className="italic">"Alternative scenario rejected: {data.counterArgumentRejection}"</p>
+                        </div>
+                    </Section>
+                </div>
+            )}
 
             {(hasSentiment || hasEconomicEvents) && (
                  <div className={`grid grid-cols-1 ${hasSentiment && hasEconomicEvents ? 'md:grid-cols-2' : ''} gap-6 mt-4`}>

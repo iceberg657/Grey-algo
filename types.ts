@@ -101,6 +101,7 @@ export interface SignalData {
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;
+    counterArgumentRejection?: string;
     riskAnalysis?: RiskAnalysis;
     sentiment?: Sentiment;
     economicEvents?: EconomicEvent[];
