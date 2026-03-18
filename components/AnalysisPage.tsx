@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { SignalDisplay } from './SignalDisplay';
+import { AnnotatedChart } from './AnnotatedChart';
 import type { SignalData } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
@@ -82,6 +83,10 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent h-[200%] pointer-events-none animate-shimmer"></div>
                         
                         <SignalDisplay data={data} />
+
+                        {image && (
+                            <AnnotatedChart imageSrc={image} data={data} />
+                        )}
                     </div>
                     
                     {/* Decorative Data Streamers */}
