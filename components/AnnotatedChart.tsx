@@ -95,23 +95,47 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
 
                     {/* EMA Legend */}
                     <div className="absolute top-10 sm:top-12 left-2 z-10 hidden sm:block">
-                        <div className="bg-black/80 border border-gray-600/50 rounded p-1.5 backdrop-blur-sm shadow-lg space-y-1">
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-3 h-0.5 bg-blue-500 rounded-full"></div>
-                                <span className="text-white text-[8px] font-semibold">Blue = 20 EMA</span>
+                        <div className="bg-black/80 border border-gray-600/50 rounded p-1 backdrop-blur-sm shadow-lg space-y-0.5">
+                            <div className="flex items-center gap-1">
+                                <div className="w-2 h-0.5 bg-blue-500 rounded-full"></div>
+                                <span className="text-white text-[7px] font-semibold">20 EMA</span>
                             </div>
-                            <div className="flex items-center gap-1.5">
-                                <div className="w-3 h-0.5 bg-purple-500 rounded-full"></div>
-                                <span className="text-white text-[8px] font-semibold">Purple = 50 EMA</span>
+                            <div className="flex items-center gap-1">
+                                <div className="w-2 h-0.5 bg-purple-500 rounded-full"></div>
+                                <span className="text-white text-[7px] font-semibold">50 EMA</span>
                             </div>
                         </div>
                     </div>
 
+                    {/* Candlestick Patterns */}
+                    {data.candlestickPatterns && data.candlestickPatterns.length > 0 && (
+                        <div className="absolute top-20 sm:top-24 left-2 z-10">
+                            <div className="bg-black/80 border border-blue-500/50 rounded p-1 backdrop-blur-sm shadow-lg">
+                                <div className="text-blue-400 font-bold text-[7px] mb-0.5">Patterns</div>
+                                <div className="text-white text-[7px] font-semibold">
+                                    {data.candlestickPatterns.join(', ')}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* OTE Zone */}
+                    {data.oteLevels && (
+                        <div className="absolute top-[40%] right-2 z-10 w-20">
+                            <div className="text-white text-[7px] font-semibold mb-0.5 text-center">OTE Zone</div>
+                            <div className="bg-black/80 border border-yellow-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center">
+                                <div className="text-yellow-400 text-[7px] font-bold">
+                                    {data.oteLevels.lower.toFixed(5)} - {data.oteLevels.upper.toFixed(5)}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     {/* Supply / Resistance Zone */}
                     <div className="absolute top-[25%] sm:top-[30%] left-2 z-10">
-                        <div className="text-white text-[8px] font-semibold mb-0.5 text-center">Supply / Resistance Zone</div>
-                        <div className="bg-black/80 border border-red-500/50 rounded p-1 backdrop-blur-sm shadow-lg text-center">
-                            <div className="text-red-400 text-[8px] sm:text-[10px] font-bold">
+                        <div className="text-white text-[7px] font-semibold mb-0.5 text-center">Supply / Resistance</div>
+                        <div className="bg-black/80 border border-red-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center">
+                            <div className="text-red-400 text-[7px] font-bold">
                                 {(entry + offset * 1.5).toFixed(5)} - {(entry + offset * 2).toFixed(5)}
                             </div>
                         </div>
@@ -119,9 +143,9 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
 
                     {/* Demand / Support Zone */}
                     <div className="absolute bottom-[25%] sm:bottom-[30%] left-2 z-10">
-                        <div className="text-white text-[8px] font-semibold mb-0.5 text-center">Demand / Support Zone</div>
-                        <div className="bg-black/80 border border-green-500/50 rounded p-1 backdrop-blur-sm shadow-lg text-center">
-                            <div className="text-green-400 text-[8px] sm:text-[10px] font-bold">
+                        <div className="text-white text-[7px] font-semibold mb-0.5 text-center">Demand / Support</div>
+                        <div className="bg-black/80 border border-green-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center">
+                            <div className="text-green-400 text-[7px] font-bold">
                                 {(entry - offset * 2).toFixed(5)} - {(entry - offset * 1.5).toFixed(5)}
                             </div>
                         </div>

@@ -139,6 +139,8 @@ export interface SignalData {
     technicalAnalysis?: any;
     fundamentalContext?: any;
     timeframeRationale?: string;
+    oteLevels?: { upper: number; lower: number }; // Added OTE levels
+    candlestickPatterns?: string[];
     confluenceMatrix?: {
         latestPrice: number;
         fvg: { type: "bullish" | "bearish"; upper: number; lower: number } | null;

@@ -58,7 +58,7 @@ const ChatBubble: React.FC<{
             )}
             <div className={`relative group max-w-[85%] lg:max-w-lg p-3 rounded-2xl text-sm shadow-sm ${isUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 dark:bg-dark-bg/60 dark:text-dark-text/90 rounded-bl-none'}`}>
                  {message.images && message.images.length > 0 && (
-                    <div className={`grid gap-2 mb-2 ${message.images.length > 1 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                    <div className={`grid gap-2 mb-2 ${message.images.length === 3 ? 'grid-cols-3' : message.images.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {message.images.map((imgSrc, index) => (
                              <img 
                                 key={index}
@@ -276,6 +276,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         if (files) {
             // Fix: Explicitly cast Array.from(files) to File[] to avoid 'unknown' type errors for f.type, f.name, f.size, and URL.createObjectURL(f)
             const newFiles = (Array.from(files) as File[]).filter(f => f.type.startsWith('image/'));
+            
+            if (imageFiles.length + newFiles.length > 3) {
+                alert("You can only upload up to 3 images.");
+                return;
+            }
+
             if (newFiles.length > 0) {
                 const uniqueNewFiles = newFiles.filter(f => !imageFiles.some(existing => existing.name === f.name && existing.size === f.size));
                 setImageFiles(prev => [...prev, ...uniqueNewFiles]);

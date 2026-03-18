@@ -138,11 +138,12 @@ ${tradeModeInstructions}
 ---
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. No "maybe" or "potential".
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. If the signal is NEUTRAL, you MUST provide a detailed analysis including specific Entry, Stop Loss, and Take Profit levels based on your technical analysis, rather than placeholders.
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
 5. **THOU SHALT SPEAK WITH AUTHORITY:** Deliver your analysis with professional, institutional-grade confidence.
+6. **THOU SHALT RECOGNIZE CANDLESTICK PATTERNS:** Perform candlestick pattern recognition on the chart and include the identified patterns in the 'candlestickPatterns' array.
 
 ---
 
@@ -490,13 +491,11 @@ You MUST correctly classify the order type based on the strict relationship betw
     "orderBlock": "OB @ price",
     "fvg": "FVG @ price",
     "dealingRange": "Premium/Discount",
-    "standardDeviation": "e.g., 2.3 SD (Overextended)"
+    "standardDeviation": "e.g., 2.3 SD (Overextended)",
+    "oteLevels": { "upper": number, "lower": number }
   },
   
-  "chartPatterns": {
-    "identified": ["Pattern names"],
-    "significance": "Logic"
-  },
+  "candlestickPatterns": ["Pattern names"],
   
   "technicalAnalysis": {
     "trend": "Bullish/Bearish",
@@ -722,7 +721,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             sources: uniqueSources,
             
             priceAction: data.priceAction || {},
-            chartPatterns: data.chartPatterns || {},
+            oteLevels: data.priceAction?.oteLevels,
+            candlestickPatterns: data.candlestickPatterns || [],
             technicalAnalysis: data.technicalAnalysis || {},
             fundamentalContext: data.fundamentalContext || {},
             timeframeRationale: data.timeframeRationale || "",

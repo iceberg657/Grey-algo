@@ -188,7 +188,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
-    const [images, setImages] = useState<{ higher?: File, primary?: File }>({});
+    const [images, setImages] = useState<{ higher?: File, primary?: File, execution?: File }>({});
     const [error, setError] = useState<string | null>(null);
 
     // Reset local state when formKey changes (which happens on "Back")
@@ -197,7 +197,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
         setError(null);
     }, []);
 
-    const handleFileChange = (id: 'higher' | 'primary', file: File | null) => {
+    const handleFileChange = (id: 'higher' | 'primary' | 'execution', file: File | null) => {
         setImages(prev => file ? { ...prev, [id]: file } : { ...prev, [id]: undefined });
     };
     
@@ -210,8 +210,8 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             return;
         }
 
-        if (isMultiDimensional && !images.higher) {
-             setError('For Multi-Dimensional Analysis, both charts are required.');
+        if (isMultiDimensional && (!images.higher || !images.execution)) {
+             setError('For Multi-Dimensional Analysis, all three charts are required.');
              return;
         }
 
@@ -222,7 +222,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
             if (isMultiDimensional) {
                 if (images.higher) imageParts.higher = await fileToImagePart(images.higher);
-
+                if (images.execution) imageParts.execution = await fileToImagePart(images.execution);
             }
             
             onSubmit({ 
@@ -288,20 +288,29 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
             </div>
 
-            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-2' : ''}`}>
+            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-3' : ''}`}>
                 {isMultiDimensional && (
-                     <ImageUploader 
-                        id="higher" 
-                        title="Strategic View" 
-                        subtitle="H4 / H1 Timeframe"
-                        onFileChange={(file) => handleFileChange('higher', file)}
-                        required={isMultiDimensional}
-                     />
+                    <>
+                         <ImageUploader 
+                            id="higher" 
+                            title="Strategic View" 
+                            subtitle="H4 / H1 Timeframe"
+                            onFileChange={(file) => handleFileChange('higher', file)}
+                            required={isMultiDimensional}
+                         />
+                         <ImageUploader 
+                            id="execution" 
+                            title="Execution View" 
+                            subtitle="M5 / M1 Timeframe"
+                            onFileChange={(file) => handleFileChange('execution', file)}
+                            required={isMultiDimensional}
+                         />
+                    </>
                 )}
                 <ImageUploader 
                     id="primary" 
                     title="Tactical View" 
-                    subtitle="M15 / M5 Timeframe"
+                    subtitle="M15 Timeframe"
                     onFileChange={(file) => handleFileChange('primary', file)}
                     required
                 />
