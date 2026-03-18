@@ -15,6 +15,12 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
     ? MARKET_CONFIGS[marketConfigKey] 
     : MARKET_CONFIGS['EURUSD'];
 
+  const tradeMode = userSettings?.tradeMode || 'Aggressive';
+  
+  const tradeModeInstructions = tradeMode === 'Sniper' 
+    ? `\n🎯 **SNIPER MODE ENABLED (STRICT FILTERING):**\n- You MUST ONLY issue a BUY or SELL signal if BOTH 'SD + FVG confluence' AND 'FVG Retest' are CONFIRMED.\n- If these specific confluences are missing, you MUST issue a NEUTRAL signal.\n- Ensure that at least TP1 has an extremely high probability of being hit.\n`
+    : `\n🔥 **AGGRESSIVE MODE ENABLED:**\n- Take all valid trades based on market structure and adjust risk accordingly.\n`;
+
   const learnedContext = strategies.length > 0 
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
@@ -26,6 +32,7 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - Risk Per Trade: ${userSettings.riskPerTrade || 1}%
 - Daily Drawdown Limit: ${userSettings.dailyDrawdown || 'N/A'}%
 - Max Drawdown Limit: ${userSettings.maxDrawdown || 'N/A'}%
+- Trade Mode: ${tradeMode}
 ` : "";
 
   const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
@@ -127,7 +134,7 @@ function detectEntries(candles) {
 You are **Oracle**, the apex-level trading AI engine powering this application. Your logic is built on strict risk management, multi-timeframe confluence, and objective technical analysis.
 ${learnedContext}
 ${accountInfo}
-
+${tradeModeInstructions}
 ---
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
@@ -428,6 +435,13 @@ ${(() => {
 
 ---
 
+🛡️ **ANTI-DRAWDOWN & PROFIT SECURING PROTOCOL (CRITICAL):**
+1. **NO BREAKOUT TRADING:** Never enter on a strong impulse candle or extension. ALWAYS wait for a retracement to a Discount/Premium zone (FVG/OB). If the price has already run away, you MUST issue a LIMIT ORDER, not a Market Execution.
+2. **HIGH PROBABILITY TP1:** TP1 MUST be set at the closest logical friction point (e.g., 0.5R to 1R) to ensure the trader can secure partial profits and move SL to breakeven quickly. Hitting TP1 is the absolute minimum requirement for a successful signal.
+3. **POSITION SIZING:** Recommend splitting the trade into multiple positions (e.g., 2 or 3) to allow taking profit at TP1 while letting runners hit TP2/TP3.
+
+---
+
 ⚖️ **ORDER TYPE DETECTION RULES (STRICT RELATIONSHIP):**
 You MUST correctly classify the order type based on the strict relationship between the Current Market Price (CMP) and your suggested Entry Price:
 - **'Market Execution'**: Entry Price is EXACTLY at the Current Market Price.
@@ -491,6 +505,7 @@ You MUST correctly classify the order type based on the strict relationship betw
   "takeProfits": [TP1, TP2, TP3],
   "possiblePips": number, // Estimated pips from Entry to TP3
   "winProbability": number, // Estimated probability (0-100) of hitting TP1
+  "recommendedPositions": number, // Usually 2 or 3 depending on how many TPs you want to target
 
   "timeframeRationale": "Why this duration",
   
@@ -598,7 +613,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 contents: [{ parts: promptParts }],
                 config: { 
                     tools: [{googleSearch: {}}], 
-                    temperature: 0 
+                    temperature: 0.1 
                 },
             })
         );
@@ -613,6 +628,22 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         }
         
         const data = JSON.parse(text.substring(start, end + 1));
+
+        // Confluence check
+        const hasConfluence = data.confluenceMatrix?.triggeredEntries?.sdPlusFVGConfluence === true;
+        let finalConfidence = data.confidence || 0;
+        
+        if (!hasConfluence) {
+            // Cap at 75%
+            finalConfidence = Math.min(finalConfidence, 75);
+        } else {
+            // Allow 75-95%
+            if (finalConfidence < 75) {
+                finalConfidence = 75;
+            } else if (finalConfidence > 95) {
+                finalConfidence = 95;
+            }
+        }
 
         // Extract Grounding Metadata (Real Search Results)
         const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
@@ -645,11 +676,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         }
 
         // Logic to boost confidence artificially if it's too low but signal is valid
-        let finalConfidence = data.confidence || 0;
         // REMOVED: Artificial boost. User requested strict accuracy.
-        // if (data.signal !== 'NEUTRAL' && finalConfidence < 70) {
-        //      finalConfidence = Math.min(85, finalConfidence + 15);
-        // }
 
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
@@ -662,6 +689,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             takeProfits: data.takeProfits || [0, 0, 0],
             possiblePips: data.possiblePips || 0,
             winProbability: data.winProbability || 0,
+            recommendedPositions: data.recommendedPositions || 2,
             reasoning: data.reasoning || [],
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Structure break",
@@ -677,7 +705,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             timeframeRationale: data.timeframeRationale || "",
             confluenceMatrix: data.confluenceMatrix,
             contractSize: data.contractSize,
-            pipValue: data.pipValue
+            pipValue: data.pipValue,
+            tradeMode: request.userSettings?.tradeMode || 'Aggressive'
         };
         
         return validateAndFixTPSL(rawSignal, request.riskRewardRatio, request.tradingStyle);

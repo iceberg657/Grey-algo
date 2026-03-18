@@ -147,6 +147,11 @@ export function buildCompleteTradeSetup(
       }
   }
   
+  // Calculate position splitting
+  const recommendedPositions = signal.recommendedPositions || 2;
+  const positionLotSizeRaw = lotSize / recommendedPositions;
+  const positionLotSize = formatLotSize(positionLotSizeRaw, signal.asset);
+
   return {
     ...signal,
     lotSize: lotSize,
@@ -155,6 +160,8 @@ export function buildCompleteTradeSetup(
     potentialProfit,
     totalPotentialProfit,
     possiblePips,
+    recommendedPositions,
+    positionLotSize,
     partialCloseAmounts: partialAmounts,
     partialCloseSizes: partialAmounts.map(lots => formatLotSize(lots, signal.asset)),
     moveToBreakeven: partialClose.moveToBreakeven,

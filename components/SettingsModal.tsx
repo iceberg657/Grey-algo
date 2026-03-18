@@ -88,6 +88,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         
                         {/* Account Type Selector */}
                         <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Trade Mode (Filtering)</label>
+                            <div className="grid grid-cols-2 gap-3 mb-4">
+                                <button
+                                    type="button"
+                                    onClick={() => handleChange('tradeMode', 'Aggressive')}
+                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all flex flex-col items-center justify-center ${
+                                        settings.tradeMode === 'Aggressive' || !settings.tradeMode
+                                        ? 'bg-orange-600 text-white border-orange-600 shadow-md'
+                                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    }`}
+                                >
+                                    <span>🔥 Aggressive</span>
+                                    <span className="text-[10px] font-normal opacity-80">Take all valid trades</span>
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => handleChange('tradeMode', 'Sniper')}
+                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all flex flex-col items-center justify-center ${
+                                        settings.tradeMode === 'Sniper'
+                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
+                                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                    }`}
+                                >
+                                    <span>🎯 Sniper</span>
+                                    <span className="text-[10px] font-normal opacity-80">Strict Confluence Only</span>
+                                </button>
+                            </div>
+
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Type</label>
                             <div className="grid grid-cols-2 gap-3">
                                 <button

@@ -42,6 +42,7 @@ export interface UserSettings extends Partial<AccountSettings> {
     tradingSession?: TradingSessionConfig;
     riskRewardRatio?: string;
     partialClose?: PartialCloseConfig;
+    tradeMode?: 'Aggressive' | 'Sniper';
 }
 
 export interface AnalysisRequest {
@@ -120,6 +121,8 @@ export interface SignalData {
     totalPotentialProfit?: number;
     possiblePips?: number; // New field for estimated pips to target
     winProbability?: number; // Estimated probability of hitting the target
+    recommendedPositions?: number; // Number of positions to split the trade into
+    positionLotSize?: string; // Lot size per position
     partialCloseAmounts?: number[];
     partialCloseSizes?: string[];
     moveToBreakeven?: boolean;
@@ -128,6 +131,7 @@ export interface SignalData {
     assetCategory?: string;
     contractSize: number;
     pipValue: number;
+    tradeMode?: 'Aggressive' | 'Sniper';
 
     // AI Analysis Details
     priceAction?: any;

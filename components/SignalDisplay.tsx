@@ -336,8 +336,18 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                             
                             {data.lotSize && data.lotSize > 0 && (
                                 <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-cyan-500 uppercase">Lot Size</span>
+                                    <span className="text-sm font-bold text-cyan-500 uppercase">Total Lot Size</span>
                                     <span className="font-bold text-cyan-500 dark:text-cyan-400">{data.formattedLotSize}</span>
+                                </div>
+                            )}
+
+                            {data.recommendedPositions && data.recommendedPositions > 0 && data.positionLotSize && (
+                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3 bg-cyan-500/5 px-2 rounded-lg">
+                                    <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 uppercase">Positions to Open</span>
+                                    <div className="text-right">
+                                        <span className="font-black text-cyan-600 dark:text-cyan-400 text-lg block">{data.recommendedPositions}x Trades</span>
+                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">@ {data.positionLotSize} LOTS EACH</span>
+                                    </div>
                                 </div>
                             )}
                             

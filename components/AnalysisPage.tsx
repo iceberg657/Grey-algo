@@ -44,6 +44,15 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                             <div className="h-1 w-12 bg-current opacity-50 rounded-full"></div>
                             <div className="h-1 w-2 bg-current opacity-30 rounded-full"></div>
                         </div>
+                        {data.tradeMode && (
+                            <div className={`mt-2 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest border ${
+                                data.tradeMode === 'Sniper' 
+                                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/30' 
+                                : 'bg-orange-500/10 text-orange-500 border-orange-500/30'
+                            }`}>
+                                {data.tradeMode === 'Sniper' ? '🎯 Sniper Mode' : '🔥 Aggressive Mode'}
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center space-x-3">
                         <ThemeToggleButton />
