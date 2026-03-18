@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import html2canvas from 'html2canvas';
+import { toPng } from 'html-to-image';
 import { SignalData } from '../types';
 
 interface AnnotatedChartProps {
@@ -15,19 +15,21 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
         if (!chartRef.current) return;
         setIsGenerating(true);
         try {
-            const canvas = await html2canvas(chartRef.current, {
-                useCORS: true,
-                allowTaint: true,
+            console.log("Starting html-to-image...");
+            const dataUrl = await toPng(chartRef.current, {
                 backgroundColor: '#000000',
-                scale: 2 // High resolution
+                pixelRatio: 2 // High resolution
             });
-            const url = canvas.toDataURL('image/png');
+            console.log("Data URL generated. Creating link...");
             const link = document.createElement('a');
             link.download = `${data.asset}_${data.timeframe}_Analysis.png`;
-            link.href = url;
+            link.href = dataUrl;
+            document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         } catch (error) {
             console.error("Failed to generate image", error);
+            alert(`Failed to download chart. Error: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setIsGenerating(false);
         }
@@ -64,7 +66,6 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                     src={imageSrc} 
                     alt="Original Chart" 
                     className="w-full h-auto block opacity-60"
-                    crossOrigin="anonymous"
                 />
 
                 {/* Overlays Container */}
