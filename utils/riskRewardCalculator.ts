@@ -112,11 +112,11 @@ export function calculateTPSL(
   const takeProfits: [number, number, number] = [0, 0, 0];
   const tpDistances: [number, number, number] = [0, 0, 0];
   
-  // TP1 = 1R (Secure the bag)
+  // TP1 = 1R (Secure the bag - Guaranteed 1:1 RR)
   // TP2 = Target Ratio (e.g., 3R)
   // TP3 = Moonbag (e.g., 5R or Target + Standard Deviation extension)
   
-  const rUnit = originalSlDist; 
+  const rUnit = currentSlDist; // Use the final SL distance to ensure exact 1:1 RR for TP1
 
   const ratios = [1.0, targetRatio, targetRatio + 2.0]; // e.g. 1:1, 1:3, 1:5
 

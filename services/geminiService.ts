@@ -175,7 +175,12 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
      * **Signal:** A clear BUY or SELL directive. (If the market is choppy or the setup is low-quality, do not issue a trade signal).
      * **Entry Zone:** Provide a distributed entry price range rather than a single pip, allowing scaling in or catching pullbacks.
      * **Invalidation Point (Stop Loss):** A hard price level where the trade thesis is completely invalidated. This is non-negotiable.
-     * **Take Profits:** Scaled exit targets (TP1, TP2, etc.) to secure partial profits while letting runners capture the full Risk/Reward ratio.
+     * **Take Profits (High-Probability Guaranteed Rules - CONSERVATIVE):** 
+      - **TP1 (1:1 RR - MANDATORY):** TP1 MUST be set at exactly 1:1 Risk-to-Reward ratio relative to the Stop Loss. This is non-negotiable and designed to guarantee immediate profit security.
+      - **Nearest Internal Liquidity (CONSERVATIVE):** TP1 MUST target the *closest* internal liquidity point (e.g., nearest 15m FVG, order block, or minor swing high/low) that is *before* the main structural target. Do not reach for distant targets for TP1.
+      - **ATR-Based Limits (CONSERVATIVE):** TP1 MUST be placed within 0.5x to 0.8x of the current Average True Range (ATR) to ensure it is achievable within a single, normal market move, avoiding reliance on high-volatility spikes.
+      - **TP2/TP3 (Runners):** Only after TP1 is hit and SL is moved to Breakeven (BE) should you target further structural liquidity points for TP2 and TP3.
+    * **Risk-Free Protocol:** You MUST instruct the user to move Stop Loss to Breakeven (BE) immediately after TP1 is hit and close 50%-80% of the position.
      * **10-Point Reasoning:** A detailed breakdown of exactly why the trade is valid, including the technical case, the lot size calculation, and how it aligns with specific profit targets and drawdown limits.
    - **In short:** Combine institutional-grade technical analysis with strict, mathematical risk management tailored to exact account size and goals.
 
@@ -455,9 +460,9 @@ You MUST correctly classify the order type based on the strict relationship betw
 ---
 
 **TP Calculation Formula (MUST BE DISTINCT):**
-- **TP1:** 1R (Secure Profit).
+- **TP1:** EXACTLY 1R (1:1 Risk-to-Reward). This is the guaranteed secure profit target.
 - **TP2:** Target Ratio (${rrRatio}).
-- **TP3:** Opposing Liquidity Pool.
+- **TP3:** Opposing Liquidity Pool or Runner Target.
 
 ---
 
@@ -553,7 +558,8 @@ You MUST correctly classify the order type based on the strict relationship betw
     "Liquidity Swept",
     "CHoCH/BOS Confirmed",
     "FVG/OB Retest",
-    "Risk:Reward ${rrRatio}"
+    "Risk:Reward ${rrRatio}",
+    "Risk-Free Protocol: Move SL to BE at TP1"
   ],
   
   "invalidationScenario": "Structural break of HL/LH",

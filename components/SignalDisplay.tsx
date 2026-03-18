@@ -297,8 +297,8 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 ))}
                              </div>
                              <div className="mt-6 text-[10px] font-black text-green-500/80 uppercase tracking-widest flex items-center gap-2">
-                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500"></span>
-                                 Secure partials at TP1
+                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                 Risk-Free Protocol: Move SL to BE at Target 01
                              </div>
                         </div>
                     </TiltCard>
