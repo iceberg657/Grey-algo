@@ -537,17 +537,17 @@ You MUST correctly classify the order type based on the strict relationship betw
   },
 
   "reasoning": [
-    "1. Technical Case: Liquidity sweep logic...",
-    "2. Technical Case: Displacement and FVG confirmation...",
-    "3. Technical Case: Premium/Discount alignment...",
-    "4. Momentum & Volume: RSI/OBV analysis...",
-    "5. Dynamic S/R: 50/200 EMA analysis...",
-    "6. Risk Management: Lot size calculation...",
-    "7. Drawdown Protection: Alignment with daily limits...",
-    "8. Profit Targets: Alignment with RR ratio...",
-    "9. Invalidation: Hard stop loss reasoning...",
-    "10. Overall Confluence: Final verdict..."
-  ],
+    "1. Technical Case: [Your reasoning here]",
+    "2. Technical Case: [Your reasoning here]",
+    "3. Technical Case: [Your reasoning here]",
+    "4. Momentum & Volume: [Your reasoning here]",
+    "5. Dynamic S/R: [Your reasoning here]",
+    "6. Risk Management: [Your reasoning here]",
+    "7. Drawdown Protection: [Your reasoning here]",
+    "8. Profit Targets: [Your reasoning here]",
+    "9. Invalidation: [Your reasoning here]",
+    "10. Overall Confluence: [Your reasoning here]"
+  ], // CRITICAL: This array MUST contain EXACTLY 10 strings. Do not add or remove any points.
   
   "checklist": [
     "Liquidity Swept",
@@ -678,6 +678,16 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         // Logic to boost confidence artificially if it's too low but signal is valid
         // REMOVED: Artificial boost. User requested strict accuracy.
 
+        let safeReasoning = data.reasoning || [];
+        if (!Array.isArray(safeReasoning)) {
+            safeReasoning = [];
+        }
+        if (safeReasoning.length > 10) {
+            safeReasoning = safeReasoning.slice(0, 10);
+        } else while (safeReasoning.length < 10) {
+            safeReasoning.push(`Point ${safeReasoning.length + 1}: Additional confluence factor pending verification.`);
+        }
+
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
@@ -690,7 +700,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             possiblePips: data.possiblePips || 0,
             winProbability: data.winProbability || 0,
             recommendedPositions: data.recommendedPositions || 2,
-            reasoning: data.reasoning || [],
+            reasoning: safeReasoning,
             checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Structure break",
             counterArgumentRejection: data.counterArgumentRejection || "",

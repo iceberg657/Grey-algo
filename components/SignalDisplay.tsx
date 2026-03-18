@@ -50,10 +50,10 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
 
 const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, summary }) => {
     const trend = useMemo(() => {
-        if (score >= 85) return { label: 'Strong Bullish', color: 'text-green-500', bg: 'bg-green-500', icon: '🚀' };
-        if (score >= 50) return { label: 'Bullish', color: 'text-green-400', bg: 'bg-green-400', icon: '↗️' };
-        if (score <= 15) return { label: 'Strong Bearish', color: 'text-red-500', bg: 'bg-red-500', icon: '🔻' };
-        return { label: 'Bearish', color: 'text-red-400', bg: 'bg-red-400', icon: '↘️' };
+        if (score >= 85) return { label: 'STRONG BULLISH', color: 'text-green-500', bg: 'bg-green-500', icon: '🚀' };
+        if (score >= 50) return { label: 'BULLISH', color: 'text-green-400', bg: 'bg-green-400', icon: '↗️' };
+        if (score <= 15) return { label: 'STRONG BEARISH', color: 'text-red-500', bg: 'bg-red-500', icon: '🔻' };
+        return { label: 'BEARISH', color: 'text-red-400', bg: 'bg-red-400', icon: '↘️' };
     }, [score]);
 
     return (
@@ -63,7 +63,7 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                     <div className={`text-2xl sm:text-3xl ${trend.color}`}>{trend.icon}</div>
                     <div>
                         <div className={`text-base sm:text-lg font-extrabold uppercase ${trend.color} leading-none`}>{trend.label}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase tracking-wider mt-1 font-bold">Structural Sentiment</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase tracking-wider mt-1 font-bold">Structural Bias</div>
                     </div>
                 </div>
                 <div className="text-right">
@@ -79,12 +79,12 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                 ></div>
             </div>
             <div className="flex justify-between text-[10px] text-gray-600 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
-                <span>Bearish (0-49)</span>
-                <span>Bullish (50-100)</span>
+                <span>BEARISH (0-49)</span>
+                <span>BULLISH (50-100)</span>
             </div>
 
-            <div className="bg-gray-100 dark:bg-black/20 p-3 rounded-lg border-l-4 border-gray-400 dark:border-gray-600 shadow-sm">
-                <p className="text-xs text-gray-800 dark:text-dark-text italic leading-relaxed font-medium">
+            <div className="bg-gray-100 dark:bg-[#0f172a]/60 p-4 rounded-xl border border-white/5 shadow-sm">
+                <p className="text-sm text-gray-800 dark:text-gray-300 italic leading-relaxed font-medium">
                     "{summary}"
                 </p>
             </div>
@@ -492,7 +492,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 <span className="text-3xl font-mono font-bold text-green-500 mr-6 opacity-80 flex-shrink-0">
                                     {(i + 1).toString().padStart(2, '0')}
                                 </span>
-                                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed font-medium pt-1.5">{text}</p>
+                                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed font-medium pt-1.5">
+                                    {text.replace(/^\d+\.\s*/, '')}
+                                </p>
                             </div>
                         ))}
                     </div>
