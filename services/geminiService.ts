@@ -492,7 +492,8 @@ You MUST correctly classify the order type based on the strict relationship betw
     "fvg": "FVG @ price",
     "dealingRange": "Premium/Discount",
     "standardDeviation": "e.g., 2.3 SD (Overextended)",
-    "oteLevels": { "upper": number, "lower": number }
+    "oteLevels": { "upper": number, "lower": number },
+    "visiblePriceRange": { "high": number, "low": number } // Estimate highest and lowest prices visible on the Y-axis
   },
   
   "candlestickPatterns": ["Pattern names"],
@@ -722,6 +723,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             
             priceAction: data.priceAction || {},
             oteLevels: data.priceAction?.oteLevels,
+            visiblePriceRange: data.priceAction?.visiblePriceRange,
             candlestickPatterns: data.candlestickPatterns || [],
             technicalAnalysis: data.technicalAnalysis || {},
             fundamentalContext: data.fundamentalContext || {},

@@ -140,6 +140,7 @@ export interface SignalData {
     fundamentalContext?: any;
     timeframeRationale?: string;
     oteLevels?: { upper: number; lower: number }; // Added OTE levels
+    visiblePriceRange?: { high: number; low: number };
     candlestickPatterns?: string[];
     confluenceMatrix?: {
         latestPrice: number;
