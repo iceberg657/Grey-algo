@@ -88,6 +88,13 @@ export interface RiskAnalysis {
     safetyScore: number;
 }
 
+export interface DemandSupplyZone {
+    type: "demand" | "supply";
+    priceRange: { upper: number; lower: number };
+    confirmed: boolean;
+    strength: "weak" | "medium" | "strong";
+}
+
 export interface SignalData {
     id: string;
     timestamp: number;
@@ -140,8 +147,10 @@ export interface SignalData {
     fundamentalContext?: any;
     timeframeRationale?: string;
     oteLevels?: { upper: number; lower: number }; // Added OTE levels
-    visiblePriceRange?: { high: number; low: number };
+    visiblePriceRange?: { high: number; lower: number };
     candlestickPatterns?: string[];
+    demandSupplyZones?: DemandSupplyZone[];
+    confirmationPattern?: string;
     confluenceMatrix?: {
         latestPrice: number;
         fvg: { type: "bullish" | "bearish"; upper: number; lower: number } | null;

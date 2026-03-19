@@ -383,6 +383,30 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </div>
             </Section>
 
+            {data.demandSupplyZones && data.demandSupplyZones.length > 0 && (
+                <Section title="Demand/Supply Analysis" delay="1250ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>}>
+                    <div className="bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] font-mono">
+                        <div className="mb-4">
+                            <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em]">Confirmation Pattern</span>
+                            <div className="mt-2 p-3 bg-white/20 dark:bg-slate-900/40 rounded-lg border border-white/30 dark:border-white/10 text-sm font-bold text-green-500 dark:text-green-400">
+                                {data.confirmationPattern}
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            {data.demandSupplyZones.map((zone, i) => (
+                                <div key={i} className="flex justify-between items-center bg-white/20 dark:bg-slate-900/40 p-3 rounded-lg border border-white/30 dark:border-white/10">
+                                    <span className={`font-black uppercase text-xs ${zone.type === 'demand' ? 'text-green-500' : 'text-red-500'}`}>{zone.type}</span>
+                                    <span className="text-xs text-gray-800 dark:text-gray-200">{zone.priceRange.lower} - {zone.priceRange.upper}</span>
+                                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${zone.confirmed ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
+                                        {zone.confirmed ? 'Confirmed' : 'Unconfirmed'}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </Section>
+            )}
+
             {data.confluenceMatrix && (
                 <Section title="Algorithmic Confluence" delay="1100ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>}>
                     <div className="bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] font-mono">

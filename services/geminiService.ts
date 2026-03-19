@@ -144,6 +144,7 @@ ${tradeModeInstructions}
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
 5. **THOU SHALT SPEAK WITH AUTHORITY:** Deliver your analysis with professional, institutional-grade confidence.
 6. **THOU SHALT RECOGNIZE CANDLESTICK PATTERNS:** Perform candlestick pattern recognition on the chart and include the identified patterns in the 'candlestickPatterns' array.
+7. **THOU SHALT EXPLICITLY DETECT DEMAND/SUPPLY ZONES:** You MUST identify and label key Demand/Supply zones (Order Blocks) and check for confirmation patterns (e.g., wick rejection, engulfing) *after* price hits these zones.
 
 ---
 
@@ -159,6 +160,7 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
      * **Momentum & Structure:** Look for Break of Structure (BOS) and Change of Character (CHoCH).
      * **Liquidity & Traps:** Identify stop hunts, fakeouts, and where "retail" traders are trapped.
      * **Entry Trigger:** Scan the lowest timeframe chart for precise entry triggers (inside bars, engulfing candles).
+     * **Demand/Supply Zone Confirmation:** Identify the nearest Demand/Supply zone. DO NOT just trade the touch. Wait for a confirmation pattern (e.g., wick rejection, engulfing candle, or MSS) within the zone.
 
 2. **Risk Management & Lot Size Calculation:**
    - Capital preservation is your highest priority, especially for Funded Accounts (Prop Firms). Calculate risk parameters strictly based on the User Trading Account Profile.
@@ -177,6 +179,7 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
     - **Volatility Filter (ATR):** If ATR is < 30% or > 200% of the 14-period average, DO NOT trade.
     - **Correlation Filter:** If you are already tracking or trading a correlated pair (e.g., EURUSD and GBPUSD, or EURUSD and Gold) in the same direction, DO NOT trade.
     - **Intermarket Logic:** Check correlation with primary drivers (DXY for EURUSD, Gold for XAUUSD, Oil for USDCAD). If the asset's move is contradicted by its primary driver, DO NOT trade.
+    - **Demand/Supply Zone Confirmation:** If no Demand/Supply zone is identified, or if no confirmation pattern is detected within the zone, DO NOT trade.
 
 4. **Trade Execution (The Output):**
    - When delivering a setup, do not guess. Provide a definitive, actionable plan:
@@ -497,6 +500,15 @@ You MUST correctly classify the order type based on the strict relationship betw
   },
   
   "candlestickPatterns": ["Pattern names"],
+  "demandSupplyZones": [
+    {
+      "type": "demand" | "supply",
+      "priceRange": { "upper": number, "lower": number },
+      "confirmed": boolean,
+      "strength": "weak" | "medium" | "strong"
+    }
+  ],
+  "confirmationPattern": "e.g., Wick rejection, Engulfing candle, MSS",
   
   "technicalAnalysis": {
     "trend": "Bullish/Bearish",
@@ -725,6 +737,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             oteLevels: data.priceAction?.oteLevels,
             visiblePriceRange: data.priceAction?.visiblePriceRange,
             candlestickPatterns: data.candlestickPatterns || [],
+            demandSupplyZones: data.demandSupplyZones || [],
+            confirmationPattern: data.confirmationPattern || "None",
             technicalAnalysis: data.technicalAnalysis || {},
             fundamentalContext: data.fundamentalContext || {},
             timeframeRationale: data.timeframeRationale || "",
