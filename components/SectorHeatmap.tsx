@@ -1,7 +1,7 @@
 import React from 'react';
 
 export const SectorHeatmap = () => (
-  <div className="p-4 bg-zinc-800 rounded-xl border border-zinc-700">
+  <div className="p-4 bg-zinc-800/60 dark:bg-zinc-800/40 backdrop-blur-md rounded-xl border border-zinc-700/50 shadow-lg">
     <h2 className="text-lg font-semibold text-white mb-4">Sector Heatmap</h2>
     <div className="space-y-3">
       <div>

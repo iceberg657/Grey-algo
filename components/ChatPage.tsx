@@ -56,7 +56,7 @@ const ChatBubble: React.FC<{
                     </svg>
                 </div>
             )}
-            <div className={`relative group max-w-[85%] lg:max-w-lg p-3 rounded-2xl text-sm shadow-sm ${isUser ? 'bg-blue-500 text-white rounded-br-none' : 'bg-gray-200 text-gray-800 dark:bg-dark-bg/60 dark:text-dark-text/90 rounded-bl-none'}`}>
+            <div className={`relative group max-w-[85%] lg:max-w-lg p-3 rounded-2xl text-sm shadow-sm backdrop-blur-sm ${isUser ? 'bg-blue-500/90 text-white rounded-br-none border border-blue-400/30' : 'bg-gray-200/80 text-gray-800 dark:bg-slate-800/60 dark:text-gray-200 rounded-bl-none border border-gray-300/50 dark:border-slate-700/50'}`}>
                  {message.images && message.images.length > 0 && (
                     <div className={`grid gap-2 mb-2 ${message.images.length === 3 ? 'grid-cols-3' : message.images.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                         {message.images.map((imgSrc, index) => (
@@ -128,7 +128,7 @@ const TypingIndicator: React.FC = () => {
                     <circle cx="12" cy="12" r="3"/>
                 </svg>
             </div>
-            <div className="max-w-md lg:max-w-lg p-3 rounded-2xl bg-gray-200 dark:bg-dark-bg/60 text-gray-800 dark:text-dark-text/90 rounded-bl-none">
+            <div className="max-w-md lg:max-w-lg p-3 rounded-2xl bg-gray-200/80 dark:bg-slate-800/60 backdrop-blur-sm border border-gray-300/50 dark:border-slate-700/50 text-gray-800 dark:text-gray-200 rounded-bl-none">
                 {!showThinking ? (
                     <div className="flex items-center space-x-1 h-5 px-1">
                         <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
@@ -426,7 +426,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                     <button
                                         key={idx}
                                         onClick={() => handleSuggestionClick(prompt)}
-                                        className="text-sm text-left p-4 rounded-xl bg-white dark:bg-slate-900 border border-gray-200 dark:border-slate-800 hover:bg-gray-50 dark:hover:bg-slate-800/80 transition-colors shadow-sm text-gray-700 dark:text-gray-300"
+                                        className="text-sm text-left p-4 rounded-xl bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 backdrop-blur-md hover:bg-white/20 dark:hover:bg-slate-800/60 transition-colors shadow-sm text-gray-700 dark:text-gray-300"
                                     >
                                         {prompt}
                                     </button>
@@ -469,7 +469,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             ))}
                         </div>
                     )}
-                    <form onSubmit={handleSendMessage} className={`flex items-center gap-2 bg-white dark:bg-slate-900 p-2 rounded-2xl border border-gray-300 dark:border-slate-700 shadow-sm focus-within:ring-2 focus-within:ring-green-500/50 transition-all ${retrySeconds > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <form onSubmit={handleSendMessage} className={`flex items-center gap-2 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md p-2 rounded-2xl border border-white/20 dark:border-white/10 shadow-sm focus-within:ring-2 focus-within:ring-green-500/50 transition-all ${retrySeconds > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isLoading || retrySeconds > 0} className="p-2 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 disabled:opacity-50 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
@@ -481,7 +481,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     </form>
                 </div>
             </footer>
-            <button onClick={onNewChat} className="absolute bottom-24 right-4 sm:right-8 bg-green-600 hover:bg-green-500 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95 z-20" title="New Chat">
+            <button onClick={onNewChat} className="absolute bottom-24 right-4 sm:right-8 bg-green-600/90 hover:bg-green-500/90 backdrop-blur-md border border-green-500/50 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95 z-20" title="New Chat">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             </button>
         </div>

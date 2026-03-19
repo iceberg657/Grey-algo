@@ -184,7 +184,7 @@ export const ChartAnalyzerPage: React.FC<ChartAnalyzerPageProps> = ({ onLogout }
                 </header>
 
                 <main>
-                   <div className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl">
+                   <div className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-2xl p-6 rounded-2xl border border-white/50 dark:border-white/10 shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.4)]">
                         <SignalGeneratorForm 
                             key={formKey}
                             onSubmit={handleGenerateSignal} 

@@ -51,7 +51,7 @@ export const SessionFilter: React.FC = () => {
   }, [session]);
 
   return (
-    <div className="p-6 bg-zinc-900 text-zinc-100 rounded-2xl shadow-xl border border-zinc-800">
+    <div className="p-6 bg-zinc-900/60 dark:bg-zinc-900/40 backdrop-blur-xl text-zinc-100 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] border border-zinc-700/50 dark:border-zinc-800/50">
       <h2 className="text-3xl font-bold mb-6 flex items-center gap-3">
         <Activity className="text-emerald-500" /> Session Market Analysis
       </h2>
@@ -63,10 +63,10 @@ export const SessionFilter: React.FC = () => {
             <button
               key={s.name}
               onClick={() => setSession(s.name)}
-              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-xl font-medium transition-all backdrop-blur-md border ${
                 session === s.name 
-                  ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-900/20' 
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                  ? 'bg-emerald-600/80 border-emerald-500/50 text-white shadow-lg shadow-emerald-900/20' 
+                  : 'bg-zinc-800/50 border-zinc-700/50 text-zinc-400 hover:bg-zinc-700/50'
               }`}
             >
               <Icon size={18} /> {s.name}
@@ -82,7 +82,7 @@ export const SessionFilter: React.FC = () => {
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Economic Events */}
-            <div className="bg-zinc-800 p-5 rounded-xl border border-zinc-700">
+            <div className="bg-zinc-800/40 backdrop-blur-md p-5 rounded-xl border border-zinc-700/50 shadow-inner">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-400">
                 <Briefcase size={20} /> Economic Events
               </h3>
@@ -97,7 +97,7 @@ export const SessionFilter: React.FC = () => {
             </div>
 
             {/* Sentiment */}
-            <div className="bg-zinc-800 p-5 rounded-xl border border-zinc-700">
+            <div className="bg-zinc-800/40 backdrop-blur-md p-5 rounded-xl border border-zinc-700/50 shadow-inner">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-400">
                 <Activity size={20} /> Market Sentiment
               </h3>
@@ -115,13 +115,13 @@ export const SessionFilter: React.FC = () => {
           </div>
 
           {/* Suggested Assets */}
-          <div className="bg-zinc-800 p-5 rounded-xl border border-zinc-700">
+          <div className="bg-zinc-800/40 backdrop-blur-md p-5 rounded-xl border border-zinc-700/50 shadow-inner">
             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-emerald-400">
               <DollarSign size={20} /> Suggested Assets
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {data.suggested_trading_assets?.map((a: any, i: number) => (
-                <div key={i} className="bg-zinc-900 p-4 rounded-lg border border-zinc-700">
+                <div key={i} className="bg-zinc-900/50 backdrop-blur-sm p-4 rounded-lg border border-zinc-700/50">
                   <p className="font-bold text-white">{a.asset}</p>
                   <p className="text-zinc-400 text-xs mt-1">{a.reasoning}</p>
                 </div>

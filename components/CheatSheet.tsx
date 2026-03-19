@@ -40,11 +40,11 @@ export const CheatSheet: React.FC<CheatSheetProps> = ({ onClose }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
             <div 
-                className="bg-white dark:bg-slate-900 w-full max-w-2xl max-h-[85vh] rounded-2xl border border-gray-200 dark:border-blue-500/30 shadow-2xl overflow-hidden flex flex-col" 
+                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl w-full max-w-2xl max-h-[85vh] rounded-2xl border border-gray-200/50 dark:border-blue-500/30 shadow-2xl overflow-hidden flex flex-col" 
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-gray-100 dark:bg-slate-800 p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center flex-shrink-0">
+                <div className="bg-gray-100/50 dark:bg-slate-800/50 backdrop-blur-sm p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center flex-shrink-0">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-blue-500/20 rounded-lg text-blue-600 dark:text-blue-400">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -66,15 +66,15 @@ export const CheatSheet: React.FC<CheatSheetProps> = ({ onClose }) => {
                 {/* Body */}
                 <div className="flex flex-col md:flex-row h-full overflow-hidden">
                     {/* Sidebar */}
-                    <div className="w-full md:w-1/3 bg-gray-50 dark:bg-slate-950/50 border-b md:border-b-0 md:border-r border-gray-200 dark:border-white/5 overflow-y-auto">
+                    <div className="w-full md:w-1/3 bg-gray-50/50 dark:bg-slate-950/50 backdrop-blur-sm border-b md:border-b-0 md:border-r border-gray-200 dark:border-white/5 overflow-y-auto">
                         {CONCEPTS.map((cat) => (
                             <button
                                 key={cat.category}
                                 onClick={() => setOpenCategory(cat.category)}
                                 className={`w-full text-left px-4 py-4 text-sm font-semibold transition-colors border-l-4 ${
                                     openCategory === cat.category 
-                                    ? 'bg-white dark:bg-slate-800/80 border-blue-500 text-blue-600 dark:text-blue-400' 
-                                    : 'border-transparent text-gray-700 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-slate-800/40'
+                                    ? 'bg-white/50 dark:bg-slate-800/80 backdrop-blur-sm border-blue-500 text-blue-600 dark:text-blue-400' 
+                                    : 'border-transparent text-gray-700 dark:text-gray-400 hover:bg-gray-100/50 dark:hover:bg-slate-800/40 backdrop-blur-sm'
                                 }`}
                             >
                                 {cat.category}
@@ -83,7 +83,7 @@ export const CheatSheet: React.FC<CheatSheetProps> = ({ onClose }) => {
                     </div>
 
                     {/* Content */}
-                    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-white dark:bg-slate-900">
+                    <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
                         <h4 className="text-xl font-bold text-gray-800 dark:text-white mb-6 border-b border-gray-200 dark:border-gray-700 pb-2">
                             {openCategory}
                         </h4>
@@ -103,7 +103,7 @@ export const CheatSheet: React.FC<CheatSheetProps> = ({ onClose }) => {
                         </div>
 
                         {openCategory === 'Market Structure (SMC)' && (
-                            <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-500/20">
+                            <div className="mt-8 p-4 bg-blue-50/50 dark:bg-blue-900/20 backdrop-blur-sm rounded-xl border border-blue-100 dark:border-blue-500/20">
                                 <p className="text-xs text-blue-600 dark:text-blue-300 font-medium text-center italic">
                                     "Market structure is king. Indicators are secondary. Follow the footprints of smart money."
                                 </p>

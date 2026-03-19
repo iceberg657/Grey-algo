@@ -37,7 +37,7 @@ const NavButton: React.FC<{
         onClick={onClick}
         aria-label={ariaLabel}
         style={{ animationDelay: delay }}
-        className="opacity-0 animate-flip-3d group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-400 bg-gray-200/50 dark:bg-dark-card/40 backdrop-blur-md transition-all duration-300 border border-white/5 hover:border-green-500/50 hover:scale-110 active:scale-95 shadow-lg"
+        className="opacity-0 animate-flip-3d group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-400 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md transition-all duration-300 border border-white/20 dark:border-white/10 hover:bg-white/20 dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]"
     >
         {icon}
         <span className="hidden md:inline md:ml-3 text-xs font-black uppercase tracking-widest">{label}</span>
@@ -239,7 +239,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                         <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:-translate-y-1"></div>
                         <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:-translate-y-1"></div>
 
-                        <div className="bg-white/90 dark:bg-dark-card/90 backdrop-blur-2xl p-6 sm:p-10 rounded-2xl border-2 border-green-500/20 shadow-2xl relative overflow-hidden">
+                        <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl p-6 sm:p-10 rounded-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
                              {/* Interactive Scanline */}
                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent h-[200%] pointer-events-none animate-shimmer"></div>
                              

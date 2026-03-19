@@ -144,7 +144,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
                 {onBack && (
                     <button 
                         onClick={onBack}
-                        className="group flex items-center bg-red-600 hover:bg-red-500 text-white rounded-full p-1.5 pr-4 shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all hover:scale-105 active:scale-95 backdrop-blur-md border border-red-400/30 ring-1 ring-red-500/50"
+                        className="group flex items-center bg-red-600/80 hover:bg-red-500/80 text-white rounded-full p-1.5 pr-4 shadow-[0_0_15px_rgba(220,38,38,0.5)] transition-all hover:scale-105 active:scale-95 backdrop-blur-md border border-red-400/30 ring-1 ring-red-500/50"
                         title="Exit Charting"
                     >
                         <div className="bg-red-700/50 rounded-full p-1 mr-2 group-hover:bg-red-600 transition-colors">
@@ -158,7 +158,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
                 
                 <button 
                     onClick={() => setShowUI(!showUI)}
-                    className={`flex items-center justify-center w-10 h-10 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 backdrop-blur-md border ${showUI ? 'bg-gray-800/80 text-gray-300 border-gray-600 hover:bg-gray-700' : 'bg-blue-600/90 text-white border-blue-400/50 shadow-[0_0_15px_rgba(37,99,235,0.5)]'}`}
+                    className={`flex items-center justify-center w-10 h-10 rounded-full shadow-lg transition-all hover:scale-105 active:scale-95 backdrop-blur-md border ${showUI ? 'bg-white/10 dark:bg-gray-800/40 text-gray-700 dark:text-gray-300 border-white/20 dark:border-gray-600 hover:bg-white/20 dark:hover:bg-gray-700/60' : 'bg-blue-600/80 text-white border-blue-400/50 shadow-[0_0_15px_rgba(37,99,235,0.5)]'}`}
                     title={showUI ? "Hide Overlay" : "Show Overlay"}
                 >
                     {showUI ? (
@@ -209,7 +209,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
             <div className={`transition-opacity duration-300 ${showUI ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}>
                 
                 {/* SMC Toolbar */}
-                <div className="absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-auto flex flex-col gap-2 bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/10 shadow-2xl">
+                <div className="absolute top-1/2 right-4 transform -translate-y-1/2 pointer-events-auto flex flex-col gap-2 bg-white/10 dark:bg-black/40 backdrop-blur-md p-2 rounded-xl border border-white/20 dark:border-white/10 shadow-2xl">
                     <div className="text-[9px] text-center text-gray-400 font-bold mb-1">TOOLS</div>
                     <ToolButton onClick={() => addAnnotation('bullish-ob')} color="bg-green-500/20 text-green-400 border-green-500/50" label="Bull OB" icon="🟩" />
                     <ToolButton onClick={() => addAnnotation('bearish-ob')} color="bg-red-500/20 text-red-400 border-red-500/50" label="Bear OB" icon="🟥" />
@@ -236,7 +236,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
                         <div className="flex flex-col gap-2 pointer-events-auto">
                             <button 
                                 onClick={() => setIsExpanded(true)}
-                                className="bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/20 p-2 rounded-full shadow-lg hover:bg-white/20 transition-all animate-fade-in"
+                                className="bg-white/10 dark:bg-black/40 backdrop-blur-md border border-white/20 dark:border-white/10 p-2 rounded-full shadow-lg hover:bg-white/20 dark:hover:bg-white/10 transition-all animate-fade-in"
                                 title="Show Analysis"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -245,7 +245,7 @@ export const SignalOverlay: React.FC<SignalOverlayProps> = ({ onAnalyzeClick, on
                             </button>
                         </div>
                     ) : (
-                        <div className="bg-white/90 dark:bg-[#0f172a]/80 backdrop-blur-md border border-gray-200 dark:border-white/10 rounded-2xl shadow-xl p-3 flex flex-col md:flex-row items-start md:items-center gap-4 transition-all duration-300 animate-fade-in">
+                        <div className="bg-white/10 dark:bg-[#0f172a]/40 backdrop-blur-xl border border-white/20 dark:border-white/10 rounded-2xl shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] p-3 flex flex-col md:flex-row items-start md:items-center gap-4 transition-all duration-300 animate-fade-in">
                             <div className="flex items-center justify-between w-full md:w-auto gap-3">
                                 <div className="flex items-center gap-3">
                                     <div className="flex flex-col">
@@ -318,7 +318,7 @@ const DataPoint: React.FC<{ label: string; value: number | string; color: string
         className="flex flex-col cursor-pointer group relative min-w-[60px]"
     >
         <span className="text-[9px] text-gray-400 font-mono tracking-wider mb-0.5 uppercase">{label}</span>
-        <div className="flex items-center bg-gray-100 dark:bg-black/20 px-2 py-1 rounded hover:bg-gray-200 dark:hover:bg-white/10 transition-colors">
+        <div className="flex items-center bg-white/20 dark:bg-black/20 backdrop-blur-sm border border-white/10 px-2 py-1 rounded hover:bg-white/30 dark:hover:bg-white/10 transition-colors">
             <span className={`text-sm font-mono font-bold ${color}`}>{value}</span>
             {isCopied && (
                 <span className="absolute -top-6 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-[10px] px-1.5 py-0.5 rounded shadow-sm animate-fade-in">

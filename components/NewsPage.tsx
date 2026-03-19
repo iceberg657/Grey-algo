@@ -14,7 +14,7 @@ interface NewsPageProps {
 }
 
 const NewsItem: React.FC<{ article: NewsArticle }> = ({ article }) => (
-    <li className="bg-gray-200/30 dark:bg-dark-bg/40 p-4 rounded-lg transition-all duration-200">
+    <li className="bg-white/10 dark:bg-slate-800/40 backdrop-blur-sm border border-white/20 dark:border-white/10 p-4 rounded-xl transition-all duration-200 hover:bg-white/20 dark:hover:bg-slate-700/50 shadow-sm">
         <h3 className="font-bold text-gray-900 dark:text-green-400 text-sm sm:text-base leading-tight">
             <a href={article.url} target="_blank" rel="noopener noreferrer" className="hover:underline">
                 {article.title}

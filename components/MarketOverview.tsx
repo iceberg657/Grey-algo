@@ -315,7 +315,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
 
             {/* --- Structural Sentiment Arc (Single Rotating Neural Radar) --- */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-                <div className="lg:col-span-2 bg-gray-200/50 dark:bg-black/20 p-6 rounded-2xl border border-white/5 shadow-inner flex flex-col">
+                <div className="lg:col-span-2 bg-gray-200/50 dark:bg-black/20 backdrop-blur-md p-6 rounded-2xl border border-white/5 shadow-inner flex flex-col">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-gray-600 dark:text-gray-400">Structural Sentiment Vectors</h2>
                         <div className="flex items-center gap-2">
@@ -334,7 +334,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                     </div>
                 </div>
 
-                <div className="bg-gray-200/50 dark:bg-black/20 p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
+                <div className="bg-gray-200/50 dark:bg-black/20 backdrop-blur-md p-6 rounded-2xl border border-white/5 flex flex-col justify-between">
                     <div className="flex justify-between items-center">
                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-600 dark:text-gray-500">Node Status</span>
                         <div className={`flex items-center gap-2 text-[10px] font-black px-3 py-1 rounded-full ${marketIsOpen ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
@@ -355,7 +355,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
             </div>
 
             {/* Neural Assets Queue - Always Visible, Syncs on hit */}
-             <div className={`p-6 rounded-2xl border-2 relative overflow-hidden transition-all duration-500 ${isReady ? 'bg-green-900/10 border-green-500/40' : 'bg-black/40 border-white/5'}`}>
+             <div className={`p-6 rounded-2xl border-2 relative overflow-hidden backdrop-blur-md transition-all duration-500 ${isReady ? 'bg-green-900/10 border-green-500/40' : 'bg-black/40 border-white/5'}`}>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none"></div>
                 
                 <div className="flex flex-wrap justify-between items-center mb-6 relative z-10 gap-4">
@@ -397,7 +397,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                                         <div 
                                             key={idx} 
                                             onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-gray-100 dark:bg-black/60 hover:bg-green-500/10 border-green-500/20`}
+                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-gray-100/50 dark:bg-black/40 backdrop-blur-sm hover:bg-green-500/10 border-green-500/20`}
                                         >
                                             <div className="flex justify-between items-center">
                                                 <span className="font-black text-gray-800 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
@@ -415,7 +415,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                                         <div 
                                             key={idx} 
                                             onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-gray-100 dark:bg-black/60 hover:bg-red-500/10 border-red-500/20`}
+                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-gray-100/50 dark:bg-black/40 backdrop-blur-sm hover:bg-red-500/10 border-red-500/20`}
                                         >
                                             <div className="flex justify-between items-center">
                                                 <span className="font-black text-gray-800 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>

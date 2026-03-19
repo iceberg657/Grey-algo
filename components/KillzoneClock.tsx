@@ -46,7 +46,7 @@ export const KillzoneClock: React.FC = () => {
     const progressPercent = (currentUtcHour / 24) * 100;
 
     return (
-        <div className="w-full bg-dark-card/60 rounded-xl border border-gray-200/20 dark:border-green-500/10 p-4 shadow-lg mb-4">
+        <div className="w-full bg-dark-card/60 backdrop-blur-md rounded-xl border border-gray-200/20 dark:border-green-500/10 p-4 shadow-lg mb-4">
             <div className="flex justify-between items-end mb-2">
                 <div>
                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Global Market Clock (UTC)</h4>

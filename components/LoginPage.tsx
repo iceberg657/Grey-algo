@@ -64,7 +64,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                     </h1>
                 </header>
                 
-                <div className="bg-dark-card/30 backdrop-blur-lg p-8 rounded-2xl border border-green-500/20 shadow-2xl w-full max-w-sm">
+                <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl p-8 rounded-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] w-full max-w-sm">
                     <h2 className="text-2xl font-bold text-center text-green-400 mb-6 border-b-2 border-green-500/50 pb-4">Login</h2>
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div>
@@ -74,7 +74,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                                 id="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="bg-dark-bg/60 border border-green-500/50 text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 placeholder-gray-500"
+                                className="bg-white/5 dark:bg-slate-800/30 backdrop-blur-sm border border-white/10 dark:border-white/5 text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 placeholder-gray-500 shadow-inner"
                                 placeholder="name@company.com"
                                 required
                                 aria-label="Email Address"
@@ -87,7 +87,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                                 id="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                className="bg-dark-bg/60 border border-green-500/50 text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 placeholder-gray-500"
+                                className="bg-white/5 dark:bg-slate-800/30 backdrop-blur-sm border border-white/10 dark:border-white/5 text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5 placeholder-gray-500 shadow-inner"
                                 placeholder="••••••••"
                                 required
                                 aria-label="Password"
@@ -95,7 +95,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                         </div>
                         <button
                             type="submit"
-                            className="w-full text-white bg-green-600 hover:bg-green-500 focus:ring-4 focus:outline-none focus:ring-green-500/50 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 transform hover:scale-105"
+                            className="w-full text-white bg-green-600/80 hover:bg-green-500/90 backdrop-blur-md border border-green-500/50 focus:ring-4 focus:outline-none focus:ring-green-500/50 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 transform hover:scale-105 shadow-[0_4px_16px_0_rgba(22,163,74,0.3)]"
                         >
                             Login
                         </button>

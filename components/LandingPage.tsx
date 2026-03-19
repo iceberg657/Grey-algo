@@ -267,7 +267,8 @@ nav ul li a:hover {
     overflow: hidden;
     transition: transform 0.3s, box-shadow 0.3s;
     border: 1px solid var(--border-color-dark);
-    backdrop-filter: blur(5px); /* Glassmorphism */
+    backdrop-filter: blur(12px); /* Glassmorphism */
+    box-shadow: inset 0 2px 4px 0 rgba(255, 255, 255, 0.05);
 }
 .light .product-card {
     background: var(--card-bg-light);
@@ -300,7 +301,8 @@ nav ul li a:hover {
     border: 1px solid var(--border-color-dark);
     position: relative;
     overflow: hidden;
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(12px);
+    box-shadow: inset 0 2px 4px 0 rgba(255, 255, 255, 0.05);
 }
 .light .pricing-card { background: var(--card-bg-light); border: 1px solid var(--border-color-light); }
 .pricing-card:hover { transform: translateY(-10px); border-color: rgba(155, 89, 182, 0.3); }
@@ -339,7 +341,8 @@ nav ul li a:hover {
     display: flex;
     margin-top: 50px;
     border: 1px solid var(--border-color-dark);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(12px);
+    box-shadow: inset 0 2px 4px 0 rgba(255, 255, 255, 0.05);
 }
 .light .contact { background: var(--card-bg-light); border-color: var(--border-color-light); }
 .contact-info { flex: 1; padding: 50px; background: rgba(52, 152, 219, 0.05); }
@@ -395,7 +398,8 @@ footer { background: rgba(15, 23, 42, 0.2); padding: 50px 0 20px; margin-top: 0;
     border-radius: 15px;
     padding: 20px;
     border: 1px solid var(--border-color-dark);
-    backdrop-filter: blur(5px);
+    backdrop-filter: blur(12px);
+    box-shadow: inset 0 2px 4px 0 rgba(255, 255, 255, 0.05);
 }
 .light .chart-container { background: #fff; border-color: var(--border-color-light); }
 

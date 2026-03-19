@@ -58,11 +58,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     return (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in" onClick={onClose}>
             <div 
-                className="bg-white dark:bg-slate-900 w-full max-w-lg rounded-2xl border border-gray-200 dark:border-blue-500/30 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" 
+                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl w-full max-w-lg rounded-2xl border border-gray-200/50 dark:border-blue-500/30 shadow-2xl overflow-hidden flex flex-col max-h-[90vh]" 
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-gray-100 dark:bg-slate-800 p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
+                <div className="bg-gray-100/50 dark:bg-slate-800/50 backdrop-blur-sm p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
                     <div className="flex items-center gap-3">
                         <div className="p-2 bg-gray-200 dark:bg-slate-700 rounded-lg text-gray-600 dark:text-gray-300">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -93,10 +93,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <button
                                     type="button"
                                     onClick={() => handleChange('tradeMode', 'Aggressive')}
-                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all flex flex-col items-center justify-center ${
+                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all flex flex-col items-center justify-center backdrop-blur-sm ${
                                         settings.tradeMode === 'Aggressive' || !settings.tradeMode
-                                        ? 'bg-orange-600 text-white border-orange-600 shadow-md'
-                                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                        ? 'bg-orange-600/90 text-white border-orange-600 shadow-md'
+                                        : 'bg-white/50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50/50 dark:hover:bg-slate-700/50'
                                     }`}
                                 >
                                     <span>🔥 Aggressive</span>
@@ -105,10 +105,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <button
                                     type="button"
                                     onClick={() => handleChange('tradeMode', 'Sniper')}
-                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all flex flex-col items-center justify-center ${
+                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all flex flex-col items-center justify-center backdrop-blur-sm ${
                                         settings.tradeMode === 'Sniper'
-                                        ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'
-                                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                        ? 'bg-emerald-600/90 text-white border-emerald-600 shadow-md'
+                                        : 'bg-white/50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50/50 dark:hover:bg-slate-700/50'
                                     }`}
                                 >
                                     <span>🎯 Sniper</span>
@@ -121,10 +121,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <button
                                     type="button"
                                     onClick={() => handleChange('accountType', 'Funded')}
-                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all ${
+                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all backdrop-blur-sm ${
                                         settings.accountType === 'Funded'
-                                        ? 'bg-blue-600 text-white border-blue-600 shadow-md'
-                                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                        ? 'bg-blue-600/90 text-white border-blue-600 shadow-md'
+                                        : 'bg-white/50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50/50 dark:hover:bg-slate-700/50'
                                     }`}
                                 >
                                     Funded Challenge
@@ -132,10 +132,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <button
                                     type="button"
                                     onClick={() => handleChange('accountType', 'Real')}
-                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all ${
+                                    className={`py-2 px-4 rounded-lg border font-semibold transition-all backdrop-blur-sm ${
                                         settings.accountType === 'Real'
-                                        ? 'bg-green-600 text-white border-green-600 shadow-md'
-                                        : 'bg-white dark:bg-slate-800 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700'
+                                        ? 'bg-green-600/90 text-white border-green-600 shadow-md'
+                                        : 'bg-white/50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-400 border-gray-300 dark:border-slate-600 hover:bg-gray-50/50 dark:hover:bg-slate-700/50'
                                     }`}
                                 >
                                     Real Account
@@ -153,7 +153,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         type="number"
                                         value={settings.accountBalance}
                                         onChange={(e) => handleChange('accountBalance', e.target.value)}
-                                        className="w-full pl-8 pr-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                        className="w-full pl-8 pr-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
                                         placeholder="100000"
                                         required
                                     />
@@ -171,7 +171,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step="0.1"
                                         value={settings.riskPerTrade}
                                         onChange={(e) => handleChange('riskPerTrade', e.target.value)}
-                                        className="w-full pr-8 pl-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                        className="w-full pr-8 pl-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
                                         required
                                     />
                                     <span className="absolute right-3 top-2.5 text-gray-500">%</span>
@@ -186,7 +186,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         step="0.1"
                                         value={settings.targetPercentage}
                                         onChange={(e) => handleChange('targetPercentage', e.target.value)}
-                                        className="w-full pr-8 pl-4 py-2 bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                        className="w-full pr-8 pl-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
                                         required
                                     />
                                     <span className="absolute right-3 top-2.5 text-gray-500">%</span>
@@ -196,7 +196,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                         </div>
 
                         {/* Drawdown Limits */}
-                        <div className="bg-red-50 dark:bg-red-900/10 p-4 rounded-xl border border-red-200 dark:border-red-500/20">
+                        <div className="bg-red-50/50 dark:bg-red-900/10 backdrop-blur-sm p-4 rounded-xl border border-red-200 dark:border-red-500/20">
                             <h4 className="text-xs font-bold text-red-500 uppercase tracking-wider mb-3 flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -212,7 +212,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             step="0.1"
                                             value={settings.dailyDrawdown}
                                             onChange={(e) => handleChange('dailyDrawdown', e.target.value)}
-                                            className="w-full pr-8 pl-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-red-500/30 rounded focus:ring-1 focus:ring-red-500 outline-none text-gray-900 dark:text-white text-sm"
+                                            className="w-full pr-8 pl-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-red-500/30 rounded focus:ring-1 focus:ring-red-500 outline-none text-gray-900 dark:text-white text-sm"
                                         />
                                         <span className="absolute right-2 top-1.5 text-gray-400 text-xs">%</span>
                                     </div>
@@ -226,7 +226,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             step="0.1"
                                             value={settings.maxDrawdown}
                                             onChange={(e) => handleChange('maxDrawdown', e.target.value)}
-                                            className="w-full pr-8 pl-3 py-1.5 bg-white dark:bg-slate-800 border border-gray-300 dark:border-red-500/30 rounded focus:ring-1 focus:ring-red-500 outline-none text-gray-900 dark:text-white text-sm"
+                                            className="w-full pr-8 pl-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-red-500/30 rounded focus:ring-1 focus:ring-red-500 outline-none text-gray-900 dark:text-white text-sm"
                                         />
                                         <span className="absolute right-2 top-1.5 text-gray-400 text-xs">%</span>
                                     </div>

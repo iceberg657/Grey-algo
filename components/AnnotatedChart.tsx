@@ -82,7 +82,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                 <button 
                     onClick={handleDownload}
                     disabled={isGenerating}
-                    className="bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50"
+                    className="bg-white/10 dark:bg-slate-800/40 backdrop-blur-sm border border-white/20 dark:border-white/10 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50 hover:bg-white/20 dark:hover:bg-slate-700/60 shadow-md"
                 >
                     {isGenerating ? 'Generating...' : 'Download Chart'}
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
@@ -142,7 +142,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
 
                     {/* Top Left Title */}
                     <div className="absolute top-2 left-2 z-10">
-                        <div className="bg-black/80 border border-yellow-500/50 rounded p-1 sm:p-1.5 backdrop-blur-sm shadow-lg flex items-center gap-1.5">
+                        <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-1 sm:p-1.5 backdrop-blur-md shadow-md flex items-center gap-1.5">
                             <div className="text-yellow-400 font-bold text-[8px] sm:text-[10px]">{data.asset} - {data.timeframe}</div>
                             <div className="text-white font-bold text-[6px] sm:text-[8px] border-l border-gray-600 pl-1.5">Analysis & Trade Setups</div>
                         </div>
@@ -150,7 +150,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
 
                     {/* EMA Legend */}
                     <div className="absolute top-8 sm:top-10 left-2 z-10 hidden sm:block">
-                        <div className="bg-black/80 border border-gray-600/50 rounded p-0.5 backdrop-blur-sm shadow-lg space-y-0.5">
+                        <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-0.5 backdrop-blur-md shadow-md space-y-0.5">
                             <div className="flex items-center gap-1">
                                 <div className="w-1.5 h-0.5 bg-blue-500 rounded-full"></div>
                                 <span className="text-white text-[6px] font-semibold">20 EMA</span>
@@ -165,7 +165,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                     {/* Candlestick Patterns */}
                     {data.candlestickPatterns && data.candlestickPatterns.length > 0 && (
                         <div className="absolute top-14 sm:top-16 left-2 z-10">
-                            <div className="bg-black/80 border border-blue-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg">
+                            <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-0.5 backdrop-blur-md shadow-md">
                                 <div className="text-blue-400 font-bold text-[6px] mb-0.5">Patterns</div>
                                 <div className="text-white text-[6px] font-semibold">
                                     {data.candlestickPatterns.join(', ')}
@@ -181,7 +181,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                             style={{ top: `${getYPercent((data.oteLevels.upper + data.oteLevels.lower) / 2)}%`, transform: 'translateY(-50%)' }}
                         >
                             <div className="text-white text-[6px] font-semibold mb-0.5 text-center">OTE Zone</div>
-                            <div className="bg-black/80 border border-yellow-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center">
+                            <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-0.5 backdrop-blur-md shadow-md text-center">
                                 <div className="text-yellow-400 text-[6px] font-bold">
                                     {data.oteLevels.lower.toFixed(5)} - {data.oteLevels.upper.toFixed(5)}
                                 </div>
@@ -196,7 +196,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                         className="absolute left-[15%] sm:left-[20%] z-10"
                         style={{ top: `${entryY}%`, transform: 'translateY(-50%)' }}
                     >
-                        <div className="bg-black/80 border border-yellow-500/50 rounded px-1 py-0.5 text-yellow-400 text-[6px] sm:text-[8px] font-bold flex items-center gap-1 shadow-lg">
+                        <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded px-1 py-0.5 text-yellow-400 text-[6px] sm:text-[8px] font-bold flex items-center gap-1 shadow-md backdrop-blur-md">
                             <span>Current Price</span>
                         </div>
                         {/* Curved Line pointing to center */}
@@ -208,7 +208,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                     {/* SELL Setup Box (Top Center) */}
                     {isSell && (
                         <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-10 w-40 sm:w-48">
-                            <div className="bg-black/90 border border-red-500/50 rounded p-1.5 backdrop-blur-sm shadow-[0_0_10px_rgba(239,68,68,0.2)]">
+                            <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-1.5 backdrop-blur-md shadow-[0_4px_16px_0_rgba(239,68,68,0.2)]">
                                 <div className="text-red-500 font-bold text-[8px] sm:text-[10px] mb-0.5 border-b border-red-500/30 pb-0.5">
                                     SELL Setup (If {data.timeframe} Bias Turns Bearish)
                                 </div>
@@ -231,7 +231,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                     {/* BUY Setup Box (Bottom Center) */}
                     {isBuy && (
                         <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 z-10 w-40 sm:w-48">
-                            <div className="bg-black/90 border border-green-500/50 rounded p-1.5 backdrop-blur-sm shadow-[0_0_10px_rgba(34,197,94,0.2)]">
+                            <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-1.5 backdrop-blur-md shadow-[0_4px_16px_0_rgba(34,197,94,0.2)]">
                                 <div className="text-green-500 font-bold text-[8px] sm:text-[10px] mb-0.5 border-b border-green-500/30 pb-0.5">
                                     BUY Setup (If {data.timeframe} Bias Turns Bullish)
                                 </div>
@@ -262,20 +262,20 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                         {isSell && (
                             <>
                                 <div 
-                                    className="absolute left-[45%] bg-black/80 border border-yellow-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center"
+                                    className="absolute left-[45%] bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-0.5 backdrop-blur-md shadow-md text-center"
                                     style={{ top: `${getYPercent(entry + offset * 0.5)}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <div className="text-yellow-400 text-[6px] sm:text-[8px] font-bold">Bearish FVG</div>
                                     <div className="text-white text-[5px] sm:text-[6px]">(if Forms)</div>
                                 </div>
                                 <div 
-                                    className="absolute left-[45%] bg-black/80 border border-red-500/50 rounded px-1 py-0.5 text-red-400 text-[6px] sm:text-[8px] font-bold"
+                                    className="absolute left-[45%] bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded px-1 py-0.5 text-red-400 text-[6px] sm:text-[8px] font-bold shadow-md backdrop-blur-md"
                                     style={{ top: `${getYPercent(entry - offset)}%`, transform: 'translateY(-50%)' }}
                                 >
                                     Break Below {(entry - offset).toFixed(5)}
                                 </div>
                                 <div 
-                                    className="absolute left-[60%] bg-black/80 border border-gray-500/50 rounded px-1 py-0.5 text-white text-[6px] sm:text-[8px] font-bold"
+                                    className="absolute left-[60%] bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded px-1 py-0.5 text-white text-[6px] sm:text-[8px] font-bold shadow-md backdrop-blur-md"
                                     style={{ top: `${getYPercent(entry - offset * 0.2)}%`, transform: 'translateY(-50%)' }}
                                 >
                                     Retest
@@ -286,14 +286,14 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                         {isBuy && (
                             <>
                                 <div 
-                                    className="absolute left-[45%] bg-black/80 border border-green-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center"
+                                    className="absolute left-[45%] bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-0.5 backdrop-blur-md shadow-md text-center"
                                     style={{ top: `${getYPercent(entry - offset * 0.5)}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <div className="text-green-400 text-[6px] sm:text-[8px] font-bold">Bullish FVG</div>
                                     <div className="text-white text-[5px] sm:text-[6px]">(If Forms)</div>
                                 </div>
                                 <div 
-                                    className="absolute left-[45%] bg-black/80 border border-green-500/50 rounded px-1 py-0.5 text-green-400 text-[6px] sm:text-[8px] font-bold"
+                                    className="absolute left-[45%] bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded px-1 py-0.5 text-green-400 text-[6px] sm:text-[8px] font-bold shadow-md backdrop-blur-md"
                                     style={{ top: `${getYPercent(entry + offset)}%`, transform: 'translateY(-50%)' }}
                                 >
                                     Break Above {(entry + offset).toFixed(5)}
@@ -353,7 +353,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                     <div className="absolute top-0 right-0 w-12 sm:w-16 h-full z-20 pointer-events-none">
                         {/* Current Price Tag */}
                         <div 
-                            className="absolute right-0 bg-[#eab308] text-black px-1 py-0.5 rounded-l flex items-center shadow-lg"
+                            className="absolute right-0 bg-yellow-500/80 backdrop-blur-md text-black px-1 py-0.5 rounded-l flex items-center shadow-md border border-yellow-400/50"
                             style={{ top: `${entryY}%`, transform: 'translateY(-50%)' }}
                         >
                             <span className="text-black text-[6px] sm:text-[8px] font-bold">Current Price: {entry.toFixed(5)}</span>
@@ -362,21 +362,21 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                         {isBuy && (
                             <>
                                 <div 
-                                    className="absolute right-0 bg-[#0a1f10] border border-[#22c55e] px-1 py-0.5 rounded-l flex items-center gap-1 shadow-lg"
+                                    className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-green-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"
                                     style={{ top: `${tp2Y}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <span className="text-white text-[5px] sm:text-[7px] font-bold">TP2</span>
                                     <span className="text-[#22c55e] text-[5px] sm:text-[7px] font-bold">{((data.signal === 'BUY' ? data.takeProfits[1] : undefined) || (entry + offset * 3)).toFixed(5)}</span>
                                 </div>
                                 <div 
-                                    className="absolute right-0 bg-[#0a1f10] border border-[#22c55e] px-1 py-0.5 rounded-l flex items-center gap-1 shadow-lg"
+                                    className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-green-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"
                                     style={{ top: `${tp1Y}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <span className="text-white text-[5px] sm:text-[7px] font-bold">TP1</span>
                                     <span className="text-[#22c55e] text-[5px] sm:text-[7px] font-bold">{((data.signal === 'BUY' ? data.takeProfits[0] : undefined) || (entry + offset * 2)).toFixed(5)}</span>
                                 </div>
                                 <div 
-                                    className="absolute right-0 bg-[#2a0a0a] border border-[#ef4444] px-1 py-0.5 rounded-l flex items-center gap-1 shadow-lg"
+                                    className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-red-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"
                                     style={{ top: `${slY}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <span className="text-white text-[5px] sm:text-[7px] font-bold">SL</span>
@@ -388,21 +388,21 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                         {isSell && (
                             <>
                                 <div 
-                                    className="absolute right-0 bg-[#0a1f10] border border-[#22c55e] px-1 py-0.5 rounded-l flex items-center gap-1 shadow-lg"
+                                    className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-green-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"
                                     style={{ top: `${tp2Y}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <span className="text-white text-[5px] sm:text-[7px] font-bold">TP2</span>
                                     <span className="text-[#22c55e] text-[5px] sm:text-[7px] font-bold">{((data.signal === 'SELL' ? data.takeProfits[1] : undefined) || (entry - offset * 3)).toFixed(5)}</span>
                                 </div>
                                 <div 
-                                    className="absolute right-0 bg-[#0a1f10] border border-[#22c55e] px-1 py-0.5 rounded-l flex items-center gap-1 shadow-lg"
+                                    className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-green-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"
                                     style={{ top: `${tp1Y}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <span className="text-white text-[5px] sm:text-[7px] font-bold">TP1</span>
                                     <span className="text-[#22c55e] text-[5px] sm:text-[7px] font-bold">{((data.signal === 'SELL' ? data.takeProfits[0] : undefined) || (entry - offset * 2)).toFixed(5)}</span>
                                 </div>
                                 <div 
-                                    className="absolute right-0 bg-[#2a0a0a] border border-[#ef4444] px-1 py-0.5 rounded-l flex items-center gap-1 shadow-lg"
+                                    className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-red-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"
                                     style={{ top: `${slY}%`, transform: 'translateY(-50%)' }}
                                 >
                                     <span className="text-white text-[5px] sm:text-[7px] font-bold">SL</span>

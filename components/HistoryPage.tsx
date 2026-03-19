@@ -22,7 +22,7 @@ const HistoryItem: React.FC<{ data: SignalData; onSelect: (data: SignalData) => 
     return (
         <li 
             onClick={() => onSelect(data)}
-            className="bg-gray-200/30 dark:bg-dark-bg/40 p-4 rounded-lg flex justify-between items-center cursor-pointer hover:bg-gray-300/50 dark:hover:bg-dark-bg/80 transition-all duration-200"
+            className="bg-white/5 dark:bg-slate-800/30 backdrop-blur-sm border border-white/10 dark:border-white/5 shadow-md p-4 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/10 dark:hover:bg-slate-700/40 transition-all duration-200"
         >
             <div>
                 <p className="font-bold text-gray-900 dark:text-green-400">{data.asset}</p>
@@ -123,7 +123,7 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
                     </div>
                  </header>
 
-                <main className="bg-white/60 dark:bg-dark-card/60 backdrop-blur-lg p-6 rounded-2xl border border-gray-300/20 dark:border-green-500/20 shadow-2xl space-y-4">
+                <main className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] space-y-4">
                     {history.length > 0 ? (
                         <>
                             <ul className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">

@@ -50,11 +50,11 @@ export const RiskCalculator: React.FC<RiskCalculatorProps> = ({ onClose }) => {
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fade-in" onClick={onClose}>
             <div 
-                className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl border border-gray-200 dark:border-green-500/30 shadow-2xl overflow-hidden" 
+                className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl w-full max-w-md rounded-2xl border border-gray-200/50 dark:border-green-500/30 shadow-2xl overflow-hidden" 
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="bg-gray-100 dark:bg-slate-800/50 p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
+                <div className="bg-gray-100/50 dark:bg-slate-800/50 backdrop-blur-sm p-4 border-b border-gray-200 dark:border-white/5 flex justify-between items-center">
                     <div className="flex items-center gap-2">
                         <div className="p-1.5 bg-green-500/20 rounded-lg text-green-600 dark:text-green-400">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -81,10 +81,10 @@ export const RiskCalculator: React.FC<RiskCalculatorProps> = ({ onClose }) => {
                                 <button
                                     key={type}
                                     onClick={() => setAssetType(type as keyof typeof ASSET_TYPES)}
-                                    className={`px-3 py-2 text-xs font-medium rounded-lg border transition-all ${
+                                    className={`px-3 py-2 text-xs font-medium rounded-lg border transition-all backdrop-blur-sm ${
                                         assetType === type 
                                         ? 'bg-green-500 text-white border-green-600' 
-                                        : 'bg-gray-50 dark:bg-slate-800 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:border-green-500/50'
+                                        : 'bg-gray-50/50 dark:bg-slate-800/50 text-gray-600 dark:text-gray-300 border-gray-200 dark:border-slate-700 hover:border-green-500/50'
                                     }`}
                                 >
                                     {type.split(' ')[0]}
@@ -101,7 +101,7 @@ export const RiskCalculator: React.FC<RiskCalculatorProps> = ({ onClose }) => {
                                 type="number" 
                                 value={accountBalance}
                                 onChange={(e) => setAccountBalance(Number(e.target.value))}
-                                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none font-mono"
+                                className="w-full bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none font-mono"
                             />
                         </div>
 
@@ -114,7 +114,7 @@ export const RiskCalculator: React.FC<RiskCalculatorProps> = ({ onClose }) => {
                                     step="0.1"
                                     value={riskPercentage}
                                     onChange={(e) => setRiskPercentage(Number(e.target.value))}
-                                    className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none font-mono"
+                                    className="w-full bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none font-mono"
                                 />
                                 <span className="absolute right-3 top-2.5 text-gray-400 text-sm">%</span>
                             </div>
@@ -127,13 +127,13 @@ export const RiskCalculator: React.FC<RiskCalculatorProps> = ({ onClose }) => {
                                 type="number" 
                                 value={stopLoss}
                                 onChange={(e) => setStopLoss(Number(e.target.value))}
-                                className="w-full bg-gray-50 dark:bg-slate-800 border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none font-mono"
+                                className="w-full bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 text-gray-900 dark:text-white rounded-lg p-2.5 focus:ring-2 focus:ring-green-500 outline-none font-mono"
                             />
                         </div>
                     </div>
 
                     {/* Result Display */}
-                    <div className="mt-6 bg-gradient-to-r from-gray-900 to-slate-800 p-4 rounded-xl shadow-inner border border-gray-700">
+                    <div className="mt-6 bg-gradient-to-r from-gray-900/80 to-slate-800/80 backdrop-blur-md p-4 rounded-xl shadow-inner border border-gray-700/50">
                         <div className="flex justify-between items-end mb-1">
                             <span className="text-gray-400 text-sm">Suggested Lot Size</span>
                             <span className="text-green-400 font-mono text-3xl font-bold tracking-tight">{lotSize}</span>

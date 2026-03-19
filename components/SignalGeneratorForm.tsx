@@ -242,7 +242,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
         <form onSubmit={handleSubmit} className="space-y-6">
             
             {/* Pro Tip Card */}
-            <div className="bg-blue-900/20 border border-blue-500/30 p-4 rounded-xl">
+            <div className="bg-white/30 dark:bg-slate-800/30 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] p-4 rounded-xl">
                 <div className="flex items-start gap-3">
                     <div className="mt-1 text-blue-400 flex-shrink-0">
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
@@ -266,7 +266,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4">
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
                     {/* Top-Down Toggle */}
-                    <div className="flex items-center justify-center space-x-3 bg-gray-200 dark:bg-dark-bg/60 p-2 rounded-lg w-full sm:w-auto">
+                    <div className="flex items-center justify-center space-x-3 bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl border border-white/40 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] p-2 rounded-lg w-full sm:w-auto">
                         <span className="text-sm font-medium text-gray-800 dark:text-dark-text/80">Top-Down</span>
                         <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
                             <input 
@@ -324,7 +324,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                         id="tradingStyle"
                         value={tradingStyle}
                         onChange={(e) => setTradingStyle(e.target.value as TradingStyle)}
-                        className="bg-white dark:bg-dark-bg/80 border border-gray-300 dark:border-green-500/50 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5"
+                        className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/50 dark:border-white/10 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500/50 focus:border-green-500/50 block w-full p-2.5 outline-none transition-all shadow-inner"
                     >
                         {TRADING_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
                     </select>
@@ -335,7 +335,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                         id="riskRewardRatio"
                         value={riskRewardRatio}
                         onChange={(e) => setRiskRewardRatio(e.target.value)}
-                         className="bg-white dark:bg-dark-bg/80 border border-gray-300 dark:border-green-500/50 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500 focus:border-green-500 block w-full p-2.5"
+                         className="bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-white/50 dark:border-white/10 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500/50 focus:border-green-500/50 block w-full p-2.5 outline-none transition-all shadow-inner"
                     >
                         {RISK_REWARD_RATIOS.map(ratio => <option key={ratio} value={ratio}>{ratio}</option>)}
                     </select>
@@ -352,10 +352,10 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                  <button 
                     type="submit" 
                     disabled={isLoading}
-                    className={`w-full text-white font-bold rounded-lg text-base px-5 py-3.5 text-center transition-all duration-300 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-4 focus:outline-none ${
+                    className={`w-full text-white font-bold rounded-xl text-base px-5 py-4 text-center transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-4 focus:outline-none shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] backdrop-blur-md border ${
                         tradingStyle.includes('Scalping')
-                            ? 'bg-red-600 hover:bg-red-500 focus:ring-red-500/50 animate-glowing-border-red' 
-                            : 'bg-green-600 hover:bg-green-500 focus:ring-green-500/50'
+                            ? 'bg-red-500/80 hover:bg-red-400/90 border-red-400/50 focus:ring-red-500/50 animate-glowing-border-red' 
+                            : 'bg-green-500/80 hover:bg-green-400/90 border-green-400/50 focus:ring-green-500/50'
                     }`}
                 >
                     {isLoading ? (
