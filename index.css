@@ -112,6 +112,10 @@ body::after {
     transition: opacity 1s ease;
 }
 
+.dark body::after {
+    box-shadow: inset 0 0 100px rgba(30, 58, 138, 0.3);
+}
+
 /* Machine Learning Active State - Green/Emerald Glow (Prioritized) */
 body.learning-mode::after {
     animation: glowingEdgeLearning 2s ease-in-out infinite alternate !important;
