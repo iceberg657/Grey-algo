@@ -35,12 +35,12 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
         }
     };
 
-    const isBuy = data.signal === 'BUY' || data.signal === 'NEUTRAL';
-    const isSell = data.signal === 'SELL' || data.signal === 'NEUTRAL';
-
-    // Calculate some offsets for the "Break Above/Below"
     const entry = data.entryPoints[1] || data.entryPoints[0] || 0;
+    const tp1 = data.takeProfits[0] || 0;
     const offset = (data.asset.includes('JPY') ? 0.2 : 0.0020); // rough 20 pips
+
+    const isBuy = data.signal === 'BUY' || (data.signal === 'NEUTRAL' && tp1 > entry);
+    const isSell = data.signal === 'SELL' || (data.signal === 'NEUTRAL' && tp1 < entry);
 
     // Calculate dynamic Y percentages based on visiblePriceRange
     let high = data.visiblePriceRange?.high;
@@ -106,6 +106,28 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                     {/* Grid Overlay */}
                     <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:40px_40px] pointer-events-none"></div>
 
+                    {/* Supply Zone Bar */}
+                    <div 
+                        className="absolute left-0 w-full bg-red-500/20 border-y border-red-500/40 flex items-center justify-center pointer-events-none z-0"
+                        style={{ 
+                            top: `${getYPercent(entry + offset * 2)}%`, 
+                            height: `${Math.abs(getYPercent(entry + offset * 1.5) - getYPercent(entry + offset * 2))}%` 
+                        }}
+                    >
+                        <span className="text-red-400/70 text-[8px] font-bold uppercase tracking-widest">Supply Zone</span>
+                    </div>
+
+                    {/* Demand Zone Bar */}
+                    <div 
+                        className="absolute left-0 w-full bg-green-500/20 border-y border-green-500/40 flex items-center justify-center pointer-events-none z-0"
+                        style={{ 
+                            top: `${getYPercent(entry - offset * 1.5)}%`, 
+                            height: `${Math.abs(getYPercent(entry - offset * 2) - getYPercent(entry - offset * 1.5))}%` 
+                        }}
+                    >
+                        <span className="text-green-400/70 text-[8px] font-bold uppercase tracking-widest">Demand Zone</span>
+                    </div>
+
                     {/* Price Axis (Right Edge) */}
                     <div className="absolute top-0 right-0 w-12 sm:w-16 h-full bg-black/40 border-l border-gray-800/80 flex flex-col justify-between py-2 z-0">
                         {[...Array(15)].map((_, i) => {
@@ -167,31 +189,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                         </div>
                     )}
 
-                    {/* Supply / Resistance Zone */}
-                    <div 
-                        className="absolute left-2 z-10"
-                        style={{ top: `${getYPercent(entry + offset * 1.75)}%`, transform: 'translateY(-50%)' }}
-                    >
-                        <div className="text-white text-[6px] font-semibold mb-0.5 text-center">Supply/Res</div>
-                        <div className="bg-black/80 border border-red-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center">
-                            <div className="text-red-400 text-[6px] font-bold">
-                                {(entry + offset * 1.5).toFixed(5)} - {(entry + offset * 2).toFixed(5)}
-                            </div>
-                        </div>
-                    </div>
 
-                    {/* Demand / Support Zone */}
-                    <div 
-                        className="absolute left-2 z-10"
-                        style={{ top: `${getYPercent(entry - offset * 1.75)}%`, transform: 'translateY(-50%)' }}
-                    >
-                        <div className="text-white text-[6px] font-semibold mb-0.5 text-center">Demand/Sup</div>
-                        <div className="bg-black/80 border border-green-500/50 rounded p-0.5 backdrop-blur-sm shadow-lg text-center">
-                            <div className="text-green-400 text-[6px] font-bold">
-                                {(entry - offset * 2).toFixed(5)} - {(entry - offset * 1.5).toFixed(5)}
-                            </div>
-                        </div>
-                    </div>
 
                     {/* Current Price Label (Left Side) */}
                     <div 
