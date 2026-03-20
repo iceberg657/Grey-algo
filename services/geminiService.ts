@@ -559,6 +559,12 @@ You MUST correctly classify the order type based on the strict relationship betw
       "10. No Choppy Price Action: [Pass/Fail]"
     ]
   },
+  "verificationProtocol": {
+    "newsAndSessionCheck": { "passed": boolean, "reasoning": string },
+    "higherTimeframeCheck": { "passed": boolean, "reasoning": string },
+    "liquiditySweepCheck": { "passed": boolean, "reasoning": string },
+    "riskRewardCheck": { "passed": boolean, "reasoning": string }
+  },
 
   "reasoning": [
     "1. Technical Case: [Your reasoning here]",
@@ -743,6 +749,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             fundamentalContext: data.fundamentalContext || {},
             timeframeRationale: data.timeframeRationale || "",
             confluenceMatrix: data.confluenceMatrix,
+            verificationProtocol: data.verificationProtocol,
             contractSize: data.contractSize,
             pipValue: data.pipValue,
             tradeMode: request.userSettings?.tradeMode || 'Aggressive'

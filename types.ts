@@ -95,6 +95,18 @@ export interface DemandSupplyZone {
     strength: "weak" | "medium" | "strong";
 }
 
+export interface VerificationStep {
+    passed: boolean;
+    reasoning: string;
+}
+
+export interface VerificationProtocol {
+    newsAndSessionCheck: VerificationStep;
+    higherTimeframeCheck: VerificationStep;
+    liquiditySweepCheck: VerificationStep;
+    riskRewardCheck: VerificationStep;
+}
+
 export interface SignalData {
     id: string;
     timestamp: number;
@@ -166,6 +178,7 @@ export interface SignalData {
         atrVolatility?: "High" | "Low" | "Choppy";
         executionChecklist?: string[];
     };
+    verificationProtocol?: VerificationProtocol;
 }
 
 export interface MomentumAsset {

@@ -123,6 +123,18 @@ export const Section: React.FC<{ title: string; children: React.ReactNode; icon:
     </div>
 );
 
+const VerificationStepCard: React.FC<{ title: string; step: VerificationStep }> = ({ title, step }) => (
+    <div className={`p-4 rounded-xl border ${step.passed ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'} backdrop-blur-sm shadow-md transition-all`}>
+        <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200">{title}</span>
+            <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${step.passed ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                {step.passed ? 'PASSED' : 'FAILED'}
+            </span>
+        </div>
+        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{step.reasoning}</p>
+    </div>
+);
+
 export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -552,6 +564,19 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     <Section title="Counter-Argument Rejection" delay="1350ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}>
                         <div className="bg-orange-500/10 backdrop-blur-sm p-5 rounded-2xl border border-orange-500/30 text-sm leading-relaxed font-medium text-orange-700 dark:text-orange-300 shadow-md">
                             <p className="italic">"Alternative scenario rejected: {data.counterArgumentRejection}"</p>
+                        </div>
+                    </Section>
+                </div>
+            )}
+
+            {data.verificationProtocol && (
+                <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1400ms' }}>
+                    <Section title="Verification Protocol" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <VerificationStepCard title="News & Session" step={data.verificationProtocol.newsAndSessionCheck} />
+                            <VerificationStepCard title="Higher Timeframe" step={data.verificationProtocol.higherTimeframeCheck} />
+                            <VerificationStepCard title="Liquidity Sweep" step={data.verificationProtocol.liquiditySweepCheck} />
+                            <VerificationStepCard title="Risk/Reward" step={data.verificationProtocol.riskRewardCheck} />
                         </div>
                     </Section>
                 </div>
