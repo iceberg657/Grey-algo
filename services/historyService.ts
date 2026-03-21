@@ -1,79 +1,96 @@
 
-import type { SignalData } from '../types';
+import type { SignalData, Trade } from '../types';
+import { db, auth } from '../firebase';
+import { collection, addDoc, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const HISTORY_KEY = 'analysisHistory';
 
 /**
- * Retrieves the analysis history from localStorage.
- * @returns An array of SignalData objects, sorted from newest to oldest.
+ * Retrieves the analysis history.
+ * Now fetches from Firestore if user is logged in, otherwise localStorage.
  */
-export const getHistory = (): SignalData[] => {
+export const getHistory = async (): Promise<SignalData[]> => {
+    // If logged in, fetch from Firestore trades
+    if (auth.currentUser) {
+        try {
+            const tradesRef = collection(db, 'users', auth.currentUser.uid, 'trades');
+            const q = query(tradesRef, orderBy('timestamp', 'desc'));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map(doc => ({
+                ...doc.data().signalData,
+                id: doc.id,
+                timestamp: doc.data().timestamp
+            }));
+        } catch (e) {
+            console.error("Firestore history fetch failed:", e);
+        }
+    }
+
+    // Fallback to localStorage
     try {
         const historyJson = localStorage.getItem(HISTORY_KEY);
-        if (!historyJson) {
-            return [];
-        }
+        if (!historyJson) return [];
         const history = JSON.parse(historyJson);
-
-        // Robustness check: Ensure the stored data is an array.
-        if (!Array.isArray(history)) {
-            console.warn("Corrupted history data (not an array) in localStorage. Clearing history.");
-            localStorage.removeItem(HISTORY_KEY);
-            return [];
-        }
-
-        // Filter out any potential null/invalid entries just in case
-        const validHistory = history.filter(item => item && typeof item === 'object' && item.timestamp);
-        
-        return validHistory.sort((a, b) => b.timestamp - a.timestamp);
-
-    } catch (error) {
-        console.error("Failed to parse history from localStorage. Clearing history.", error);
-        // If parsing fails, the data is corrupted. Remove it to prevent future crashes.
-        try {
-            localStorage.removeItem(HISTORY_KEY);
-        } catch (removeError) {
-            console.error("Failed to remove corrupted history from localStorage.", removeError);
-        }
+        if (!Array.isArray(history)) return [];
+        return history.sort((a, b) => b.timestamp - a.timestamp);
+    } catch {
         return [];
     }
 };
 
 /**
- * Saves a new analysis result to the history in localStorage.
- * @param data The new analysis data from the AI.
- * @returns The saved data including the new id and timestamp.
+ * Saves a new analysis result.
+ * Saves to Firestore if logged in.
  */
-export const saveAnalysis = (data: Omit<SignalData, 'id' | 'timestamp'>): SignalData => {
-    const history = getHistory();
+export const saveAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>): Promise<SignalData> => {
     const now = Date.now();
-    
     const newEntry: SignalData = {
         ...data,
         id: now.toString(),
         timestamp: now,
     };
 
-    // Add the new entry to the beginning of the array
-    history.unshift(newEntry);
-
-    try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-    } catch (error) {
-        console.error("Failed to save analysis to localStorage", error);
+    if (auth.currentUser) {
+        try {
+            const tradesRef = collection(db, 'users', auth.currentUser.uid, 'trades');
+            const docRef = await addDoc(tradesRef, {
+                uid: auth.currentUser.uid,
+                asset: data.asset,
+                signal: data.signal,
+                timestamp: now,
+                outcome: 'Pending',
+                signalData: data
+            });
+            newEntry.id = docRef.id;
+        } catch (e) {
+            console.error("Firestore save failed:", e);
+        }
     }
+
+    // Also save to localStorage for offline/guest access
+    const history = await getHistory();
+    history.unshift(newEntry);
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(history.slice(0, 50)));
 
     return newEntry;
 };
 
+/**
+ * Updates a trade outcome in Firestore.
+ */
+export const updateTradeOutcome = async (tradeId: string, outcome: 'Win' | 'Loss' | 'No Trade'): Promise<void> => {
+    if (!auth.currentUser) return;
+    try {
+        const tradeRef = doc(db, 'users', auth.currentUser.uid, 'trades', tradeId);
+        await updateDoc(tradeRef, { outcome });
+    } catch (e) {
+        console.error("Failed to update outcome:", e);
+    }
+};
 
 /**
- * Clears all analysis history from localStorage.
+ * Clears all analysis history.
  */
 export const clearHistory = (): void => {
-    try {
-        localStorage.removeItem(HISTORY_KEY);
-    } catch (error) {
-        console.error("Failed to clear history from localStorage", error);
-    }
+    localStorage.removeItem(HISTORY_KEY);
 };

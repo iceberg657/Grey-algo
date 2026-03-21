@@ -8,6 +8,7 @@ import { MARKET_CONFIGS } from '../utils/marketConfigs';
 import { calculateLotSize } from '../utils/lotSizeCalculator';
 import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
+import { getLearnedStrategies } from './learningService';
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
@@ -769,11 +770,17 @@ export async function generateTradingSignal(
         asset: request.asset,
         riskRewardRatio: request.riskRewardRatio,
         hasUserSettings: !!request.userSettings,
-
     });
     
-    // 1. Get comprehensive AI analysis
-    const rawSignal = await callGeminiDirectly(request);
+    // 1. Fetch learned strategies (Global + Local)
+    const learnedStrategies = await getLearnedStrategies();
+    const updatedRequest = {
+        ...request,
+        learnedStrategies: [...(request.learnedStrategies || []), ...learnedStrategies]
+    };
+    
+    // 2. Get comprehensive AI analysis
+    const rawSignal = await callGeminiDirectly(updatedRequest);
     
     // Log the trade automatically
     try {

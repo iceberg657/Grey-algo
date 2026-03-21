@@ -171,8 +171,8 @@ const App: React.FC = () => {
         navigateTo('analysis');
     };
     
-    const handleNewAnalysis = (data: Omit<SignalData, 'id' | 'timestamp'>, image: string) => {
-        const savedData = saveAnalysis(data);
+    const handleNewAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>, image: string) => {
+        const savedData = await saveAnalysis(data);
         handleNavigateToAnalysis(savedData, 'home', image);
     };
 

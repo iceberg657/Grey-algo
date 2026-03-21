@@ -85,10 +85,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             const storedSettings = localStorage.getItem('greyquant_user_settings');
             const userSettings = storedSettings ? JSON.parse(storedSettings) as UserSettings : undefined;
 
+            const learnedStrategies = await getLearnedStrategies();
             const fullRequest: AnalysisRequest = {
                 ...requestData,
                 userSettings,
-                learnedStrategies: getLearnedStrategies(),
+                learnedStrategies,
             };
 
             const data = await generateTradingSignal(fullRequest);

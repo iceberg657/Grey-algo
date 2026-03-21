@@ -14,12 +14,28 @@
         "signalData": { "type": "object", "description": "The full original signal data." }
       },
       "required": ["uid", "asset", "signal", "timestamp", "outcome"]
+    },
+    "GlobalStrategy": {
+      "title": "GlobalStrategy",
+      "description": "A strategy or rule learned from analyzing aggregated trade data.",
+      "type": "object",
+      "properties": {
+        "rule": { "type": "string", "description": "The learned trading rule." },
+        "confidence": { "type": "number", "description": "AI confidence in this rule (0-100)." },
+        "sourceCount": { "type": "number", "description": "Number of trades analyzed to derive this rule." },
+        "timestamp": { "type": "number", "description": "When the rule was generated." }
+      },
+      "required": ["rule", "timestamp"]
     }
   },
   "firestore": {
     "/users/{uid}/trades/{tradeId}": {
       "schema": "Trade",
       "description": "Collection of trades for a specific user."
+    },
+    "/global_strategies/{strategyId}": {
+      "schema": "GlobalStrategy",
+      "description": "Collection of strategies learned from all users' data."
     }
   }
 }

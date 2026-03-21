@@ -14,6 +14,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
     const { loginWithGoogle, loginWithEmail, resetPassword } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [view, setView] = useState<'login' | 'forgot' | 'success'>('login');
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleGoogleLogin = async () => {
         try {
@@ -27,6 +29,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
 
     const handleEmailLogin = async (e: React.FormEvent) => {
         e.preventDefault();
+        setIsLoading(true);
         try {
             await loginWithEmail(email, password);
             onLogin();
@@ -45,20 +48,26 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                 errorMessage = error.message;
             }
             alert(`Email login failed: ${errorMessage}`);
+        } finally {
+            setIsLoading(false);
         }
     };
 
-    const handleForgotPassword = async () => {
+    const handleForgotPassword = async (e: React.FormEvent) => {
+        e.preventDefault();
         if (!email) {
-            alert('Please enter your email address first.');
+            alert('Please enter your Gmail account address.');
             return;
         }
+        setIsLoading(true);
         try {
             await resetPassword(email);
-            alert('Password reset email sent! Please check your inbox.');
+            setView('success');
         } catch (error: any) {
             console.error('Password reset failed:', error);
             alert(`Failed to send reset email: ${error.message || 'Please try again later.'}`);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -103,51 +112,116 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                     </h1>
                 </header>
                 
-                <div className="bg-white/95 dark:bg-slate-900/40 backdrop-blur-xl p-8 rounded-2xl border border-gray-300 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] w-full max-w-sm">
-                    <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6 border-b-2 border-green-500/50 pb-4 uppercase tracking-widest">Login</h2>
-                    <form onSubmit={handleEmailLogin} className="space-y-4 mb-6">
-                        <input
-                            type="email"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
-                            placeholder="Email"
-                            className="w-full p-2.5 rounded-lg bg-white/90 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-slate-900 dark:text-dark-text placeholder-slate-500"
-                            required
-                        />
-                        <input
-                            type="password"
-                            value={password}
-                            onChange={(e) => setPassword(e.target.value)}
-                            placeholder="Password"
-                            className="w-full p-2.5 rounded-lg bg-white/90 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-slate-900 dark:text-dark-text placeholder-slate-500"
-                            required
-                        />
-                        <div className="flex justify-end">
+                <div className="bg-white/95 dark:bg-slate-900/40 backdrop-blur-xl p-8 rounded-2xl border border-gray-300 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] w-full max-w-sm transition-all duration-500">
+                    {view === 'login' && (
+                        <>
+                            <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6 border-b-2 border-green-500/50 pb-4 uppercase tracking-widest">Login</h2>
+                            <form onSubmit={handleEmailLogin} className="space-y-4 mb-6">
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Email"
+                                    className="w-full p-2.5 rounded-lg bg-white/90 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-slate-900 dark:text-dark-text placeholder-slate-500"
+                                    required
+                                />
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder="Password"
+                                    className="w-full p-2.5 rounded-lg bg-white/90 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-slate-900 dark:text-dark-text placeholder-slate-500"
+                                    required
+                                />
+                                <div className="flex justify-end">
+                                    <button
+                                        type="button"
+                                        onClick={() => setView('forgot')}
+                                        className="text-xs font-bold text-green-600 dark:text-green-400 hover:underline focus:outline-none"
+                                    >
+                                        Forgot Password?
+                                    </button>
+                                </div>
+                                <button 
+                                    type="submit" 
+                                    disabled={isLoading}
+                                    className="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition-colors shadow-lg disabled:opacity-50"
+                                >
+                                    {isLoading ? 'Processing...' : 'Login with Email'}
+                                </button>
+                            </form>
+                            <div className="text-center text-sm text-slate-700 dark:text-dark-text/60 mb-4 font-bold uppercase tracking-widest">OR</div>
                             <button
-                                type="button"
-                                onClick={handleForgotPassword}
-                                className="text-xs font-bold text-green-600 dark:text-green-400 hover:underline focus:outline-none"
+                                onClick={handleGoogleLogin}
+                                className="w-full text-white bg-slate-700/80 hover:bg-slate-600/90 backdrop-blur-md border border-slate-500/50 focus:ring-4 focus:outline-none focus:ring-slate-500/50 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 transform hover:scale-105 shadow-[0_4px_16px_0_rgba(71,85,105,0.3)]"
                             >
-                                Forgot Password?
+                                Sign in with Google
+                            </button>
+                            <p className="text-sm text-center text-slate-800 dark:text-dark-text/60 mt-6 font-medium">
+                                Don't have an account?{' '}
+                                <button onClick={onNavigateToSignUp} className="font-bold text-green-600 dark:text-green-400 hover:underline">
+                                    Sign up
+                                </button>
+                            </p>
+                        </>
+                    )}
+
+                    {view === 'forgot' && (
+                        <div className="animate-fade-in">
+                            <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6 border-b-2 border-green-500/50 pb-4 uppercase tracking-widest">Reset Password</h2>
+                            <p className="text-sm text-slate-600 dark:text-dark-text/70 mb-6 text-center">
+                                Please input your Gmail account to receive a secure reset link.
+                            </p>
+                            <form onSubmit={handleForgotPassword} className="space-y-4">
+                                <input
+                                    type="email"
+                                    value={email}
+                                    onChange={(e) => setEmail(e.target.value)}
+                                    placeholder="Gmail Account"
+                                    className="w-full p-2.5 rounded-lg bg-white/90 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-slate-900 dark:text-dark-text placeholder-slate-500"
+                                    required
+                                />
+                                <button 
+                                    type="submit" 
+                                    disabled={isLoading}
+                                    className="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition-colors shadow-lg disabled:opacity-50"
+                                >
+                                    {isLoading ? 'Sending...' : 'Reset Password'}
+                                </button>
+                                <button 
+                                    type="button" 
+                                    onClick={() => setView('login')}
+                                    className="w-full text-sm font-bold text-slate-500 hover:text-slate-700 dark:text-dark-text/40 dark:hover:text-dark-text transition-colors"
+                                >
+                                    Back to Login
+                                </button>
+                            </form>
+                        </div>
+                    )}
+
+                    {view === 'success' && (
+                        <div className="text-center animate-fade-in">
+                            <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-6">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                            </div>
+                            <h2 className="text-2xl font-bold text-green-600 dark:text-green-400 mb-4 uppercase tracking-widest">Link Sent!</h2>
+                            <p className="text-sm text-slate-600 dark:text-dark-text/70 mb-6 leading-relaxed">
+                                A password reset link has been sent to your email. 
+                                <br /><br />
+                                Look for the link labeled <span className="font-black text-green-600 dark:text-green-400">"click here"</span>.
+                                <br /><br />
+                                <span className="italic opacity-80">Note: The link has been moved to your direct inbox. If you don't see it, please wait a moment.</span>
+                            </p>
+                            <button 
+                                onClick={() => setView('login')}
+                                className="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition-colors shadow-lg"
+                            >
+                                Back to Login
                             </button>
                         </div>
-                        <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition-colors shadow-lg">
-                            Login with Email
-                        </button>
-                    </form>
-                    <div className="text-center text-sm text-slate-700 dark:text-dark-text/60 mb-4 font-bold uppercase tracking-widest">OR</div>
-                    <button
-                        onClick={handleGoogleLogin}
-                        className="w-full text-white bg-slate-700/80 hover:bg-slate-600/90 backdrop-blur-md border border-slate-500/50 focus:ring-4 focus:outline-none focus:ring-slate-500/50 font-bold rounded-lg text-sm px-5 py-3 text-center transition-all duration-300 transform hover:scale-105 shadow-[0_4px_16px_0_rgba(71,85,105,0.3)]"
-                    >
-                        Sign in with Google
-                    </button>
-                    <p className="text-sm text-center text-slate-800 dark:text-dark-text/60 mt-6 font-medium">
-                        Don't have an account?{' '}
-                        <button onClick={onNavigateToSignUp} className="font-bold text-green-600 dark:text-green-400 hover:underline">
-                            Sign up
-                        </button>
-                    </p>
+                    )}
                 </div>
             </div>
         </div>
