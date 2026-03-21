@@ -133,15 +133,15 @@ export const RiskCalculator: React.FC<RiskCalculatorProps> = ({ onClose }) => {
                     </div>
 
                     {/* Result Display */}
-                    <div className="mt-6 bg-gradient-to-r from-gray-900/80 to-slate-800/80 backdrop-blur-md p-4 rounded-xl shadow-inner border border-gray-700/50">
+                    <div className="mt-6 bg-gradient-to-r from-gray-100/80 to-gray-200/80 dark:from-gray-900/80 dark:to-slate-800/80 backdrop-blur-md p-4 rounded-xl shadow-inner border border-gray-300/50 dark:border-gray-700/50">
                         <div className="flex justify-between items-end mb-1">
-                            <span className="text-gray-400 text-sm">Suggested Lot Size</span>
-                            <span className="text-green-400 font-mono text-3xl font-bold tracking-tight">{lotSize}</span>
+                            <span className="text-gray-500 dark:text-gray-400 text-sm">Suggested Lot Size</span>
+                            <span className="text-green-600 dark:text-green-400 font-mono text-3xl font-bold tracking-tight">{lotSize}</span>
                         </div>
-                        <div className="w-full h-px bg-gray-700 my-2"></div>
+                        <div className="w-full h-px bg-gray-300 dark:bg-gray-700 my-2"></div>
                         <div className="flex justify-between items-center text-xs">
-                            <span className="text-gray-500">Amount at Risk</span>
-                            <span className="text-red-400 font-mono font-medium">-${riskAmount.toFixed(2)}</span>
+                            <span className="text-gray-600 dark:text-gray-500">Amount at Risk</span>
+                            <span className="text-red-500 dark:text-red-400 font-mono font-medium">-${riskAmount.toFixed(2)}</span>
                         </div>
                     </div>
                     

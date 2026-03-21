@@ -20,9 +20,8 @@ interface HomePageProps {
     onAnalysisComplete: (data: Omit<SignalData, 'id' | 'timestamp'>, primaryImageDataUrl: string) => void;
     onNavigateToHistory: () => void;
     onNavigateToChat: () => void;
-    onNavigateToCharting: () => void;
     onNavigateToProducts: () => void; 
-    onNavigateToSession: () => void;
+    onNavigateToJournal: () => void;
     onAssetSelect?: (asset: string) => void;
 }
 
@@ -37,14 +36,14 @@ const NavButton: React.FC<{
         onClick={onClick}
         aria-label={ariaLabel}
         style={{ animationDelay: delay }}
-        className="opacity-0 animate-flip-3d group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-400 bg-white/10 dark:bg-slate-800/40 backdrop-blur-md transition-all duration-300 border border-white/20 dark:border-white/10 hover:bg-white/20 dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]"
+        className="opacity-0 animate-flip-3d group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 backdrop-blur-md transition-all duration-300 border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]"
     >
         {icon}
         <span className="hidden md:inline md:ml-3 text-xs font-black uppercase tracking-widest">{label}</span>
     </button>
 );
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToCharting, onNavigateToProducts, onNavigateToSession, onAssetSelect }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToProducts, onNavigateToJournal, onAssetSelect }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
@@ -105,12 +104,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
 
     const navItems = [
         {
-            onClick: onNavigateToCharting,
-            label: 'Charting',
-            ariaLabel: 'Open Charting Platform',
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" /></svg>
-        },
-        {
             onClick: onNavigateToChat,
             label: 'Chat',
             ariaLabel: 'Open Oracle Chat',
@@ -135,16 +128,16 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
         },
         {
-            onClick: onNavigateToSession,
-            label: 'Sessions',
-            ariaLabel: 'Open Session Filter',
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-        },
-        {
             onClick: onNavigateToHistory,
             label: 'History',
             ariaLabel: 'View analysis history',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+        },
+        {
+            onClick: onNavigateToJournal,
+            label: 'Journal',
+            ariaLabel: 'Open Performance Journal',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
         },
         {
             onClick: onLogout,
@@ -239,7 +232,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                         <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:-translate-y-1"></div>
                         <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:-translate-y-1"></div>
 
-                        <div className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl p-6 sm:p-10 rounded-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
+                        <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-6 sm:p-10 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
                              {/* Interactive Scanline */}
                              <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent h-[200%] pointer-events-none animate-shimmer"></div>
                              

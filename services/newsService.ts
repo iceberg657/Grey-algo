@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { NewsArticle } from '../types';
-import { executeLaneCall, SERVICE_POOL, runWithModelFallback, LANE_2_MODELS } from './retryUtils';
+import { executeLaneCall, getServicePool, runWithModelFallback, LANE_2_MODELS } from './retryUtils';
 
 export async function getForexNews(): Promise<NewsArticle[]> {
     return await executeLaneCall<NewsArticle[]>(async (apiKey) => {
@@ -21,5 +21,5 @@ export async function getForexNews(): Promise<NewsArticle[]> {
         const end = text.lastIndexOf(']') + 1;
         if (start === -1) return [];
         return JSON.parse(text.substring(start, end));
-    }, SERVICE_POOL);
+    }, getServicePool());
 }

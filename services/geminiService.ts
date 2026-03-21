@@ -6,6 +6,8 @@ import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
 import { calculateLotSize } from '../utils/lotSizeCalculator';
+import { logTrade } from './tradeLogger';
+import { auth } from '../firebase';
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
@@ -772,6 +774,16 @@ export async function generateTradingSignal(
     
     // 1. Get comprehensive AI analysis
     const rawSignal = await callGeminiDirectly(request);
+    
+    // Log the trade automatically
+    try {
+        const tradeId = await logTrade(rawSignal as SignalData);
+        if (!tradeId) {
+            console.log('Trade logging skipped (unauthenticated).');
+        }
+    } catch (error) {
+        console.error('Failed to log trade:', error);
+    }
     
     console.log('📊 Raw AI Signal:', {
         signal: rawSignal.signal,

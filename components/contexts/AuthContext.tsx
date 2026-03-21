@@ -1,62 +1,67 @@
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
+import { 
+    onAuthStateChanged, 
+    signInWithPopup, 
+    GoogleAuthProvider, 
+    signOut, 
+    User, 
+    signInWithEmailAndPassword, 
+    createUserWithEmailAndPassword 
+} from 'firebase/auth';
+import { auth } from '../../firebase';
 
 interface AuthContextType {
     isLoggedIn: boolean;
-    login: () => void;
-    logout: () => void;
+    user: User | null;
+    loginWithGoogle: () => Promise<void>;
+    loginWithEmail: (email: string, password: string) => Promise<void>;
+    signUpWithEmail: (email: string, password: string) => Promise<void>;
+    logout: () => Promise<void>;
 }
-
-const AUTH_STORAGE_KEY = 'greyquant_isLoggedIn';
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-    const [isLoggedIn, setIsLoggedIn] = useState(() => {
-        try {
-            // Check localStorage on initial load
-            return window.localStorage.getItem(AUTH_STORAGE_KEY) === 'true';
-        } catch (error) {
-            console.warn(`Could not read login state from localStorage: ${error}`);
-            return false;
-        }
-    });
+    const [user, setUser] = useState<User | null>(null);
+    const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // Listen for storage changes to sync across tabs
     useEffect(() => {
-        const syncLoginState = (event: StorageEvent) => {
-            if (event.key === AUTH_STORAGE_KEY) {
-                setIsLoggedIn(event.newValue === 'true');
-            }
-        };
-
-        window.addEventListener('storage', syncLoginState);
-        return () => {
-            window.removeEventListener('storage', syncLoginState);
-        };
+        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+            setUser(currentUser);
+            setIsLoggedIn(!!currentUser);
+        });
+        return () => unsubscribe();
     }, []);
 
-    const login = () => {
+    const loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        await signInWithPopup(auth, provider);
+    };
+
+    const loginWithEmail = async (email: string, password: string) => {
         try {
-            // Set login state in localStorage
-            window.localStorage.setItem(AUTH_STORAGE_KEY, 'true');
-            setIsLoggedIn(true);
+            await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
-            console.error(`Could not save login state to localStorage: ${error}`);
+            console.error('Email login error:', error);
+            throw error;
         }
     };
 
-    const logout = () => {
+    const signUpWithEmail = async (email: string, password: string) => {
         try {
-            // Remove login state from localStorage
-            window.localStorage.removeItem(AUTH_STORAGE_KEY);
-            setIsLoggedIn(false);
+            await createUserWithEmailAndPassword(auth, email, password);
         } catch (error) {
-            console.error(`Could not remove login state from localStorage: ${error}`);
+            console.error('Email sign up error:', error);
+            throw error;
         }
+    };
+
+    const logout = async () => {
+        await signOut(auth);
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, login, logout }}>
+        <AuthContext.Provider value={{ isLoggedIn, user, loginWithGoogle, loginWithEmail, signUpWithEmail, logout }}>
             {children}
         </AuthContext.Provider>
     );

@@ -27,19 +27,19 @@ const getSignalTextClasses = (signal: SignalData['signal']) => {
 const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal = false, signalType, valueClassName, subValue, subValueClassName, delay = '0ms' }) => (
     <div className="opacity-0 animate-flip-3d" style={{ animationDelay: delay }}>
         <TiltCard>
-            <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl border border-white/40 dark:border-white/10 hover:border-green-500/30 transition-all transform hover:scale-[1.03] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] ${className} h-full min-h-[90px]`}>
-                <span className="text-[10px] sm:text-xs text-gray-700 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
+            <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-white/90 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-300 dark:border-white/10 hover:border-green-500/30 transition-all transform hover:scale-[1.03] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] ${className} h-full min-h-[90px]`}>
+                <span className="text-[10px] sm:text-xs text-slate-700 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
                 {isSignal ? (
                     <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'BUY')}`}>
                         {value}
                     </span>
                 ) : (
-                    <span className={`text-base sm:text-lg font-mono mt-1 font-bold text-center break-all ${valueClassName || 'text-gray-800 dark:text-dark-text'}`}>
+                    <span className={`text-base sm:text-lg font-mono mt-1 font-bold text-center break-all ${valueClassName || 'text-slate-900 dark:text-dark-text'}`}>
                         {value}
                     </span>
                 )}
                 {subValue && (
-                    <span className={`text-[9px] sm:text-[10px] font-bold uppercase mt-1 text-center ${subValueClassName || 'text-gray-600'}`}>
+                    <span className={`text-[9px] sm:text-[10px] font-bold uppercase mt-1 text-center ${subValueClassName || 'text-slate-600'}`}>
                         {subValue}
                     </span>
                 )}
@@ -78,13 +78,13 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                     style={{ width: `${score}%` }}
                 ></div>
             </div>
-            <div className="flex justify-between text-[10px] text-gray-600 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
+            <div className="flex justify-between text-[10px] text-slate-700 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
                 <span>BEARISH (0-49)</span>
                 <span>BULLISH (50-100)</span>
             </div>
 
-            <div className="bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-xl border border-white/40 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
-                <p className="text-sm text-gray-800 dark:text-gray-300 italic leading-relaxed font-medium">
+            <div className="bg-white/95 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-xl border border-gray-300 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.05)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                <p className="text-sm text-slate-900 dark:text-gray-300 italic leading-relaxed font-medium">
                     "{summary}"
                 </p>
             </div>
@@ -94,26 +94,26 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
 
 const EventCard: React.FC<{ event: EconomicEvent }> = ({ event }) => {
     const impact = event.impact.toLowerCase();
-    const impactColor = impact.includes('high') 
-        ? 'bg-red-500/20 text-red-300 border-red-500/50' 
+    const impactClasses = impact.includes('high') 
+        ? 'bg-red-500/10 dark:bg-red-500/20 text-red-700 dark:text-red-300 border-red-500/30 dark:border-red-500/50' 
         : impact.includes('medium') 
-            ? 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50' 
-            : 'bg-blue-500/20 text-blue-300 border-blue-500/50';
+            ? 'bg-yellow-500/10 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-300 border-yellow-500/30 dark:border-yellow-500/50' 
+            : 'bg-blue-500/10 dark:bg-blue-500/20 text-blue-700 dark:text-blue-300 border-blue-500/30 dark:border-blue-500/50';
 
     return (
-        <div className={`p-3 rounded-lg border ${impactColor} flex justify-between items-center shadow-md animate-fade-in`}>
+        <div className={`p-3 rounded-lg border ${impactClasses} flex justify-between items-center shadow-sm animate-fade-in`}>
             <div>
                 <p className="font-bold text-xs sm:text-sm tracking-tight">{event.name}</p>
                 <p className="text-[10px] opacity-70 mt-0.5 font-mono">{new Date(event.date).toLocaleString()}</p>
             </div>
-            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-black/30 border border-white/10 ml-2">{event.impact}</span>
+            <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-black/5 dark:bg-black/30 border border-black/10 dark:border-white/10 ml-2">{event.impact}</span>
         </div>
     );
 };
 
 export const Section: React.FC<{ title: string; children: React.ReactNode; icon: React.ReactNode; delay?: string }> = ({ title, children, icon, delay = '0ms' }) => (
     <div className="pt-4 mt-4 border-t border-gray-300 dark:border-white/5 opacity-0 animate-flip-3d" style={{ animationDelay: delay }}>
-        <h3 className="flex items-center text-base font-black text-gray-800 dark:text-green-400 mb-4 uppercase tracking-tighter">
+        <h3 className="flex items-center text-base font-black text-slate-900 dark:text-green-400 mb-4 uppercase tracking-tighter">
             <span className="p-1.5 rounded-lg bg-green-500/10 mr-2 border border-green-500/20">
                 {icon}
             </span>
@@ -126,12 +126,12 @@ export const Section: React.FC<{ title: string; children: React.ReactNode; icon:
 const VerificationStepCard: React.FC<{ title: string; step: VerificationStep }> = ({ title, step }) => (
     <div className={`p-4 rounded-xl border ${step.passed ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'} backdrop-blur-sm shadow-md transition-all`}>
         <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-black uppercase tracking-widest text-gray-800 dark:text-gray-200">{title}</span>
+            <span className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-gray-200">{title}</span>
             <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${step.passed ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
                 {step.passed ? 'PASSED' : 'FAILED'}
             </span>
         </div>
-        <p className="text-xs text-gray-700 dark:text-gray-300 leading-relaxed font-medium">{step.reasoning}</p>
+        <p className="text-xs text-slate-800 dark:text-gray-300 leading-relaxed font-medium">{step.reasoning}</p>
     </div>
 );
 
@@ -198,7 +198,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     setTtsState('speaking');
                     await generateAndPlayAudio(textToSpeak.replace(/✅|❌|🔵/g, ''), () => setTtsState('idle'));
                 } catch { setTtsState('idle'); }
-            }, 5000);
+            }, 100); // Reduced delay to 100ms
         }
     };
 
@@ -239,16 +239,16 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
         <div className="text-sm max-w-full overflow-hidden relative">
             <header className="flex flex-wrap justify-between items-center mb-8 gap-4 opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
                 <div>
-                    <h2 className="text-4xl sm:text-5xl font-black text-gray-800 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
+                    <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
                     <div className="flex items-center gap-2 mt-2">
-                        <span className="text-xs sm:text-sm text-gray-700 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/20 px-2 py-0.5 rounded border border-white/20">{data.timeframe}</span>
+                        <span className="text-xs sm:text-sm text-slate-800 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/60 px-2 py-0.5 rounded border border-gray-300 dark:border-white/20">{data.timeframe}</span>
                         <span className="w-1 h-1 rounded-full bg-green-500 shadow-[0_0_5px_theme(colors.green.400)]"></span>
                         <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase ${getEntryTypeColor(data.entryType)}`}>Protocol: {data.entryType}</span>
                     </div>
                 </div>
                  <button
                     onClick={handleToggleSpeech}
-                    className={`p-4 rounded-xl transition-all duration-300 shadow-xl border ${ttsState !== 'idle' ? 'bg-red-500 text-white animate-pulse border-red-400' : 'bg-gray-100 dark:bg-dark-card text-green-600 dark:text-green-400 border-white/10 hover:border-green-500/50 hover:scale-110 active:scale-95'}`}
+                    className={`p-4 rounded-xl transition-all duration-300 shadow-xl border ${ttsState !== 'idle' ? 'bg-red-500 text-white animate-pulse border-red-400' : 'bg-gray-100 dark:bg-dark-card text-green-600 dark:text-green-400 border-gray-200 dark:border-white/10 hover:border-green-500/50 hover:scale-110 active:scale-95'}`}
                     aria-label="Read analysis aloud"
                 >
                     {ttsState === 'idle' ? (
@@ -268,14 +268,14 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '500ms' }}>
                     <TiltCard>
-                        <div className="p-6 rounded-2xl bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
+                        <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
                              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30 group-hover:bg-blue-500 transition-colors"></div>
                              <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Entry Cluster</span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
                                 {data.entryPoints.slice(0, 1).map((ep, i) => {
                                     const isRecommended = i === recommendedEntryIndex;
                                     return (
-                                        <div key={i} className={`text-center bg-white/20 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative ${isRecommended ? 'border-green-500/50 shadow-green-500/20' : 'border-white/30 dark:border-white/10'}`}>
+                                        <div key={i} className={`text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative ${isRecommended ? 'border-green-500/50 shadow-green-500/20' : 'border-gray-200 dark:border-white/10'}`}>
                                             {isRecommended && (
                                                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-[8px] font-black uppercase px-2 py-0.5 rounded-full shadow-md">
                                                     Recommended
@@ -297,12 +297,12 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                 </div>
                 <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '600ms' }}>
                     <TiltCard>
-                        <div className="p-6 rounded-2xl bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl border border-white/40 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
+                        <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
                              <div className="absolute top-0 left-0 w-full h-1 bg-green-500/30 group-hover:bg-green-500 transition-colors"></div>
                              <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Liquidation Array</span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
                                 {data.takeProfits.slice(0, 2).map((tp, i) => (
-                                    <div key={i} className="text-center bg-white/20 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border border-white/30 dark:border-white/10 min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                    <div key={i} className="text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                         <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{tp}</span>
                                         <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">TARGET 0{i + 1}</span>
                                     </div>
@@ -319,94 +319,88 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
             {/* INTEGRATED QUANT METRICS SECTION */}
             <Section title="Quant Execution Metrics" delay="1000ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
-                <div className="bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden font-mono">
-                    <div className="grid grid-cols-1 gap-6">
+                <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden font-mono">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
                         
-                        {/* Tactical Array (Full Width since Position Sizing is removed) */}
-                        <div className="space-y-4">
-                            <h4 className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4">Tactical Array</h4>
-                            
-                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-red-500 uppercase">Risk Bound</span>
-                                <span className="text-gray-800 dark:text-white font-bold">{slDisplay} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-green-500 uppercase">Reward Bound</span>
-                                <span className="text-gray-800 dark:text-white font-bold">{tp3Display} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
-                            </div>
-                            
-                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
-                                <span className="text-gray-800 dark:text-white font-bold">{data.riskRewardRatio || "1:2"}</span>
-                            </div>
-
-                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                <span className="text-sm font-bold text-purple-500 uppercase">Entry Style</span>
-                                <span className="text-gray-800 dark:text-white font-bold">{data.entryType}</span>
-                            </div>
-                            
-                            {data.lotSize && data.lotSize > 0 && (
-                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-cyan-500 uppercase">Total Lot Size</span>
-                                    <span className="font-bold text-cyan-500 dark:text-cyan-400">{data.formattedLotSize}</span>
-                                </div>
-                            )}
-
-                            {data.recommendedPositions && data.recommendedPositions > 0 && data.positionLotSize && (
-                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3 bg-cyan-500/5 px-2 rounded-lg">
-                                    <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 uppercase">Positions to Open</span>
-                                    <div className="text-right">
-                                        <span className="font-black text-cyan-600 dark:text-cyan-400 text-lg block">{data.recommendedPositions}x Trades</span>
-                                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-bold">@ {data.positionLotSize} LOTS EACH</span>
-                                    </div>
-                                </div>
-                            )}
-                            
-                            {data.riskAmount && data.riskAmount > 0 && (
-                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Risk</span>
-                                    <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
-                                </div>
-                            )}
-                            
-                            {data.totalPotentialProfit && data.totalPotentialProfit > 0 && (
-                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Potential</span>
-                                    <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
-                                </div>
-                            )}
-
-                            {data.possiblePips !== undefined && data.possiblePips > 0 && (
-                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-orange-500 uppercase">Possible Pips</span>
-                                    <span className="font-bold text-orange-500 dark:text-orange-400">{data.possiblePips} pips</span>
-                                </div>
-                            )}
-
-                            {data.winProbability !== undefined && data.winProbability > 0 && (
-                                <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
-                                    <span className="text-sm font-bold text-pink-500 uppercase">Win Probability</span>
-                                    <span className="font-bold text-pink-500 dark:text-pink-400">{data.winProbability}%</span>
-                                </div>
-                            )}
+                        <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                            <span className="text-sm font-bold text-red-500 uppercase">Risk Bound</span>
+                            <span className="text-gray-800 dark:text-white font-bold">{slDisplay} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
                         </div>
+                        
+                        <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                            <span className="text-sm font-bold text-green-500 uppercase">Reward Bound</span>
+                            <span className="text-gray-800 dark:text-white font-bold">{tp3Display} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
+                        </div>
+                        
+                        <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                            <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
+                            <span className="text-gray-800 dark:text-white font-bold">{data.riskRewardRatio || "1:2"}</span>
+                        </div>
+
+                        <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                            <span className="text-sm font-bold text-purple-500 uppercase">Entry Style</span>
+                            <span className="text-gray-800 dark:text-white font-bold">{data.entryType}</span>
+                        </div>
+                        
+                        {data.lotSize && data.lotSize > 0 && (
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-cyan-500 uppercase">Total Lot Size</span>
+                                <span className="font-bold text-cyan-500 dark:text-cyan-400">{data.formattedLotSize}</span>
+                            </div>
+                        )}
+
+                        {data.recommendedPositions && data.recommendedPositions > 0 && data.positionLotSize && (
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3 bg-cyan-500/5 px-2 rounded-lg">
+                                <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 uppercase">Positions</span>
+                                <div className="text-right">
+                                    <span className="font-black text-cyan-600 dark:text-cyan-400 text-base block">{data.recommendedPositions}x @ {data.positionLotSize}</span>
+                                </div>
+                            </div>
+                        )}
+                        
+                        {data.riskAmount && data.riskAmount > 0 && (
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Risk</span>
+                                <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
+                            </div>
+                        )}
+                        
+                        {data.totalPotentialProfit && data.totalPotentialProfit > 0 && (
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Potential</span>
+                                <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
+                            </div>
+                        )}
+
+                        {data.possiblePips !== undefined && data.possiblePips > 0 && (
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-orange-500 uppercase">Possible Pips</span>
+                                <span className="font-bold text-orange-500 dark:text-orange-400">{data.possiblePips} pips</span>
+                            </div>
+                        )}
+
+                        {data.winProbability !== undefined && data.winProbability > 0 && (
+                            <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
+                                <span className="text-sm font-bold text-pink-500 uppercase">Win Probability</span>
+                                <span className="font-bold text-pink-500 dark:text-pink-400">{data.winProbability}%</span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </Section>
 
             {data.demandSupplyZones && data.demandSupplyZones.length > 0 && (
                 <Section title="Demand/Supply Analysis" delay="1250ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>}>
-                    <div className="bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] font-mono">
+                    <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] font-mono">
                         <div className="mb-4">
                             <span className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em]">Confirmation Pattern</span>
-                            <div className="mt-2 p-3 bg-white/20 dark:bg-slate-900/40 rounded-lg border border-white/30 dark:border-white/10 text-sm font-bold text-green-500 dark:text-green-400">
+                            <div className="mt-2 p-3 bg-white/60 dark:bg-slate-900/40 rounded-lg border border-gray-200 dark:border-white/10 text-sm font-bold text-green-500 dark:text-green-400">
                                 {data.confirmationPattern}
                             </div>
                         </div>
                         <div className="space-y-3">
                             {data.demandSupplyZones.map((zone, i) => (
-                                <div key={i} className="flex justify-between items-center bg-white/20 dark:bg-slate-900/40 p-3 rounded-lg border border-white/30 dark:border-white/10">
+                                <div key={i} className="flex justify-between items-center bg-white/60 dark:bg-slate-900/40 p-3 rounded-lg border border-gray-200 dark:border-white/10">
                                     <span className={`font-black uppercase text-xs ${zone.type === 'demand' ? 'text-green-500' : 'text-red-500'}`}>{zone.type}</span>
                                     <span className="text-xs text-gray-800 dark:text-gray-200">{zone.priceRange.lower} - {zone.priceRange.upper}</span>
                                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${zone.confirmed ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
@@ -421,7 +415,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
             {data.confluenceMatrix && (
                 <Section title="Algorithmic Confluence" delay="1100ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" /></svg>}>
-                    <div className="bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-white/40 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] font-mono">
+                    <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] font-mono">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {/* FVG Status */}
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
@@ -456,7 +450,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                             </div>
 
                             {/* Confluence Status */}
-                            <div className="col-span-1 md:col-span-2 mt-4 p-4 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-white/30 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                            <div className="col-span-1 md:col-span-2 mt-4 p-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                 <span className="block text-xs font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-2">SD + FVG Confluence</span>
                                 <span className={`text-xl font-black ${data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? 'text-green-500 dark:text-green-400 animate-pulse' : 'text-gray-700 dark:text-gray-600'}`}>
                                     {data.confluenceMatrix.triggeredEntries.sdPlusFVGConfluence ? '✅ CONFLUENCE VERIFIED' : '❌ NO CONFLUENCE'}
@@ -466,19 +460,19 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                             {/* Market Context */}
                             {data.confluenceMatrix.structuralBias && (
                                 <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
-                                    <div className="p-4 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-white/30 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                    <div className="p-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                         <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">Structural Bias</span>
                                         <span className={`text-lg font-black ${data.confluenceMatrix.structuralBias.toLowerCase() === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
                                             {data.confluenceMatrix.structuralBias.toUpperCase()}
                                         </span>
                                     </div>
-                                    <div className="p-4 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-white/30 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                    <div className="p-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                         <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">Market Trend</span>
                                         <span className={`text-lg font-black ${data.confluenceMatrix.marketTrend?.toLowerCase() === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
                                             {data.confluenceMatrix.marketTrend?.toUpperCase() || 'N/A'}
                                         </span>
                                     </div>
-                                    <div className="p-4 bg-white/20 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-white/30 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                    <div className="p-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                         <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">ATR Volatility</span>
                                         <span className={`text-lg font-black ${data.confluenceMatrix.atrVolatility?.toLowerCase() === 'high' ? 'text-green-500' : data.confluenceMatrix.atrVolatility?.toLowerCase() === 'choppy' ? 'text-red-500' : 'text-yellow-500'}`}>
                                             {data.confluenceMatrix.atrVolatility?.toUpperCase() || 'N/A'}
@@ -490,13 +484,13 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                             {/* Execution Checklist */}
                             {data.confluenceMatrix.executionChecklist && data.confluenceMatrix.executionChecklist.length > 0 && (
                                 <div className="col-span-1 md:col-span-2 mt-4">
-                                    <h4 className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">10-Point Execution Checklist</h4>
+                                    <h4 className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">Execution Checklist</h4>
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                                         {data.confluenceMatrix.executionChecklist.map((item, i) => {
                                             const isPass = item.toLowerCase().includes('pass');
                                             const isFail = item.toLowerCase().includes('fail');
                                             return (
-                                                <div key={i} className="flex items-center bg-white/20 dark:bg-slate-900/40 backdrop-blur-md p-2.5 rounded-lg border border-white/30 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                                <div key={i} className="flex items-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md p-2.5 rounded-lg border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                                     <span className={`mr-3 font-black ${isPass ? 'text-green-500' : isFail ? 'text-red-500' : 'text-gray-500'}`}>
                                                         {isPass ? '✓' : isFail ? '✗' : '○'}
                                                     </span>
@@ -507,6 +501,21 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                     </div>
                                 </div>
                             )}
+
+                            {/* Legacy Checklist (if present) */}
+                            {data.checklist && data.checklist.length > 0 && (
+                                <div className="col-span-1 md:col-span-2 mt-4">
+                                    <h4 className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">Confirmation Checklist</h4>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                        {data.checklist.map((item, i) => (
+                                            <div key={i} className="flex items-center bg-green-500/5 dark:bg-green-500/10 backdrop-blur-sm p-2.5 rounded-lg border border-green-500/20 shadow-md transition-all hover:bg-green-500/10">
+                                                <span className="text-green-500 mr-3 font-black">✓</span>
+                                                <span className="text-xs font-bold opacity-80">{item}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </Section>
@@ -514,7 +523,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
             <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1100ms' }}>
                 <div className="mt-8">
-                    <h3 className="text-green-400 font-bold uppercase tracking-widest flex items-center mb-6">
+                    <h3 className="text-green-600 dark:text-green-400 font-bold uppercase tracking-widest flex items-center mb-6">
                         <span className="p-2 border border-green-500/30 rounded-lg mr-3 bg-green-500/10">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -524,11 +533,11 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     </h3>
                     <div className="space-y-4">
                         {data.reasoning?.map((text, i) => (
-                            <div key={i} className="flex p-5 rounded-2xl border border-white/40 dark:border-white/10 bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl relative overflow-hidden group hover:border-green-500/30 transition-all hover:bg-white/40 dark:hover:bg-slate-800/60 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
-                                <span className="text-3xl font-mono font-bold text-green-500 mr-6 opacity-80 flex-shrink-0">
+                            <div key={i} className="flex p-5 rounded-2xl border border-gray-300 dark:border-white/10 bg-white/95 dark:bg-slate-900/40 backdrop-blur-xl relative overflow-hidden group hover:border-green-500/30 transition-all hover:bg-white/40 dark:hover:bg-slate-800/60 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                <span className="text-3xl font-mono font-bold text-green-600 dark:text-green-500 mr-6 opacity-80 flex-shrink-0">
                                     {(i + 1).toString().padStart(2, '0')}
                                 </span>
-                                <p className="text-gray-700 dark:text-gray-300 text-sm leading-relaxed font-medium pt-1.5">
+                                <p className="text-slate-900 dark:text-gray-300 text-sm leading-relaxed font-medium pt-1.5">
                                     {text.replace(/^\d+\.\s*/, '')}
                                 </p>
                             </div>
@@ -538,16 +547,6 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-                <Section title="Confluence Matrix" delay="1200ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M6.267 3.455a3.066 3.066 0 001.745-.723 3.066 3.066 0 013.976 0 3.066 3.066 0 001.745.723 3.066 3.066 0 012.812 2.812c.051.64.304 1.24.723 1.745a3.066 3.066 0 010 3.976 3.066 3.066 0 00-.723 1.745 3.066 3.066 0 01-2.812 2.812 3.066 3.066 0 00-1.745.723 3.066 3.066 0 01-3.976 0 3.066 3.066 0 00-1.745-.723 3.066 3.066 0 01-2.812-2.812 3.066 3.066 0 00-.723-1.745 3.066 3.066 0 010-3.976 3.066 3.066 0 00.723-1.745 3.066 3.066 0 012.812-2.812zm7.44 5.252a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>}>
-                    <div className="space-y-2">
-                        {data.checklist?.map((item, i) => (
-                            <div key={i} className="flex items-center bg-green-500/10 backdrop-blur-sm p-3 rounded-lg border border-green-500/30 shadow-md transition-all hover:bg-green-500/20">
-                                <span className="text-green-500 mr-4 font-black">✓</span>
-                                <span className="text-xs sm:text-sm font-bold opacity-80">{item}</span>
-                            </div>
-                        ))}
-                    </div>
-                </Section>
                 <Section title="Critical Invalidation" delay="1300ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.21 3.03-1.742 3.03H4.42c-1.532 0-2.492-1.696-1.742-3.03l5.58-9.92zM10 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" /></svg>}>
                     <div className="bg-red-500/10 backdrop-blur-sm p-5 rounded-2xl border border-red-500/30 text-sm leading-relaxed italic font-bold text-red-600 dark:text-red-400 shadow-md">
                         "{data.invalidationScenario}"
@@ -557,17 +556,15 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                          <span className="text-[10px] font-black uppercase tracking-widest text-red-500/80">Abandon Protocol Active</span>
                     </div>
                 </Section>
-            </div>
-
-            {data.counterArgumentRejection && (
-                <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1350ms' }}>
+                {data.counterArgumentRejection && (
                     <Section title="Counter-Argument Rejection" delay="1350ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>}>
                         <div className="bg-orange-500/10 backdrop-blur-sm p-5 rounded-2xl border border-orange-500/30 text-sm leading-relaxed font-medium text-orange-700 dark:text-orange-300 shadow-md">
                             <p className="italic">"Alternative scenario rejected: {data.counterArgumentRejection}"</p>
                         </div>
                     </Section>
-                </div>
-            )}
+                )}
+            </div>
+
 
             {data.verificationProtocol && (
                 <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1400ms' }}>
@@ -586,7 +583,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  <div className={`grid grid-cols-1 ${hasSentiment && hasEconomicEvents ? 'md:grid-cols-2' : ''} gap-6 mt-4`}>
                     {hasSentiment && (
                          <Section title="Structural Bias" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></svg>}>
-                            <div className="bg-white/30 dark:bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-white/40 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] h-full flex flex-col justify-center">
+                            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] h-full flex flex-col justify-center">
                                 <SentimentGauge score={data.sentiment!.score} summary={data.sentiment!.summary} />
                             </div>
                          </Section>
@@ -605,7 +602,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                  <Section title="Intelligence Sources" delay="1600ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.937 7.937 0 0112 4c1.232 0 2.403.28 3.444.782l1.556-1.556a1 1 0 011.414 1.414l-1.556 1.556c.496 1.056.782 2.227.782 3.444 0 1.241-.3 2.413-.834 3.443L19.293 17.707a1 1 0 01-1.414 1.414l-3.483-3.484A7.935 7.935 0 0112 16a7.937 7.937 0 01-3-4.804l-1.556 1.556a1 1 0 01-1.414-1.414l1.556-1.556A7.935 7.935 0 014 12a7.937 7.937 0 013-4.804L5.444 5.64a1 1 0 011.414-1.414l1.556 1.556C9.403 5.084 10.574 4.804 12 4.804z" /></svg>}>
                     <ul className="space-y-3">
                         {data.sources.map((source, i) => (
-                            <li key={i} className="flex items-start bg-white/30 dark:bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-white/40 dark:border-white/10 hover:border-blue-500/50 transition-all group overflow-hidden shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                            <li key={i} className="flex items-start bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-gray-200 dark:border-white/10 hover:border-blue-500/50 transition-all group overflow-hidden shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                 <span className="mr-4 text-gray-600 dark:text-gray-500 flex-shrink-0 font-mono font-black">[{i+1}]</span>
                                 <div className="flex-1 overflow-hidden">
                                     <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-blue-500 dark:text-blue-400 group-hover:text-blue-400 dark:group-hover:text-blue-300 truncate block text-xs sm:text-sm font-bold tracking-tight mb-1">

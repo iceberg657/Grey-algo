@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect, type ErrorInfo, type ReactNode, Component } from 'react';
-import { SessionFilter } from './components/SessionFilter';
+import { TradeHistory } from './components/TradeHistory';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { HomePage } from './components/HomePage';
@@ -15,15 +15,13 @@ import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
-import { TradingViewWidget } from './components/TradingViewWidget';
-import { SignalOverlay } from './components/SignalOverlay';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'charting' | 'products' | 'session';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -101,8 +99,6 @@ const App: React.FC = () => {
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
     
-    // State for chart analysis from the charting view
-    const [isAnalyzingChart, setIsAnalyzingChart] = useState(false);
     const [isApiKeyInitialized, setIsApiKeyInitialized] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     
@@ -148,18 +144,18 @@ const App: React.FC = () => {
         resetChatService();
     };
 
-    const handleLogin = () => {
-        login();
+    const handleLogin = async () => {
+        await login();
         navigateTo('home');
     };
     
-    const handleSignUp = () => {
-        login();
+    const handleSignUp = async () => {
+        await login();
         navigateTo('home');
     };
 
-    const handleLogout = () => {
-        logout();
+    const handleLogout = async () => {
+        await logout();
         setAppView('landing'); 
         setAuthPage('login');
     };
@@ -187,13 +183,9 @@ const App: React.FC = () => {
     const handleNavigateToChat = () => {
         navigateTo('chat');
     };
-    
-    const handleNavigateToCharting = () => {
-        navigateTo('charting');
-    };
 
-    const handleNavigateToSession = () => {
-        navigateTo('session');
+    const handleNavigateToJournal = () => {
+        navigateTo('journal');
     };
 
     const handleNavigateToProducts = () => {
@@ -221,36 +213,6 @@ const App: React.FC = () => {
         setPendingChatQuery(`Tell me the current update on ${asset}`);
         navigateTo('chat');
     };
-
-    const handleChartAnalysis = useCallback(async (imageData: string) => {
-        setAnalysisData(null); // Clear previous analysis data to ensure a fresh start
-        setIsAnalyzingChart(true);
-        try {
-            const base64Data = imageData.split(',')[1];
-            const request: AnalysisRequest = {
-                images: {
-                    primary: {
-                        data: base64Data,
-                        mimeType: 'image/png'
-                    }
-                },
-                riskRewardRatio: '1:3',
-                tradingStyle: 'Day Trading',
-                isMultiDimensional: false,
-
-            };
-
-            const data = await generateTradingSignal(request);
-            const savedData = saveAnalysis(data);
-            
-            setIsAnalyzingChart(false);
-            handleNavigateToAnalysis(savedData, 'charting', imageData); 
-        } catch (error) {
-            console.error("Chart Analysis Failed:", error);
-            setIsAnalyzingChart(false);
-            alert("Analysis failed. Please try again.");
-        }
-    }, []);
     
     // --- Render Logic ---
 
@@ -292,9 +254,8 @@ const App: React.FC = () => {
                     onAnalysisComplete={handleNewAnalysis} 
                     onNavigateToHistory={handleNavigateToHistory}
                     onNavigateToChat={handleNavigateToChat}
-                    onNavigateToCharting={handleNavigateToCharting}
                     onNavigateToProducts={handleNavigateToProducts}
-                    onNavigateToSession={handleNavigateToSession}
+                    onNavigateToJournal={handleNavigateToJournal}
                     onAssetSelect={handleAssetSelect}
                 />
             );
@@ -329,11 +290,32 @@ const App: React.FC = () => {
                 />
             );
             break;
-        case 'session':
+        case 'journal':
             content = (
-                <div className="p-6">
-                    <button onClick={handleNavigateToHome} className="mb-4 text-blue-500">Back to Home</button>
-                    <SessionFilter />
+                <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
+                    <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
+                        <header className="relative mb-6 flex justify-between items-center">
+                            <button onClick={handleNavigateToHome} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                </svg>
+                                Back
+                            </button>
+                            <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-green-400">
+                                Trade Journal
+                            </h1>
+                            <div className="flex items-center space-x-2">
+                                <button
+                                    onClick={handleLogout}
+                                    className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium"
+                                    aria-label="Logout"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                        </header>
+                        <TradeHistory />
+                    </div>
                 </div>
             );
             break;
@@ -349,8 +331,6 @@ const App: React.FC = () => {
                 );
             }
             break;
-        case 'charting':
-            break;
         default:
             // Fallback for unknown view
             content = (
@@ -360,47 +340,11 @@ const App: React.FC = () => {
             );
     }
 
-    const isCharting = appView === 'charting';
-    
-    // Chart Layer needs to be outside the switch to preserve iframe state
-    const chartLayer = (
-        <div 
-            className="fixed inset-0 z-[50] bg-[#f4f7f9] dark:bg-[#0f172a] transition-opacity duration-300"
-            style={{ 
-                visibility: isCharting ? 'visible' : 'hidden', 
-                opacity: isCharting ? 1 : 0,
-                pointerEvents: isCharting ? 'auto' : 'none',
-            }}
-        >
-            <NeuralBackground />
-            <div className="absolute inset-0 z-0">
-                {isCharting && <TradingViewWidget />}
-            </div>
-
-            {/* Changed from top-0 left-0 right-0 to inset-0 to ensure full coverage */}
-            <div className="absolute inset-0 z-10 pointer-events-none">
-                <div className="pointer-events-auto h-full">
-                    {isCharting && <SignalOverlay 
-                        onAnalyzeClick={handleChartAnalysis} 
-                        onBack={handleNavigateToHome}
-                    />}
-                </div>
-            </div>
-
-            {isAnalyzingChart && (
-                <div className="absolute inset-0 z-[70] bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center">
-                    <Loader />
-                    <p className="mt-4 text-green-400 font-bold animate-pulse">Analyzing Live Chart Data...</p>
-                </div>
-            )}
-        </div>
-    );
-
     return (
         <ErrorBoundary>
+            <NeuralBackground />
             <AutoLearningManager />
-            {chartLayer}
-            <div style={{ display: isCharting ? 'none' : 'block', minHeight: '100vh' }}>
+            <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
                 {content}
             </div>
         </ErrorBoundary>

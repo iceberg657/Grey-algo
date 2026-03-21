@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useTheme } from './contexts/ThemeContext';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { NeuralBackground } from './NeuralBackground';
+import Chart from 'chart.js/auto';
 
 const landingPageCss = `
 * {
@@ -31,11 +32,11 @@ const landingPageCss = `
     --primary-purple: #8e44ad;
     --primary-yellow: #f39c12;
     --primary-blue: #2980b9;
-    --light-bg: #f4f7f9;
-    --card-bg-light: rgba(255, 255, 255, 0.3); /* High transparency */
-    --text-dark: #1e293b;
-    --text-muted: #475569;
-    --border-color-light: #cbd5e1;
+    --light-bg: #f8fafc;
+    --card-bg-light: rgba(255, 255, 255, 0.8); /* Higher opacity for better visibility */
+    --text-dark: #0f172a;
+    --text-muted: #334155;
+    --border-color-light: #94a3b8;
 }
 .landing-body {
     background: var(--dark-bg);
@@ -158,7 +159,7 @@ nav ul li a:hover {
     text-shadow: 0 0 30px rgba(59, 130, 246, 0.2);
 }
 .light .hero h1 {
-    background: linear-gradient(90deg, var(--text-dark), var(--primary-blue));
+    background: linear-gradient(90deg, #0f172a, var(--primary-blue));
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;
@@ -430,7 +431,7 @@ const LiveSignalFeed: React.FC = () => {
         const isWin = outcome !== 'BREAKEVEN';
         
         const newSignal = {
-            id: Date.now(),
+            id: `${Date.now()}-${Math.random()}`,
             asset,
             direction,
             pips,
@@ -458,21 +459,21 @@ const LiveSignalFeed: React.FC = () => {
     return (
         <div className="absolute top-24 right-4 md:right-10 z-20 hidden lg:block w-72 pointer-events-none opacity-80">
             <div className="flex flex-col gap-2">
-                <div className="text-xs font-bold text-green-400 uppercase tracking-widest mb-1 pl-2">Live Alpha Stream</div>
+                <div className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-widest mb-1 pl-2">Live Alpha Stream</div>
                 {signals.map((sig) => (
-                    <div key={sig.id} className="bg-black/60 backdrop-blur-md border border-gray-700/50 p-3 rounded-lg shadow-lg animate-fade-in flex items-center justify-between">
+                    <div key={sig.id} className="bg-white/60 dark:bg-slate-900/60 backdrop-blur-md border border-gray-200 dark:border-white/10 p-3 rounded-lg shadow-lg animate-fade-in flex items-center justify-between">
                         <div>
                             <div className="flex items-center gap-2">
-                                <span className="font-bold text-white text-sm">{sig.asset}</span>
-                                <span className={`text-[10px] font-bold px-1.5 rounded ${sig.direction === 'BUY' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>{sig.direction}</span>
+                                <span className="font-bold text-gray-800 dark:text-white text-sm">{sig.asset}</span>
+                                <span className={`text-[10px] font-bold px-1.5 rounded ${sig.direction === 'BUY' ? 'bg-green-500/20 text-green-600 dark:text-green-400' : 'bg-red-500/20 text-red-600 dark:text-red-400'}`}>{sig.direction}</span>
                             </div>
-                            <span className="text-[10px] text-gray-400">{sig.time}</span>
+                            <span className="text-[10px] text-gray-500 dark:text-gray-400">{sig.time}</span>
                         </div>
                         <div className="text-right">
-                            <div className={`font-mono font-bold ${sig.isWin ? 'text-green-400' : 'text-gray-400'}`}>
+                            <div className={`font-mono font-bold ${sig.isWin ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}>
                                 {sig.isWin ? '+' : ''}{sig.pips} Pips
                             </div>
-                            <span className="text-[10px] text-gray-500 font-bold">{sig.outcome}</span>
+                            <span className="text-[10px] text-gray-600 dark:text-gray-500 font-bold">{sig.outcome}</span>
                         </div>
                     </div>
                 ))}
@@ -527,8 +528,8 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                 if (item.symbol.includes('JPY') || item.symbol.includes('BTC') || item.symbol.includes('ETH') || item.symbol.includes('XAU')) pricePrecision = 2;
                 
                 tickerItem.innerHTML = `
-                    <span style="font-weight:700; margin-right:8px; color:${theme === 'light'?'#333':'#fff'}">${item.symbol}</span>
-                    <span style="margin-right:8px; color:${theme === 'light'?'#555':'#ccc'}">${item.price.toFixed(pricePrecision)}</span>
+                    <span style="font-weight:700; margin-right:8px; color:${theme === 'light'?'#0f172a':'#fff'}">${item.symbol}</span>
+                    <span style="margin-right:8px; color:${theme === 'light'?'#334155':'#ccc'}">${item.price.toFixed(pricePrecision)}</span>
                     <span class="${isPositive ? 'up' : 'down'}" style="display:flex; align-items:center">
                         ${isPositive ? '▲' : '▼'} ${Math.abs(item.change).toFixed(pricePrecision)} (${Math.abs(item.changePercent).toFixed(2)}%)
                     </span>
@@ -539,13 +540,22 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
 
         let marketChartInstance: any = null;
         function createMarketChart() {
+            if (marketChartInstance) {
+                marketChartInstance.destroy();
+                marketChartInstance = null;
+            }
+            
             const canvas = document.getElementById('marketChart') as HTMLCanvasElement;
             if (!canvas) return;
+            
+            // Destroy existing chart if it exists by ID
+            const existingChart = Chart.getChart('marketChart');
+            if (existingChart) {
+                existingChart.destroy();
+            }
+
             const ctx = canvas.getContext('2d');
             if (!ctx) return;
-            
-            const Chart = (window as any).Chart;
-            if (!Chart) return;
 
             const assets = [
                 { name: 'S&P 500', color: '#3498db', data: [] as number[] },
@@ -592,14 +602,22 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
         }
 
         initTicker();
-        setTimeout(createMarketChart, 500); // Slight delay to ensure DOM is ready
+        const chartTimeout = setTimeout(createMarketChart, 500); // Slight delay to ensure DOM is ready
 
         const loader = document.getElementById('loader');
         if(loader) setTimeout(() => loader.classList.add('hidden'), 1000);
 
         return () => {
+            clearTimeout(chartTimeout);
             document.body.classList.remove('landing-body', 'light');
-            if (marketChartInstance) marketChartInstance.destroy();
+            if (marketChartInstance) {
+                marketChartInstance.destroy();
+                marketChartInstance = null;
+            }
+            const existingChart = Chart.getChart('marketChart');
+            if (existingChart) {
+                existingChart.destroy();
+            }
         };
     }, [theme]);
 
@@ -610,9 +628,6 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                 <div className="loader" id="loader">
                     <div className="loader-spinner"></div>
                 </div>
-
-                {/* Global Background Animation */}
-                <NeuralBackground />
                 
                 {/* Simulated Live Feed */}
                 <LiveSignalFeed />

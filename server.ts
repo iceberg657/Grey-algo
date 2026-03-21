@@ -1,11 +1,16 @@
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
+import { createServer } from 'node:http';
+import { WebSocketServer } from 'ws';
 import marketDataHandler from './api/marketData.js';
 import fetchDataHandler from './api/fetchData.js';
+import { fetchAssetSuggestions } from './services/suggestionService.js';
 
 async function startServer() {
   const app = express();
+  const server = createServer(app);
+  const wss = new WebSocketServer({ server });
   const PORT = 3000;
 
   app.use(express.json());
@@ -29,6 +34,29 @@ async function startServer() {
   app.all('/api/marketData', marketDataHandler);
   app.all('/api/fetchData', fetchDataHandler);
 
+  // WebSocket handling
+  wss.on('connection', (ws) => {
+    console.log('Client connected');
+    ws.on('close', () => console.log('Client disconnected'));
+  });
+
+  // Hourly market data update
+  const broadcastMarketData = async () => {
+    try {
+      const data = await fetchAssetSuggestions();
+      const message = JSON.stringify({ type: 'MARKET_DATA_UPDATE', data });
+      wss.clients.forEach((client) => {
+        if (client.readyState === 1) { // OPEN
+          client.send(message);
+        }
+      });
+    } catch (error) {
+      console.error('Error broadcasting market data:', error);
+    }
+  };
+
+  setInterval(broadcastMarketData, 60 * 60 * 1000); // 1 hour
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({
@@ -44,7 +72,7 @@ async function startServer() {
     });
   }
 
-  app.listen(PORT, '0.0.0.0', () => {
+  server.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }

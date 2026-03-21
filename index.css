@@ -23,6 +23,11 @@
     --color-dark-text: #e2e8f0;
     --color-dark-text-secondary: #94a3b8;
 
+    --light-bg: #f8fafc;
+    --dark-bg: #0f172a;
+    --text-dark: #0f172a;
+    --text-light: #f1f5f9;
+
     --font-sans: "Inter", sans-serif;
     --font-mono: "JetBrains Mono", monospace;
 
@@ -91,11 +96,13 @@
 }
 
 body {
-    background-color: #f3f4f6; /* gray-100 */
-    transition: background-color 0.3s ease;
+    background-color: var(--light-bg);
+    color: var(--text-dark);
+    transition: background-color 0.3s ease, color 0.3s ease;
 }
-.dark body {
-    background-color: #020617; /* slate-950, a deeper base */
+body.dark {
+    background-color: var(--dark-bg);
+    color: var(--text-light);
     background-repeat: no-repeat;
     background-attachment: fixed;
     position: relative;

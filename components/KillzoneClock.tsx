@@ -46,28 +46,28 @@ export const KillzoneClock: React.FC = () => {
     const progressPercent = (currentUtcHour / 24) * 100;
 
     return (
-        <div className="w-full bg-dark-card/60 backdrop-blur-md rounded-xl border border-gray-200/20 dark:border-green-500/10 p-4 shadow-lg mb-4">
+        <div className="w-full bg-gray-100/80 dark:bg-dark-card/60 backdrop-blur-md rounded-xl border border-gray-200 dark:border-green-500/10 p-4 shadow-lg mb-4">
             <div className="flex justify-between items-end mb-2">
                 <div>
                     <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Global Market Clock (UTC)</h4>
-                    <div className="text-xl font-mono font-bold text-white mt-1">
+                    <div className="text-xl font-mono font-bold text-gray-800 dark:text-white mt-1">
                         {currentTime.toLocaleTimeString('en-US', { timeZone: 'UTC', hour12: false })}
                         <span className="text-xs text-gray-500 ml-2 font-normal">UTC</span>
                     </div>
                 </div>
-                <div className={`text-xs font-bold px-2 py-1 rounded bg-black/20 animate-pulse ${
-                    status.includes('PEAK') ? 'text-green-400 border border-green-500/50' : 'text-gray-400'
+                <div className={`text-xs font-bold px-2 py-1 rounded bg-gray-200/50 dark:bg-black/20 animate-pulse ${
+                    status.includes('PEAK') ? 'text-green-600 dark:text-green-400 border border-green-500/50' : 'text-gray-500 dark:text-gray-400'
                 }`}>
                     {status}
                 </div>
             </div>
 
             {/* Timeline Visualizer */}
-            <div className="relative h-12 w-full bg-gray-800/50 rounded-lg overflow-hidden border border-gray-700 mt-3">
+            <div className="relative h-12 w-full bg-gray-200/50 dark:bg-gray-800/50 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-700 mt-3">
                 {/* Grid Lines (every 4 hours) */}
                 {[0, 4, 8, 12, 16, 20].map(h => (
-                    <div key={h} className="absolute top-0 bottom-0 w-px bg-gray-700" style={{ left: `${(h/24)*100}%` }}>
-                        <span className="absolute bottom-0.5 left-1 text-[9px] text-gray-600">{h}</span>
+                    <div key={h} className="absolute top-0 bottom-0 w-px bg-gray-300 dark:bg-gray-700" style={{ left: `${(h/24)*100}%` }}>
+                        <span className="absolute bottom-0.5 left-1 text-[9px] text-gray-500 dark:text-gray-600">{h}</span>
                     </div>
                 ))}
 

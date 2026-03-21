@@ -107,6 +107,17 @@ export interface VerificationProtocol {
     riskRewardCheck: VerificationStep;
 }
 
+export interface Trade {
+    id?: string;
+    uid: string;
+    asset: string;
+    signal: 'BUY' | 'SELL';
+    timestamp: number;
+    outcome: 'Win' | 'Loss' | 'No Trade' | 'Pending';
+    notes?: string;
+    signalData: SignalData;
+}
+
 export interface SignalData {
     id: string;
     timestamp: number;

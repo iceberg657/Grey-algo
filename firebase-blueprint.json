@@ -1,0 +1,25 @@
+{
+  "entities": {
+    "Trade": {
+      "title": "Trade",
+      "description": "A recorded trading signal and its outcome.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user ID who took the trade." },
+        "asset": { "type": "string", "description": "The trading asset." },
+        "signal": { "type": "string", "description": "BUY or SELL." },
+        "timestamp": { "type": "number", "description": "When the signal was generated." },
+        "outcome": { "type": "string", "enum": ["Win", "Loss", "No Trade", "Pending"], "description": "The result of the trade." },
+        "notes": { "type": "string", "description": "User notes about the trade." },
+        "signalData": { "type": "object", "description": "The full original signal data." }
+      },
+      "required": ["uid", "asset", "signal", "timestamp", "outcome"]
+    }
+  },
+  "firestore": {
+    "/users/{uid}/trades/{tradeId}": {
+      "schema": "Trade",
+      "description": "Collection of trades for a specific user."
+    }
+  }
+}

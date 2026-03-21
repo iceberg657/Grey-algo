@@ -119,7 +119,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onBack, onLogout }) 
                     </div>
                 </header>
 
-                <main className="bg-white/10 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
+                <main className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">
                     <div className="mb-6 text-center">
                         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Premium Trading Tools</h2>
                         <p className="text-sm text-gray-600 dark:text-dark-text-secondary mt-2 max-w-2xl mx-auto">
@@ -130,7 +130,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onBack, onLogout }) 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {PRODUCTS.map((product) => (
-                            <div key={product.id} className="bg-white/5 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-white/10 dark:border-white/5 overflow-hidden hover:border-green-500/50 transition-colors group shadow-inner">
+                            <div key={product.id} className="bg-white/60 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-gray-200 dark:border-white/5 overflow-hidden hover:border-green-500/50 transition-colors group shadow-inner">
                                 <div className="p-6">
                                     <div className="flex justify-between items-start mb-4">
                                         <div className="flex items-center gap-3">
@@ -176,7 +176,7 @@ export const ProductsPage: React.FC<ProductsPageProps> = ({ onBack, onLogout }) 
                                             className={`flex items-center px-4 py-2 rounded-lg text-sm font-bold transition-all transform active:scale-95 backdrop-blur-md border ${
                                                 copiedId === product.id
                                                 ? 'bg-green-500/80 border-green-500/50 text-white shadow-lg shadow-green-500/30'
-                                                : 'bg-white/20 dark:bg-white/10 border-white/30 dark:border-white/20 text-gray-900 dark:text-white hover:bg-white/30 dark:hover:bg-white/20'
+                                                : 'bg-white/80 dark:bg-white/10 border-gray-300 dark:border-white/20 text-gray-900 dark:text-white hover:bg-white dark:hover:bg-white/20'
                                             }`}
                                         >
                                             {copiedId === product.id ? (

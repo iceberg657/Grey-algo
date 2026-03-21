@@ -1,0 +1,6 @@
+39:        className="opacity-0 animate-flip-3d group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 backdrop-blur-md transition-all duration-300 border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]"
+151:        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 pb-20">
+200:                    <p className="mt-3 text-sm font-black text-gray-600 dark:text-dark-text/40 uppercase tracking-[0.4em]">
+235:                        <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-6 sm:p-10 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
+262:            <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-700 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
+268:                        Contact Command: <a href="mailto:ma8138498@gmail.com" className="font-black text-green-600 dark:text-green-400 hover:underline">ma8138498@gmail.com</a>

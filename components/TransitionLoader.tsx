@@ -12,7 +12,7 @@ export const TransitionLoader: React.FC = () => {
     }, []);
 
     return (
-        <div className="fixed inset-0 bg-slate-950 flex flex-col items-center justify-center text-center p-4 z-[9999] animate-fade-in">
+        <div className="fixed inset-0 bg-[var(--dark-bg)] flex flex-col items-center justify-center text-center p-4 z-[9999] animate-fade-in">
             <svg className="h-20 w-20 mx-auto mb-6" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                 <defs>
                     <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">

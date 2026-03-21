@@ -25,7 +25,7 @@ export const PacificTimeClock: React.FC = () => {
 
     return (
         <div className="fixed top-4 left-4 z-[999] pointer-events-none">
-            <div className="bg-black/40 backdrop-blur-md text-white px-3 py-1.5 rounded-lg shadow-lg border border-white/10">
+            <div className="bg-white/95 dark:bg-black/40 backdrop-blur-md text-slate-900 dark:text-white px-3 py-1.5 rounded-lg shadow-lg border border-gray-300 dark:border-white/10">
                 <p className="font-mono text-sm font-bold tracking-wider">{time}</p>
             </div>
         </div>

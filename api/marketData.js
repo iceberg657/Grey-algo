@@ -13,7 +13,7 @@ const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
 const SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'XAU/USD', 'BTC/USD', 'ETH/USD', 'US30', 'NAS100'];
 
-async function fetchFromGemini() {
+export async function fetchFromGemini() {
     for (const apiKey of KEYS) {
         try {
             const ai = new GoogleGenAI({ apiKey });
