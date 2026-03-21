@@ -291,6 +291,27 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         }
     };
 
+    const handlePaste = (e: React.ClipboardEvent) => {
+        const items = e.clipboardData.items;
+        const files: File[] = [];
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                const file = items[i].getAsFile();
+                if (file) files.push(file);
+            }
+        }
+
+        if (files.length > 0) {
+            if (imageFiles.length + files.length > 3) {
+                alert("You can only upload up to 3 images.");
+                return;
+            }
+            setImageFiles(prev => [...prev, ...files]);
+            const newPreviews = files.map(f => URL.createObjectURL(f));
+            setImagePreviews(prev => [...prev, ...newPreviews]);
+        }
+    };
+
     const startCountdown = useCallback((delayMs: number) => {
         if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         let seconds = Math.ceil(delayMs / 1000);
@@ -474,7 +495,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isLoading || retrySeconds > 0} className="p-2 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 disabled:opacity-50 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         </button>
-                        <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder={retrySeconds > 0 ? `Cooling down (${retrySeconds}s)...` : "Ask Oracle..."} disabled={isLoading || retrySeconds > 0} className="flex-grow bg-transparent text-gray-900 dark:text-gray-100 text-base md:text-sm focus:outline-none block w-full placeholder-gray-500 dark:placeholder-gray-600 py-1" />
+                        <input type="text" value={input} onPaste={handlePaste} onChange={(e) => setInput(e.target.value)} placeholder={retrySeconds > 0 ? `Cooling down (${retrySeconds}s)...` : "Ask Oracle..."} disabled={isLoading || retrySeconds > 0} className="flex-grow bg-transparent text-gray-900 dark:text-gray-100 text-base md:text-sm focus:outline-none block w-full placeholder-gray-500 dark:placeholder-gray-600 py-1" />
                         <button type="submit" disabled={isLoading || retrySeconds > 0 || (!input.trim() && imageFiles.length === 0)} className="p-2 w-10 h-10 flex items-center justify-center text-white bg-green-600 rounded-full hover:bg-green-500 disabled:bg-gray-200 dark:disabled:bg-slate-800 disabled:text-gray-400 transition-all shadow-sm">
                            {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>}
                         </button>
