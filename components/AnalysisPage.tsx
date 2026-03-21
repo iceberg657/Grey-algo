@@ -1,5 +1,6 @@
 
 import React from 'react';
+import { motion } from 'framer-motion';
 import { SignalDisplay } from './SignalDisplay';
 import { AnnotatedChart } from './AnnotatedChart';
 import type { SignalData } from '../types';
@@ -26,7 +27,12 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
     const cornerClass = isBuy ? 'border-green-500' : isSell ? 'border-red-500' : 'border-blue-500';
 
     return (
-        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in pb-20">
+        <motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 pb-20"
+        >
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                 <header className="relative mb-12 flex justify-between items-center">
                     <button onClick={onBack} className="group flex items-center text-sm font-black text-gray-700 dark:text-green-400 hover:text-green-300 transition-all uppercase tracking-widest">
@@ -106,6 +112,6 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                     </p>
                  </div>
             </footer>
-        </div>
+        </motion.div>
     );
 };

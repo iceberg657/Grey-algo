@@ -1,5 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { Loader } from './Loader';
 import { ErrorMessage } from './ErrorMessage';
@@ -30,17 +31,19 @@ const NavButton: React.FC<{
     'aria-label': string;
     icon: React.ReactNode;
     label: string;
-    delay: string;
-}> = ({ onClick, 'aria-label': ariaLabel, icon, label, delay }) => (
-    <button
+    index: number;
+}> = ({ onClick, 'aria-label': ariaLabel, icon, label, index }) => (
+    <motion.button
+        initial={{ opacity: 0, rotateY: -90 }}
+        animate={{ opacity: 1, rotateY: 0 }}
+        transition={{ delay: 0.1 + index * 0.05, duration: 0.5 }}
         onClick={onClick}
         aria-label={ariaLabel}
-        style={{ animationDelay: delay }}
-        className="opacity-0 animate-flip-3d group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 backdrop-blur-md transition-all duration-300 border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]"
+        className="group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 backdrop-blur-md transition-all duration-300 border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]"
     >
         {icon}
         <span className="hidden md:inline md:ml-3 text-xs font-black uppercase tracking-widest">{label}</span>
-    </button>
+    </motion.button>
 );
 
 export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToProducts, onNavigateToJournal, onAssetSelect }) => {
@@ -150,18 +153,59 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 pb-20">
             <PacificTimeClock />
-            {isLoading && (
-                <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-[100] animate-fade-in">
-                    <Loader />
-                </div>
-            )}
+            <AnimatePresence>
+                {isLoading && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-[100]"
+                    >
+                        <Loader />
+                    </motion.div>
+                )}
+            </AnimatePresence>
             
-            {showRiskCalc && <RiskCalculator onClose={() => setShowRiskCalc(false)} />}
-            {showCheatSheet && <CheatSheet onClose={() => setShowCheatSheet(false)} />}
-            {showSettings && <SettingsModal onClose={() => setShowSettings(false)} />}
+            <AnimatePresence>
+                {showRiskCalc && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="fixed inset-0 z-[110]"
+                    >
+                        <RiskCalculator onClose={() => setShowRiskCalc(false)} />
+                    </motion.div>
+                )}
+                {showCheatSheet && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="fixed inset-0 z-[110]"
+                    >
+                        <CheatSheet onClose={() => setShowCheatSheet(false)} />
+                    </motion.div>
+                )}
+                {showSettings && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="fixed inset-0 z-[110]"
+                    >
+                        <SettingsModal onClose={() => setShowSettings(false)} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
-            <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col perspective-1000">
-                <header className="text-center mb-10 relative opacity-0 animate-flip-3d" style={{ animationDelay: '30ms' }}>
+            <motion.div 
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5 }}
+                className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col perspective-1000"
+            >
+                <header className="text-center mb-10 relative">
                      <div className="absolute top-0 right-0 flex items-center gap-2">
                         <ThemeToggleButton />
                     </div>
@@ -210,13 +254,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                             aria-label={item.ariaLabel}
                             icon={item.icon}
                             label={item.label}
-                            delay={`${60 + (idx * 30)}ms`}
+                            index={idx}
                         />
                     ))}
                 </nav>
 
                 <main className="relative group">
-                   <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '150ms' }}>
+                   <div>
                        <MarketOverview 
                             analysisCount={analysisCount} 
                             onResetCount={handleResetAnalysisCount} 
@@ -225,7 +269,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                        />
                    </div>
 
-                   <div className="opacity-0 animate-flip-3d relative" style={{ animationDelay: '250ms' }}>
+                   <div>
                         {/* High-Tech HUD Brackets for Form */}
                         <div className="absolute -top-3 -left-3 w-10 h-10 border-t-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:-translate-y-1"></div>
                         <div className="absolute -top-3 -right-3 w-10 h-10 border-t-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:-translate-y-1"></div>
@@ -258,7 +302,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                         </div>
                    </div>
                 </main>
-            </div>
+            </motion.div>
             <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-700 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
                 <div className="flex flex-col items-center">
                     <p className="max-w-xl mx-auto opacity-70">

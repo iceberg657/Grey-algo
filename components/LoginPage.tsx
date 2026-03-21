@@ -11,7 +11,7 @@ interface LoginPageProps {
 }
 
 export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogin }) => {
-    const { loginWithGoogle, loginWithEmail } = useAuth();
+    const { loginWithGoogle, loginWithEmail, resetPassword } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
 
@@ -45,6 +45,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                 errorMessage = error.message;
             }
             alert(`Email login failed: ${errorMessage}`);
+        }
+    };
+
+    const handleForgotPassword = async () => {
+        if (!email) {
+            alert('Please enter your email address first.');
+            return;
+        }
+        try {
+            await resetPassword(email);
+            alert('Password reset email sent! Please check your inbox.');
+        } catch (error: any) {
+            console.error('Password reset failed:', error);
+            alert(`Failed to send reset email: ${error.message || 'Please try again later.'}`);
         }
     };
 
@@ -108,6 +122,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                             className="w-full p-2.5 rounded-lg bg-white/90 dark:bg-white/5 border border-gray-300 dark:border-white/10 text-slate-900 dark:text-dark-text placeholder-slate-500"
                             required
                         />
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={handleForgotPassword}
+                                className="text-xs font-bold text-green-600 dark:text-green-400 hover:underline focus:outline-none"
+                            >
+                                Forgot Password?
+                            </button>
+                        </div>
                         <button type="submit" className="w-full bg-green-600 hover:bg-green-500 text-white p-3 rounded-lg font-bold transition-colors shadow-lg">
                             Login with Email
                         </button>

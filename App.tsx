@@ -19,6 +19,7 @@ import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
+import { AnimatePresence, motion } from 'framer-motion';
 
 type AuthPage = 'login' | 'signup';
 type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal';
@@ -222,13 +223,28 @@ const App: React.FC = () => {
 
     // 1. API Key Initialization Check
     if ((!isApiKeyInitialized || loading) && !error) {
-        return <div className="flex items-center justify-center min-h-screen bg-[#0f172a]">
-            <Loader />
-        </div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen bg-[#0f172a]">
+                <Loader />
+            </div>
+        );
     }
 
     if (error) {
-        return <div className="flex items-center justify-center min-h-screen text-lg text-red-500">Error: {error}</div>;
+        return (
+            <div className="flex items-center justify-center min-h-screen text-lg text-red-500 bg-[#0f172a]">
+                <div className="text-center p-8 bg-white/10 backdrop-blur-md rounded-2xl border border-white/20">
+                    <h2 className="text-2xl font-bold mb-4">Initialization Error</h2>
+                    <p>{error}</p>
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold transition-colors"
+                    >
+                        Retry
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     // 2. Transition Loader
@@ -238,15 +254,46 @@ const App: React.FC = () => {
 
     // 3. Landing Page
     if (appView === 'landing') {
-        return <LandingPage onEnterApp={handleEnterApp} />;
+        // Prevent glimpse of landing page if user is already logged in
+        if (isLoggedIn) {
+            return (
+                <div className="flex items-center justify-center min-h-screen bg-[#0f172a]">
+                    <Loader />
+                </div>
+            );
+        }
+        return (
+            <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.5 }}
+            >
+                <LandingPage onEnterApp={handleEnterApp} />
+            </motion.div>
+        );
     }
 
     // 4. Auth Pages
     if (!isLoggedIn) {
-        if (authPage === 'signup') {
-            return <SignUpPage onSignUp={handleSignUp} onNavigateToLogin={() => setAuthPage('login')} />;
-        }
-        return <LoginPage onLogin={handleLogin} onNavigateToSignUp={() => setAuthPage('signup')} />;
+        return (
+            <AnimatePresence mode="wait">
+                <motion.div
+                    key={authPage}
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: -20 }}
+                    transition={{ duration: 0.3 }}
+                    className="min-h-screen"
+                >
+                    {authPage === 'signup' ? (
+                        <SignUpPage onSignUp={handleSignUp} onNavigateToLogin={() => setAuthPage('login')} />
+                    ) : (
+                        <LoginPage onLogin={handleLogin} onNavigateToSignUp={() => setAuthPage('signup')} />
+                    )}
+                </motion.div>
+            </AnimatePresence>
+        );
     }
 
     // 4. Main App Logic
@@ -350,7 +397,17 @@ const App: React.FC = () => {
         <ErrorBoundary>
             <AutoLearningManager />
             <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
-                {content}
+                <AnimatePresence mode="wait">
+                    <motion.div
+                        key={appView}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                    >
+                        {content}
+                    </motion.div>
+                </AnimatePresence>
             </div>
         </ErrorBoundary>
     );
