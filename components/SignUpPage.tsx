@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import { NeuralBackground } from './NeuralBackground';
 import { useAuth } from '../hooks/useAuth';
 
 interface SignUpPageProps {
@@ -36,6 +37,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
 
     return (
         <div className="min-h-screen text-slate-900 dark:text-dark-text font-sans flex flex-col items-center justify-center animate-fade-in relative">
+             <NeuralBackground />
              <div className="absolute top-4 right-4">
                 <ThemeToggleButton />
             </div>

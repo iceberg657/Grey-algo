@@ -39,7 +39,7 @@ const landingPageCss = `
     --border-color-light: #94a3b8;
 }
 .landing-body {
-    background: var(--dark-bg);
+    background: transparent;
     color: var(--text-light);
     overflow-x: hidden;
     scroll-behavior: smooth;
@@ -624,7 +624,8 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
     return (
         <>
             <style>{landingPageCss}</style>
-            <div>
+            <div className="relative min-h-screen bg-[#0f172a] dark:bg-[#0f172a] transition-colors duration-300">
+                <NeuralBackground />
                 <div className="loader" id="loader">
                     <div className="loader-spinner"></div>
                 </div>

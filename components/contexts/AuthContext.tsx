@@ -12,6 +12,7 @@ import { auth } from '../../firebase';
 
 interface AuthContextType {
     isLoggedIn: boolean;
+    loading: boolean;
     user: User | null;
     loginWithGoogle: () => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<void>;
@@ -24,11 +25,13 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
             setUser(currentUser);
             setIsLoggedIn(!!currentUser);
+            setLoading(false);
         });
         return () => unsubscribe();
     }, []);
@@ -61,7 +64,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, user, loginWithGoogle, loginWithEmail, signUpWithEmail, logout }}>
+        <AuthContext.Provider value={{ isLoggedIn, loading, user, loginWithGoogle, loginWithEmail, signUpWithEmail, logout }}>
             {children}
         </AuthContext.Provider>
     );

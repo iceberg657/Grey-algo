@@ -92,12 +92,18 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const App: React.FC = () => {
-    const { isLoggedIn, login, logout } = useAuth();
+    const { isLoggedIn, loading, login, logout } = useAuth();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
-    const [appView, setAppView] = useState<AppView>(isLoggedIn ? 'home' : 'landing');
+    const [appView, setAppView] = useState<AppView>('landing');
     const [analysisData, setAnalysisData] = useState<{ data: SignalData, image: string | null } | null>(null);
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (!loading) {
+            setAppView(isLoggedIn ? 'home' : 'landing');
+        }
+    }, [isLoggedIn, loading]);
     
     const [isApiKeyInitialized, setIsApiKeyInitialized] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -217,8 +223,10 @@ const App: React.FC = () => {
     // --- Render Logic ---
 
     // 1. API Key Initialization Check
-    if (!isApiKeyInitialized && !error) {
-        return <div className="flex items-center justify-center min-h-screen text-lg text-gray-400">Initializing API Key...</div>;
+    if ((!isApiKeyInitialized || loading) && !error) {
+        return <div className="flex items-center justify-center min-h-screen bg-[#0f172a]">
+            <Loader />
+        </div>;
     }
 
     if (error) {
@@ -342,7 +350,6 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
-            <NeuralBackground />
             <AutoLearningManager />
             <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
                 {content}
