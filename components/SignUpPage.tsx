@@ -26,12 +26,28 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
 
     const handleEmailSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (password.length < 6) {
+            alert('Password must be at least 6 characters long.');
+            return;
+        }
         try {
             await signUpWithEmail(email, password);
             onSignUp();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Email sign up failed:', error);
-            alert('Email sign up failed. Please check your details.');
+            let errorMessage = 'Please check your details.';
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage = 'This email is already in use. Please try another one.';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'The email address is not valid.';
+            } else if (error.code === 'auth/operation-not-allowed') {
+                errorMessage = 'Email/Password authentication is not enabled in the Firebase console.';
+            } else if (error.code === 'auth/weak-password') {
+                errorMessage = 'The password is too weak.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            alert(`Email sign up failed: ${errorMessage}`);
         }
     };
 

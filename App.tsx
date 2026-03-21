@@ -92,7 +92,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const App: React.FC = () => {
-    const { isLoggedIn, loading, login, logout } = useAuth();
+    const { isLoggedIn, loading, logout } = useAuth();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
     const [appView, setAppView] = useState<AppView>('landing');
     const [analysisData, setAnalysisData] = useState<{ data: SignalData, image: string | null } | null>(null);
@@ -150,14 +150,12 @@ const App: React.FC = () => {
         resetChatService();
     };
 
-    const handleLogin = async () => {
-        await login();
-        navigateTo('home');
+    const handleLogin = () => {
+        // Navigation is handled by the useEffect watching isLoggedIn
     };
     
-    const handleSignUp = async () => {
-        await login();
-        navigateTo('home');
+    const handleSignUp = () => {
+        // Navigation is handled by the useEffect watching isLoggedIn
     };
 
     const handleLogout = async () => {

@@ -30,9 +30,21 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
         try {
             await loginWithEmail(email, password);
             onLogin();
-        } catch (error) {
+        } catch (error: any) {
             console.error('Email login failed:', error);
-            alert('Email login failed. Please check your credentials.');
+            let errorMessage = 'Please check your credentials.';
+            if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+                errorMessage = 'Invalid email or password.';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage = 'The email address is not valid.';
+            } else if (error.code === 'auth/user-disabled') {
+                errorMessage = 'This user account has been disabled.';
+            } else if (error.code === 'auth/too-many-requests') {
+                errorMessage = 'Too many failed login attempts. Please try again later.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            }
+            alert(`Email login failed: ${errorMessage}`);
         }
     };
 
