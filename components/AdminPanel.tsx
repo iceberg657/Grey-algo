@@ -11,7 +11,7 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
-    const [stats, setStats] = useState<{ totalTrades: number; totalUsers: number } | null>(null);
+    const [stats, setStats] = useState<{ totalTrades: number; totalUsers: number }>({ totalTrades: 0, totalUsers: 0 });
     const [recentStrategies, setRecentStrategies] = useState<GlobalStrategy[]>([]);
     const [users, setUsers] = useState<UserMetadata[]>([]);
     const [systemSettings, setSystemSettings] = useState<{ maintenanceMode: boolean; chatLocked: boolean }>({ maintenanceMode: false, chatLocked: false });
@@ -19,22 +19,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     const [broadcastMsg, setBroadcastMsg] = useState('');
     const [isSending, setIsSending] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'strategies'>('overview');
+    const [error, setError] = useState<Error | null>(null);
+
+    if (error) throw error;
 
     useEffect(() => {
         // Real-time users listener
         const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
             const usersData = snapshot.docs.map(doc => ({ uid: doc.id, ...doc.data() } as UserMetadata));
             setUsers(usersData);
-            setStats(prev => ({ ...prev!, totalUsers: usersData.length }));
-        }, (error) => {
-            handleFirestoreError(error, OperationType.LIST, 'users');
+            setStats(prev => ({ ...prev, totalUsers: usersData.length }));
+        }, (err) => {
+            setIsLoading(false);
+            try {
+                handleFirestoreError(err, OperationType.LIST, 'users');
+            } catch (e) {
+                setError(e as Error);
+            }
         });
 
         // Real-time strategies listener
         const unsubscribeStrategies = onSnapshot(query(collection(db, 'global_strategies'), orderBy('timestamp', 'desc'), limit(10)), (snapshot) => {
             setRecentStrategies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GlobalStrategy)));
-        }, (error) => {
-            handleFirestoreError(error, OperationType.LIST, 'global_strategies');
+        }, (err) => {
+            try {
+                handleFirestoreError(err, OperationType.LIST, 'global_strategies');
+            } catch (e) {
+                setError(e as Error);
+            }
         });
 
         // Real-time system settings listener
@@ -54,7 +66,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         const fetchStats = async () => {
             try {
                 const strategiesSnapshot = await getDocs(collection(db, 'global_strategies'));
-                setStats(prev => ({ ...prev!, totalTrades: strategiesSnapshot.size * 15 })); // Proxy multiplier
+                setStats(prev => ({ ...prev, totalTrades: strategiesSnapshot.size * 15 })); // Proxy multiplier
             } catch (error) {
                 console.error("Error fetching stats:", error);
             } finally {

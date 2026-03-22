@@ -70,8 +70,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
     const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+
+    if (criticalError) throw criticalError;
 
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
@@ -109,8 +112,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             });
             
             setBroadcasts(validBroadcasts);
-        }, (error) => {
-            handleFirestoreError(error, OperationType.LIST, path);
+        }, (err) => {
+            try {
+                handleFirestoreError(err, OperationType.LIST, path);
+            } catch (e) {
+                setCriticalError(e as Error);
+            }
         });
         return () => unsubscribe();
     }, []);

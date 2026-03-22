@@ -9,7 +9,7 @@ import {
     sendPasswordResetEmail,
     createUserWithEmailAndPassword 
 } from 'firebase/auth';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, onSnapshot, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db, handleFirestoreError, OperationType } from '../../firebase';
 import { UserMetadata } from '../../types';
 
@@ -32,6 +32,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [userMetadata, setUserMetadata] = useState<UserMetadata | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<Error | null>(null);
+
+    if (error) throw error;
 
     useEffect(() => {
         let unsubscribeMeta: (() => void) | undefined;
@@ -52,6 +55,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             alert("Your terminal access has been revoked by central command.");
                             return;
                         }
+
+                        // Ensure admin role is set if email matches
+                        if (currentUser.email === 'ma8138498@gmail.com' && data.role !== 'admin') {
+                            await updateDoc(userRef, { role: 'admin' });
+                        }
                         
                         setUserMetadata(data);
                     } else {
@@ -70,9 +78,13 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         setUserMetadata(initialMeta);
                     }
                     setLoading(false);
-                }, (error) => {
-                    handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
+                }, (err) => {
                     setLoading(false);
+                    try {
+                        handleFirestoreError(err, OperationType.GET, `users/${currentUser.uid}`);
+                    } catch (e) {
+                        setError(e as Error);
+                    }
                 });
             } else {
                 setUserMetadata(null);
