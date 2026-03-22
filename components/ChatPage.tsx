@@ -159,6 +159,7 @@ interface ChatPageProps {
     onNewChat: () => void;
     initialInput?: string | null;
     onClearInitialInput?: () => void;
+    isLocked?: boolean;
 }
 
 const OracleLogo: React.FC = () => (
@@ -195,7 +196,7 @@ const getModelSymbol = (modelName: string) => {
     return 'Σ'; 
 };
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput }) => {
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput, isLocked }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -412,6 +413,34 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     return (
         <div className="h-[100dvh] bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col relative overflow-hidden">
             <NeuralBackground />
+            
+            {isLocked && (
+                <div className="absolute inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6 text-center">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-slate-900 border border-white/10 p-10 rounded-3xl max-w-sm w-full shadow-2xl"
+                    >
+                        <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/30">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-4">Neural Link Offline</h2>
+                        <p className="text-slate-400 text-sm mb-8">
+                            The Oracle AI neural interface has been temporarily restricted by Command. 
+                            Please check back later.
+                        </p>
+                        <button 
+                            onClick={onBack}
+                            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all"
+                        >
+                            Return to Base
+                        </button>
+                    </motion.div>
+                </div>
+            )}
+
             <header className="flex-shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 z-10">
                 <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">

@@ -9,6 +9,7 @@ import { HistoryPage } from './components/HistoryPage';
 import { ChatPage } from './components/ChatPage';
 import { ProductsPage } from './components/ProductsPage';
 import { AdminPanel } from './components/AdminPanel';
+import { AutoTradePage } from './components/AutoTradePage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';
@@ -21,9 +22,12 @@ import { Loader } from './components/Loader';
 import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
 import { AnimatePresence, motion } from 'framer-motion';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db, handleFirestoreError, OperationType } from './firebase';
+import type { AdminSettings } from './types';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -94,12 +98,29 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 }
 
 const App: React.FC = () => {
-    const { isLoggedIn, loading, logout } = useAuth();
+    const { isLoggedIn, loading, logout, userMetadata } = useAuth();
     const [authPage, setAuthPage] = useState<AuthPage>('login');
     const [appView, setAppView] = useState<AppView>('landing');
     const [analysisData, setAnalysisData] = useState<{ data: SignalData, image: string | null } | null>(null);
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
+    const [systemSettings, setSystemSettings] = useState<AdminSettings | null>(null);
+
+    useEffect(() => {
+        const path = 'admin_settings/system';
+        const unsubscribe = onSnapshot(doc(db, 'admin_settings', 'system'), (snapshot) => {
+            if (snapshot.exists()) {
+                setSystemSettings(snapshot.data() as AdminSettings);
+            }
+        }, (error) => {
+            if (error.code === 'permission-denied') {
+                console.warn("System settings access denied (likely unauthenticated).");
+            } else {
+                handleFirestoreError(error, OperationType.GET, path);
+            }
+        });
+        return () => unsubscribe();
+    }, []);
 
     useEffect(() => {
         if (!loading) {
@@ -202,6 +223,10 @@ const App: React.FC = () => {
         navigateTo('admin');
     };
 
+    const handleNavigateToAutoTrade = () => {
+        navigateTo('autotrade');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         navigateTo(previousView); 
@@ -255,6 +280,37 @@ const App: React.FC = () => {
     // 2. Transition Loader
     if (isTransitioning) {
         return <TransitionLoader />;
+    }
+
+    // 2.5 Maintenance Mode
+    if (systemSettings?.maintenanceMode && userMetadata?.role !== 'admin') {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-screen bg-slate-950 text-white p-6 text-center">
+                <div className="bg-slate-900/50 border border-white/10 p-10 rounded-3xl max-w-md w-full shadow-2xl backdrop-blur-xl">
+                    <div className="w-20 h-20 bg-orange-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-orange-500/30">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-10 w-10 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                        </svg>
+                    </div>
+                    <h1 className="text-3xl font-black uppercase tracking-tighter italic mb-4">Neural Maintenance</h1>
+                    <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+                        The GreyAlpha core is currently undergoing a scheduled neural recalibration. 
+                        Access will be restored shortly.
+                    </p>
+                    <div className="h-1 w-full bg-slate-800 rounded-full overflow-hidden">
+                        <motion.div 
+                            initial={{ x: '-100%' }}
+                            animate={{ x: '100%' }}
+                            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                            className="h-full w-1/3 bg-green-500"
+                        />
+                    </div>
+                    <p className="mt-6 text-[10px] font-black uppercase tracking-[0.3em] opacity-30">
+                        System Status: Recalibrating
+                    </p>
+                </div>
+            </div>
+        );
     }
 
     // 3. Landing Page
@@ -315,7 +371,9 @@ const App: React.FC = () => {
                     onNavigateToProducts={handleNavigateToProducts}
                     onNavigateToJournal={handleNavigateToJournal}
                     onNavigateToAdmin={handleNavigateToAdmin}
+                    onNavigateToAutoTrade={handleNavigateToAutoTrade}
                     onAssetSelect={handleAssetSelect}
+                    userMetadata={userMetadata}
                 />
             );
             break;
@@ -329,6 +387,7 @@ const App: React.FC = () => {
                     onNewChat={handleNewChat}
                     initialInput={pendingChatQuery}
                     onClearInitialInput={() => setPendingChatQuery(null)}
+                    isLocked={systemSettings?.chatLocked && userMetadata?.role !== 'admin'}
                 />
             );
             break;
@@ -346,6 +405,7 @@ const App: React.FC = () => {
                 <ProductsPage 
                     onBack={handleNavigateToHome} 
                     onLogout={handleLogout}
+                    userMetadata={userMetadata}
                 />
             );
             break;
@@ -386,6 +446,7 @@ const App: React.FC = () => {
                         image={analysisData.image}
                         onBack={handleBackFromAnalysis} 
                         onLogout={handleLogout}
+                        userMetadata={userMetadata}
                     />
                 );
             }
@@ -393,6 +454,14 @@ const App: React.FC = () => {
         case 'admin':
             content = (
                 <AdminPanel onBack={handleNavigateToHome} />
+            );
+            break;
+        case 'autotrade':
+            content = (
+                <AutoTradePage 
+                    onBack={handleNavigateToHome} 
+                    userMetadata={userMetadata}
+                />
             );
             break;
         default:

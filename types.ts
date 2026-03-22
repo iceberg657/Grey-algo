@@ -241,3 +241,29 @@ export interface ChatMessage {
     text: string;
     images?: string[]; // Data URL for rendering
 }
+
+export interface UserMetadata {
+    uid: string;
+    email: string;
+    role: 'user' | 'admin';
+    analysisCount: number;
+    isRevoked?: boolean;
+    access: {
+        autoTrade: 'locked' | 'pending' | 'granted';
+        products: 'locked' | 'pending' | 'granted';
+    };
+    createdAt: number;
+}
+
+export interface Broadcast {
+    id?: string;
+    message: string;
+    timestamp: number;
+    active: boolean;
+}
+
+export interface AdminSettings {
+    maintenanceMode: boolean;
+    chatLocked: boolean;
+    updatedAt: number;
+}

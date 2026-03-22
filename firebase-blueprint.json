@@ -33,12 +33,38 @@
       "type": "object",
       "properties": {
         "maintenanceMode": { "type": "boolean", "description": "Whether the app is in maintenance mode." },
+        "chatLocked": { "type": "boolean", "description": "Whether the chat feature is locked." },
         "broadcastMessage": { "type": "string", "description": "A message to show to all users." },
         "updatedAt": { "type": "number", "description": "Last update timestamp." }
       }
+    },
+    "User": {
+      "title": "User",
+      "description": "User metadata and access control.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "role": { "type": "string", "enum": ["user", "admin"] },
+        "analysisCount": { "type": "number" },
+        "isRevoked": { "type": "boolean" },
+        "access": {
+          "type": "object",
+          "properties": {
+            "autoTrade": { "type": "string", "enum": ["locked", "pending", "granted"] },
+            "products": { "type": "string", "enum": ["locked", "pending", "granted"] }
+          }
+        },
+        "createdAt": { "type": "number" }
+      },
+      "required": ["uid", "email", "role"]
     }
   },
   "firestore": {
+    "/users/{uid}": {
+      "schema": "User",
+      "description": "User profile and access data."
+    },
     "/users/{uid}/trades/{tradeId}": {
       "schema": "Trade",
       "description": "Collection of trades for a specific user."

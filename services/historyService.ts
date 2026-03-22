@@ -1,6 +1,6 @@
 
 import type { SignalData, Trade } from '../types';
-import { db, auth } from '../firebase';
+import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 
 const HISTORY_KEY = 'analysisHistory';
@@ -12,6 +12,7 @@ const HISTORY_KEY = 'analysisHistory';
 export const getHistory = async (): Promise<SignalData[]> => {
     // If logged in, fetch from Firestore trades
     if (auth.currentUser) {
+        const path = `users/${auth.currentUser.uid}/trades`;
         try {
             const tradesRef = collection(db, 'users', auth.currentUser.uid, 'trades');
             const q = query(tradesRef, orderBy('timestamp', 'desc'));
@@ -22,7 +23,7 @@ export const getHistory = async (): Promise<SignalData[]> => {
                 timestamp: doc.data().timestamp
             }));
         } catch (e) {
-            console.error("Firestore history fetch failed:", e);
+            handleFirestoreError(e, OperationType.LIST, path);
         }
     }
 
@@ -51,6 +52,7 @@ export const saveAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>): 
     };
 
     if (auth.currentUser) {
+        const path = `users/${auth.currentUser.uid}/trades`;
         try {
             const tradesRef = collection(db, 'users', auth.currentUser.uid, 'trades');
             const docRef = await addDoc(tradesRef, {
@@ -63,7 +65,7 @@ export const saveAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>): 
             });
             newEntry.id = docRef.id;
         } catch (e) {
-            console.error("Firestore save failed:", e);
+            handleFirestoreError(e, OperationType.CREATE, path);
         }
     }
 
@@ -80,11 +82,12 @@ export const saveAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>): 
  */
 export const updateTradeOutcome = async (tradeId: string, outcome: 'Win' | 'Loss' | 'No Trade'): Promise<void> => {
     if (!auth.currentUser) return;
+    const path = `users/${auth.currentUser.uid}/trades/${tradeId}`;
     try {
         const tradeRef = doc(db, 'users', auth.currentUser.uid, 'trades', tradeId);
         await updateDoc(tradeRef, { outcome });
     } catch (e) {
-        console.error("Failed to update outcome:", e);
+        handleFirestoreError(e, OperationType.UPDATE, path);
     }
 };
 

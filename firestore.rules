@@ -31,7 +31,16 @@ service cloud.firestore {
       allow create, update: if isAdmin();
     }
 
+    match /admin_settings/system {
+      allow read: if true;
+    }
+
     match /admin_settings/{settingId} {
+      allow read: if isAuthenticated();
+      allow write: if isAdmin();
+    }
+
+    match /broadcasts/{broadcastId} {
       allow read: if isAuthenticated();
       allow write: if isAdmin();
     }

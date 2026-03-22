@@ -5,7 +5,7 @@ import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { Loader } from './Loader';
 import { ErrorMessage } from './ErrorMessage';
 import { generateTradingSignal } from '../services/geminiService';
-import type { SignalData, AnalysisRequest, UserSettings } from '../types';
+import type { SignalData, AnalysisRequest, UserSettings, UserMetadata, Broadcast } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { MarketOverview } from './MarketOverview';
 import { getAnalysisCount, incrementAnalysisCount, resetAnalysisCount } from '../services/analysisCountService';
@@ -15,7 +15,8 @@ import { SettingsModal } from './SettingsModal';
 import { PacificTimeClock } from './PacificTimeClock';
 import { resetNeuralLanes } from '../services/retryUtils';
 import { getLearnedStrategies } from '../services/learningService';
-import { auth } from '../firebase';
+import { auth, db, handleFirestoreError, OperationType } from '../firebase';
+import { collection, query, where, orderBy, limit, onSnapshot, updateDoc, doc } from 'firebase/firestore';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -25,7 +26,9 @@ interface HomePageProps {
     onNavigateToProducts: () => void; 
     onNavigateToJournal: () => void;
     onNavigateToAdmin: () => void;
+    onNavigateToAutoTrade: () => void;
     onAssetSelect?: (asset: string) => void;
+    userMetadata: UserMetadata | null;
 }
 
 const NavButton: React.FC<{
@@ -34,37 +37,73 @@ const NavButton: React.FC<{
     icon: React.ReactNode;
     label: string;
     index: number;
-}> = ({ onClick, 'aria-label': ariaLabel, icon, label, index }) => (
+    highlight?: boolean;
+}> = ({ onClick, 'aria-label': ariaLabel, icon, label, index, highlight }) => (
     <motion.button
         initial={{ opacity: 0, rotateY: -90 }}
         animate={{ opacity: 1, rotateY: 0 }}
         transition={{ delay: 0.1 + index * 0.05, duration: 0.5 }}
         onClick={onClick}
         aria-label={ariaLabel}
-        className="group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 backdrop-blur-md transition-all duration-300 border border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50 hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)]"
+        className={`group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl transition-all duration-300 border backdrop-blur-md hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] ${
+            highlight 
+                ? 'bg-green-600 text-white border-green-500 hover:bg-green-500' 
+                : 'text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50'
+        }`}
     >
         {icon}
         <span className="hidden md:inline md:ml-3 text-xs font-black uppercase tracking-widest">{label}</span>
     </motion.button>
 );
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToProducts, onNavigateToJournal, onNavigateToAdmin, onAssetSelect }) => {
+export const HomePage: React.FC<HomePageProps> = ({ 
+    onLogout, 
+    onAnalysisComplete, 
+    onNavigateToHistory, 
+    onNavigateToChat, 
+    onNavigateToProducts, 
+    onNavigateToJournal, 
+    onNavigateToAdmin, 
+    onNavigateToAutoTrade,
+    onAssetSelect,
+    userMetadata 
+}) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
+    const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
 
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
     const [showSettings, setShowSettings] = useState<boolean>(false);
 
     useEffect(() => {
-        setAnalysisCount(getAnalysisCount());
+        setAnalysisCount(userMetadata?.analysisCount || getAnalysisCount());
+    }, [userMetadata]);
+
+    useEffect(() => {
+        const path = 'broadcasts';
+        const q = query(
+            collection(db, 'broadcasts'),
+            where('active', '==', true),
+            orderBy('timestamp', 'desc'),
+            limit(1)
+        );
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            setBroadcasts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Broadcast)));
+        }, (error) => {
+            handleFirestoreError(error, OperationType.LIST, path);
+        });
+        return () => unsubscribe();
     }, []);
 
     const handleResetAnalysisCount = useCallback(() => {
         resetAnalysisCount();
         setAnalysisCount(0);
-    }, []);
+        if (userMetadata) {
+            updateDoc(doc(db, 'users', userMetadata.uid), { analysisCount: 0 });
+        }
+    }, [userMetadata]);
 
     const handleReconnect = () => {
         resetNeuralLanes(); // Fixes "Failed to fetch" by clearing retry blocks
@@ -97,6 +136,11 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             const data = await generateTradingSignal(fullRequest);
             const newCount = incrementAnalysisCount();
             setAnalysisCount(newCount);
+            
+            if (userMetadata) {
+                await updateDoc(doc(db, 'users', userMetadata.uid), { analysisCount: newCount });
+            }
+
             onAnalysisComplete(data, primaryImageDataUrl);
         } catch (err) {
             console.error(err);
@@ -104,10 +148,10 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
         } finally {
             setIsLoading(false);
         }
-    }, [onAnalysisComplete]);
+    }, [onAnalysisComplete, userMetadata]);
     
     const iconClasses = "h-5 w-5 group-hover:rotate-12 transition-transform";
-    const isAdmin = auth.currentUser?.email === 'ma8138498@gmail.com';
+    const isAdmin = userMetadata?.role === 'admin';
 
     const navItems = [
         {
@@ -115,6 +159,13 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             label: 'Chat',
             ariaLabel: 'Open Oracle Chat',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+        },
+        {
+            onClick: onNavigateToAutoTrade,
+            label: 'Auto Trade',
+            ariaLabel: 'Open Auto Trade Terminal',
+            highlight: true,
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
         },
         ...(isAdmin ? [{
             onClick: onNavigateToAdmin,
@@ -163,6 +214,27 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 pb-20">
             <PacificTimeClock />
+            
+            {/* Broadcast Banner */}
+            <AnimatePresence>
+                {broadcasts.length > 0 && (
+                    <motion.div 
+                        initial={{ y: -100 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: -100 }}
+                        className="fixed top-0 left-0 right-0 z-[120] bg-green-600 text-white py-2 px-4 shadow-lg flex items-center justify-center gap-4"
+                    >
+                        <span className="animate-pulse w-2 h-2 bg-white rounded-full"></span>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-center">
+                            SYSTEM BROADCAST: {broadcasts[0].message}
+                        </p>
+                        <span className="text-[8px] opacity-70 font-mono">
+                            {new Date(broadcasts[0].timestamp).toLocaleTimeString()}
+                        </span>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <AnimatePresence>
                 {isLoading && (
                     <motion.div 
@@ -213,7 +285,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5 }}
-                className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col perspective-1000"
+                className={`w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col perspective-1000 ${broadcasts.length > 0 ? 'pt-16' : ''}`}
             >
                 <header className="text-center mb-10 relative">
                      <div className="absolute top-0 right-0 flex items-center gap-2">
@@ -265,6 +337,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
                             icon={item.icon}
                             label={item.label}
                             index={idx}
+                            highlight={item.highlight}
                         />
                     ))}
                 </nav>
@@ -326,3 +399,6 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
         </div>
     );
 };
+
+export default HomePage;
+

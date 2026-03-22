@@ -9,12 +9,15 @@ import {
     sendPasswordResetEmail,
     createUserWithEmailAndPassword 
 } from 'firebase/auth';
-import { auth } from '../../firebase';
+import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { auth, db, handleFirestoreError, OperationType } from '../../firebase';
+import { UserMetadata } from '../../types';
 
 interface AuthContextType {
     isLoggedIn: boolean;
     loading: boolean;
     user: User | null;
+    userMetadata: UserMetadata | null;
     loginWithGoogle: () => Promise<void>;
     loginWithEmail: (email: string, password: string) => Promise<void>;
     signUpWithEmail: (email: string, password: string) => Promise<void>;
@@ -26,16 +29,61 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [user, setUser] = useState<User | null>(null);
+    const [userMetadata, setUserMetadata] = useState<UserMetadata | null>(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+        let unsubscribeMeta: (() => void) | undefined;
+
+        const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
             setUser(currentUser);
             setIsLoggedIn(!!currentUser);
-            setLoading(false);
+            
+            if (currentUser) {
+                const userRef = doc(db, 'users', currentUser.uid);
+                
+                unsubscribeMeta = onSnapshot(userRef, async (docSnap) => {
+                    if (docSnap.exists()) {
+                        const data = docSnap.data() as UserMetadata;
+                        
+                        if (data.isRevoked) {
+                            await signOut(auth);
+                            alert("Your terminal access has been revoked by central command.");
+                            return;
+                        }
+                        
+                        setUserMetadata(data);
+                    } else {
+                        const initialMeta: UserMetadata = {
+                            uid: currentUser.uid,
+                            email: currentUser.email || '',
+                            role: currentUser.email === 'ma8138498@gmail.com' ? 'admin' : 'user',
+                            analysisCount: 0,
+                            access: {
+                                autoTrade: 'locked',
+                                products: 'locked'
+                            },
+                            createdAt: Date.now()
+                        };
+                        await setDoc(userRef, initialMeta);
+                        setUserMetadata(initialMeta);
+                    }
+                    setLoading(false);
+                }, (error) => {
+                    handleFirestoreError(error, OperationType.GET, `users/${currentUser.uid}`);
+                    setLoading(false);
+                });
+            } else {
+                setUserMetadata(null);
+                setLoading(false);
+            }
         });
-        return () => unsubscribe();
+
+        return () => {
+            unsubscribeAuth();
+            if (unsubscribeMeta) unsubscribeMeta();
+        };
     }, []);
 
     const loginWithGoogle = async () => {
@@ -75,7 +123,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, loading, user, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword, logout }}>
+        <AuthContext.Provider value={{ isLoggedIn, loading, user, userMetadata, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword, logout }}>
             {children}
         </AuthContext.Provider>
     );
