@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
-import { collection, getDocs, query, orderBy, limit, addDoc, updateDoc, doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { collection, getDocs, query, orderBy, limit, addDoc, updateDoc, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 import { Trade, GlobalStrategy, UserMetadata, Broadcast } from '../types';
 import { Loader } from './Loader';
 
@@ -63,10 +63,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         };
 
         fetchStats();
+
+        // Broadcast cleanup listener for Admin Panel
+        const qBroadcasts = query(collection(db, 'broadcasts'), where('active', '==', true));
+        const unsubscribeBroadcasts = onSnapshot(qBroadcasts, (snapshot) => {
+            const now = Date.now();
+            snapshot.docs.forEach(async (docSnap) => {
+                const data = docSnap.data();
+                if (now - data.timestamp > 60000) {
+                    try {
+                        await deleteDoc(doc(db, 'broadcasts', docSnap.id));
+                    } catch (err) {
+                        console.error("Admin auto-delete failed:", err);
+                    }
+                }
+            });
+        });
+
+        // Periodic cleanup timer for Admin Panel
+        const cleanupInterval = setInterval(async () => {
+            const now = Date.now();
+            try {
+                const q = query(collection(db, 'broadcasts'), where('active', '==', true));
+                const snapshot = await getDocs(q);
+                snapshot.docs.forEach(async (docSnap) => {
+                    const data = docSnap.data();
+                    if (now - data.timestamp > 60000) {
+                        await deleteDoc(doc(db, 'broadcasts', docSnap.id));
+                    }
+                });
+            } catch (err) {
+                console.error("Admin periodic cleanup failed:", err);
+            }
+        }, 10000); // Check every 10 seconds
+
         return () => {
             unsubscribeUsers();
             unsubscribeStrategies();
             unsubscribeSettings();
+            unsubscribeBroadcasts();
+            clearInterval(cleanupInterval);
         };
     }, []);
 

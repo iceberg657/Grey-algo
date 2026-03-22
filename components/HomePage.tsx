@@ -16,7 +16,7 @@ import { PacificTimeClock } from './PacificTimeClock';
 import { resetNeuralLanes } from '../services/retryUtils';
 import { getLearnedStrategies } from '../services/learningService';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
-import { collection, query, where, orderBy, limit, onSnapshot, updateDoc, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -90,12 +90,55 @@ export const HomePage: React.FC<HomePageProps> = ({
             limit(1)
         );
         const unsubscribe = onSnapshot(q, (snapshot) => {
-            setBroadcasts(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Broadcast)));
+            const now = Date.now();
+            const validBroadcasts: Broadcast[] = [];
+            
+            snapshot.docs.forEach(async (docSnap) => {
+                const data = docSnap.data() as Broadcast;
+                const age = now - data.timestamp;
+                
+                if (age > 60000) {
+                    try {
+                        await deleteDoc(doc(db, 'broadcasts', docSnap.id));
+                    } catch (err) {
+                        console.error("Failed to auto-delete expired broadcast:", err);
+                    }
+                } else {
+                    validBroadcasts.push({ id: docSnap.id, ...data });
+                }
+            });
+            
+            setBroadcasts(validBroadcasts);
         }, (error) => {
             handleFirestoreError(error, OperationType.LIST, path);
         });
         return () => unsubscribe();
     }, []);
+
+    // Timer to clear expired broadcasts from UI and server in real-time
+    useEffect(() => {
+        if (broadcasts.length === 0) return;
+        
+        const interval = setInterval(() => {
+            const now = Date.now();
+            const expired = broadcasts.filter(b => (now - b.timestamp) > 60000);
+            
+            if (expired.length > 0) {
+                expired.forEach(async (b) => {
+                    try {
+                        await deleteDoc(doc(db, 'broadcasts', b.id));
+                    } catch (err) {
+                        console.error("Failed to auto-delete expired broadcast in timer:", err);
+                    }
+                });
+                
+                const stillValid = broadcasts.filter(b => (now - b.timestamp) <= 60000);
+                setBroadcasts(stillValid);
+            }
+        }, 5000); // Check every 5 seconds
+        
+        return () => clearInterval(interval);
+    }, [broadcasts]);
 
     const handleResetAnalysisCount = useCallback(() => {
         resetAnalysisCount();

@@ -42,7 +42,8 @@ service cloud.firestore {
 
     match /broadcasts/{broadcastId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow create, update: if isAdmin();
+      allow delete: if isAdmin() || (isAuthenticated() && (resource.data.timestamp + 60000 < request.time.toMillis()));
     }
   }
 }
