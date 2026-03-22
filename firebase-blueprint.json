@@ -26,6 +26,16 @@
         "timestamp": { "type": "number", "description": "When the rule was generated." }
       },
       "required": ["rule", "timestamp"]
+    },
+    "AdminSettings": {
+      "title": "AdminSettings",
+      "description": "Global system settings only manageable by admins.",
+      "type": "object",
+      "properties": {
+        "maintenanceMode": { "type": "boolean", "description": "Whether the app is in maintenance mode." },
+        "broadcastMessage": { "type": "string", "description": "A message to show to all users." },
+        "updatedAt": { "type": "number", "description": "Last update timestamp." }
+      }
     }
   },
   "firestore": {
@@ -36,6 +46,10 @@
     "/global_strategies/{strategyId}": {
       "schema": "GlobalStrategy",
       "description": "Collection of strategies learned from all users' data."
+    },
+    "/admin_settings/{settingId}": {
+      "schema": "AdminSettings",
+      "description": "Global system settings."
     }
   }
 }

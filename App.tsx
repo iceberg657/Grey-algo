@@ -8,6 +8,7 @@ import { AnalysisPage } from './components/AnalysisPage';
 import { HistoryPage } from './components/HistoryPage';
 import { ChatPage } from './components/ChatPage';
 import { ProductsPage } from './components/ProductsPage';
+import { AdminPanel } from './components/AdminPanel';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';
@@ -22,7 +23,7 @@ import { initializeApiKey } from './services/retryUtils';
 import { AnimatePresence, motion } from 'framer-motion';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -197,6 +198,10 @@ const App: React.FC = () => {
         navigateTo('products');
     };
 
+    const handleNavigateToAdmin = () => {
+        navigateTo('admin');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         navigateTo(previousView); 
@@ -309,6 +314,7 @@ const App: React.FC = () => {
                     onNavigateToChat={handleNavigateToChat}
                     onNavigateToProducts={handleNavigateToProducts}
                     onNavigateToJournal={handleNavigateToJournal}
+                    onNavigateToAdmin={handleNavigateToAdmin}
                     onAssetSelect={handleAssetSelect}
                 />
             );
@@ -383,6 +389,11 @@ const App: React.FC = () => {
                     />
                 );
             }
+            break;
+        case 'admin':
+            content = (
+                <AdminPanel onBack={handleNavigateToHome} />
+            );
             break;
         default:
             // Fallback for unknown view

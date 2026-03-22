@@ -15,6 +15,7 @@ import { SettingsModal } from './SettingsModal';
 import { PacificTimeClock } from './PacificTimeClock';
 import { resetNeuralLanes } from '../services/retryUtils';
 import { getLearnedStrategies } from '../services/learningService';
+import { auth } from '../firebase';
 
 interface HomePageProps {
     onLogout: () => void;
@@ -23,6 +24,7 @@ interface HomePageProps {
     onNavigateToChat: () => void;
     onNavigateToProducts: () => void; 
     onNavigateToJournal: () => void;
+    onNavigateToAdmin: () => void;
     onAssetSelect?: (asset: string) => void;
 }
 
@@ -46,7 +48,7 @@ const NavButton: React.FC<{
     </motion.button>
 );
 
-export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToProducts, onNavigateToJournal, onAssetSelect }) => {
+export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete, onNavigateToHistory, onNavigateToChat, onNavigateToProducts, onNavigateToJournal, onNavigateToAdmin, onAssetSelect }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
@@ -105,6 +107,7 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
     }, [onAnalysisComplete]);
     
     const iconClasses = "h-5 w-5 group-hover:rotate-12 transition-transform";
+    const isAdmin = auth.currentUser?.email === 'ma8138498@gmail.com';
 
     const navItems = [
         {
@@ -113,6 +116,12 @@ export const HomePage: React.FC<HomePageProps> = ({ onLogout, onAnalysisComplete
             ariaLabel: 'Open Oracle Chat',
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
         },
+        ...(isAdmin ? [{
+            onClick: onNavigateToAdmin,
+            label: 'Admin',
+            ariaLabel: 'Open Admin Control Center',
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+        }] : []),
         {
             onClick: () => setShowRiskCalc(true),
             label: 'Risk Calc',
