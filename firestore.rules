@@ -45,21 +45,29 @@ service cloud.firestore {
     // ===============================================================
     // Domain Validators
     // ===============================================================
-    function isValidUser(data) {
+    function isValidAccess(access) {
+      return access is map &&
+        access.keys().hasOnly(['autoTrade', 'products']) &&
+        access.autoTrade in ['locked', 'pending', 'granted'] &&
+        access.products in ['locked', 'pending', 'granted'];
+    }
+
+    function isValidUser(data, userId) {
       return hasRequiredFields(['uid', 'email', 'role']) &&
         hasOnlyAllowedFields(['uid', 'email', 'role', 'analysisCount', 'isRevoked', 'access', 'createdAt']) &&
-        data.uid is string && data.uid == request.auth.uid &&
+        data.uid is string && data.uid == userId &&
         data.email is string && data.email.size() < 100 &&
         data.role in ['user', 'admin'] &&
         (!('analysisCount' in data) || data.analysisCount is number) &&
         (!('isRevoked' in data) || data.isRevoked is bool) &&
+        (!('access' in data) || isValidAccess(data.access)) &&
         (!('createdAt' in data) || data.createdAt is number);
     }
 
     function isValidTrade(data) {
       return hasRequiredFields(['uid', 'asset', 'signal', 'timestamp', 'outcome']) &&
         hasOnlyAllowedFields(['uid', 'asset', 'signal', 'timestamp', 'outcome', 'notes', 'signalData']) &&
-        data.uid is string && data.uid == request.auth.uid &&
+        data.uid is string && (data.uid == request.auth.uid || isAdmin()) &&
         data.asset is string && data.asset.size() < 20 &&
         data.signal in ['BUY', 'SELL', 'NEUTRAL'] &&
         data.timestamp is number &&
@@ -89,8 +97,8 @@ service cloud.firestore {
     // ===============================================================
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'user' || isAdmin());
-      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data, userId) && (request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data, userId) && (request.resource.data.role == resource.data.role || isAdmin());
     }
 
     match /users/{userId}/trades/{tradeId} {
