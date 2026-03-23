@@ -100,6 +100,11 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
 
+    // Collection Group rule for trades (Global Learning)
+    match /{path=**}/trades/{tradeId} {
+      allow read: if isAuthenticated() && (request.auth.uid == resource.data.uid || isAdmin());
+    }
+
     match /global_strategies/{strategyId} {
       allow read: if isAuthenticated();
       allow create, update: if isAdmin() && isValidGlobalStrategy(request.resource.data);

@@ -255,6 +255,14 @@ export interface UserMetadata {
     createdAt: number;
 }
 
+export interface GlobalStrategy {
+    id?: string;
+    rule: string;
+    confidence: number;
+    sourceCount: number;
+    timestamp: number;
+}
+
 export interface Broadcast {
     id?: string;
     message: string;

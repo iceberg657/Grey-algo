@@ -39,8 +39,8 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
     const tp1 = data.takeProfits[0] || 0;
     const offset = (data.asset.includes('JPY') ? 0.2 : 0.0020); // rough 20 pips
 
-    const isBuy = data.signal === 'BUY' || (data.signal === 'NEUTRAL' && tp1 > entry);
-    const isSell = data.signal === 'SELL' || (data.signal === 'NEUTRAL' && tp1 < entry);
+    const isBuy = data.signal === 'BUY' || data.signal === 'NEUTRAL';
+    const isSell = data.signal === 'SELL' || data.signal === 'NEUTRAL';
 
     // Calculate dynamic Y percentages based on visiblePriceRange
     let high = data.visiblePriceRange?.high;
@@ -207,7 +207,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
 
                     {/* SELL Setup Box (Top Center) */}
                     {isSell && (
-                        <div className="absolute top-2 sm:top-4 left-1/2 transform -translate-x-1/2 z-10 w-40 sm:w-48">
+                        <div className={`absolute ${data.signal === 'NEUTRAL' ? 'top-2 sm:top-4 left-[20%] sm:left-[25%]' : 'top-2 sm:top-4 left-1/2 transform -translate-x-1/2'} z-10 w-40 sm:w-48`}>
                             <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-1.5 backdrop-blur-md shadow-[0_4px_16px_0_rgba(239,68,68,0.2)]">
                                 <div className="text-red-500 font-bold text-[8px] sm:text-[10px] mb-0.5 border-b border-red-500/30 pb-0.5">
                                     SELL Setup (If {data.timeframe} Bias Turns Bearish)
@@ -230,7 +230,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
 
                     {/* BUY Setup Box (Bottom Center) */}
                     {isBuy && (
-                        <div className="absolute bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2 z-10 w-40 sm:w-48">
+                        <div className={`absolute ${data.signal === 'NEUTRAL' ? 'bottom-2 sm:bottom-4 right-[20%] sm:right-[25%]' : 'bottom-2 sm:bottom-4 left-1/2 transform -translate-x-1/2'} z-10 w-40 sm:w-48`}>
                             <div className="bg-white/10 dark:bg-slate-900/40 border border-white/20 dark:border-white/10 rounded p-1.5 backdrop-blur-md shadow-[0_4px_16px_0_rgba(34,197,94,0.2)]">
                                 <div className="text-green-500 font-bold text-[8px] sm:text-[10px] mb-0.5 border-b border-green-500/30 pb-0.5">
                                     BUY Setup (If {data.timeframe} Bias Turns Bullish)
@@ -325,7 +325,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                             <circle cx="65%" cy={`${entryY}%`} r="2" fill="#eab308" />
                             <circle cx="65%" cy={`${entryY}%`} r="6" stroke="#eab308" strokeWidth="1" strokeDasharray="2 2" fill="none" />
 
-                            {isBuy && (
+                            {data.signal !== 'NEUTRAL' && isBuy && (
                                 <>
                                     {/* Path to TP1 */}
                                     <path d={`M 65% ${entryY}% Q 75% ${(entryY + tp1Y) / 2}% 90% ${tp1Y}%`} stroke="#22c55e" strokeWidth="1.5" fill="none" markerEnd="url(#arrowhead-green)" />
@@ -336,7 +336,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                                 </>
                             )}
 
-                            {isSell && (
+                            {data.signal !== 'NEUTRAL' && isSell && (
                                 <>
                                     {/* Path to TP1 */}
                                     <path d={`M 65% ${entryY}% Q 75% ${(entryY + tp1Y) / 2}% 90% ${tp1Y}%`} stroke="#ef4444" strokeWidth="1.5" fill="none" markerEnd="url(#arrowhead-red)" />
@@ -359,7 +359,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                             <span className="text-black text-[6px] sm:text-[8px] font-bold">Current Price: {entry.toFixed(5)}</span>
                         </div>
                         
-                        {isBuy && (
+                        {data.signal !== 'NEUTRAL' && isBuy && (
                             <>
                                 <div 
                                     className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-green-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"
@@ -385,7 +385,7 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
                             </>
                         )}
 
-                        {isSell && (
+                        {data.signal !== 'NEUTRAL' && isSell && (
                             <>
                                 <div 
                                     className="absolute right-0 bg-white/10 dark:bg-slate-900/40 backdrop-blur-md border border-green-500/50 px-1 py-0.5 rounded-l flex items-center gap-1 shadow-md"

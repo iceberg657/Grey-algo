@@ -266,7 +266,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     value={
                         data.signal === 'BUY' ? 'BUY on a buy setup' : 
                         data.signal === 'SELL' ? 'SELL on a sell setup' : 
-                        'NEUTRAL'
+                        'NEUTRAL (NO TRADE)'
                     } 
                     isSignal 
                     signalType={data.signal} 
@@ -274,7 +274,12 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     delay="100ms" 
                 />
                  <InfoCard label="Precision" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
-                 <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
+                 {data.signal !== 'NEUTRAL' && (
+                    <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
+                 )}
+                 {data.signal === 'NEUTRAL' && (
+                    <InfoCard label="Status" value="WAITING" valueClassName="text-yellow-500 font-black" subValue="No Confluence" delay="300ms" />
+                 )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -282,10 +287,12 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     <TiltCard>
                         <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
                              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30 group-hover:bg-blue-500 transition-colors"></div>
-                             <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Entry Cluster</span>
+                             <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">
+                                {data.signal === 'NEUTRAL' ? 'Levels to Watch' : 'Entry Cluster'}
+                             </span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
-                                {data.entryPoints.slice(0, 1).map((ep, i) => {
-                                    const isRecommended = i === recommendedEntryIndex;
+                                {data.entryPoints.slice(0, data.signal === 'NEUTRAL' ? 3 : 1).map((ep, i) => {
+                                    const isRecommended = i === recommendedEntryIndex && data.signal !== 'NEUTRAL';
                                     return (
                                         <div key={i} className={`text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative ${isRecommended ? 'border-green-500/50 shadow-green-500/20' : 'border-gray-200 dark:border-white/10'}`}>
                                             {isRecommended && (
@@ -294,12 +301,14 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                                 </div>
                                             )}
                                             <span className={`font-mono text-xl font-black block ${isRecommended ? 'text-green-400' : 'text-gray-800 dark:text-white'}`}>{ep}</span>
-                                            <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">ENTRY</span>
+                                            <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">
+                                                {data.signal === 'NEUTRAL' ? 'LEVEL' : 'ENTRY'}
+                                            </span>
                                         </div>
                                     );
                                 })}
                              </div>
-                             {data.entryType && (
+                             {data.entryType && data.signal !== 'NEUTRAL' && (
                                 <div className={`mt-6 inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${getEntryTypeBadgeColor(data.entryType)}`}>
                                     {data.entryType}
                                 </div>
@@ -307,26 +316,47 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                         </div>
                     </TiltCard>
                 </div>
-                <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '600ms' }}>
-                    <TiltCard>
-                        <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
-                             <div className="absolute top-0 left-0 w-full h-1 bg-green-500/30 group-hover:bg-green-500 transition-colors"></div>
-                             <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Liquidation Array</span>
-                             <div className="flex flex-wrap justify-center items-center gap-4">
-                                {data.takeProfits.slice(0, 2).map((tp, i) => (
-                                    <div key={i} className="text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
-                                        <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{tp}</span>
-                                        <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">TARGET 0{i + 1}</span>
-                                    </div>
-                                ))}
-                             </div>
-                             <div className="mt-6 text-[10px] font-black text-green-500/80 uppercase tracking-widest flex items-center gap-2">
-                                 <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                 Risk-Free Protocol: Move SL to BE at Target 01
-                             </div>
-                        </div>
-                    </TiltCard>
-                </div>
+                {data.signal !== 'NEUTRAL' && (
+                    <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '600ms' }}>
+                        <TiltCard>
+                            <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-green-500/30 group-hover:bg-green-500 transition-colors"></div>
+                                <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Liquidation Array</span>
+                                <div className="flex flex-wrap justify-center items-center gap-4">
+                                    {data.takeProfits.slice(0, 2).map((tp, i) => (
+                                        <div key={i} className="text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                            <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{tp}</span>
+                                            <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">TARGET 0{i + 1}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="mt-6 text-[10px] font-black text-green-500/80 uppercase tracking-widest flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                    Risk-Free Protocol: Move SL to BE at Target 01
+                                </div>
+                            </div>
+                        </TiltCard>
+                    </div>
+                )}
+                {data.signal === 'NEUTRAL' && (
+                    <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '600ms' }}>
+                        <TiltCard>
+                            <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
+                                <div className="absolute top-0 left-0 w-full h-1 bg-yellow-500/30 group-hover:bg-yellow-500 transition-colors"></div>
+                                <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Market Stance</span>
+                                <div className="text-center p-4">
+                                    <p className="text-sm italic text-slate-700 dark:text-gray-300">
+                                        The market is currently in a neutral state. No high-probability trade setups are present. Oracle recommends staying flat and monitoring the levels to watch for a clear breakout or structure shift.
+                                    </p>
+                                </div>
+                                <div className="mt-6 text-[10px] font-black text-yellow-500/80 uppercase tracking-widest flex items-center gap-2">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-yellow-500 animate-pulse"></span>
+                                    Protocol: Wait for Confluence
+                                </div>
+                            </div>
+                        </TiltCard>
+                    </div>
+                )}
             </div>
 
             {/* INTEGRATED QUANT METRICS SECTION */}

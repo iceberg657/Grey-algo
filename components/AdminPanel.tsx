@@ -39,7 +39,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         });
 
         // Real-time strategies listener
-        const unsubscribeStrategies = onSnapshot(query(collection(db, 'global_strategies'), orderBy('timestamp', 'desc'), limit(10)), (snapshot) => {
+        const unsubscribeStrategies = onSnapshot(query(collection(db, 'global_strategies'), orderBy('timestamp', 'desc'), limit(50)), (snapshot) => {
             setRecentStrategies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as GlobalStrategy)));
         }, (err) => {
             try {
@@ -170,6 +170,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             await updateDoc(userRef, { isRevoked });
         } catch (error) {
             handleFirestoreError(error, OperationType.UPDATE, path);
+        }
+    };
+
+    const handleDeleteStrategy = async (strategyId: string) => {
+        if (!window.confirm('Are you sure you want to delete this strategy?')) return;
+        const path = `global_strategies/${strategyId}`;
+        try {
+            await deleteDoc(doc(db, 'global_strategies', strategyId));
+        } catch (error) {
+            handleFirestoreError(error, OperationType.DELETE, path);
         }
     };
 
@@ -376,6 +386,51 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                     ))}
                                 </tbody>
                             </table>
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'strategies' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                        <div className="bg-white dark:bg-slate-900/50 p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl">
+                            <h2 className="text-xl font-black uppercase tracking-widest mb-8">Learned Neural Strategies</h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {recentStrategies.map((strat) => (
+                                    <div key={strat.id} className="p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col justify-between">
+                                        <div>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex gap-2">
+                                                    <span className="px-2 py-1 bg-green-500/10 text-green-500 text-[9px] font-black uppercase tracking-widest rounded-md">
+                                                        Confidence: {strat.confidence}%
+                                                    </span>
+                                                    <span className="px-2 py-1 bg-blue-500/10 text-blue-500 text-[9px] font-black uppercase tracking-widest rounded-md">
+                                                        Sources: {strat.sourceCount}
+                                                    </span>
+                                                </div>
+                                                <span className="text-[10px] opacity-40 font-mono">
+                                                    {new Date(strat.timestamp).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm font-medium leading-relaxed italic opacity-90 mb-6">
+                                                "{strat.rule}"
+                                            </p>
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <button 
+                                                onClick={() => strat.id && handleDeleteStrategy(strat.id)}
+                                                className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                                            >
+                                                Purge Strategy
+                                            </button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {recentStrategies.length === 0 && (
+                                    <div className="col-span-full py-20 text-center opacity-40">
+                                        <p className="text-xs font-black uppercase tracking-widest">No strategies learned yet.</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </motion.div>
                 )}

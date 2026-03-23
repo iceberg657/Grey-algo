@@ -475,7 +475,7 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
-            <AutoLearningManager />
+            {userMetadata?.role === 'admin' && <AutoLearningManager />}
             <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
                 <AnimatePresence mode="wait">
                     <motion.div

@@ -141,7 +141,7 @@ ${tradeModeInstructions}
 ---
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. If the signal is NEUTRAL, you MUST provide a detailed analysis including specific Entry, Stop Loss, and Take Profit levels based on your technical analysis, rather than placeholders.
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. If the signal is NEUTRAL, you MUST explain why the market is currently indecisive (e.g., ranging, waiting for news, or lack of confluence). For NEUTRAL signals, do NOT provide a single specific trade setup; instead, provide key levels to watch for potential breakouts in either direction.
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
