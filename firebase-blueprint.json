@@ -48,6 +48,7 @@
         "role": { "type": "string", "enum": ["user", "admin"] },
         "analysisCount": { "type": "number" },
         "isRevoked": { "type": "boolean" },
+        "fcmToken": { "type": "string", "description": "Firebase Cloud Messaging token for push notifications." },
         "access": {
           "type": "object",
           "properties": {

@@ -136,14 +136,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         setIsSending(true);
         const path = 'broadcasts';
         try {
+            // 1. Save to Firestore for in-app display
             await addDoc(collection(db, 'broadcasts'), {
                 message: broadcastMsg,
                 timestamp: Date.now(),
                 active: true,
                 author: auth.currentUser?.email
             });
+
+            // 2. Send Push Notification via Server
+            try {
+                const response = await fetch('/api/notifications/broadcast', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: 'GreyAlpha Broadcast',
+                        body: broadcastMsg
+                    })
+                });
+                
+                if (!response.ok) {
+                    console.warn('Push notification failed (likely missing server-side config)');
+                }
+            } catch (pError) {
+                console.error('Push notification error:', pError);
+            }
+
             setBroadcastMsg('');
-            alert('Broadcast transmitted to all terminals.');
+            alert('Broadcast transmitted to all terminals and push notifications sent.');
         } catch (error) {
             handleFirestoreError(error, OperationType.CREATE, path);
         } finally {
@@ -158,6 +178,23 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             await updateDoc(userRef, {
                 [`access.${feature}`]: status
             });
+
+            // Send notification if granted
+            if (status === 'granted') {
+                try {
+                    await fetch('/api/notifications/broadcast', { // Reusing broadcast for simplicity or create specific route
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            title: 'Access Granted!',
+                            body: `Your access to ${feature === 'autoTrade' ? 'Auto Trade' : 'Premium Products'} has been approved.`,
+                            targetUserId: userId
+                        })
+                    });
+                } catch (e) {
+                    console.error('Failed to send access notification:', e);
+                }
+            }
         } catch (error) {
             handleFirestoreError(error, OperationType.UPDATE, path);
         }

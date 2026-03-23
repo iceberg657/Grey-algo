@@ -25,6 +25,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
 import type { AdminSettings } from './types';
+import { requestNotificationPermission, onMessageListener } from './services/notificationService';
 
 type AuthPage = 'login' | 'signup';
 type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade';
@@ -125,6 +126,27 @@ const App: React.FC = () => {
     useEffect(() => {
         if (!loading) {
             setAppView(isLoggedIn ? 'home' : 'landing');
+            
+            if (isLoggedIn) {
+                // Request notification permission and set up listener
+                requestNotificationPermission();
+                const unsubscribe = onMessageListener();
+                
+                // Register service worker for background notifications
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('/sw.js')
+                        .then((registration) => {
+                            console.log('Service Worker registered with scope:', registration.scope);
+                        })
+                        .catch((error) => {
+                            console.error('Service Worker registration failed:', error);
+                        });
+                }
+                
+                return () => {
+                    if (unsubscribe) unsubscribe();
+                };
+            }
         }
     }, [isLoggedIn, loading]);
     

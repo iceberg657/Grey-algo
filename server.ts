@@ -3,6 +3,7 @@ import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { createServer } from 'node:http';
 import { WebSocketServer } from 'ws';
+import admin from 'firebase-admin';
 import marketDataHandler from './api/marketData.js';
 import fetchDataHandler from './api/fetchData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
@@ -14,6 +15,19 @@ async function startServer() {
   const PORT = 3000;
 
   app.use(express.json());
+
+  // Initialize Firebase Admin
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    try {
+      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount)
+      });
+      console.log('Firebase Admin initialized');
+    } catch (error) {
+      console.error('Error initializing Firebase Admin:', error);
+    }
+  }
 
   // API routes
   app.get('/api/config', (req, res) => {
@@ -33,6 +47,45 @@ async function startServer() {
 
   app.all('/api/marketData', marketDataHandler);
   app.all('/api/fetchData', fetchDataHandler);
+
+  // Push Notification Route
+  app.post('/api/notifications/broadcast', async (req, res) => {
+    const { title, body, targetUserId } = req.body;
+    
+    if (!admin.apps.length) {
+      return res.status(500).json({ error: 'Firebase Admin not initialized' });
+    }
+
+    try {
+      const db = admin.firestore();
+      let tokens: string[] = [];
+
+      if (targetUserId) {
+        const userDoc = await db.collection('users').doc(targetUserId).get();
+        if (userDoc.exists && userDoc.data()?.fcmToken) {
+          tokens = [userDoc.data()?.fcmToken];
+        }
+      } else {
+        const usersSnapshot = await db.collection('users').where('fcmToken', '!=', '').get();
+        tokens = usersSnapshot.docs.map(doc => doc.data().fcmToken).filter(Boolean);
+      }
+
+      if (tokens.length === 0) {
+        return res.json({ success: true, message: 'No tokens found' });
+      }
+
+      const message = {
+        notification: { title, body },
+        tokens: tokens
+      };
+
+      const response = await admin.messaging().sendEachForMulticast(message);
+      res.json({ success: true, response });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+      res.status(500).json({ error: 'Failed to send notification' });
+    }
+  });
 
   // WebSocket handling
   wss.on('connection', (ws) => {
