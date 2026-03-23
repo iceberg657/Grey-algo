@@ -6,10 +6,21 @@ import { doc, updateDoc } from 'firebase/firestore';
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
 
 export const requestNotificationPermission = async () => {
-    if (!messaging) return null;
+    if (!messaging) {
+        console.warn('Messaging not initialized');
+        return null;
+    }
+
+    if (!VAPID_KEY) {
+        console.error('VITE_FIREBASE_VAPID_KEY is missing from environment variables. Push notifications will not work.');
+        return null;
+    }
 
     try {
+        console.log('Requesting notification permission...');
         const permission = await Notification.requestPermission();
+        console.log('Notification permission status:', permission);
+        
         if (permission === 'granted') {
             const token = await getToken(messaging, {
                 vapidKey: VAPID_KEY
@@ -19,7 +30,9 @@ export const requestNotificationPermission = async () => {
                 // Store token in Firestore for this user
                 const userRef = doc(db, 'users', auth.currentUser.uid);
                 await updateDoc(userRef, { fcmToken: token });
-                console.log('FCM Token generated and saved:', token);
+                console.log('FCM Token generated and saved to Firestore:', token);
+            } else if (!token) {
+                console.warn('No registration token available. Request permission to generate one.');
             }
             return token;
         }
