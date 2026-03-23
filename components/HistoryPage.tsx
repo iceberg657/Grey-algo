@@ -44,11 +44,15 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     
     useEffect(() => {
-        setHistory(getHistory());
+        const fetchHistory = async () => {
+            const data = await getHistory();
+            setHistory(data);
+        };
+        fetchHistory();
     }, []);
 
-    const handleClearHistory = () => {
-        clearHistory();
+    const handleClearHistory = async () => {
+        await clearHistory();
         setHistory([]);
         setShowClearConfirm(false);
     };

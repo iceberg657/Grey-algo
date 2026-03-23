@@ -94,6 +94,17 @@ export const updateTradeOutcome = async (tradeId: string, outcome: 'Win' | 'Loss
 /**
  * Clears all analysis history.
  */
-export const clearHistory = (): void => {
+export const clearHistory = async (): Promise<void> => {
     localStorage.removeItem(HISTORY_KEY);
+    if (auth.currentUser) {
+        const path = `users/${auth.currentUser.uid}/trades`;
+        try {
+            const tradesRef = collection(db, 'users', auth.currentUser.uid, 'trades');
+            const snapshot = await getDocs(tradesRef);
+            const deletePromises = snapshot.docs.map(doc => deleteDoc(doc.ref));
+            await Promise.all(deletePromises);
+        } catch (e) {
+            handleFirestoreError(e, OperationType.DELETE, path);
+        }
+    }
 };
