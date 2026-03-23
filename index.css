@@ -41,6 +41,7 @@
     --animate-pulse-slow: pulse 6s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     --animate-glowing-text-green: glowingTextGreen 2s ease-in-out infinite alternate;
     --animate-glowing-text-red: glowingTextRed 2s ease-in-out infinite alternate;
+    --animate-glowing-text-yellow: glowingTextYellow 2s ease-in-out infinite alternate;
     --animate-glowing-edge: glowingEdge 10s ease-in-out infinite alternate;
     --animate-marquee: marquee 30s linear infinite;
     --animate-flip-3d: flip3D 0.3s ease-out forwards;
@@ -79,6 +80,10 @@
 @keyframes glowingTextRed {
     from { color: var(--color-red-500); opacity: 0.7; }
     to { color: var(--color-red-300); opacity: 1; }
+}
+@keyframes glowingTextYellow {
+    from { color: #eab308; opacity: 0.7; }
+    to { color: #fde047; opacity: 1; }
 }
 @keyframes glowingBorderRed {
     from { border-color: var(--color-red-500); opacity: 0.6; }

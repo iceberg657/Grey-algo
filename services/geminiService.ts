@@ -482,7 +482,7 @@ You MUST correctly classify the order type based on the strict relationship betw
 
 **JSON OUTPUT (RAW ONLY - NO MARKDOWN):**
 {
-  "signal": "BUY" | "SELL",
+  "signal": "BUY" | "SELL" | "NEUTRAL",
   "confidence": number (0-100),
   "asset": "${asset}",
   "timeframe": "e.g., M5, M15, H1",
@@ -725,7 +725,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
-            signal: data.signal as 'BUY' | 'SELL',
+            signal: data.signal as 'BUY' | 'SELL' | 'NEUTRAL',
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",

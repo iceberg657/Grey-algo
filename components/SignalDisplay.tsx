@@ -20,6 +20,7 @@ const getSignalTextClasses = (signal: SignalData['signal']) => {
     switch(signal) {
         case 'BUY': return 'text-green-400 animate-glowing-text-green';
         case 'SELL': return 'text-red-400 animate-glowing-text-red';
+        case 'NEUTRAL': return 'text-yellow-400 animate-glowing-text-yellow';
         default: return 'text-gray-800 dark:text-dark-text';
     }
 };
@@ -260,7 +261,18 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
             </header>
 
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                 <InfoCard label="Bias" value={data.signal} isSignal signalType={data.signal} className="col-span-2 md:col-span-1" delay="100ms" />
+                 <InfoCard 
+                    label="Signal" 
+                    value={
+                        data.signal === 'BUY' ? 'BUY on a buy setup' : 
+                        data.signal === 'SELL' ? 'SELL on a sell setup' : 
+                        'NEUTRAL'
+                    } 
+                    isSignal 
+                    signalType={data.signal} 
+                    className="col-span-2 md:col-span-1" 
+                    delay="100ms" 
+                />
                  <InfoCard label="Precision" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
                  <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
             </div>

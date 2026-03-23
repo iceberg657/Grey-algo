@@ -1,9 +1,15 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ===============================================================
     // Helper Functions
+    // ===============================================================
     function isAuthenticated() {
       return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
     }
 
     function isAdmin() {
@@ -12,38 +18,103 @@ service cloud.firestore {
           (request.auth.token.email == "ma8138498@gmail.com" && request.auth.token.email_verified == true));
     }
 
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function validString(field, minLen, maxLen) {
+      return request.resource.data[field] is string &&
+        request.resource.data[field].size() >= minLen &&
+        request.resource.data[field].size() <= maxLen;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == resource.data.uid;
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    function isValidUser(data) {
+      return hasRequiredFields(['uid', 'email', 'role']) &&
+        hasOnlyAllowedFields(['uid', 'email', 'role', 'analysisCount', 'isRevoked', 'access', 'createdAt']) &&
+        data.uid is string && data.uid == request.auth.uid &&
+        data.email is string && data.email.size() < 100 &&
+        data.role in ['user', 'admin'] &&
+        (!('analysisCount' in data) || data.analysisCount is number) &&
+        (!('isRevoked' in data) || data.isRevoked is bool) &&
+        (!('createdAt' in data) || data.createdAt is number);
+    }
+
+    function isValidTrade(data) {
+      return hasRequiredFields(['uid', 'asset', 'signal', 'timestamp', 'outcome']) &&
+        hasOnlyAllowedFields(['uid', 'asset', 'signal', 'timestamp', 'outcome', 'notes', 'signalData']) &&
+        data.uid is string && data.uid == request.auth.uid &&
+        data.asset is string && data.asset.size() < 20 &&
+        data.signal in ['BUY', 'SELL', 'NEUTRAL'] &&
+        data.timestamp is number &&
+        data.outcome in ['Win', 'Loss', 'No Trade', 'Pending'] &&
+        (!('notes' in data) || (data.notes is string && data.notes.size() < 1000));
+    }
+
+    function isValidGlobalStrategy(data) {
+      return hasRequiredFields(['rule', 'timestamp']) &&
+        hasOnlyAllowedFields(['rule', 'confidence', 'sourceCount', 'timestamp']) &&
+        data.rule is string && data.rule.size() < 2000 &&
+        data.timestamp is number &&
+        (!('confidence' in data) || data.confidence is number) &&
+        (!('sourceCount' in data) || data.sourceCount is number);
+    }
+
+    function isValidAdminSettings(data) {
+      return hasOnlyAllowedFields(['maintenanceMode', 'chatLocked', 'broadcastMessage', 'updatedAt']) &&
+        (!('maintenanceMode' in data) || data.maintenanceMode is bool) &&
+        (!('chatLocked' in data) || data.chatLocked is bool) &&
+        (!('broadcastMessage' in data) || (data.broadcastMessage is string && data.broadcastMessage.size() < 500)) &&
+        (!('updatedAt' in data) || data.updatedAt is number);
+    }
+
+    // ===============================================================
+    // Routes
+    // ===============================================================
     match /users/{userId} {
       allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && isValidUser(request.resource.data) && (request.resource.data.role == 'user' || isAdmin());
+      allow update: if isAuthenticated() && (isOwner(userId) || isAdmin()) && isValidUser(request.resource.data) && (request.resource.data.role == resource.data.role || isAdmin());
     }
 
     match /users/{userId}/trades/{tradeId} {
-      allow read, write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-    }
-    
-    // Allow reading all trades for global analysis (anonymized)
-    match /{path=**}/trades/{tradeId} {
-      allow read: if isAuthenticated();
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && isOwner(userId) && isValidTrade(request.resource.data);
+      allow update: if isAuthenticated() && isOwner(userId) && isValidTrade(request.resource.data) && uidNotModified();
+      allow delete: if isAuthenticated() && (isOwner(userId) || isAdmin());
     }
 
     match /global_strategies/{strategyId} {
       allow read: if isAuthenticated();
-      allow create, update: if isAdmin();
-    }
-
-    match /admin_settings/system {
-      allow read: if true;
+      allow create, update: if isAdmin() && isValidGlobalStrategy(request.resource.data);
+      allow delete: if isAdmin();
     }
 
     match /admin_settings/{settingId} {
       allow read: if isAuthenticated();
-      allow write: if isAdmin();
+      allow write: if isAdmin() && isValidAdminSettings(request.resource.data);
     }
 
     match /broadcasts/{broadcastId} {
       allow read: if isAuthenticated();
       allow create, update: if isAdmin();
-      allow delete: if isAdmin() || (isAuthenticated() && (resource.data.timestamp + 60000 < request.time.toMillis()));
+      allow delete: if isAdmin();
     }
   }
 }

@@ -111,7 +111,7 @@ export interface Trade {
     id?: string;
     uid: string;
     asset: string;
-    signal: 'BUY' | 'SELL';
+    signal: 'BUY' | 'SELL' | 'NEUTRAL';
     timestamp: number;
     outcome: 'Win' | 'Loss' | 'No Trade' | 'Pending';
     notes?: string;
@@ -123,7 +123,7 @@ export interface SignalData {
     timestamp: number;
     asset: string;
     timeframe: string;
-    signal: 'BUY' | 'SELL';
+    signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
     entryPoints: number[];
     entryType: 'Market Execution' | 'Buy Limit' | 'Sell Limit' | 'Buy Stop' | 'Sell Stop' | 'Buy Stop Limit' | 'Sell Stop Limit';
