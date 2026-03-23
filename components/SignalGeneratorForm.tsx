@@ -290,23 +290,15 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
             <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-3' : ''}`}>
                 {isMultiDimensional && (
-                    <>
-                         <ImageUploader 
-                            id="higher" 
-                            title="Strategic View" 
-                            subtitle="H4 / H1 Timeframe"
-                            onFileChange={(file) => handleFileChange('higher', file)}
-                            required={isMultiDimensional}
-                         />
-                         <ImageUploader 
-                            id="execution" 
-                            title="Execution View" 
-                            subtitle="M5 / M1 Timeframe"
-                            onFileChange={(file) => handleFileChange('execution', file)}
-                            required={isMultiDimensional}
-                         />
-                    </>
+                    <ImageUploader 
+                        id="higher" 
+                        title="Strategic View" 
+                        subtitle="H4 / H1 Timeframe"
+                        onFileChange={(file) => handleFileChange('higher', file)}
+                        required={isMultiDimensional}
+                    />
                 )}
+                
                 <ImageUploader 
                     id="primary" 
                     title="Tactical View" 
@@ -315,6 +307,15 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     required
                 />
 
+                {isMultiDimensional && (
+                    <ImageUploader 
+                        id="execution" 
+                        title="Execution View" 
+                        subtitle="M5 / M1 Timeframe"
+                        onFileChange={(file) => handleFileChange('execution', file)}
+                        required={isMultiDimensional}
+                    />
+                )}
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
