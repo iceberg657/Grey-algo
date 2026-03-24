@@ -173,7 +173,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 
                 if (!response.ok) {
                     console.warn('Push notification failed:', responseData);
-                    alert(`Broadcast saved, but push notification failed: ${responseData.error || responseData.details || 'Unknown error'}`);
+                    const errorMsg = responseData.error || 'Unknown error';
+                    const details = responseData.details ? `\nDetails: ${responseData.details}` : '';
+                    alert(`Broadcast saved, but push notification failed: ${errorMsg}${details}`);
                 } else if (responseData.message === 'No tokens found') {
                     alert('Broadcast saved, but NO push notifications were sent because no users have granted notification permissions yet.');
                 } else {
