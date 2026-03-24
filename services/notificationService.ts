@@ -48,12 +48,12 @@ export const onMessageListener = () => {
     
     return onMessage(messaging, (payload) => {
         console.log('Message received in foreground:', payload);
-        // You can customize how to show foreground notifications here
-        // For example, using a toast or a custom UI element
         if (payload.notification) {
             new Notification(payload.notification.title || 'GreyAlpha Update', {
                 body: payload.notification.body,
-                icon: '/logo192.png' // Adjust icon path as needed
+                icon: payload.notification.icon || '/icon.svg',
+                badge: '/icon.svg',
+                data: payload.data
             });
         }
     });

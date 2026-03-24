@@ -70,7 +70,23 @@ export default async function handler(req, res) {
     }
 
     const message = {
-      notification: { title, body },
+      notification: { 
+        title, 
+        body,
+        icon: 'https://grey-algo.vercel.app/icon.svg',
+      },
+      android: {
+        notification: {
+          icon: 'stock_ticker_outer',
+          color: '#161616'
+        }
+      },
+      webpush: {
+        notification: {
+          icon: 'https://grey-algo.vercel.app/icon.svg',
+          badge: 'https://grey-algo.vercel.app/icon.svg',
+        }
+      },
       tokens: tokens
     };
 
