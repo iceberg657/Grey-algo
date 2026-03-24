@@ -99,8 +99,29 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     }, []);
 
     const loginWithGoogle = async () => {
-        const provider = new GoogleAuthProvider();
-        await signInWithPopup(auth, provider);
+        try {
+            const provider = new GoogleAuthProvider();
+            // Force account selection to ensure the popup works correctly
+            provider.setCustomParameters({
+                prompt: 'select_account'
+            });
+            await signInWithPopup(auth, provider);
+        } catch (error: any) {
+            console.error('Detailed Google login error:', error);
+            // Check for common errors
+            if (error.code === 'auth/popup-blocked') {
+                alert('The sign-in popup was blocked by your browser. Please allow popups for this site.');
+            } else if (error.code === 'auth/cancelled-popup-request') {
+                // User closed the popup, no need to alert
+            } else if (error.code === 'auth/operation-not-allowed') {
+                alert('Google Sign-In is not enabled in your Firebase project. Please enable it in the Firebase Console under Authentication > Sign-in method.');
+            } else if (error.code === 'auth/unauthorized-domain') {
+                alert(`This domain (${window.location.hostname}) is not authorized for Firebase Authentication. Please add it to the "Authorized domains" list in the Firebase Console under Authentication > Settings.`);
+            } else {
+                alert(`Google login failed: ${error.message || 'Unknown error'}`);
+            }
+            throw error;
+        }
     };
 
     const loginWithEmail = async (email: string, password: string) => {

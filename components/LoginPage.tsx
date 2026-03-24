@@ -22,8 +22,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
             await loginWithGoogle();
             onLogin();
         } catch (error) {
-            console.error('Google login failed:', error);
-            alert('Google login failed. Please try again.');
+            // Error is handled in AuthContext with a detailed alert
+            console.error('Google login component error:', error);
         }
     };
 
