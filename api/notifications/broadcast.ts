@@ -44,17 +44,22 @@ export default async function handler(req, res) {
     }
 
     const db = getFirestore(databaseId);
-    let tokens = [];
+    let userTokens: { uid: string, token: string }[] = [];
 
     try {
       if (targetUserId) {
         const userDoc = await db.collection('users').doc(targetUserId).get();
         if (userDoc.exists && userDoc.data()?.fcmToken) {
-          tokens = [userDoc.data()?.fcmToken];
+          userTokens = [{ uid: targetUserId, token: userDoc.data()?.fcmToken }];
         }
       } else {
         const usersSnapshot = await db.collection('users').get();
-        tokens = usersSnapshot.docs.map(doc => doc.data().fcmToken).filter(Boolean);
+        usersSnapshot.docs.forEach(doc => {
+          const token = doc.data().fcmToken;
+          if (token) {
+            userTokens.push({ uid: doc.id, token });
+          }
+        });
       }
     } catch (dbError) {
       console.error('Firestore query error:', dbError);
@@ -65,9 +70,11 @@ export default async function handler(req, res) {
       });
     }
 
-    if (tokens.length === 0) {
+    if (userTokens.length === 0) {
       return res.status(200).json({ success: true, message: 'No tokens found' });
     }
+
+    const tokens = userTokens.map(ut => ut.token);
 
     const message = {
       notification: { 
@@ -93,6 +100,43 @@ export default async function handler(req, res) {
     try {
       const response = await admin.messaging().sendEachForMulticast(message);
       console.log('FCM Broadcast response:', JSON.stringify(response));
+      
+      // Clean up invalid tokens
+      if (response.failureCount > 0) {
+        const failedTokens: string[] = [];
+        const cleanupPromises: Promise<any>[] = [];
+        
+        response.responses.forEach((resp, idx) => {
+          if (!resp.success) {
+            const errorCode = resp.error?.code;
+            failedTokens.push(errorCode || 'unknown');
+            
+            if (errorCode === 'messaging/invalid-registration-token' || 
+                errorCode === 'messaging/registration-token-not-registered') {
+              // Remove the dead token from Firestore
+              const uid = userTokens[idx].uid;
+              cleanupPromises.push(
+                db.collection('users').doc(uid).update({ 
+                  fcmToken: admin.firestore.FieldValue.delete() 
+                }).catch(err => console.error(`Failed to clean up token for ${uid}:`, err))
+              );
+            }
+          }
+        });
+        
+        if (cleanupPromises.length > 0) {
+          await Promise.all(cleanupPromises);
+          console.log(`Cleaned up ${cleanupPromises.length} invalid tokens.`);
+        }
+        
+        // Return the specific error codes to the client so the user can see them
+        return res.status(200).json({ 
+          success: true, 
+          response,
+          failedReasons: failedTokens
+        });
+      }
+
       return res.status(200).json({ success: true, response });
     } catch (fcmError) {
       console.error('FCM send error:', fcmError);

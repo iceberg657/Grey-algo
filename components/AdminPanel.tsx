@@ -181,7 +181,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 } else if (responseData.response) {
                     const { successCount, failureCount } = responseData.response;
                     if (failureCount > 0) {
-                        alert(`Broadcast transmitted. Success: ${successCount}, Failed: ${failureCount}. Check browser console for details.`);
+                        const reasons = responseData.failedReasons ? `\nReasons: ${responseData.failedReasons.join(', ')}` : '';
+                        alert(`Broadcast transmitted. Success: ${successCount}, Failed: ${failureCount}.${reasons}\n\n(Dead tokens have been automatically removed from the database)`);
                     } else {
                         alert(`Broadcast transmitted successfully to ${successCount} terminals.`);
                     }
