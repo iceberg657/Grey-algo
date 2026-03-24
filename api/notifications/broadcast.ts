@@ -79,8 +79,7 @@ export default async function handler(req, res) {
     const message = {
       notification: { 
         title, 
-        body,
-        icon: 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
+        body
       },
       android: {
         notification: {
