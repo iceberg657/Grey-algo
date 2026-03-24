@@ -128,20 +128,25 @@ const App: React.FC = () => {
             setAppView(isLoggedIn ? 'home' : 'landing');
             
             if (isLoggedIn) {
-                // Request notification permission and set up listener
-                requestNotificationPermission();
-                const unsubscribe = onMessageListener();
-                
                 // Register service worker for background notifications
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.register('/firebase-messaging-sw.js')
                         .then((registration) => {
                             console.log('Service Worker registered with scope:', registration.scope);
+                            // Request notification permission and set up listener with registration
+                            requestNotificationPermission(registration);
                         })
                         .catch((error) => {
                             console.error('Service Worker registration failed:', error);
+                            // Fallback to request without registration
+                            requestNotificationPermission();
                         });
+                } else {
+                    // Fallback for browsers without service worker support
+                    requestNotificationPermission();
                 }
+
+                const unsubscribe = onMessageListener();
                 
                 return () => {
                     if (unsubscribe) unsubscribe();

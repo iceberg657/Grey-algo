@@ -82,19 +82,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             const now = Date.now();
             snapshot.docs.forEach(async (docSnap) => {
                 const data = docSnap.data();
+                // Only attempt delete if user is admin and broadcast is older than 1 minute
                 if (now - data.timestamp > 60000) {
                     try {
-                        await deleteDoc(doc(db, 'broadcasts', docSnap.id));
+                        // Double check admin status before attempting delete to avoid permission errors
+                        const isAdminUser = auth.currentUser?.email === 'ma8138498@gmail.com';
+                        if (isAdminUser) {
+                            await deleteDoc(doc(db, 'broadcasts', docSnap.id));
+                        }
                     } catch (err) {
                         console.error("Admin auto-delete failed:", err);
                     }
                 }
             });
+        }, (err) => {
+            console.error("Broadcasts snapshot error:", err);
         });
 
         // Periodic cleanup timer for Admin Panel
         const cleanupInterval = setInterval(async () => {
             const now = Date.now();
+            const isAdminUser = auth.currentUser?.email === 'ma8138498@gmail.com';
+            if (!isAdminUser) return;
+
             try {
                 const q = query(collection(db, 'broadcasts'), where('active', '==', true));
                 const snapshot = await getDocs(q);
@@ -105,7 +115,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     }
                 });
             } catch (err) {
-                console.error("Admin periodic cleanup failed:", err);
+                // Only log if it's not a permission error we expect for non-admins
+                if (err instanceof Error && !err.message.includes('insufficient permissions')) {
+                    console.error("Admin periodic cleanup failed:", err);
+                }
             }
         }, 10000); // Check every 10 seconds
 
@@ -155,15 +168,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     })
                 });
                 
+                const responseData = await response.json();
+                console.log('Push notification response:', responseData);
+                
                 if (!response.ok) {
-                    console.warn('Push notification failed (likely missing server-side config)');
+                    console.warn('Push notification failed (likely missing server-side config):', responseData);
+                } else if (responseData.message === 'No tokens found') {
+                    alert('Broadcast saved, but NO push notifications were sent because no users have granted notification permissions yet.');
+                } else {
+                    alert('Broadcast transmitted to all terminals and push notifications sent.');
                 }
             } catch (pError) {
                 console.error('Push notification error:', pError);
+                alert('Broadcast saved, but push notification failed to send.');
             }
 
             setBroadcastMsg('');
-            alert('Broadcast transmitted to all terminals and push notifications sent.');
         } catch (error) {
             handleFirestoreError(error, OperationType.CREATE, path);
         } finally {
@@ -182,7 +202,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             // Send notification if granted
             if (status === 'granted') {
                 try {
-                    await fetch('/api/notifications/broadcast', { // Reusing broadcast for simplicity or create specific route
+                    const response = await fetch('/api/notifications/broadcast', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
@@ -191,6 +211,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                             targetUserId: userId
                         })
                     });
+                    const responseData = await response.json();
+                    if (responseData.message === 'No tokens found') {
+                        console.warn(`Could not send push notification to user ${userId} because they haven't granted permissions.`);
+                    }
                 } catch (e) {
                     console.error('Failed to send access notification:', e);
                 }

@@ -3,9 +3,9 @@ import { messaging, db, auth, handleFirestoreError, OperationType } from '../fir
 import { getToken, onMessage } from 'firebase/messaging';
 import { doc, updateDoc } from 'firebase/firestore';
 
-const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY || 'BNqHZGcnPS3pGkPVQOgk5l3H2aI-SWAtsxV4fDysT0L2zGfjlUvfZtHQ60EfXLQr23dDYRujbcwMpv5JwE9QP7c';
 
-export const requestNotificationPermission = async () => {
+export const requestNotificationPermission = async (registration?: ServiceWorkerRegistration) => {
     if (!messaging) {
         console.warn('Messaging not initialized');
         return null;
@@ -23,7 +23,8 @@ export const requestNotificationPermission = async () => {
         
         if (permission === 'granted') {
             const token = await getToken(messaging, {
-                vapidKey: VAPID_KEY
+                vapidKey: VAPID_KEY,
+                serviceWorkerRegistration: registration
             });
             
             if (token && auth.currentUser) {

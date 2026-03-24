@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express from 'express';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
@@ -65,12 +66,15 @@ async function startServer() {
         if (userDoc.exists && userDoc.data()?.fcmToken) {
           tokens = [userDoc.data()?.fcmToken];
         }
+        console.log(`Found ${tokens.length} tokens for target user ${targetUserId}`);
       } else {
-        const usersSnapshot = await db.collection('users').where('fcmToken', '!=', '').get();
+        const usersSnapshot = await db.collection('users').get();
         tokens = usersSnapshot.docs.map(doc => doc.data().fcmToken).filter(Boolean);
+        console.log(`Found ${tokens.length} tokens for broadcast`);
       }
 
       if (tokens.length === 0) {
+        console.log('No tokens found, skipping push notification');
         return res.json({ success: true, message: 'No tokens found' });
       }
 

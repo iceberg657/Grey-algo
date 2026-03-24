@@ -100,13 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 const data = docSnap.data() as Broadcast;
                 const age = now - data.timestamp;
                 
-                if (age > 60000) {
-                    try {
-                        await deleteDoc(doc(db, 'broadcasts', docSnap.id));
-                    } catch (err) {
-                        console.error("Failed to auto-delete expired broadcast:", err);
-                    }
-                } else {
+                if (age <= 60000) {
                     validBroadcasts.push({ id: docSnap.id, ...data });
                 }
             });
@@ -131,14 +125,6 @@ export const HomePage: React.FC<HomePageProps> = ({
             const expired = broadcasts.filter(b => (now - b.timestamp) > 60000);
             
             if (expired.length > 0) {
-                expired.forEach(async (b) => {
-                    try {
-                        await deleteDoc(doc(db, 'broadcasts', b.id));
-                    } catch (err) {
-                        console.error("Failed to auto-delete expired broadcast in timer:", err);
-                    }
-                });
-                
                 const stillValid = broadcasts.filter(b => (now - b.timestamp) <= 60000);
                 setBroadcasts(stillValid);
             }

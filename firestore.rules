@@ -15,7 +15,7 @@ service cloud.firestore {
     function isAdmin() {
       return isAuthenticated() &&
         (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
-          (request.auth.token.email == "ma8138498@gmail.com" && request.auth.token.email_verified == true));
+          request.auth.token.email == "ma8138498@gmail.com");
     }
 
     function hasRequiredFields(fields) {
@@ -54,14 +54,15 @@ service cloud.firestore {
 
     function isValidUser(data, userId) {
       return hasRequiredFields(['uid', 'email', 'role']) &&
-        hasOnlyAllowedFields(['uid', 'email', 'role', 'analysisCount', 'isRevoked', 'access', 'createdAt']) &&
+        hasOnlyAllowedFields(['uid', 'email', 'role', 'analysisCount', 'isRevoked', 'access', 'createdAt', 'fcmToken']) &&
         data.uid is string && data.uid == userId &&
         data.email is string && data.email.size() < 100 &&
         data.role in ['user', 'admin'] &&
         (!('analysisCount' in data) || data.analysisCount is number) &&
         (!('isRevoked' in data) || data.isRevoked is bool) &&
         (!('access' in data) || isValidAccess(data.access)) &&
-        (!('createdAt' in data) || data.createdAt is number);
+        (!('createdAt' in data) || data.createdAt is number) &&
+        (!('fcmToken' in data) || (data.fcmToken is string && data.fcmToken.size() < 500));
     }
 
     function isValidTrade(data) {
