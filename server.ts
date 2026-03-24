@@ -5,6 +5,8 @@ import path from 'path';
 import { createServer } from 'node:http';
 import { WebSocketServer } from 'ws';
 import admin from 'firebase-admin';
+import { getFirestore } from 'firebase-admin/firestore';
+import fs from 'node:fs/promises';
 import marketDataHandler from './api/marketData.js';
 import fetchDataHandler from './api/fetchData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
@@ -58,7 +60,9 @@ async function startServer() {
     }
 
     try {
-      const db = admin.firestore();
+      // Use the specific database ID from config if available
+      const firebaseConfig = JSON.parse(await fs.readFile(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
+      const db = getFirestore(firebaseConfig.firestoreDatabaseId || '(default)');
       let tokens: string[] = [];
 
       if (targetUserId) {
@@ -84,10 +88,11 @@ async function startServer() {
       };
 
       const response = await admin.messaging().sendEachForMulticast(message);
+      console.log('FCM Broadcast response:', JSON.stringify(response));
       res.json({ success: true, response });
     } catch (error) {
       console.error('Error sending notification:', error);
-      res.status(500).json({ error: 'Failed to send notification' });
+      res.status(500).json({ error: 'Failed to send notification', details: error instanceof Error ? error.message : String(error) });
     }
   });
 

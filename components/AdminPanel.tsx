@@ -172,7 +172,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 console.log('Push notification response:', responseData);
                 
                 if (!response.ok) {
-                    console.warn('Push notification failed (likely missing server-side config):', responseData);
+                    console.warn('Push notification failed:', responseData);
+                    alert(`Broadcast saved, but push notification failed: ${responseData.error || responseData.details || 'Unknown error'}`);
                 } else if (responseData.message === 'No tokens found') {
                     alert('Broadcast saved, but NO push notifications were sent because no users have granted notification permissions yet.');
                 } else {
