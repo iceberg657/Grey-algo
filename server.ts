@@ -60,25 +60,40 @@ async function startServer() {
     }
 
     try {
-      // Use the specific database ID from config if available
-      const firebaseConfig = JSON.parse(await fs.readFile(path.join(process.cwd(), 'firebase-applet-config.json'), 'utf-8'));
-      const db = getFirestore(firebaseConfig.firestoreDatabaseId || '(default)');
+      // Try to get database ID from config
+      let databaseId = '(default)';
+      try {
+        const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
+        const configData = await fs.readFile(configPath, 'utf-8');
+        const firebaseConfig = JSON.parse(configData);
+        databaseId = firebaseConfig.firestoreDatabaseId || '(default)';
+      } catch (configError) {
+        console.warn('Could not read firebase-applet-config.json, falling back to default database:', configError);
+      }
+
+      const db = getFirestore(databaseId);
       let tokens: string[] = [];
 
-      if (targetUserId) {
-        const userDoc = await db.collection('users').doc(targetUserId).get();
-        if (userDoc.exists && userDoc.data()?.fcmToken) {
-          tokens = [userDoc.data()?.fcmToken];
+      try {
+        if (targetUserId) {
+          const userDoc = await db.collection('users').doc(targetUserId).get();
+          if (userDoc.exists && userDoc.data()?.fcmToken) {
+            tokens = [userDoc.data()?.fcmToken];
+          }
+        } else {
+          const usersSnapshot = await db.collection('users').get();
+          tokens = usersSnapshot.docs.map(doc => doc.data().fcmToken).filter(Boolean);
         }
-        console.log(`Found ${tokens.length} tokens for target user ${targetUserId}`);
-      } else {
-        const usersSnapshot = await db.collection('users').get();
-        tokens = usersSnapshot.docs.map(doc => doc.data().fcmToken).filter(Boolean);
-        console.log(`Found ${tokens.length} tokens for broadcast`);
+      } catch (dbError) {
+        console.error('Firestore query error:', dbError);
+        return res.status(500).json({ 
+          error: 'Failed to fetch tokens from database', 
+          details: dbError instanceof Error ? dbError.message : String(dbError),
+          databaseId 
+        });
       }
 
       if (tokens.length === 0) {
-        console.log('No tokens found, skipping push notification');
         return res.json({ success: true, message: 'No tokens found' });
       }
 
@@ -87,12 +102,23 @@ async function startServer() {
         tokens: tokens
       };
 
-      const response = await admin.messaging().sendEachForMulticast(message);
-      console.log('FCM Broadcast response:', JSON.stringify(response));
-      res.json({ success: true, response });
+      try {
+        const response = await admin.messaging().sendEachForMulticast(message);
+        console.log('FCM Broadcast response:', JSON.stringify(response));
+        res.json({ success: true, response });
+      } catch (fcmError) {
+        console.error('FCM send error:', fcmError);
+        res.status(500).json({ 
+          error: 'FCM delivery failed', 
+          details: fcmError instanceof Error ? fcmError.message : String(fcmError) 
+        });
+      }
     } catch (error) {
-      console.error('Error sending notification:', error);
-      res.status(500).json({ error: 'Failed to send notification', details: error instanceof Error ? error.message : String(error) });
+      console.error('General notification route error:', error);
+      res.status(500).json({ 
+        error: 'Internal server error in notification route', 
+        details: error instanceof Error ? error.message : String(error) 
+      });
     }
   });
 
