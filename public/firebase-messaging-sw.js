@@ -19,8 +19,8 @@ messaging.onBackgroundMessage((payload) => {
   const notificationTitle = payload.notification.title || 'GreyAlpha Update';
   const notificationOptions = {
     body: payload.notification.body,
-    icon: payload.notification.icon || '/icon.svg',
-    badge: '/icon.svg',
+    icon: payload.notification.icon || 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
+    badge: 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
     data: payload.data
   };
 

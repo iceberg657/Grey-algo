@@ -73,7 +73,7 @@ export default async function handler(req, res) {
       notification: { 
         title, 
         body,
-        icon: 'https://grey-algo.vercel.app/icon.svg',
+        icon: 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
       },
       android: {
         notification: {
@@ -83,8 +83,8 @@ export default async function handler(req, res) {
       },
       webpush: {
         notification: {
-          icon: 'https://grey-algo.vercel.app/icon.svg',
-          badge: 'https://grey-algo.vercel.app/icon.svg',
+          icon: 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
+          badge: 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
         }
       },
       tokens: tokens

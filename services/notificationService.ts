@@ -49,12 +49,25 @@ export const onMessageListener = () => {
     return onMessage(messaging, (payload) => {
         console.log('Message received in foreground:', payload);
         if (payload.notification) {
-            new Notification(payload.notification.title || 'GreyAlpha Update', {
+            const title = payload.notification.title || 'GreyAlpha Update';
+            const options = {
                 body: payload.notification.body,
-                icon: payload.notification.icon || '/icon.svg',
-                badge: '/icon.svg',
+                // Using a reliable remote PNG icon to avoid SVG issues
+                icon: 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
+                badge: 'https://cdn-icons-png.flaticon.com/512/1828/1828884.png',
                 data: payload.data
-            });
+            };
+
+            if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.ready.then(registration => {
+                    registration.showNotification(title, options);
+                }).catch(err => {
+                    console.error('Service worker showNotification failed:', err);
+                    new Notification(title, options);
+                });
+            } else {
+                new Notification(title, options);
+            }
         }
     });
 };

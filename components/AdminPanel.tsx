@@ -178,6 +178,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     alert(`Broadcast saved, but push notification failed: ${errorMsg}${details}`);
                 } else if (responseData.message === 'No tokens found') {
                     alert('Broadcast saved, but NO push notifications were sent because no users have granted notification permissions yet.');
+                } else if (responseData.response) {
+                    const { successCount, failureCount } = responseData.response;
+                    if (failureCount > 0) {
+                        alert(`Broadcast transmitted. Success: ${successCount}, Failed: ${failureCount}. Check browser console for details.`);
+                    } else {
+                        alert(`Broadcast transmitted successfully to ${successCount} terminals.`);
+                    }
                 } else {
                     alert('Broadcast transmitted to all terminals and push notifications sent.');
                 }
