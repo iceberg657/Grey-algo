@@ -30,7 +30,7 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 
   const twelveDataContext = twelveDataQuote ? `
 📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
-Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis.
+Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
 - Symbol: ${twelveDataQuote.symbol}
 - Current Price: ${twelveDataQuote.close}
 - 24h High: ${twelveDataQuote.high}
@@ -43,7 +43,8 @@ Use this real-time data as your primary "Mathematical Truth" to verify your visu
 
 **CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
 **TECHNICAL CONFLUENCE:** Use the RSI and SMA values to verify momentum and trend. If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
-` : "";
+` : `📡 **TWELVE DATA API:** No real-time data available for this asset. Rely strictly on visual chart analysis and search grounding.
+`;
 
   const accountInfo = userSettings ? `
 **USER TRADING ACCOUNT PROFILE:**
@@ -255,11 +256,23 @@ ${ALGO_LOGIC}
    - Provide accurate news events happening in the **next 30 minutes to 1 hour**, and **15 minutes before** the current time.
    - You MUST provide at least **5 visited links** from your Google Search in the "sources" array.
 
-4. **CONFIDENCE THRESHOLD:**
-   - If confidence is < 60%, DO NOT ISSUE A SIGNAL.
-   - If the setup is not clear, DO NOT ISSUE A SIGNAL.
-   - Aim to provide a BUY or SELL signal whenever possible if the setup has reasonable confluence.
-   - **SCALPING RULE:** If you are reasonably sure, provide a signal.
+4. **CONFIDENCE THRESHOLD & TIERING (MANDATORY):**
+   - You MUST calculate your confidence score based on the following strict tiers:
+   - **Tier 1: 90% - 100% (SNIPER / A+ SETUP):**
+     * ALL confluence factors are "GREEN" (Market Structure, Liquidity Sweep, Displacement, RSI/SMA alignment).
+     * Twelve Data "Mathematical Truth" aligns perfectly with visual chart analysis.
+     * No high-impact news within 1 hour.
+     * The setup is ready for **IMMEDIATE MARKET EXECUTION** (no waiting for further confirmation).
+   - **Tier 2: 80% - 89% (HIGH PROBABILITY):**
+     * Most confluence factors are present.
+     * One or two minor items are still pending (e.g., waiting for a specific candle close, a slight pullback into an FVG, or a session open).
+     * Twelve Data matches the general bias but price is slightly outside the "ideal" entry.
+   - **Tier 3: 65% - 79% (VALID SETUP):**
+     * Basic confluence is met (Trend + Level).
+     * Some conflicting signals exist (e.g., HTF is bullish but LTF is choppy).
+   - **Tier 4: < 65% (NO TRADE):**
+     * Confidence is too low. DO NOT ISSUE A SIGNAL.
+   - **SCALPING RULE:** If you are reasonably sure, provide a signal, but strictly follow the tiering logic.
 
 5. **INVALIDATION LOGIC:**
    - Invalidation is NOT hitting SL.
@@ -401,10 +414,11 @@ If all align, the trade is significantly stronger. Do not issue a signal if thes
     *   **Displacement (25pts):** Strong move leaving FVG/OB?
     *   **Premium/Discount (20pts):** Is entry in the correct zone?
 
-**THRESHOLD:**
-- **Score > 65:** VALID SETUP. Issue BUY/SELL Signal.
-- **Score > 85:** SNIPER SETUP (A+).
-- **Score < 65:** DO NOT ISSUE A SIGNAL (Wait for better alignment).
+**FINAL CALCULATION:**
+- **Score 90-100:** Everything is green, no waiting, immediate execution.
+- **Score 80-89:** 1-2 items pending or yet to take place.
+- **Score 65-79:** Valid setup, standard confluence.
+- **Score < 65:** NO SIGNAL.
 
 ---
 
