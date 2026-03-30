@@ -159,9 +159,11 @@ export function resetNeuralLanes() {
  */
 export async function executeLaneCall<T>(
     operationFactory: (apiKey: string) => Promise<T>,
-    pool: string[]
+    pool: string[] | (() => string[])
 ): Promise<T> {
-    const activePool = pool.length > 0 ? pool : [K.P()];
+    await initializeApiKey();
+    const resolvedPool = typeof pool === 'function' ? pool() : pool;
+    const activePool = resolvedPool.length > 0 && resolvedPool[0] !== '' ? resolvedPool : [K.P()];
     let lastError: any = null;
 
     const availableKeys = activePool.filter(k => !isThrottled(k));

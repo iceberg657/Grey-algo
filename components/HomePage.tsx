@@ -15,6 +15,7 @@ import { SettingsModal } from './SettingsModal';
 import { PacificTimeClock } from './PacificTimeClock';
 import { resetNeuralLanes } from '../services/retryUtils';
 import { getLearnedStrategies } from '../services/learningService';
+import { fetchMarketData } from '../services/twelveDataService';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, where, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
@@ -163,10 +164,30 @@ export const HomePage: React.FC<HomePageProps> = ({
             const userSettings = storedSettings ? JSON.parse(storedSettings) as UserSettings : undefined;
 
             const learnedStrategies = await getLearnedStrategies();
+            
+            // Fetch live market data for confluence
+            let marketData = null;
+            if (requestData.asset) {
+                // Determine interval based on trading style
+                let interval = '1h';
+                if (requestData.tradingStyle === 'Scalping') interval = '5min';
+                else if (requestData.tradingStyle === 'Day Trading') interval = '15min';
+                else if (requestData.tradingStyle === 'Swing Trading') interval = '4h';
+                
+                // Clean asset name for Twelve Data (e.g., "EURUSD" -> "EUR/USD", "BTCUSD" -> "BTC/USD")
+                let symbol = requestData.asset;
+                if (symbol.length === 6 && !symbol.includes('/')) {
+                    symbol = `${symbol.substring(0, 3)}/${symbol.substring(3, 6)}`;
+                }
+                
+                marketData = await fetchMarketData(symbol, interval);
+            }
+
             const fullRequest: AnalysisRequest = {
                 ...requestData,
                 userSettings,
                 learnedStrategies,
+                marketData
             };
 
             const data = await generateTradingSignal(fullRequest);

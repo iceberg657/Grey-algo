@@ -82,12 +82,12 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                     <div className={`text-2xl sm:text-3xl ${trend.color}`}>{trend.icon}</div>
                     <div>
                         <div className={`text-base sm:text-lg font-extrabold uppercase ${trend.color} leading-none`}>{trend.label}</div>
-                        <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase tracking-wider mt-1 font-bold">Structural Bias</div>
+                        <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase tracking-wider mt-1 font-bold">HTF Macro Bias</div>
                     </div>
                 </div>
                 <div className="text-right">
                     <div className={`text-xl sm:text-2xl font-bold ${trend.color} leading-none font-mono`}>{score}</div>
-                    <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase mt-1">AI Score</div>
+                    <div className="text-[10px] text-gray-600 dark:text-gray-400 font-mono uppercase mt-1">HTF Bias Score</div>
                 </div>
             </div>
 
@@ -320,7 +320,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     className="col-span-2 md:col-span-1" 
                     delay="100ms" 
                 />
-                 <InfoCard label="Precision" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
+                 <InfoCard label="Confluence Score" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
                  {data.signal !== 'NEUTRAL' && (
                     <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
                  )}
@@ -413,32 +413,40 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-red-500 uppercase">Risk Bound</span>
-                            <span className="text-gray-800 dark:text-white font-bold">{slDisplay} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
+                            <span className="text-gray-800 dark:text-white font-bold">
+                                {data.signal === 'NEUTRAL' ? 'N/A' : <>{slDisplay} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></>}
+                            </span>
                         </div>
                         
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-green-500 uppercase">Reward Bound</span>
-                            <span className="text-gray-800 dark:text-white font-bold">{tp3Display} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></span>
+                            <span className="text-gray-800 dark:text-white font-bold">
+                                {data.signal === 'NEUTRAL' ? 'N/A' : <>{tp3Display} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></>}
+                            </span>
                         </div>
                         
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
-                            <span className="text-gray-800 dark:text-white font-bold">{data.riskRewardRatio || "1:2"}</span>
+                            <span className="text-gray-800 dark:text-white font-bold">
+                                {data.signal === 'NEUTRAL' ? 'N/A' : (data.riskRewardRatio || "1:2")}
+                            </span>
                         </div>
 
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-purple-500 uppercase">Entry Style</span>
-                            <span className="text-gray-800 dark:text-white font-bold">{data.entryType}</span>
+                            <span className="text-gray-800 dark:text-white font-bold">
+                                {data.signal === 'NEUTRAL' ? 'Awaiting Setup' : data.entryType}
+                            </span>
                         </div>
                         
-                        {data.lotSize && data.lotSize > 0 && (
+                        {data.lotSize && data.lotSize > 0 && data.signal !== 'NEUTRAL' && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-cyan-500 uppercase">Total Lot Size</span>
                                 <span className="font-bold text-cyan-500 dark:text-cyan-400">{data.formattedLotSize}</span>
                             </div>
                         )}
 
-                        {data.recommendedPositions && data.recommendedPositions > 0 && data.positionLotSize && (
+                        {data.recommendedPositions && data.recommendedPositions > 0 && data.positionLotSize && data.signal !== 'NEUTRAL' && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3 bg-cyan-500/5 px-2 rounded-lg">
                                 <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 uppercase">Positions</span>
                                 <div className="text-right">
@@ -447,28 +455,28 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                             </div>
                         )}
                         
-                        {data.riskAmount && data.riskAmount > 0 && (
+                        {data.riskAmount && data.riskAmount > 0 && data.signal !== 'NEUTRAL' && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Risk</span>
                                 <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
                             </div>
                         )}
                         
-                        {data.totalPotentialProfit && data.totalPotentialProfit > 0 && (
+                        {data.totalPotentialProfit && data.totalPotentialProfit > 0 && data.signal !== 'NEUTRAL' && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Potential</span>
                                 <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
                             </div>
                         )}
 
-                        {data.possiblePips !== undefined && data.possiblePips > 0 && (
+                        {data.possiblePips !== undefined && data.possiblePips > 0 && data.signal !== 'NEUTRAL' && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-orange-500 uppercase">Possible Pips</span>
                                 <span className="font-bold text-orange-500 dark:text-orange-400">{data.possiblePips} pips</span>
                             </div>
                         )}
 
-                        {data.winProbability !== undefined && data.winProbability > 0 && (
+                        {data.winProbability !== undefined && data.winProbability > 0 && data.signal !== 'NEUTRAL' && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-pink-500 uppercase">Win Probability</span>
                                 <span className="font-bold text-pink-500 dark:text-pink-400">{data.winProbability}%</span>
@@ -477,6 +485,34 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     </div>
                 </div>
             </Section>
+
+            {/* TRIGGER CONDITIONS SECTION */}
+            {data.triggerConditions && (
+                <Section title="Trigger Conditions" delay="1150ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}>
+                    <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
+                        <div className="space-y-4">
+                            {data.triggerConditions.breakoutLevel !== null && data.triggerConditions.breakoutLevel !== undefined && (
+                                <div className="flex flex-col sm:flex-row sm:items-center gap-2 border-b border-gray-200 dark:border-white/10 pb-3">
+                                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase min-w-[150px]">Breakout Level</span>
+                                    <span className="font-mono font-bold text-orange-500 dark:text-orange-400 text-lg">{data.triggerConditions.breakoutLevel}</span>
+                                </div>
+                            )}
+                            {data.triggerConditions.retestLogic && (
+                                <div className="flex flex-col sm:flex-row sm:items-start gap-2 border-b border-gray-200 dark:border-white/10 pb-3">
+                                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase min-w-[150px] mt-1">Retest Logic</span>
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium">{data.triggerConditions.retestLogic}</span>
+                                </div>
+                            )}
+                            {data.triggerConditions.entryTriggerCandle && (
+                                <div className="flex flex-col sm:flex-row sm:items-start gap-2 pt-1">
+                                    <span className="text-sm font-bold text-gray-500 dark:text-gray-400 uppercase min-w-[150px] mt-1">Entry Trigger Candle</span>
+                                    <span className="text-gray-800 dark:text-gray-200 font-medium">{data.triggerConditions.entryTriggerCandle}</span>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </Section>
+            )}
 
             {data.demandSupplyZones && data.demandSupplyZones.length > 0 && (
                 <Section title="Demand/Supply Analysis" delay="1250ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clipRule="evenodd" /></svg>}>
@@ -547,12 +583,12 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                             </div>
 
                             {/* Market Context */}
-                            {data.confluenceMatrix.structuralBias && (
+                            {data.confluenceMatrix.ltfExecutionBias && (
                                 <div className="col-span-1 md:col-span-2 grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
                                     <div className="p-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
-                                        <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">Structural Bias</span>
-                                        <span className={`text-lg font-black ${data.confluenceMatrix.structuralBias.toLowerCase() === 'bullish' ? 'text-green-500' : 'text-red-500'}`}>
-                                            {data.confluenceMatrix.structuralBias.toUpperCase()}
+                                        <span className="block text-[10px] font-bold text-gray-600 dark:text-gray-500 uppercase tracking-widest mb-1">LTF Execution Bias</span>
+                                        <span className={`text-lg font-black ${data.confluenceMatrix.ltfExecutionBias.toLowerCase() === 'bullish' ? 'text-green-500' : data.confluenceMatrix.ltfExecutionBias.toLowerCase() === 'bearish' ? 'text-red-500' : 'text-yellow-500'}`}>
+                                            {data.confluenceMatrix.ltfExecutionBias.toUpperCase()}
                                         </span>
                                     </div>
                                     <div className="p-4 bg-white/60 dark:bg-slate-900/40 backdrop-blur-md rounded-xl border border-gray-200 dark:border-white/10 text-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
@@ -587,21 +623,6 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                                 </div>
                                             );
                                         })}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Legacy Checklist (if present) */}
-                            {data.checklist && data.checklist.length > 0 && (
-                                <div className="col-span-1 md:col-span-2 mt-4">
-                                    <h4 className="text-[10px] font-bold text-gray-600 dark:text-gray-400 uppercase tracking-[0.2em] mb-4 text-center">Confirmation Checklist</h4>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                        {data.checklist.map((item, i) => (
-                                            <div key={i} className="flex items-center bg-green-500/5 dark:bg-green-500/10 backdrop-blur-sm p-2.5 rounded-lg border border-green-500/20 shadow-md transition-all hover:bg-green-500/10">
-                                                <span className="text-green-500 mr-3 font-black">✓</span>
-                                                <span className="text-xs font-bold opacity-80">{item}</span>
-                                            </div>
-                                        ))}
                                     </div>
                                 </div>
                             )}
@@ -717,7 +738,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
             {(hasSentiment || hasEconomicEvents) && (
                  <div className={`grid grid-cols-1 ${hasSentiment && hasEconomicEvents ? 'md:grid-cols-2' : ''} gap-6 mt-4`}>
                     {hasSentiment && (
-                         <Section title="Structural Bias" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></svg>}>
+                         <Section title="HTF Macro Bias" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></svg>}>
                             <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl p-5 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] h-full flex flex-col justify-center">
                                 <SentimentGauge score={data.sentiment!.score} summary={data.sentiment!.summary} />
                             </div>
@@ -736,6 +757,22 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
             {Array.isArray(data.sources) && data.sources.length > 0 && (
                  <Section title="Intelligence Sources" delay="1600ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.937 7.937 0 0112 4c1.232 0 2.403.28 3.444.782l1.556-1.556a1 1 0 011.414 1.414l-1.556 1.556c.496 1.056.782 2.227.782 3.444 0 1.241-.3 2.413-.834 3.443L19.293 17.707a1 1 0 01-1.414 1.414l-3.483-3.484A7.935 7.935 0 0112 16a7.937 7.937 0 01-3-4.804l-1.556 1.556a1 1 0 01-1.414-1.414l1.556-1.556A7.935 7.935 0 014 12a7.937 7.937 0 013-4.804L5.444 5.64a1 1 0 011.414-1.414l1.556 1.556C9.403 5.084 10.574 4.804 12 4.804z" /></svg>}>
                     <ul className="space-y-3">
+                        {data.twelveDataQuote && (
+                            <li className="flex items-start bg-green-500/10 dark:bg-green-500/5 backdrop-blur-xl p-4 rounded-xl border border-green-500/30 hover:border-green-500/50 transition-all group overflow-hidden shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                                <span className="mr-4 text-green-600 dark:text-green-500 flex-shrink-0 font-mono font-black">[LIVE]</span>
+                                <div className="flex-1 overflow-hidden">
+                                    <div className="text-green-600 dark:text-green-400 text-xs sm:text-sm font-bold tracking-tight mb-1">
+                                        Twelve Data Real-time Quote
+                                    </div>
+                                    <div className="text-[10px] text-green-700 dark:text-green-500 font-mono">
+                                        Price: {data.twelveDataQuote.close || data.twelveDataQuote.price} | {data.twelveDataQuote.percent_change}% Change
+                                    </div>
+                                    <div className="text-[10px] text-green-700/70 dark:text-green-500/70 font-mono mt-1">
+                                        RSI: {data.twelveDataQuote.rsi} | SMA: {data.twelveDataQuote.sma} ({data.twelveDataQuote.interval})
+                                    </div>
+                                </div>
+                            </li>
+                        )}
                         {data.sources.map((source, i) => (
                             <li key={i} className="flex items-start bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-gray-200 dark:border-white/10 hover:border-blue-500/50 transition-all group overflow-hidden shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                 <span className="mr-4 text-gray-600 dark:text-gray-500 flex-shrink-0 font-mono font-black">[{i+1}]</span>

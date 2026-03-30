@@ -59,6 +59,7 @@ export interface AnalysisRequest {
     globalContext?: string;
     learnedStrategies?: string[];
     userSettings?: UserSettings;
+    twelveDataQuote?: any;
 }
 
 export interface MarketConfig {
@@ -139,6 +140,11 @@ export interface SignalData {
     confidence: number;
     entryPoints: number[];
     entryType: 'Market Execution' | 'Buy Limit' | 'Sell Limit' | 'Buy Stop' | 'Sell Stop' | 'Buy Stop Limit' | 'Sell Stop Limit';
+    triggerConditions?: {
+        breakoutLevel: number;
+        retestLogic: string;
+        entryTriggerCandle: string;
+    };
     stopLoss: number;
     takeProfits: number[];
     reasoning: string[];
@@ -196,8 +202,8 @@ export interface SignalData {
             sdShort: boolean;
             sdPlusFVGConfluence: boolean;
         };
-        structuralBias?: "Bullish" | "Bearish";
-        marketTrend?: "Bullish" | "Bearish";
+        ltfExecutionBias?: "Bullish" | "Bearish" | "Neutral";
+        marketTrend?: "Bullish" | "Bearish" | "Neutral";
         atrVolatility?: "High" | "Low" | "Choppy";
         executionChecklist?: string[];
     };
@@ -205,6 +211,7 @@ export interface SignalData {
     institutionalDrivers?: InstitutionalDriver[];
     fundamentalDrivers?: FundamentalDriver[];
     marketStory?: string;
+    twelveDataQuote?: any;
 }
 
 export interface MomentumAsset {

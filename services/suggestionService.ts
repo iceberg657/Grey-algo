@@ -65,7 +65,7 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         if (start === -1 || end === -1) throw new Error("Neural Queue Desync.");
         
         return JSON.parse(text.substring(start, end + 1));
-    }, getSuggestionPool());
+    }, getSuggestionPool);
 }
 
 export async function getOrRefreshSuggestions(force: boolean = false) {

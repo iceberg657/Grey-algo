@@ -10,7 +10,7 @@ import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -27,6 +27,23 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const learnedContext = strategies.length > 0 
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
+
+  const twelveDataContext = twelveDataQuote ? `
+📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
+Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis.
+- Symbol: ${twelveDataQuote.symbol}
+- Current Price: ${twelveDataQuote.close}
+- 24h High: ${twelveDataQuote.high}
+- 24h Low: ${twelveDataQuote.low}
+- Open: ${twelveDataQuote.open}
+- Volume: ${twelveDataQuote.volume}
+- % Change: ${twelveDataQuote.percent_change}%
+- RSI (14, ${twelveDataQuote.interval}): ${twelveDataQuote.rsi}
+- SMA (20, ${twelveDataQuote.interval}): ${twelveDataQuote.sma}
+
+**CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
+**TECHNICAL CONFLUENCE:** Use the RSI and SMA values to verify momentum and trend. If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
+` : "";
 
   const accountInfo = userSettings ? `
 **USER TRADING ACCOUNT PROFILE:**
@@ -136,6 +153,7 @@ function detectEntries(candles) {
 
 You are **Oracle**, the apex-level trading AI engine powering this application. Your logic is built on strict risk management, multi-timeframe confluence, and objective technical analysis.
 ${learnedContext}
+${twelveDataContext}
 ${accountInfo}
 ${tradeModeInstructions}
 ---
@@ -174,6 +192,7 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
 
 3. **PRE-TRADE MANDATORY FILTERS (MANDATORY):**
     - You MUST perform these checks before issuing any trade signal. If any condition fails, you MUST issue a "HOLD" signal.
+    - **Raw API Data Confluence (MANDATORY):** If Twelve Data is available, you MUST verify that the current price is within your expected entry zone. If the visual chart looks like a BUY but the Raw API Data shows price is already at a major resistance or has moved too far, you MUST adjust your signal.
     - **News Filter:** Check for high-impact news (CPI, NFP, FOMC, GDP). If news is within 1 hour, DO NOT trade.
     - **Volatility Filter (ATR):** If ATR is < 30% or > 200% of the 14-period average, DO NOT trade.
     - **Correlation Filter:** If you are already tracking or trading a correlated pair (e.g., EURUSD and GBPUSD, or EURUSD and Gold) in the same direction, DO NOT trade.
@@ -375,8 +394,8 @@ If all align, the trade is significantly stronger. Do not issue a signal if thes
 ---
 
 📊 **SCORING MATRIX (Mental Calculation):**
-1.  **Live Market Data (50% Weight):** Use Google Search to get real-time price action, order flow, and news sentiment for the asset. This is the most critical factor.
-2.  **Chart Analysis (50% Weight):**
+1.  **Raw API Data Confluence (40% Weight):** Use Twelve Data to verify the "Mathematical Truth" of the price action.
+2.  **Chart Analysis (60% Weight):**
     *   **Market Structure (30pts):** Clear HH/HL or LH/LL alignment.
     *   **Liquidity Event (25pts):** Has a clear sweep occurred?
     *   **Displacement (25pts):** Strong move leaving FVG/OB?
@@ -485,7 +504,7 @@ You MUST correctly classify the order type based on the strict relationship betw
 **JSON OUTPUT (RAW ONLY - NO MARKDOWN):**
 {
   "signal": "BUY" | "SELL" | "NEUTRAL",
-  "confidence": number (0-100),
+  "confidence": number, // 0-100. CRITICAL: Calculate this strictly based on the Execution Checklist. (e.g., 6 passes = 60%, 8 passes = 80%).
   "asset": "${asset}",
   "timeframe": "e.g., M5, M15, H1",
   "contractSize": number, // e.g., 100000 for standard FX lot
@@ -508,7 +527,7 @@ You MUST correctly classify the order type based on the strict relationship betw
   "demandSupplyZones": [
     {
       "type": "demand" | "supply",
-      "priceRange": { "upper": number, "lower": number },
+      "priceRange": { "upper": number, "lower": number }, // CRITICAL: upper MUST be greater than lower. E.g., { "lower": 4550, "upper": 4570 }
       "confirmed": boolean,
       "strength": "weak" | "medium" | "strong"
     }
@@ -546,6 +565,11 @@ You MUST correctly classify the order type based on the strict relationship betw
   
   "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry],
   "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
+  "triggerConditions": {
+    "breakoutLevel": number | null, // Exact numeric level for a breakout, or null if not applicable
+    "retestLogic": "string", // Precise logic for retest (e.g., 'Wait for 15m candle close above 4570, then retest of 4568')
+    "entryTriggerCandle": "string" // Specific candle pattern to trigger entry (e.g., 'Bullish Engulfing or Pinbar on 5m')
+  },
   "stopLoss": number,
   "takeProfits": [TP1, TP2, TP3],
   "possiblePips": number, // Estimated pips from Entry to TP3
@@ -564,8 +588,8 @@ You MUST correctly classify the order type based on the strict relationship betw
         "sdShort": boolean,
         "sdPlusFVGConfluence": boolean
     },
-    "structuralBias": "Bullish" | "Bearish",
-    "marketTrend": "Bullish" | "Bearish",
+    "ltfExecutionBias": "Bullish" | "Bearish" | "Neutral",
+    "marketTrend": "Bullish" | "Bearish" | "Neutral",
     "atrVolatility": "High" | "Low" | "Choppy",
     "executionChecklist": [
       "1. Structural Bias Alignment: [Pass/Fail]",
@@ -577,7 +601,8 @@ You MUST correctly classify the order type based on the strict relationship betw
       "7. Premium/Discount Zone: [Pass/Fail]",
       "8. Economic News Cleared: [Pass/Fail]",
       "9. Risk:Reward Acceptable: [Pass/Fail]",
-      "10. No Choppy Price Action: [Pass/Fail]"
+      "10. No Choppy Price Action: [Pass/Fail]",
+      "11. Raw API Data Confluence (Twelve Data): [Pass/Fail]"
     ]
   },
   "verificationProtocol": {
@@ -600,14 +625,6 @@ You MUST correctly classify the order type based on the strict relationship betw
     "10. Overall Confluence: [Your reasoning here]"
   ], // CRITICAL: This array MUST contain EXACTLY 10 strings. Do not add or remove any points.
   
-  "checklist": [
-    "Liquidity Swept",
-    "CHoCH/BOS Confirmed",
-    "FVG/OB Retest",
-    "Risk:Reward ${rrRatio}",
-    "Risk-Free Protocol: Move SL to BE at TP1"
-  ],
-  
   "invalidationScenario": "Structural break of HL/LH",
   "counterArgumentRejection": "Detailed explanation of why the opposing scenario was rejected",
   "riskAnalysis": {
@@ -615,7 +632,7 @@ You MUST correctly classify the order type based on the strict relationship betw
     "suggestedLotSize": "e.g., 0.5 lots",
     "safetyScore": number
   },
-  "sentiment": { "score": number, "summary": "string" },
+  "sentiment": { "score": number, "summary": "HTF Macro Bias summary" }, // CRITICAL: 0-45 = Bearish, 46-54 = Neutral, 55-100 = Bullish
   "economicEvents": [],
   "sources": []
 }
@@ -633,7 +650,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
           request.asset || "",
           request.learnedStrategies || [],
           request.tradingStyle,
-          request.userSettings
+          request.userSettings,
+          request.twelveDataQuote
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -681,20 +699,13 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         
         const data = JSON.parse(text.substring(start, end + 1));
 
-        // Confluence check
-        const hasConfluence = data.confluenceMatrix?.triggeredEntries?.sdPlusFVGConfluence === true;
-        let finalConfidence = data.confidence || 0;
-        
-        if (!hasConfluence) {
-            // Cap at 75%
-            finalConfidence = Math.min(finalConfidence, 75);
+        // Calculate Confluence Score strictly from Execution Checklist
+        let finalConfidence = 0;
+        if (data.confluenceMatrix?.executionChecklist && Array.isArray(data.confluenceMatrix.executionChecklist) && data.confluenceMatrix.executionChecklist.length > 0) {
+            const passedCount = data.confluenceMatrix.executionChecklist.filter((item: string) => item.toLowerCase().includes('pass')).length;
+            finalConfidence = Math.round((passedCount / data.confluenceMatrix.executionChecklist.length) * 100);
         } else {
-            // Allow 75-95%
-            if (finalConfidence < 75) {
-                finalConfidence = 75;
-            } else if (finalConfidence > 95) {
-                finalConfidence = 95;
-            }
+            finalConfidence = data.confidence || 0;
         }
 
         // Extract Grounding Metadata (Real Search Results)
@@ -747,13 +758,13 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
+            triggerConditions: data.triggerConditions,
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
             possiblePips: data.possiblePips || 0,
             winProbability: data.winProbability || 0,
             recommendedPositions: data.recommendedPositions || 2,
             reasoning: safeReasoning,
-            checklist: data.checklist || [],
             invalidationScenario: data.invalidationScenario || "Structure break",
             counterArgumentRejection: data.counterArgumentRejection || "",
             sentiment: data.sentiment || { score: 50, summary: "Neutral" },
@@ -776,7 +787,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             verificationProtocol: data.verificationProtocol,
             contractSize: data.contractSize,
             pipValue: data.pipValue,
-            tradeMode: request.userSettings?.tradeMode || 'Aggressive'
+            tradeMode: request.userSettings?.tradeMode || 'Aggressive',
+            twelveDataQuote: request.twelveDataQuote
         };
         
         return validateAndFixTPSL(rawSignal, request.riskRewardRatio, request.tradingStyle);
@@ -795,9 +807,37 @@ export async function generateTradingSignal(
     
     // 1. Fetch learned strategies (Global + Local)
     const learnedStrategies = await getLearnedStrategies();
+    
+    // Fetch Twelve Data for confluence if asset is provided
+    let twelveDataQuote = null;
+    if (request.asset) {
+        try {
+            // Map TradingStyle to Twelve Data Interval
+            let interval = '15min';
+            const style = request.tradingStyle;
+            if (style.includes('1 to 15mins')) interval = '1min';
+            else if (style.includes('15 to 30mins')) interval = '5min';
+            else if (style.includes('1 to 2hrs')) interval = '15min';
+            else if (style.includes('2 to 4hrs')) interval = '1h';
+            else if (style.includes('swing')) interval = '1day';
+
+            console.log(`Fetching Twelve Data for ${request.asset} at ${interval}...`);
+            const response = await fetch(`/api/twelvedata/quote?symbol=${encodeURIComponent(request.asset)}&interval=${interval}`);
+            if (response.ok) {
+                twelveDataQuote = await response.json();
+                console.log('Twelve Data fetched successfully.');
+            } else {
+                console.warn('Twelve Data fetch failed:', response.statusText);
+            }
+        } catch (e) {
+            console.error('Error fetching Twelve Data:', e);
+        }
+    }
+
     const updatedRequest = {
         ...request,
-        learnedStrategies: [...(request.learnedStrategies || []), ...learnedStrategies]
+        learnedStrategies: [...(request.learnedStrategies || []), ...learnedStrategies],
+        twelveDataQuote
     };
     
     // 2. Get comprehensive AI analysis

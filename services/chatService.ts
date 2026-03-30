@@ -56,5 +56,5 @@ export async function sendMessageStreamWithRetry(
             }
             return await currentChat!.sendMessageStream({ message: messageParts });
         }, onRetry);
-    }, getChatPool());
+    }, getChatPool);
 }

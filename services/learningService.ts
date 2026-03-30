@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback } from './retryUtils';
+import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
 import { db, auth } from '../firebase';
 import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection } from 'firebase/firestore';
 
@@ -103,6 +103,8 @@ export const performAutoLearning = async (): Promise<string | null> => {
             };
         });
 
+        await initializeApiKey();
+
         return await executeLaneCall<string>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
@@ -144,7 +146,7 @@ export const performAutoLearning = async (): Promise<string | null> => {
                 }
             }
             return strategy;
-        }, getChatPool());
+        }, getChatPool);
     } catch (e) { 
         console.error("Global Learning Error:", e);
         return null; 

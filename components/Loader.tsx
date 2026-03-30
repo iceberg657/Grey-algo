@@ -2,9 +2,9 @@ import React, { useState, useEffect } from 'react';
 
 const LOADING_MESSAGES = [
     "Synthesizing multi-strategy analysis...",
-    "Scanning for candlestick patterns...",
+    "Fetching live OHLCV from Twelve Data...",
     "Calculating support & resistance levels...",
-    "Leveraging real-time market data...",
+    "Cross-referencing vision with raw market data...",
     "Evaluating market structure...",
     "Checking RSI and MACD indicators...",
     "Identifying liquidity zones...",

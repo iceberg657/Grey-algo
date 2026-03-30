@@ -21,5 +21,5 @@ export async function getForexNews(): Promise<NewsArticle[]> {
         const end = text.lastIndexOf(']') + 1;
         if (start === -1) return [];
         return JSON.parse(text.substring(start, end));
-    }, getServicePool());
+    }, getServicePool);
 }

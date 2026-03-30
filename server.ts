@@ -409,6 +409,68 @@ async function startServer() {
     }
   });
 
+  app.get('/api/twelvedata/quote', async (req, res) => {
+    const { symbol, interval = '15min' } = req.query;
+    if (!symbol || typeof symbol !== 'string') {
+      return res.status(400).json({ error: 'Missing symbol' });
+    }
+
+    const apiKey = process.env.TWELVE_DATA_API_KEY;
+    if (!apiKey) {
+      console.warn('Twelve Data API key not configured in environment variables.');
+      return res.status(500).json({ error: 'Twelve Data API key not configured' });
+    }
+
+    // Map common symbols to Twelve Data format
+    let mappedSymbol = symbol;
+    if (symbol === 'XAUUSD') mappedSymbol = 'XAU/USD';
+    else if (symbol === 'EURUSD') mappedSymbol = 'EUR/USD';
+    else if (symbol === 'GBPUSD') mappedSymbol = 'GBP/USD';
+    else if (symbol === 'USDJPY') mappedSymbol = 'USD/JPY';
+    else if (symbol === 'USDCAD') mappedSymbol = 'USD/CAD';
+    else if (symbol === 'AUDUSD') mappedSymbol = 'AUD/USD';
+    else if (symbol === 'NZDUSD') mappedSymbol = 'NZD/USD';
+    else if (symbol === 'BTCUSD') mappedSymbol = 'BTC/USD';
+    else if (symbol === 'ETHUSD') mappedSymbol = 'ETH/USD';
+
+    try {
+      console.log(`Calling Twelve Data API for ${mappedSymbol} at ${interval}...`);
+      
+      // Fetch Quote, RSI, and SMA in parallel for confluence
+      const [quoteRes, rsiRes, smaRes] = await Promise.all([
+        fetch(`https://api.twelvedata.com/quote?symbol=${mappedSymbol}&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/rsi?symbol=${mappedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/sma?symbol=${mappedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`)
+      ]);
+
+      const quoteData = await quoteRes.json();
+      const rsiData = await rsiRes.json();
+      const smaData = await smaRes.json();
+      
+      if (quoteData.status === 'error') {
+        console.error(`Twelve Data API error for ${mappedSymbol}:`, quoteData.message);
+        return res.status(400).json({ error: quoteData.message });
+      }
+      
+      // Extract latest values
+      const latestRsi = rsiData.values?.[0]?.rsi || 'N/A';
+      const latestSma = smaData.values?.[0]?.sma || 'N/A';
+
+      const combinedData = {
+        ...quoteData,
+        rsi: latestRsi,
+        sma: latestSma,
+        interval
+      };
+
+      console.log(`Twelve Data API success for ${mappedSymbol}. RSI: ${latestRsi}, SMA: ${latestSma}`);
+      res.json(combinedData);
+    } catch (error) {
+      console.error('Error fetching Twelve Data:', error);
+      res.status(500).json({ error: 'Failed to fetch from Twelve Data' });
+    }
+  });
+
   // Push Notification Route
   app.post('/api/notifications/broadcast', async (req, res) => {
     const { title, body, targetUserId } = req.body;
