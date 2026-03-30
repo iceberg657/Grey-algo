@@ -148,11 +148,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         const path = 'admin_settings/system';
         try {
             const settingsRef = doc(db, 'admin_settings', 'system');
-            await setDoc(settingsRef, {
+            
+            // Use a promise with timeout to prevent hanging
+            const updatePromise = setDoc(settingsRef, {
                 [setting]: value,
                 updatedAt: Date.now()
             }, { merge: true });
-        } catch (error) {
+
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Connection timeout. Please check your VPN.')), 10000)
+            );
+
+            await Promise.race([updatePromise, timeoutPromise]);
+            alert(`System setting "${setting}" updated to ${value}.`);
+        } catch (error: any) {
+            console.error('Failed to update system setting:', error);
+            alert(`Failed to update system setting: ${error.message || 'Unknown error'}`);
             handleFirestoreError(error, OperationType.WRITE, path);
         }
     };
@@ -162,13 +173,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         setIsSending(true);
         const path = 'broadcasts';
         try {
-            // 1. Save to Firestore for in-app display
-            await addDoc(collection(db, 'broadcasts'), {
+            // 1. Save to Firestore for in-app display with timeout
+            const addPromise = addDoc(collection(db, 'broadcasts'), {
                 message: broadcastMsg,
                 timestamp: Date.now(),
                 active: true,
                 author: auth.currentUser?.email
             });
+
+            const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Connection timeout. Please check your VPN.')), 10000)
+            );
+
+            await Promise.race([addPromise, timeoutPromise]);
 
             // 2. Send Push Notification via Server
             try {
@@ -208,7 +225,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             }
 
             setBroadcastMsg('');
-        } catch (error) {
+        } catch (error: any) {
+            console.error('Broadcast failed:', error);
+            alert(`Broadcast failed: ${error.message || 'Please check your connection.'}`);
             handleFirestoreError(error, OperationType.CREATE, path);
         } finally {
             setIsSending(false);
