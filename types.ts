@@ -77,6 +77,18 @@ export interface EconomicEvent {
     impact: 'High' | 'Medium' | 'Low';
 }
 
+export interface InstitutionalDriver {
+    category: string;
+    details: string;
+    bias: 'Bullish' | 'Bearish' | 'Neutral';
+}
+
+export interface FundamentalDriver {
+    category: string;
+    details: string;
+    bias: 'Bullish' | 'Bearish' | 'Neutral';
+}
+
 export interface Sentiment {
     score: number; // 0 (Bearish) to 100 (Bullish)
     summary: string;
@@ -190,6 +202,9 @@ export interface SignalData {
         executionChecklist?: string[];
     };
     verificationProtocol?: VerificationProtocol;
+    institutionalDrivers?: InstitutionalDriver[];
+    fundamentalDrivers?: FundamentalDriver[];
+    marketStory?: string;
 }
 
 export interface MomentumAsset {
@@ -252,6 +267,11 @@ export interface UserMetadata {
         autoTrade: 'locked' | 'pending' | 'granted';
         products: 'locked' | 'pending' | 'granted';
     };
+    mt5Credentials?: {
+        server: string;
+        login: string;
+        password?: string; // Encrypted
+    };
     createdAt: number;
 }
 
@@ -261,6 +281,16 @@ export interface GlobalStrategy {
     confidence: number;
     sourceCount: number;
     timestamp: number;
+}
+
+export interface AutoMLStrategy {
+    id: string;
+    name: string;
+    description: string;
+    rules: string;
+    timestamp: number;
+    performance: number;
+    isActive: boolean;
 }
 
 export interface Broadcast {

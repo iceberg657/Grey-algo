@@ -58,8 +58,14 @@ export const getLearnedStrategies = async (): Promise<string[]> => {
         const snapshot = await getDocs(q);
         const global = snapshot.docs.map(doc => doc.data().rule);
 
+        // Get active Auto ML strategy
+        const autoMLRef = collection(db, 'auto_ml_strategies');
+        const qAutoML = query(autoMLRef, where('isActive', '==', true), limit(1));
+        const autoMLSnapshot = await getDocs(qAutoML);
+        const autoML = autoMLSnapshot.docs.map(doc => doc.data().rules);
+
         // Combine and keep unique
-        return Array.from(new Set([...global, ...local])).slice(0, 20);
+        return Array.from(new Set([...global, ...local, ...autoML])).slice(0, 20);
     } catch (e) {
         console.error("Failed to fetch strategies:", e);
         const stored = localStorage.getItem(STRATEGIES_KEY);

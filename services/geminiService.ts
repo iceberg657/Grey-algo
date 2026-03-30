@@ -180,7 +180,13 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
     - **Intermarket Logic:** Check correlation with primary drivers (DXY for EURUSD, Gold for XAUUSD, Oil for USDCAD). If the asset's move is contradicted by its primary driver, DO NOT trade.
     - **Demand/Supply Zone Confirmation:** If no Demand/Supply zone is identified, or if no confirmation pattern is detected within the zone, DO NOT trade.
 
-4. **Trade Execution (The Output):**
+4. **Institutional & Fundamental Key Drivers (MANDATORY):**
+    - You MUST analyze the "Smart Money" footprints and the real-world catalysts moving price.
+    - **Institutional Drivers:** Look for large institutional positioning (COT reports), accumulation/distribution zones, funding rates/open interest spikes, and interbank/hedge fund flows.
+    - **Fundamental Drivers:** Analyze the macro backdrop (interest rates, inflation, GDP, central bank speeches), sector-specific fundamentals (earnings, oil inventories), and upcoming high-impact news.
+    - **Market Story:** Synthesize the technicals, institutional behavior, and fundamentals into a cohesive narrative that explains WHY price is moving and what is likely to happen next.
+
+5. **Trade Execution (The Output):**
    - When delivering a setup, do not guess. Provide a definitive, actionable plan:
      * **Signal:** A clear BUY or SELL directive. (If the market is choppy or the setup is low-quality, do not issue a trade signal).
      * **Entry Zone:** Provide a distributed entry price range rather than a single pip, allowing scaling in or catching pullbacks.
@@ -522,6 +528,22 @@ You MUST correctly classify the order type based on the strict relationship betw
     "correlationNotes": "N/A"
   },
   
+  "institutionalDrivers": [
+    {
+      "category": "e.g., COT Report / Dark Pool / Options Flow",
+      "details": "Detailed institutional footprint analysis",
+      "bias": "Bullish" | "Bearish" | "Neutral"
+    }
+  ],
+  "fundamentalDrivers": [
+    {
+      "category": "e.g., Macro Backdrop / Sector-Specific / News Catalyst",
+      "details": "Detailed fundamental catalyst analysis",
+      "bias": "Bullish" | "Bearish" | "Neutral"
+    }
+  ],
+  "marketStory": "A cohesive narrative synthesizing technicals, institutional activity, and fundamentals to explain the current market state and probable next move.",
+  
   "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry],
   "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
   "stopLoss": number,
@@ -746,6 +768,9 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             confirmationPattern: data.confirmationPattern || "None",
             technicalAnalysis: data.technicalAnalysis || {},
             fundamentalContext: data.fundamentalContext || {},
+            institutionalDrivers: data.institutionalDrivers || [],
+            fundamentalDrivers: data.fundamentalDrivers || [],
+            marketStory: data.marketStory || "",
             timeframeRationale: data.timeframeRationale || "",
             confluenceMatrix: data.confluenceMatrix,
             verificationProtocol: data.verificationProtocol,

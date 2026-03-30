@@ -39,7 +39,7 @@
             if (location.pathname === '/' && !location.hash) {
                 // Check if we are not in a blob or special protocol that might forbid this
                 if (location.protocol === 'http:' || location.protocol === 'https:') {
-                    location.replace('./#/');
+                    // location.replace('./#/');
                 }
             }
         } catch (e) {

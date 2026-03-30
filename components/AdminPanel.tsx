@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, getDocs, query, where, orderBy, limit, addDoc, updateDoc, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
-import { Trade, GlobalStrategy, UserMetadata, Broadcast } from '../types';
+import { Trade, GlobalStrategy, UserMetadata, Broadcast, AutoMLStrategy } from '../types';
 import { Loader } from './Loader';
 
 interface AdminPanelProps {
@@ -13,12 +13,13 @@ interface AdminPanelProps {
 export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     const [stats, setStats] = useState<{ totalTrades: number; totalUsers: number }>({ totalTrades: 0, totalUsers: 0 });
     const [recentStrategies, setRecentStrategies] = useState<GlobalStrategy[]>([]);
+    const [autoMLStrategies, setAutoMLStrategies] = useState<AutoMLStrategy[]>([]);
     const [users, setUsers] = useState<UserMetadata[]>([]);
     const [systemSettings, setSystemSettings] = useState<{ maintenanceMode: boolean; chatLocked: boolean }>({ maintenanceMode: false, chatLocked: false });
     const [isLoading, setIsLoading] = useState(true);
     const [broadcastMsg, setBroadcastMsg] = useState('');
     const [isSending, setIsSending] = useState(false);
-    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'strategies'>('overview');
+    const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'strategies' | 'auto_ml'>('overview');
     const [error, setError] = useState<Error | null>(null);
 
     if (error) throw error;
@@ -44,6 +45,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         }, (err) => {
             try {
                 handleFirestoreError(err, OperationType.LIST, 'global_strategies');
+            } catch (e) {
+                setError(e as Error);
+            }
+        });
+
+        // Real-time Auto ML strategies listener
+        const unsubscribeAutoML = onSnapshot(query(collection(db, 'auto_ml_strategies'), orderBy('timestamp', 'desc'), limit(50)), (snapshot) => {
+            setAutoMLStrategies(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as AutoMLStrategy)));
+        }, (err) => {
+            try {
+                handleFirestoreError(err, OperationType.LIST, 'auto_ml_strategies');
             } catch (e) {
                 setError(e as Error);
             }
@@ -125,6 +137,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         return () => {
             unsubscribeUsers();
             unsubscribeStrategies();
+            unsubscribeAutoML();
             unsubscribeSettings();
             unsubscribeBroadcasts();
             clearInterval(cleanupInterval);
@@ -255,6 +268,34 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         }
     };
 
+    const handleActivateStrategy = async (strategyId: string) => {
+        try {
+            const response = await fetch('/api/admin/activate-strategy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ strategyId })
+            });
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.error || 'Failed to activate strategy');
+            }
+            alert('Strategy activated successfully! It will be used for the next analysis.');
+        } catch (error) {
+            console.error('Activation error:', error);
+            alert(error instanceof Error ? error.message : 'Failed to activate strategy');
+        }
+    };
+
+    const handleDeleteAutoMLStrategy = async (strategyId: string) => {
+        if (!window.confirm('Are you sure you want to delete this learned strategy?')) return;
+        const path = `auto_ml_strategies/${strategyId}`;
+        try {
+            await deleteDoc(doc(db, 'auto_ml_strategies', strategyId));
+        } catch (error) {
+            handleFirestoreError(error, OperationType.DELETE, path);
+        }
+    };
+
     if (isLoading) return <div className="flex items-center justify-center h-screen bg-slate-950"><Loader /></div>;
 
     return (
@@ -271,7 +312,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     </div>
                     <div className="flex gap-3">
                         <div className="flex bg-slate-200 dark:bg-white/5 p-1 rounded-xl">
-                            {(['overview', 'users', 'strategies'] as const).map(tab => (
+                            {(['overview', 'users', 'strategies', 'auto_ml'] as const).map(tab => (
                                 <button
                                     key={tab}
                                     onClick={() => setActiveTab(tab)}
@@ -281,7 +322,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                             : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
                                     }`}
                                 >
-                                    {tab}
+                                    {tab === 'auto_ml' ? 'Auto ML' : tab}
                                 </button>
                             ))}
                         </div>
@@ -500,6 +541,74 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                 {recentStrategies.length === 0 && (
                                     <div className="col-span-full py-20 text-center opacity-40">
                                         <p className="text-xs font-black uppercase tracking-widest">No strategies learned yet.</p>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+                    </motion.div>
+                )}
+
+                {activeTab === 'auto_ml' && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+                        <div className="bg-white dark:bg-slate-900/50 p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl">
+                            <h2 className="text-xl font-black uppercase tracking-widest mb-8 flex items-center gap-3">
+                                <span className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></span>
+                                Auto ML Strategies
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {autoMLStrategies.map((strat) => (
+                                    <div key={strat.id} className={`p-6 bg-slate-50 dark:bg-white/5 rounded-2xl border transition-all flex flex-col justify-between ${
+                                        strat.isActive 
+                                            ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.1)]' 
+                                            : 'border-slate-200 dark:border-white/5'
+                                    }`}>
+                                        <div>
+                                            <div className="flex justify-between items-start mb-4">
+                                                <div className="flex flex-col gap-1">
+                                                    <h3 className="text-sm font-black uppercase tracking-widest">{strat.name}</h3>
+                                                    <div className="flex gap-2">
+                                                        <span className="px-2 py-1 bg-green-500/10 text-green-500 text-[9px] font-black uppercase tracking-widest rounded-md">
+                                                            Confidence: {strat.performance}%
+                                                        </span>
+                                                        {strat.isActive && (
+                                                            <span className="px-2 py-1 bg-green-500 text-white text-[9px] font-black uppercase tracking-widest rounded-md animate-pulse">
+                                                                ACTIVE
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                                <span className="text-[10px] opacity-40 font-mono">
+                                                    {new Date(strat.timestamp).toLocaleDateString()}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs opacity-60 mb-4 line-clamp-2">{strat.description}</p>
+                                            <div className="bg-black/20 p-4 rounded-xl mb-6">
+                                                <p className="text-[10px] font-mono opacity-80 whitespace-pre-wrap leading-relaxed">
+                                                    {strat.rules}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <button 
+                                                onClick={() => handleDeleteAutoMLStrategy(strat.id)}
+                                                className="px-4 py-2 text-red-500 hover:text-red-400 text-[9px] font-black uppercase tracking-widest transition-all"
+                                            >
+                                                Purge
+                                            </button>
+                                            {!strat.isActive && (
+                                                <button 
+                                                    onClick={() => handleActivateStrategy(strat.id)}
+                                                    className="px-6 py-2 bg-green-600 hover:bg-green-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all shadow-lg hover:shadow-green-500/30"
+                                                >
+                                                    Activate Strategy
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                {autoMLStrategies.length === 0 && (
+                                    <div className="col-span-full py-20 text-center opacity-40">
+                                        <p className="text-xs font-black uppercase tracking-widest">No Auto ML strategies learned yet.</p>
                                     </div>
                                 )}
                             </div>

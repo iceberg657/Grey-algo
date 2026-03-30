@@ -31,13 +31,31 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
             <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-white/90 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-300 dark:border-white/10 hover:border-green-500/30 transition-all transform hover:scale-[1.03] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] ${className} h-full min-h-[90px]`}>
                 <span className="text-[10px] sm:text-xs text-slate-700 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
                 {isSignal ? (
-                    <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'BUY')}`}>
-                        {value}
-                    </span>
+                    <div className="flex items-center gap-2">
+                        <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'BUY')}`}>
+                            {value}
+                        </span>
+                    </div>
                 ) : (
-                    <span className={`text-base sm:text-lg font-mono mt-1 font-bold text-center break-all ${valueClassName || 'text-slate-900 dark:text-dark-text'}`}>
-                        {value}
-                    </span>
+                    <div className="flex items-center gap-2 mt-1">
+                        <span className={`text-base sm:text-lg font-mono font-bold text-center break-all ${valueClassName || 'text-slate-900 dark:text-dark-text'}`}>
+                            {value}
+                        </span>
+                        {typeof value === 'string' || typeof value === 'number' ? (
+                            <button 
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    navigator.clipboard.writeText(value.toString());
+                                    alert(`${label} copied!`);
+                                }}
+                                className="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-blue-500"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                </svg>
+                            </button>
+                        ) : null}
+                    </div>
                 )}
                 {subValue && (
                     <span className={`text-[9px] sm:text-[10px] font-bold uppercase mt-1 text-center ${subValueClassName || 'text-slate-600'}`}>
@@ -171,6 +189,26 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     
     const formatCurrency = (val?: number) => val != null ? `$${val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '$0.00';
 
+    const copyToClipboard = (text: string, label: string) => {
+        navigator.clipboard.writeText(text);
+        alert(`${label} copied to clipboard!`);
+    };
+
+    const copyFullSignal = () => {
+        const signalText = `
+Asset: ${data.asset}
+Signal: ${data.signal}
+Entry: ${entry}
+SL: ${sl}
+TP1: ${data.takeProfits[0]}
+TP2: ${data.takeProfits[1]}
+TP3: ${data.takeProfits[2]}
+Type: ${data.entryType}
+Lot Size: ${data.formattedLotSize || 'N/A'}
+        `.trim();
+        copyToClipboard(signalText, 'Full Signal');
+    };
+
     useEffect(() => {
         return () => {
             stopAudio();
@@ -257,6 +295,15 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                     ) : (
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                     )}
+                </button>
+                <button
+                    onClick={copyFullSignal}
+                    className="p-4 rounded-xl bg-blue-600 text-white shadow-xl hover:bg-blue-500 transition-all hover:scale-110 active:scale-95 border border-blue-400/30"
+                    aria-label="Copy signal to clipboard"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                    </svg>
                 </button>
             </header>
 
@@ -559,6 +606,52 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
                                 </div>
                             )}
                         </div>
+                    </div>
+                </Section>
+            )}
+
+            {data.marketStory && (
+                <Section title="Market Story" delay="1050ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>}>
+                    <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                        <p className="text-sm text-slate-900 dark:text-gray-300 leading-relaxed font-medium italic">
+                            "{data.marketStory}"
+                        </p>
+                    </div>
+                </Section>
+            )}
+
+            {(data.institutionalDrivers?.length || 0) > 0 && (
+                <Section title="Institutional Key Drivers" delay="1075ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {data.institutionalDrivers?.map((driver, i) => (
+                            <div key={i} className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">{driver.category}</span>
+                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${driver.bias === 'Bullish' ? 'bg-green-500/20 text-green-500' : driver.bias === 'Bearish' ? 'bg-red-500/20 text-red-500' : 'bg-gray-500/20 text-gray-500'}`}>
+                                        {driver.bias}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-800 dark:text-gray-300 font-medium leading-relaxed">{driver.details}</p>
+                            </div>
+                        ))}
+                    </div>
+                </Section>
+            )}
+
+            {(data.fundamentalDrivers?.length || 0) > 0 && (
+                <Section title="Fundamental Key Drivers" delay="1090ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 002 2 2 2 0 012 2v.65a3 3 0 01-3 3H8a5 5 0 01-5-5v-2.5a3.5 3.5 0 013.5-3.5c.147 0 .294.006.44.018z" /></svg>}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {data.fundamentalDrivers?.map((driver, i) => (
+                            <div key={i} className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-xl border border-gray-200 dark:border-white/10 shadow-sm">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-purple-500">{driver.category}</span>
+                                    <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded ${driver.bias === 'Bullish' ? 'bg-green-500/20 text-green-500' : driver.bias === 'Bearish' ? 'bg-red-500/20 text-red-500' : 'bg-gray-500/20 text-gray-500'}`}>
+                                        {driver.bias}
+                                    </span>
+                                </div>
+                                <p className="text-xs text-slate-800 dark:text-gray-300 font-medium leading-relaxed">{driver.details}</p>
+                            </div>
+                        ))}
                     </div>
                 </Section>
             )}

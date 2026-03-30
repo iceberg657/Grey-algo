@@ -6,7 +6,9 @@ import firebaseConfig from './firebase-applet-config.json';
 
 const { firestoreDatabaseId, ...config } = firebaseConfig;
 const app = initializeApp(config);
-export const db = getFirestore(app, firestoreDatabaseId);
+export const db = firestoreDatabaseId && firestoreDatabaseId !== '(default)' 
+  ? getFirestore(app, firestoreDatabaseId) 
+  : getFirestore(app);
 export const auth = getAuth();
 export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
 
@@ -16,11 +18,16 @@ async function testConnection() {
     // Attempt to fetch a non-existent document to test connectivity
     await getDocFromServer(doc(db, 'test', 'connection'));
     console.log('Firestore connection test successful');
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('the client is offline')) {
+  } catch (error: any) {
+    if (error?.code === 'permission-denied' || (error instanceof Error && error.message.includes('Missing or insufficient permissions'))) {
+      // Getting a permission denied error means we successfully connected to Firestore
+      console.log('Firestore connection test successful (verified via rules rejection)');
+    } else if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Firestore connection test failed:', error);
       console.error("Please check your Firebase configuration. The client is offline, which typically indicates an incorrect Firestore configuration.");
+    } else {
+      console.error('Firestore connection test failed:', error);
     }
-    // Skip logging for other errors, as this is simply a connection test.
   }
 }
 

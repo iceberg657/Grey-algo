@@ -15,7 +15,7 @@ export default async (req, res) => {
         try {
             const ai = new GoogleGenAI({ apiKey: key });
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3-flash-preview',
                 contents: "Analyze chart for institutional SMC logic. Output JSON.",
                 config: { tools: [{googleSearch: {}}], temperature: 0.2 }
             });

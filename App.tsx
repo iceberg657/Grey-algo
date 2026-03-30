@@ -222,6 +222,7 @@ const App: React.FC = () => {
     
     const handleNewAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>, image: string) => {
         const savedData = await saveAnalysis(data);
+        
         handleNavigateToAnalysis(savedData, 'home', image);
     };
 
