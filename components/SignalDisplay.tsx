@@ -70,7 +70,8 @@ const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal =
 const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, summary }) => {
     const trend = useMemo(() => {
         if (score >= 85) return { label: 'STRONG BULLISH', color: 'text-green-500', bg: 'bg-green-500', icon: '🚀' };
-        if (score >= 50) return { label: 'BULLISH', color: 'text-green-400', bg: 'bg-green-400', icon: '↗️' };
+        if (score >= 61) return { label: 'BULLISH', color: 'text-green-400', bg: 'bg-green-400', icon: '↗️' };
+        if (score >= 41) return { label: 'NEUTRAL', color: 'text-yellow-400', bg: 'bg-yellow-400', icon: '⚖️' };
         if (score <= 15) return { label: 'STRONG BEARISH', color: 'text-red-500', bg: 'bg-red-500', icon: '🔻' };
         return { label: 'BEARISH', color: 'text-red-400', bg: 'bg-red-400', icon: '↘️' };
     }, [score]);
@@ -98,8 +99,9 @@ const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, s
                 ></div>
             </div>
             <div className="flex justify-between text-[10px] text-slate-700 dark:text-gray-400 font-mono mb-4 opacity-70 font-bold uppercase tracking-widest">
-                <span>BEARISH (0-49)</span>
-                <span>BULLISH (50-100)</span>
+                <span>BEARISH (0-40)</span>
+                <span>NEUTRAL (41-60)</span>
+                <span>BULLISH (61-100)</span>
             </div>
 
             <div className="bg-white/95 dark:bg-slate-900/40 backdrop-blur-xl p-4 rounded-xl border border-gray-300 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.05)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">

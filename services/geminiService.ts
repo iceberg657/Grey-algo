@@ -21,8 +21,14 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const tradeMode = userSettings?.tradeMode || 'Aggressive';
   
   const tradeModeInstructions = tradeMode === 'Sniper' 
-    ? `\n🎯 **SNIPER MODE ENABLED (STRICT FILTERING):**\n- You MUST ONLY issue a BUY or SELL signal if BOTH 'SD + FVG confluence' AND 'FVG Retest' are CONFIRMED.\n- If these specific confluences are missing, you MUST issue a NEUTRAL signal.\n- Ensure that at least TP1 has an extremely high probability of being hit.\n`
-    : `\n🔥 **AGGRESSIVE MODE ENABLED:**\n- Take all valid trades based on market structure and adjust risk accordingly.\n`;
+    ? `\n🎯 **SNIPER MODE ENABLED (STRICT FILTERING):**
+- You MUST ONLY issue a BUY or SELL signal if BOTH 'SD + FVG confluence' AND 'FVG Retest' are CONFIRMED.
+- **DOMINANT SIGNAL OVERRIDE:** If a strong 'BOS' (Break of Structure) or 'CHoCH' (Change of Character) is detected AND aligns with the HTF Trend, you MAY override the strict confluence requirement and issue a signal.
+- If these specific confluences or dominant signals are missing, you MUST issue a NEUTRAL signal.
+- Ensure that at least TP1 has an extremely high probability of being hit.\n`
+    : `\n🔥 **AGGRESSIVE MODE ENABLED:**
+- Take all valid trades based on market structure and adjust risk accordingly.
+- **FORCE DIRECTION:** If the market shows a clear trend bias (UP or DOWN), do NOT default to NEUTRAL just because a specific confluence is slightly off. Instead, issue a 'WEAK BUY' or 'WEAK SELL' (labeled as BUY or SELL with lower confidence) to capture the trend momentum.\n`;
 
   const learnedContext = strategies.length > 0 
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
@@ -160,7 +166,9 @@ ${tradeModeInstructions}
 ---
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. If the signal is NEUTRAL, you MUST explain why the market is currently indecisive (e.g., ranging, waiting for news, or lack of confluence). For NEUTRAL signals, do NOT provide a single specific trade setup; instead, provide key levels to watch for potential breakouts in either direction.
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. If the signal is NEUTRAL, you MUST explain why the market is currently indecisive (e.g., ranging, waiting for news, or lack of confluence). 
+   - **BIAS OVER NEUTRALITY:** If a clear trend bias exists (UP or DOWN), prioritize a directional signal (BUY/SELL) over NEUTRAL, even if some secondary confluences are missing. Only use NEUTRAL if the market is truly directionless or extremely high-risk news is imminent.
+   - For NEUTRAL signals, do NOT provide a single specific trade setup; instead, provide key levels to watch for potential breakouts in either direction.
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
@@ -219,6 +227,12 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
     * **Risk-Free Protocol:** You MUST instruct the user to move Stop Loss to Breakeven (BE) immediately after TP1 is hit and close 50%-80% of the position.
      * **10-Point Reasoning:** A detailed breakdown of exactly why the trade is valid, including the technical case, the lot size calculation, and how it aligns with specific profit targets and drawdown limits.
    - **In short:** Combine institutional-grade technical analysis with strict, mathematical risk management tailored to exact account size and goals.
+
+6. **BIAS OVER NEUTRALITY (FIX FOR FREQUENT NEUTRAL SIGNALS):**
+    - If the confidence score is between 41% and 60%, do NOT automatically default to NEUTRAL.
+    - **Trend Check:** If the trend is clearly UP, issue a BUY signal (even if weak). If the trend is clearly DOWN, issue a SELL signal (even if weak).
+    - **Dominant Signal Override:** If a 'BOS' or 'CHoCH' is detected in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.
+    - Only issue NEUTRAL if the market is in a tight range with no clear bias or if high-impact news is expected within 30 minutes.
 
 ---
 
@@ -646,7 +660,7 @@ You MUST correctly classify the order type based on the strict relationship betw
     "suggestedLotSize": "e.g., 0.5 lots",
     "safetyScore": number
   },
-  "sentiment": { "score": number, "summary": "HTF Macro Bias summary" }, // CRITICAL: 0-45 = Bearish, 46-54 = Neutral, 55-100 = Bullish
+  "sentiment": { "score": number, "summary": "HTF Macro Bias summary" }, // CRITICAL: 0-40 = Bearish, 41-60 = Neutral, 61-100 = Bullish
   "economicEvents": [],
   "sources": []
 }
