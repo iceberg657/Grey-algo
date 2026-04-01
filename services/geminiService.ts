@@ -28,7 +28,11 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - Ensure that at least TP1 has an extremely high probability of being hit.\n`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
-- **FORCE DIRECTION:** If the market shows a clear trend bias (UP or DOWN), do NOT default to NEUTRAL just because a specific confluence is slightly off. Instead, issue a 'WEAK BUY' or 'WEAK SELL' (labeled as BUY or SELL with lower confidence) to capture the trend momentum.\n`;
+- **FORCE DIRECTION (DECISIVE BIAS):** If the market shows a clear trend bias (UP or DOWN), do NOT default to NEUTRAL.
+- **BIAS OVER NEUTRALITY:** If your confidence score is between 41% and 60%, do NOT sit on the fence. Check the trend bias:
+    - If Trend is UP -> Issue 'WEAK BULLISH' (labeled as BUY).
+    - If Trend is DOWN -> Issue 'WEAK BEARISH' (labeled as SELL).
+- **DOMINANT SIGNAL OVERRIDE:** If a 'BOS' or 'CHoCH' exists in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.\n`;
 
   const learnedContext = strategies.length > 0 
     ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
@@ -49,6 +53,7 @@ Use this real-time data as your primary "Mathematical Truth" to verify your visu
 
 **CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
 **TECHNICAL CONFLUENCE:** Use the RSI and SMA values to verify momentum and trend. If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
+**MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders unless the price is currently at an extreme overextension and a pullback is mathematically certain.
 ` : `📡 **TWELVE DATA API:** No real-time data available for this asset. Rely strictly on visual chart analysis and search grounding.
 `;
 
@@ -849,13 +854,14 @@ export async function generateTradingSignal(
             else if (style.includes('2 to 4hrs')) interval = '1h';
             else if (style.includes('swing')) interval = '1day';
 
-            console.log(`Fetching Twelve Data for ${request.asset} at ${interval}...`);
+            console.log(`[TwelveData] Fetching for ${request.asset} at ${interval}...`);
             const response = await fetch(`/api/twelvedata/quote?symbol=${encodeURIComponent(request.asset)}&interval=${interval}`);
             if (response.ok) {
                 twelveDataQuote = await response.json();
-                console.log('Twelve Data fetched successfully.');
+                console.log('[TwelveData] Success:', twelveDataQuote);
             } else {
-                console.warn('Twelve Data fetch failed:', response.statusText);
+                const errorText = await response.text();
+                console.warn('[TwelveData] Fetch failed:', response.status, errorText);
             }
         } catch (e) {
             console.error('Error fetching Twelve Data:', e);

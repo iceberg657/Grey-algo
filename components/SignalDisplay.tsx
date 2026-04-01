@@ -279,8 +279,16 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
     return (
         <div className="text-sm max-w-full overflow-hidden relative">
             <header className="flex flex-wrap justify-between items-center mb-8 gap-4 opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
-                <div>
-                    <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
+                <div className="flex-1 min-w-[200px]">
+                    <div className="flex items-center gap-3 mb-1">
+                        <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
+                        {data.twelveDataQuote && (
+                            <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/20 border border-green-500/40 rounded-full animate-pulse">
+                                <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
+                                <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">Twelve Data Active</span>
+                            </div>
+                        )}
+                    </div>
                     <div className="flex items-center gap-2 mt-2">
                         <span className="text-xs sm:text-sm text-slate-800 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/60 px-2 py-0.5 rounded border border-gray-300 dark:border-white/20">{data.timeframe}</span>
                         <span className="w-1 h-1 rounded-full bg-green-500 shadow-[0_0_5px_theme(colors.green.400)]"></span>

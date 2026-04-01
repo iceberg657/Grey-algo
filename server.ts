@@ -432,6 +432,10 @@ async function startServer() {
     else if (symbol === 'NZDUSD') mappedSymbol = 'NZD/USD';
     else if (symbol === 'BTCUSD') mappedSymbol = 'BTC/USD';
     else if (symbol === 'ETHUSD') mappedSymbol = 'ETH/USD';
+    else if (symbol.length === 6 && !symbol.includes('/')) {
+      // Generic mapping for other 6-character forex pairs
+      mappedSymbol = `${symbol.slice(0, 3)}/${symbol.slice(3)}`;
+    }
 
     try {
       console.log(`Calling Twelve Data API for ${mappedSymbol} at ${interval}...`);
