@@ -48,22 +48,24 @@ export interface TwelveDataTimeSeries {
     status: string;
 }
 
-const API_KEY = import.meta.env.VITE_TWELVEDATA_API_KEY || 'bc100778dac44abb9fc82db199f458fa';
-
-export async function fetchMarketData(symbol: string, interval: string = '1h'): Promise<TwelveDataTimeSeries | null> {
+export async function fetchMarketData(symbol: string, interval: string = '1h'): Promise<any | null> {
     try {
-        const url = `https://api.twelvedata.com/time_series?symbol=${symbol}&interval=${interval}&apikey=${API_KEY}&outputsize=10`;
+        // Use the backend proxy instead of calling Twelve Data directly from the client
+        // This keeps the API key secure on the server
+        const url = `/api/twelvedata/quote?symbol=${encodeURIComponent(symbol)}&interval=${interval}`;
         const response = await fetch(url);
+        
         if (!response.ok) {
-            throw new Error(`Twelve Data API error: ${response.statusText}`);
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.error || `Twelve Data API error: ${response.statusText}`);
         }
+        
         const data = await response.json();
-        if (data.status === 'error') {
-            throw new Error(`Twelve Data error: ${data.message}`);
-        }
-        return data as TwelveDataTimeSeries;
+        
+        // The backend proxy returns combined data (quote + RSI + SMA)
+        return data;
     } catch (error) {
-        console.error('Failed to fetch Twelve Data:', error);
+        console.error('Failed to fetch Twelve Data via proxy:', error);
         return null;
     }
 }

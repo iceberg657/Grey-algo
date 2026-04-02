@@ -88,7 +88,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 .then(res => res.json())
                 .then(data => {
                     console.log('Twelve Data Status Response:', data);
-                    setIsTwelveDataConfigured(data.configured);
+                    // Consider it configured only if it's both present and valid
+                    setIsTwelveDataConfigured(data.configured && data.valid);
                 })
                 .catch(err => {
                     console.error('Twelve Data Status Error:', err);
