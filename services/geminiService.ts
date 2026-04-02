@@ -869,9 +869,9 @@ export async function generateTradingSignal(
     // 1. Fetch learned strategies (Global + Local)
     const learnedStrategies = await getLearnedStrategies();
     
-    // Fetch Twelve Data for confluence if asset is provided
-    let twelveDataQuote = null;
-    if (request.asset) {
+    // Fetch Twelve Data for confluence if asset is provided and not already in request
+    let twelveDataQuote = request.twelveDataQuote || null;
+    if (request.asset && !twelveDataQuote) {
         try {
             // Map TradingStyle to Twelve Data Interval
             let interval = '15min';

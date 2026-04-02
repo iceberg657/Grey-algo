@@ -83,39 +83,42 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [isTwelveDataConfigured, setIsTwelveDataConfigured] = useState<boolean | null>(null);
 
     useEffect(() => {
-        const checkStatus = () => {
+        const checkStatus = async (retryCount = 0) => {
             // First check if we have a key in localStorage
             const storedSettings = localStorage.getItem('greyquant_user_settings');
             const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
             const localKey = userSettings?.twelveDataApiKey;
 
-            fetch('/api/twelvedata/status')
-                .then(res => res.json())
-                .then(data => {
-                    console.log('Twelve Data Status Response:', data);
-                    // Consider it configured if either the backend has it OR we have it locally
-                    const isConfigured = (data.configured && data.valid) || (!!localKey && localKey.length > 10);
-                    setIsTwelveDataConfigured(isConfigured);
-                })
-                .catch(err => {
-                    console.error('Twelve Data Status Error:', err);
-                    // Fallback to local key check if fetch fails
-                    setIsTwelveDataConfigured(!!localKey && localKey.length > 10);
-                });
+            try {
+                const res = await fetch('/api/twelvedata/status');
+                if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                const data = await res.json();
+                console.log('Twelve Data Status Response:', data);
+                // Consider it configured if either the backend has it OR we have it locally
+                const isConfigured = (data.configured && data.valid) || (!!localKey && localKey.length > 10);
+                setIsTwelveDataConfigured(isConfigured);
+            } catch (err) {
+                console.error('Twelve Data Status Error:', err);
+                
+                // Retry once after 2 seconds if it's a fetch failure
+                if (retryCount < 1) {
+                    setTimeout(() => checkStatus(retryCount + 1), 2000);
+                    return;
+                }
+
+                // Fallback to local key check if fetch fails after retry
+                setIsTwelveDataConfigured(!!localKey && localKey.length > 10);
+            }
         };
 
         // Initial check
         checkStatus();
 
-        // Check every 10 seconds
-        const interval = setInterval(checkStatus, 10000);
-
-        // Check on window focus
-        window.addEventListener('focus', checkStatus);
+        // Check every 5 minutes (reduced from 10s to save credits)
+        const interval = setInterval(checkStatus, 300000);
 
         return () => {
             clearInterval(interval);
-            window.removeEventListener('focus', checkStatus);
         };
     }, []);
 
@@ -225,7 +228,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 ...requestData,
                 userSettings,
                 learnedStrategies,
-                marketData
+                twelveDataQuote: marketData
             };
 
             const data = await generateTradingSignal(fullRequest);

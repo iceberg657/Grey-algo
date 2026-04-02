@@ -409,6 +409,10 @@ async function startServer() {
     }
   });
 
+  // Cache for Twelve Data API key validation
+  let twelveDataKeyCache: { key: string, valid: boolean, usage: any, timestamp: number } | null = null;
+  const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+
   app.get('/api/twelvedata/status', async (req, res) => {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const apiKey = process.env.TWELVE_DATA_API_KEY || 
@@ -417,6 +421,19 @@ async function startServer() {
                    process.env.VITE_TWELVEDATA_API_KEY;
                    
     console.log('[TwelveData] Status check requested');
+    
+    // Check cache first
+    if (apiKey && twelveDataKeyCache && twelveDataKeyCache.key === apiKey && (Date.now() - twelveDataKeyCache.timestamp < CACHE_DURATION)) {
+      console.log('[TwelveData] Returning cached status');
+      return res.json({ 
+        configured: true,
+        valid: twelveDataKeyCache.valid,
+        keyName: 'Cached',
+        maskedKey: `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`,
+        usage: twelveDataKeyCache.usage
+      });
+    }
+
     console.log('[TwelveData] API Key present:', !!apiKey);
     
     // Debug: log all env keys that might be related to twelvedata
@@ -436,6 +453,15 @@ async function startServer() {
           const testData = await testRes.json();
           isValid = testData.status !== 'error';
           usageInfo = testData;
+          
+          // Update cache
+          twelveDataKeyCache = {
+            key: apiKey,
+            valid: isValid,
+            usage: usageInfo,
+            timestamp: Date.now()
+          };
+
           if (!isValid) {
             console.warn('[TwelveData] API key is present but invalid:', testData.message);
           } else {

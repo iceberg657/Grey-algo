@@ -56,12 +56,25 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         const localKey = userSettings?.twelveDataApiKey;
 
         if (localKey && localKey.length > 10) {
-            // If we have a local key, call Twelve Data directly from the client
-            const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&interval=${interval}&apikey=${localKey}`;
-            const response = await fetch(url);
-            if (response.ok) {
-                const data = await response.json();
-                return data;
+            // If we have a local key, call Twelve Data directly from the client in parallel
+            // This maintains the same confluence as the backend proxy
+            const [quoteRes, rsiRes, smaRes] = await Promise.all([
+                fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`),
+                fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
+                fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`)
+            ]);
+
+            if (quoteRes.ok) {
+                const quoteData = await quoteRes.json();
+                const rsiData = rsiRes.ok ? await rsiRes.json() : null;
+                const smaData = smaRes.ok ? await smaRes.json() : null;
+
+                return {
+                    ...quoteData,
+                    rsi: rsiData?.values?.[0]?.rsi || 'N/A',
+                    sma: smaData?.values?.[0]?.sma || 'N/A',
+                    interval
+                };
             }
         }
 
