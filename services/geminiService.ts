@@ -722,15 +722,41 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         );
 
         let text = response.text || '';
-        text = text.replace(/```\w*\n?/g, '').replace(/```/g, '').trim();
-        const start = text.indexOf('{');
-        const end = text.lastIndexOf('}');
         
-        if (start === -1 || end === -1) {
+        // Try to extract JSON from markdown block first
+        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        if (jsonMatch) {
+            text = jsonMatch[1];
+        } else {
+            // Fallback: find the first balanced JSON object
+            const start = text.indexOf('{');
+            if (start !== -1) {
+                let end = start;
+                let braceCount = 0;
+                for (let i = start; i < text.length; i++) {
+                    if (text[i] === '{') braceCount++;
+                    else if (text[i] === '}') braceCount--;
+                    
+                    if (braceCount === 0) {
+                        end = i;
+                        break;
+                    }
+                }
+                text = text.substring(start, end + 1);
+            }
+        }
+        
+        if (!text || !text.startsWith('{')) {
             throw new Error("Neural alignment failure - Invalid JSON response");
         }
         
-        const data = JSON.parse(text.substring(start, end + 1));
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch (e) {
+            console.error("JSON Parse Error. Raw text:", text);
+            throw new Error(`Neural alignment failure - JSON parse error: ${e instanceof Error ? e.message : String(e)}`);
+        }
 
         // Calculate Confluence Score strictly from Execution Checklist
         let finalConfidence = 0;
