@@ -410,7 +410,13 @@ async function startServer() {
   });
 
   app.get('/api/twelvedata/status', (req, res) => {
-    const apiKey = process.env.TWELVE_DATA_API_KEY;
+    const apiKey = process.env.TWELVE_DATA_API_KEY || process.env.VITE_TWELVE_DATA_API_KEY;
+    console.log('Twelve Data API Key Status Check:', apiKey ? 'Key is present (length: ' + apiKey.length + ')' : 'Key is missing');
+    
+    // Debug: log all env keys that might be related to twelvedata
+    const relatedKeys = Object.keys(process.env).filter(k => k.toLowerCase().includes('twelve'));
+    console.log('Related env keys:', relatedKeys);
+    
     res.json({ configured: !!apiKey });
   });
 
@@ -420,7 +426,7 @@ async function startServer() {
       return res.status(400).json({ error: 'Missing symbol' });
     }
 
-    const apiKey = process.env.TWELVE_DATA_API_KEY;
+    const apiKey = process.env.TWELVE_DATA_API_KEY || process.env.VITE_TWELVE_DATA_API_KEY;
     if (!apiKey) {
       console.warn('Twelve Data API key not configured in environment variables.');
       return res.status(500).json({ error: 'Twelve Data API key not configured' });
