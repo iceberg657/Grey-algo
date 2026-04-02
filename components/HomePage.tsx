@@ -83,10 +83,32 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [isTwelveDataConfigured, setIsTwelveDataConfigured] = useState<boolean | null>(null);
 
     useEffect(() => {
-        fetch('/api/twelvedata/status')
-            .then(res => res.json())
-            .then(data => setIsTwelveDataConfigured(data.configured))
-            .catch(() => setIsTwelveDataConfigured(false));
+        const checkStatus = () => {
+            fetch('/api/twelvedata/status')
+                .then(res => res.json())
+                .then(data => {
+                    console.log('Twelve Data Status Response:', data);
+                    setIsTwelveDataConfigured(data.configured);
+                })
+                .catch(err => {
+                    console.error('Twelve Data Status Error:', err);
+                    setIsTwelveDataConfigured(false);
+                });
+        };
+
+        // Initial check
+        checkStatus();
+
+        // Check every 10 seconds
+        const interval = setInterval(checkStatus, 10000);
+
+        // Check on window focus
+        window.addEventListener('focus', checkStatus);
+
+        return () => {
+            clearInterval(interval);
+            window.removeEventListener('focus', checkStatus);
+        };
     }, []);
 
     useEffect(() => {
