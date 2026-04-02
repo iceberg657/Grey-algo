@@ -428,14 +428,21 @@ async function startServer() {
     if (apiKey) {
       try {
         // Test the key with a simple usage request
-        const testRes = await fetch(`https://api.twelvedata.com/api_usage?apikey=${apiKey}`);
-        const testData = await testRes.json();
-        isValid = testData.status !== 'error';
-        usageInfo = testData;
-        if (!isValid) {
-          console.warn('[TwelveData] API key is present but invalid:', testData.message);
+        // Node 18+ has native fetch. For older versions, we might need a polyfill.
+        const fetchFn = typeof fetch === 'function' ? fetch : null;
+        
+        if (fetchFn) {
+          const testRes = await fetchFn(`https://api.twelvedata.com/api_usage?apikey=${apiKey}`);
+          const testData = await testRes.json();
+          isValid = testData.status !== 'error';
+          usageInfo = testData;
+          if (!isValid) {
+            console.warn('[TwelveData] API key is present but invalid:', testData.message);
+          } else {
+            console.log('[TwelveData] API key validated successfully');
+          }
         } else {
-          console.log('[TwelveData] API key validated successfully');
+          console.error('[TwelveData] fetch is not defined in this environment. Please upgrade Node.js or install node-fetch.');
         }
       } catch (e) {
         console.error('[TwelveData] Error validating API key:', e);
