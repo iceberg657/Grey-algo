@@ -50,8 +50,22 @@ export interface TwelveDataTimeSeries {
 
 export async function fetchMarketData(symbol: string, interval: string = '1h'): Promise<any | null> {
     try {
-        // Use the backend proxy instead of calling Twelve Data directly from the client
-        // This keeps the API key secure on the server
+        // Check if we have a key in localStorage
+        const storedSettings = localStorage.getItem('greyquant_user_settings');
+        const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
+        const localKey = userSettings?.twelveDataApiKey;
+
+        if (localKey && localKey.length > 10) {
+            // If we have a local key, call Twelve Data directly from the client
+            const url = `https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&interval=${interval}&apikey=${localKey}`;
+            const response = await fetch(url);
+            if (response.ok) {
+                const data = await response.json();
+                return data;
+            }
+        }
+
+        // Fallback to backend proxy
         const url = `/api/twelvedata/quote?symbol=${encodeURIComponent(symbol)}&interval=${interval}`;
         const response = await fetch(url);
         

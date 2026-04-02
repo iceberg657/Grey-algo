@@ -410,36 +410,44 @@ async function startServer() {
   });
 
   app.get('/api/twelvedata/status', async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     const apiKey = process.env.TWELVE_DATA_API_KEY || 
                    process.env.VITE_TWELVE_DATA_API_KEY || 
                    process.env.TWELVEDATA_API_KEY || 
                    process.env.VITE_TWELVEDATA_API_KEY;
                    
-    console.log('Twelve Data API Key Status Check:', apiKey ? 'Key is present (length: ' + apiKey.length + ')' : 'Key is missing');
+    console.log('[TwelveData] Status check requested');
+    console.log('[TwelveData] API Key present:', !!apiKey);
     
     // Debug: log all env keys that might be related to twelvedata
     const relatedKeys = Object.keys(process.env).filter(k => k.toLowerCase().includes('twelve'));
-    console.log('Related env keys:', relatedKeys);
+    console.log('[TwelveData] Related env keys found:', relatedKeys);
     
     let isValid = false;
+    let usageInfo = null;
     if (apiKey) {
       try {
         // Test the key with a simple usage request
         const testRes = await fetch(`https://api.twelvedata.com/api_usage?apikey=${apiKey}`);
         const testData = await testRes.json();
         isValid = testData.status !== 'error';
+        usageInfo = testData;
         if (!isValid) {
-          console.warn('Twelve Data API key is present but invalid:', testData.message);
+          console.warn('[TwelveData] API key is present but invalid:', testData.message);
+        } else {
+          console.log('[TwelveData] API key validated successfully');
         }
       } catch (e) {
-        console.error('Error validating Twelve Data API key:', e);
+        console.error('[TwelveData] Error validating API key:', e);
       }
     }
     
     res.json({ 
       configured: !!apiKey,
       valid: isValid,
-      keyName: relatedKeys[0] || 'None'
+      keyName: relatedKeys[0] || 'None',
+      maskedKey: apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : null,
+      usage: usageInfo
     });
   });
 

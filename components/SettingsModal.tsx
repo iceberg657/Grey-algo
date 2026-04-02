@@ -13,7 +13,8 @@ const DEFAULT_SETTINGS: UserSettings = {
     targetPercentage: 10,
     dailyDrawdown: 5,
     maxDrawdown: 10,
-    timeLimit: 30
+    timeLimit: 30,
+    twelveDataApiKey: ''
 };
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
@@ -232,6 +233,27 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     </div>
                                     <p className="text-[10px] text-red-400 mt-1 font-mono">-${maxLossLimit.toLocaleString()}</p>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Twelve Data API Key */}
+                        <div className="bg-blue-50/50 dark:bg-blue-900/10 backdrop-blur-sm p-4 rounded-xl border border-blue-200 dark:border-blue-500/20">
+                            <h4 className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                </svg>
+                                Market Data (Twelve Data)
+                            </h4>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">API Key (Server Fallback)</label>
+                                <input
+                                    type="password"
+                                    value={settings.twelveDataApiKey || ''}
+                                    onChange={(e) => handleChange('twelveDataApiKey', e.target.value)}
+                                    className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
+                                    placeholder="Enter your Twelve Data API Key"
+                                />
+                                <p className="text-[10px] text-blue-400 mt-1">If set, this key will be used for market data confluence.</p>
                             </div>
                         </div>
 

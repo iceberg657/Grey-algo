@@ -84,16 +84,23 @@ export const HomePage: React.FC<HomePageProps> = ({
 
     useEffect(() => {
         const checkStatus = () => {
+            // First check if we have a key in localStorage
+            const storedSettings = localStorage.getItem('greyquant_user_settings');
+            const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
+            const localKey = userSettings?.twelveDataApiKey;
+
             fetch('/api/twelvedata/status')
                 .then(res => res.json())
                 .then(data => {
                     console.log('Twelve Data Status Response:', data);
-                    // Consider it configured only if it's both present and valid
-                    setIsTwelveDataConfigured(data.configured && data.valid);
+                    // Consider it configured if either the backend has it OR we have it locally
+                    const isConfigured = (data.configured && data.valid) || (!!localKey && localKey.length > 10);
+                    setIsTwelveDataConfigured(isConfigured);
                 })
                 .catch(err => {
                     console.error('Twelve Data Status Error:', err);
-                    setIsTwelveDataConfigured(false);
+                    // Fallback to local key check if fetch fails
+                    setIsTwelveDataConfigured(!!localKey && localKey.length > 10);
                 });
         };
 
