@@ -409,6 +409,11 @@ async function startServer() {
     }
   });
 
+  app.get('/api/twelvedata/status', (req, res) => {
+    const apiKey = process.env.TWELVE_DATA_API_KEY;
+    res.json({ configured: !!apiKey });
+  });
+
   app.get('/api/twelvedata/quote', async (req, res) => {
     const { symbol, interval = '15min' } = req.query;
     if (!symbol || typeof symbol !== 'string') {

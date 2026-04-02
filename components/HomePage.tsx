@@ -80,6 +80,14 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
     const [showSettings, setShowSettings] = useState<boolean>(false);
+    const [isTwelveDataConfigured, setIsTwelveDataConfigured] = useState<boolean | null>(null);
+
+    useEffect(() => {
+        fetch('/api/twelvedata/status')
+            .then(res => res.json())
+            .then(data => setIsTwelveDataConfigured(data.configured))
+            .catch(() => setIsTwelveDataConfigured(false));
+    }, []);
 
     useEffect(() => {
         setAnalysisCount(userMetadata?.analysisCount || getAnalysisCount());
@@ -346,6 +354,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
                 <header className="text-center mb-10 relative">
                      <div className="absolute top-0 right-0 flex items-center gap-2">
+                        {isTwelveDataConfigured !== null && (
+                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${isTwelveDataConfigured ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'}`} title={isTwelveDataConfigured ? "Twelve Data API Connected" : "Twelve Data API Key Missing"}>
+                                <div className={`w-1.5 h-1.5 rounded-full ${isTwelveDataConfigured ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                                <span className="hidden sm:inline">Twelve Data</span>
+                            </div>
+                        )}
                         <ThemeToggleButton />
                     </div>
                     <button onClick={() => setShowSettings(true)} className="block mx-auto cursor-pointer group focus:outline-none focus:ring-2 focus:ring-green-400/50 rounded-2xl p-2" title="Open Settings">

@@ -624,12 +624,13 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                         {data.confluenceMatrix.executionChecklist.map((item, i) => {
                                             const isPass = item.toLowerCase().includes('pass');
                                             const isFail = item.toLowerCase().includes('fail');
+                                            const isNA = item.toLowerCase().includes('n/a');
                                             return (
                                                 <div key={i} className="flex items-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md p-2.5 rounded-lg border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                                     <span className={`mr-3 font-black ${isPass ? 'text-green-500' : isFail ? 'text-red-500' : 'text-gray-500'}`}>
                                                         {isPass ? '✓' : isFail ? '✗' : '○'}
                                                     </span>
-                                                    <span className="text-xs font-bold opacity-80">{item.replace(/\[(Pass|Fail)\]/i, '').trim()}</span>
+                                                    <span className={`text-xs font-bold ${isNA ? 'opacity-50' : 'opacity-80'}`}>{item.replace(/\[(Pass|Fail|N\/A)\]/i, '').trim()}</span>
                                                 </div>
                                             );
                                         })}

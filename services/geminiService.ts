@@ -54,7 +54,9 @@ Use this real-time data as your primary "Mathematical Truth" to verify your visu
 **CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
 **TECHNICAL CONFLUENCE:** Use the RSI and SMA values to verify momentum and trend. If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
 **MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders unless the price is currently at an extreme overextension and a pullback is mathematically certain.
+**EXECUTION CHECKLIST:** You MUST evaluate item 11 ("Raw API Data Confluence (Twelve Data)") as "[Pass]" if Twelve Data is provided and aligns with your bias, or "[Fail]" if it contradicts. Do NOT output "N/A" if Twelve Data is provided.
 ` : `📡 **TWELVE DATA API:** No real-time data available for this asset. Rely strictly on visual chart analysis and search grounding.
+**EXECUTION CHECKLIST:** You MUST evaluate item 11 ("Raw API Data Confluence (Twelve Data)") as "[N/A]".
 `;
 
   const accountInfo = userSettings ? `
@@ -635,7 +637,7 @@ You MUST correctly classify the order type based on the strict relationship betw
       "8. Economic News Cleared: [Pass/Fail]",
       "9. Risk:Reward Acceptable: [Pass/Fail]",
       "10. No Choppy Price Action: [Pass/Fail]",
-      "11. Raw API Data Confluence (Twelve Data): [Pass/Fail]"
+      "11. Raw API Data Confluence (Twelve Data): [Pass/Fail/N/A]"
     ]
   },
   "verificationProtocol": {
