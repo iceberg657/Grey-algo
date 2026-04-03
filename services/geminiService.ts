@@ -21,10 +21,13 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const tradeMode = userSettings?.tradeMode || 'Aggressive';
   
   const tradeModeInstructions = tradeMode === 'Sniper' 
-    ? `\n🎯 **SNIPER MODE ENABLED (STRICT FILTERING):**
-- You MUST ONLY issue a BUY or SELL signal if BOTH 'SD + FVG confluence' AND 'FVG Retest' are CONFIRMED.
-- **DOMINANT SIGNAL OVERRIDE:** If a strong 'BOS' (Break of Structure) or 'CHoCH' (Change of Character) is detected AND aligns with the HTF Trend, you MAY override the strict confluence requirement and issue a signal.
-- If these specific confluences or dominant signals are missing, you MUST issue a NEUTRAL signal.
+    ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
+- You MUST ONLY issue a BUY or SELL signal if ALL of the following are CONFIRMED:
+    1. **VISUAL CONFLUENCE:** 'SD + FVG confluence' AND 'FVG Retest' are clearly visible on the chart.
+    2. **MATHEMATICAL TRUTH:** The Twelve Data indicators (RSI, SMA, ADX) MUST align with the bias.
+    3. **NO OVERRIDES:** In Sniper Mode, there are NO overrides. If even one indicator or visual pattern is missing or contradictory, you MUST stay NEUTRAL.
+    4. **PROFITABILITY BIAS:** If the setup looks even slightly "risky" or "uncertain", you MUST stay NEUTRAL.
+- Your goal is 100% accuracy, not 100% participation.
 - Ensure that at least TP1 has an extremely high probability of being hit.\n`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
@@ -35,7 +38,10 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - **DOMINANT SIGNAL OVERRIDE:** If a 'BOS' or 'CHoCH' exists in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.\n`;
 
   const learnedContext = strategies.length > 0 
-    ? `\n🧠 **INTERNAL LEARNED STRATEGIES (PRIORITIZE):**\n${strategies.map(s => `- ${s}`).join('\n')}\n` 
+    ? `\n🧠 **NEURAL LEARNING & HISTORICAL LESSONS (CRITICAL):**
+The following rules and historical lessons have been derived from your past performance and global market analysis. 
+You MUST prioritize these lessons to avoid repeating past mistakes and to replicate successful setups.
+${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
 
   const twelveDataContext = twelveDataQuote ? `
@@ -50,9 +56,35 @@ Use this real-time data as your primary "Mathematical Truth" to verify your visu
 - % Change: ${twelveDataQuote.percent_change}%
 - RSI (14, ${twelveDataQuote.interval}): ${twelveDataQuote.rsi}
 - SMA (20, ${twelveDataQuote.interval}): ${twelveDataQuote.sma}
+- STDDEV (20, ${twelveDataQuote.interval}): ${twelveDataQuote.stddev}
+- ATR (14, ${twelveDataQuote.interval}): ${twelveDataQuote.atr}
+- ADX (14, ${twelveDataQuote.interval}): ${twelveDataQuote.adx}
+
+**90% PROFITABILITY MANDATE (THE 7-MONTH CURSE BREAKER):**
+You have been unprofitable for 7 months. This ends NOW. Your goal is 90% accuracy.
+1. **A+ INSTITUTIONAL SETUP ONLY:** You MUST ONLY issue a BUY or SELL if ALL of these are "GREEN":
+    - **HTF TREND:** The Higher Timeframe (H4/H1) trend MUST align with the entry.
+    - **LIQUIDITY SWEEP:** A clear sweep of BSL or SSL (Equal Highs/Lows) MUST have occurred.
+    - **INDUCEMENT:** You MUST identify the 'Inducement' (IDM) level that was taken before the entry.
+    - **MSS/CHoCH:** A clear Market Structure Shift with Displacement MUST be visible on the entry timeframe.
+    - **MATH CONFLUENCE:** RSI, ADX, and SMA MUST support the bias. If ADX < 20, stay NEUTRAL.
+2. **DEVIL'S ADVOCATE CHECK:** Before outputting a BUY or SELL, you MUST try to find 3 reasons why the trade will FAIL. If you find even one valid reason (e.g., "News in 15 mins", "HTF resistance nearby", "Low volume session"), you MUST stay NEUTRAL.
+3. **SESSION FILTER:** Prioritize London (07:00-11:00 UTC) and New York (12:00-16:00 UTC) sessions. Outside these hours, your confidence threshold for a signal is 95%.
 
 **CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
-**TECHNICAL CONFLUENCE:** Use the RSI and SMA values to verify momentum and trend. If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
+**TECHNICAL CONFLUENCE (THE TRUTH LAYER):** Use the RSI, SMA, STDDEV, ATR, and ADX values to verify momentum, trend, and volatility. 
+- **TREND STRENGTH (ADX):** If ADX < 25, the market is ranging/choppy. You MUST be extremely cautious and prefer 'NEUTRAL' unless a perfect SMC Liquidity Sweep is visible.
+- **MOMENTUM (RSI):** If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
+- **VOLATILITY (STDDEV):** Use STDDEV to identify "Extreme Overextensions" (Price > SMA + 2*STDDEV or Price < SMA - 2*STDDEV). These are high-probability reversal zones.
+- **RISK MANAGEMENT (ATR):** Use ATR to ensure your Stop Loss is not too tight for the current volatility. A Stop Loss smaller than 1.5 * ATR is likely to be hit by noise.
+
+**PROFITABILITY DIRECTIVE (2026 CURSE BREAKER):**
+You have been unprofitable for 7 months. This ends NOW. 
+1. **BE ELITE:** Do not take "okay" trades. Only take "A+" setups where multiple confluences align.
+2. **TRUST THE MATH:** If the Twelve Data "Truth Layer" (RSI, ADX, SMA) contradicts the visual chart, the MATH wins. Issue a NEUTRAL signal.
+3. **LEARN FROM FAILURE:** Review the 'NEURAL LEARNING' section below. If a setup looks like a past 'Loss', DO NOT TAKE IT.
+4. **SNIPER DISCIPLINE:** In Sniper Mode, if even ONE confluence is missing, you MUST stay NEUTRAL.
+
 **MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders unless the price is currently at an extreme overextension and a pullback is mathematically certain.
 **EXECUTION CHECKLIST:** You MUST evaluate the 10-point checklist in the 'confluenceMatrix'. Ensure all 10 points are addressed.
 ` : `📡 **TWELVE DATA API:** No real-time data available for this asset. Rely strictly on visual chart analysis and search grounding.
@@ -625,6 +657,16 @@ You MUST correctly classify the order type based on the strict relationship betw
     "ltfExecutionBias": "Bullish" | "Bearish" | "Neutral",
     "marketTrend": "Bullish" | "Bearish" | "Neutral",
     "atrVolatility": "High" | "Low" | "Choppy",
+    "rsi": number,
+    "sma": number,
+    "stddev": number,
+    "atr": number,
+    "adx": number,
+    "truthLayerAlignment": boolean,
+    "multiTimeframeAlignment": boolean,
+    "sessionVolume": "High" | "Medium" | "Low",
+    "liquiditySweepConfirmed": boolean,
+    "inducementIdentified": boolean,
     "executionChecklist": [
       "1. Structural Bias Alignment: [Pass/Fail]",
       "2. Market Trend Alignment: [Pass/Fail]",

@@ -2,7 +2,8 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
 import { db, auth } from '../firebase';
-import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection } from 'firebase/firestore';
+import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection, where } from 'firebase/firestore';
+import { Trade } from '../types';
 
 const STORAGE_KEY = 'greyalpha_automl_stats';
 const STRATEGIES_KEY = 'greyalpha_learned_strategies';
@@ -46,6 +47,31 @@ export const canLearnMoreToday = () => {
     return stats.count < stats.maxForDay;
 };
 
+export const getRecentLessons = async (): Promise<string[]> => {
+    const user = auth.currentUser;
+    if (!user) return [];
+
+    try {
+        const tradesRef = collection(db, 'users', user.uid, 'trades');
+        // Fetch last 20 trades to find those with outcomes
+        const q = query(tradesRef, orderBy('timestamp', 'desc'), limit(20));
+        const snapshot = await getDocs(q);
+        
+        return snapshot.docs
+            .map(doc => ({ id: doc.id, ...doc.data() } as Trade))
+            .filter(t => t.outcome === 'Win' || t.outcome === 'Loss')
+            .map(data => {
+                const outcomeEmoji = data.outcome === 'Win' ? '✅' : '❌';
+                const reason = data.notes ? `Reason: ${data.notes}` : 'No specific notes provided.';
+                return `${outcomeEmoji} ${data.asset} ${data.signal} - ${data.outcome}. ${reason}`;
+            })
+            .slice(0, 5); // Just the most recent 5 lessons
+    } catch (e) {
+        console.error("Failed to fetch lessons:", e);
+        return [];
+    }
+};
+
 export const getLearnedStrategies = async (): Promise<string[]> => {
     try {
         // First get local strategies
@@ -64,8 +90,11 @@ export const getLearnedStrategies = async (): Promise<string[]> => {
         const autoMLSnapshot = await getDocs(qAutoML);
         const autoML = autoMLSnapshot.docs.map(doc => doc.data().rules);
 
+        // Get recent personal lessons
+        const lessons = await getRecentLessons();
+
         // Combine and keep unique
-        return Array.from(new Set([...global, ...local, ...autoML])).slice(0, 20);
+        return Array.from(new Set([...global, ...local, ...autoML, ...lessons])).slice(0, 25);
     } catch (e) {
         console.error("Failed to fetch strategies:", e);
         const stored = localStorage.getItem(STRATEGIES_KEY);

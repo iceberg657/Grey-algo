@@ -518,16 +518,22 @@ async function startServer() {
     try {
       console.log(`Calling Twelve Data API for ${mappedSymbol} at ${interval}...`);
       
-      // Fetch Quote, RSI, and SMA in parallel for confluence
-      const [quoteRes, rsiRes, smaRes] = await Promise.all([
+      // Fetch Quote, RSI, SMA, STDDEV, ATR, and ADX in parallel for confluence
+      const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
         fetch(`https://api.twelvedata.com/quote?symbol=${mappedSymbol}&apikey=${apiKey}`),
         fetch(`https://api.twelvedata.com/rsi?symbol=${mappedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/sma?symbol=${mappedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`)
+        fetch(`https://api.twelvedata.com/sma?symbol=${mappedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/stddev?symbol=${mappedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/atr?symbol=${mappedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/adx?symbol=${mappedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`)
       ]);
 
       const quoteData = await quoteRes.json();
       const rsiData = await rsiRes.json();
       const smaData = await smaRes.json();
+      const stddevData = await stddevRes.json();
+      const atrData = await atrRes.json();
+      const adxData = await adxRes.json();
       
       if (quoteData.status === 'error') {
         console.error(`Twelve Data API error for ${mappedSymbol}:`, quoteData.message);
@@ -537,15 +543,21 @@ async function startServer() {
       // Extract latest values
       const latestRsi = rsiData.values?.[0]?.rsi || 'N/A';
       const latestSma = smaData.values?.[0]?.sma || 'N/A';
+      const latestStdDev = stddevData.values?.[0]?.stddev || 'N/A';
+      const latestAtr = atrData.values?.[0]?.atr || 'N/A';
+      const latestAdx = adxData.values?.[0]?.adx || 'N/A';
 
       const combinedData = {
         ...quoteData,
         rsi: latestRsi,
         sma: latestSma,
+        stddev: latestStdDev,
+        atr: latestAtr,
+        adx: latestAdx,
         interval
       };
 
-      console.log(`Twelve Data API success for ${mappedSymbol}. RSI: ${latestRsi}, SMA: ${latestSma}`);
+      console.log(`Twelve Data API success for ${mappedSymbol}. RSI: ${latestRsi}, SMA: ${latestSma}, STDDEV: ${latestStdDev}, ATR: ${latestAtr}, ADX: ${latestAdx}`);
       res.json(combinedData);
     } catch (error) {
       console.error('Error fetching Twelve Data:', error);

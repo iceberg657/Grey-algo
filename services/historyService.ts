@@ -80,12 +80,12 @@ export const saveAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>): 
 /**
  * Updates a trade outcome in Firestore.
  */
-export const updateTradeOutcome = async (tradeId: string, outcome: 'Win' | 'Loss' | 'No Trade'): Promise<void> => {
+export const updateTradeOutcome = async (tradeId: string, outcome: 'Win' | 'Loss' | 'No Trade', notes: string = ''): Promise<void> => {
     if (!auth.currentUser) return;
     const path = `users/${auth.currentUser.uid}/trades/${tradeId}`;
     try {
         const tradeRef = doc(db, 'users', auth.currentUser.uid, 'trades', tradeId);
-        await updateDoc(tradeRef, { outcome });
+        await updateDoc(tradeRef, { outcome, notes });
     } catch (e) {
         handleFirestoreError(e, OperationType.UPDATE, path);
     }

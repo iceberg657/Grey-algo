@@ -2,7 +2,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
+import { updateTradeOutcome } from '../services/historyService';
 import { TiltCard } from './TiltCard';
+import { motion } from 'framer-motion';
 
 interface InfoCardProps {
     label: string;
@@ -273,6 +275,25 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
             case 'Buy Stop Limit': return 'bg-teal-600 text-white shadow-[0_0_15px_rgba(13,148,136,0.4)]';
             case 'Sell Stop Limit': return 'bg-pink-600 text-white shadow-[0_0_15px_rgba(219,39,119,0.4)]';
             default: return 'bg-gray-600 text-white shadow-[0_0_15px_rgba(75,85,99,0.4)]';
+        }
+    };
+
+    const [localOutcome, setLocalOutcome] = useState<'Win' | 'Loss' | 'No Trade' | 'Pending'>('Pending');
+    const [localNotes, setLocalNotes] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    const [saveSuccess, setSaveSuccess] = useState(false);
+
+    const handleSavePostMortem = async () => {
+        if (!data.id || localOutcome === 'Pending') return;
+        setIsSaving(true);
+        try {
+            await updateTradeOutcome(data.id, localOutcome as any, localNotes);
+            setSaveSuccess(true);
+            setTimeout(() => setSaveSuccess(false), 3000);
+        } catch (error) {
+            console.error('Failed to save post-mortem:', error);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -653,10 +674,15 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <div className="flex items-start gap-4">
                             <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 font-mono font-black text-lg">[LIVE DATA]</span>
                             <div className="flex-1">
-                                <div className="text-blue-700 dark:text-blue-300 text-sm sm:text-base font-bold tracking-tight mb-2">
-                                    Real-time Market Confluence for {data.asset}
+                                <div className="text-blue-700 dark:text-blue-300 text-sm sm:text-base font-bold tracking-tight mb-2 flex items-center justify-between">
+                                    <span>Real-time Market Confluence for {data.asset}</span>
+                                    {data.confluenceMatrix?.truthLayerAlignment !== undefined && (
+                                        <span className={`text-[10px] px-2 py-0.5 rounded-full font-black uppercase tracking-wider ${data.confluenceMatrix.truthLayerAlignment ? 'bg-green-500/20 text-green-500 border border-green-500/30' : 'bg-red-500/20 text-red-500 border border-red-500/30'}`}>
+                                            {data.confluenceMatrix.truthLayerAlignment ? '✓ Math Aligned' : '⚠ Math Divergence'}
+                                        </span>
+                                    )}
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mt-4">
                                     <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
                                         <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">Price</span>
                                         <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.close || data.twelveDataQuote.price}</span>
@@ -675,9 +701,66 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                         <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">SMA (20)</span>
                                         <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.sma}</span>
                                     </div>
+                                    <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
+                                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">STDDEV (20)</span>
+                                        <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.stddev}</span>
+                                    </div>
+                                    <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
+                                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">ATR (14)</span>
+                                        <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.atr}</span>
+                                    </div>
+                                    <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
+                                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">ADX (14)</span>
+                                        <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.adx}</span>
+                                    </div>
                                 </div>
                                 <div className="mt-4 text-[10px] text-blue-700/70 dark:text-blue-400/70 font-mono uppercase tracking-widest">
                                     Interval: {data.twelveDataQuote.interval} | Source: Twelve Data API
+                                </div>
+
+                                {/* 90% Profitability Scorecard */}
+                                <div className="mt-6 pt-6 border-t border-blue-500/20">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="text-blue-700 dark:text-blue-300 text-xs font-black uppercase tracking-widest">
+                                            90% Profitability Scorecard
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <div className="h-1 w-24 bg-blue-500/10 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-blue-500 transition-all duration-1000" 
+                                                    style={{ width: `${data.confidence}%` }}
+                                                />
+                                            </div>
+                                            <span className="text-[10px] font-mono font-black text-blue-600 dark:text-blue-400">{data.confidence}%</span>
+                                        </div>
+                                    </div>
+                                    
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                        <div className={`p-2 rounded-lg border flex flex-col gap-1 ${data.confluenceMatrix?.multiTimeframeAlignment ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                                            <span className="text-[8px] uppercase font-black opacity-60">MTF Alignment</span>
+                                            <span className={`text-[10px] font-bold ${data.confluenceMatrix?.multiTimeframeAlignment ? 'text-green-500' : 'text-red-500'}`}>
+                                                {data.confluenceMatrix?.multiTimeframeAlignment ? '✓ ALIGNED' : '✗ DIVERGENT'}
+                                            </span>
+                                        </div>
+                                        <div className={`p-2 rounded-lg border flex flex-col gap-1 ${data.confluenceMatrix?.liquiditySweepConfirmed ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                                            <span className="text-[8px] uppercase font-black opacity-60">Liquidity Sweep</span>
+                                            <span className={`text-[10px] font-bold ${data.confluenceMatrix?.liquiditySweepConfirmed ? 'text-green-500' : 'text-red-500'}`}>
+                                                {data.confluenceMatrix?.liquiditySweepConfirmed ? '✓ CONFIRMED' : '✗ MISSING'}
+                                            </span>
+                                        </div>
+                                        <div className={`p-2 rounded-lg border flex flex-col gap-1 ${data.confluenceMatrix?.inducementIdentified ? 'bg-green-500/10 border-green-500/20' : 'bg-red-500/10 border-red-500/20'}`}>
+                                            <span className="text-[8px] uppercase font-black opacity-60">Inducement</span>
+                                            <span className={`text-[10px] font-bold ${data.confluenceMatrix?.inducementIdentified ? 'text-green-500' : 'text-red-500'}`}>
+                                                {data.confluenceMatrix?.inducementIdentified ? '✓ IDENTIFIED' : '✗ UNKNOWN'}
+                                            </span>
+                                        </div>
+                                        <div className={`p-2 rounded-lg border flex flex-col gap-1 ${data.confluenceMatrix?.sessionVolume === 'High' ? 'bg-green-500/10 border-green-500/20' : 'bg-yellow-500/10 border-yellow-500/20'}`}>
+                                            <span className="text-[8px] uppercase font-black opacity-60">Session Volume</span>
+                                            <span className={`text-[10px] font-bold ${data.confluenceMatrix?.sessionVolume === 'High' ? 'text-green-500' : 'text-yellow-500'}`}>
+                                                {data.confluenceMatrix?.sessionVolume || 'LOW'}
+                                            </span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -823,6 +906,78 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     </ul>
                 </Section>
             )}
+
+            {/* Post-Mortem Section */}
+            <div className="mt-8 pt-8 border-t border-gray-200 dark:border-white/10 opacity-0 animate-fade-in" style={{ animationDelay: '1700ms' }}>
+                <div className="bg-blue-600/5 dark:bg-blue-500/5 border border-blue-500/20 rounded-3xl p-6 backdrop-blur-xl shadow-2xl relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/10 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-blue-500/20 transition-all duration-1000"></div>
+                    
+                    <div className="relative z-10">
+                        <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                            </div>
+                            <div>
+                                <h3 className="text-lg font-black uppercase tracking-tighter italic text-blue-600 dark:text-blue-400">Neural Post-Mortem</h3>
+                                <p className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">Help the AI learn from this trade</p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Outcome</label>
+                                <div className="flex gap-2">
+                                    {['Win', 'Loss', 'No Trade'].map((outcome) => (
+                                        <button
+                                            key={outcome}
+                                            onClick={() => setLocalOutcome(outcome as any)}
+                                            className={`flex-1 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                localOutcome === outcome 
+                                                    ? outcome === 'Win' ? 'bg-green-500 text-white shadow-lg shadow-green-500/30' :
+                                                      outcome === 'Loss' ? 'bg-red-500 text-white shadow-lg shadow-red-500/30' :
+                                                      'bg-slate-500 text-white shadow-lg shadow-slate-500/30'
+                                                    : 'bg-white/50 dark:bg-slate-800/60 text-gray-500 hover:bg-white dark:hover:bg-slate-700 border border-gray-200 dark:border-white/10'
+                                            }`}
+                                        >
+                                            {outcome}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="text-[10px] font-black uppercase tracking-widest text-gray-500 mb-2 block">Reasoning / Notes</label>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="text"
+                                        placeholder="Why did this happen? (e.g. News spike, HTF bias held...)"
+                                        value={localNotes}
+                                        onChange={(e) => setLocalNotes(e.target.value)}
+                                        className="flex-grow bg-white/50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-blue-500/50 transition-all"
+                                    />
+                                    <button 
+                                        onClick={handleSavePostMortem}
+                                        disabled={isSaving}
+                                        className={`px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-blue-500/30 flex items-center gap-2 ${isSaving ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                    >
+                                        {isSaving ? 'Saving...' : 'Log Lesson'}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        {saveSuccess && (
+                            <motion.p 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="mt-4 text-[10px] font-bold text-green-500 uppercase tracking-widest text-center"
+                            >
+                                ✨ Lesson synchronized with Neural Core. The AI will remember this.
+                            </motion.p>
+                        )}
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };

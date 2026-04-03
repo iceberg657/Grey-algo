@@ -206,6 +206,17 @@ export interface SignalData {
         marketTrend?: "Bullish" | "Bearish" | "Neutral";
         atrVolatility?: "High" | "Low" | "Choppy";
         executionChecklist?: string[];
+        // 90% Profitability Mandate Criteria
+        multiTimeframeAlignment?: boolean;
+        sessionVolume?: "High" | "Medium" | "Low";
+        liquiditySweepConfirmed?: boolean;
+        inducementIdentified?: boolean;
+        // Truth Layer Indicators
+        rsi?: number;
+        sma?: number;
+        stddev?: number;
+        atr?: number;
+        adx?: number;
     };
     verificationProtocol?: VerificationProtocol;
     institutionalDrivers?: InstitutionalDriver[];
