@@ -1,5 +1,5 @@
 
-import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
+import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import type { AnalysisRequest, SignalData, UserSettings, TradingStyle } from '../types';
 import { runWithModelFallback, executeLaneCall, getAnalysisPool, ANALYSIS_MODELS } from './retryUtils';
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
@@ -54,9 +54,8 @@ Use this real-time data as your primary "Mathematical Truth" to verify your visu
 **CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
 **TECHNICAL CONFLUENCE:** Use the RSI and SMA values to verify momentum and trend. If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
 **MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders unless the price is currently at an extreme overextension and a pullback is mathematically certain.
-**EXECUTION CHECKLIST:** You MUST evaluate item 11 ("Raw API Data Confluence (Twelve Data)") as "[Pass]" if Twelve Data is provided and aligns with your bias, or "[Fail]" if it contradicts. Do NOT output "N/A" if Twelve Data is provided.
+**EXECUTION CHECKLIST:** You MUST evaluate the 10-point checklist in the 'confluenceMatrix'. Ensure all 10 points are addressed.
 ` : `📡 **TWELVE DATA API:** No real-time data available for this asset. Rely strictly on visual chart analysis and search grounding.
-**EXECUTION CHECKLIST:** You MUST evaluate item 11 ("Raw API Data Confluence (Twelve Data)") as "[N/A]".
 `;
 
   const accountInfo = userSettings ? `
@@ -636,8 +635,7 @@ You MUST correctly classify the order type based on the strict relationship betw
       "7. Premium/Discount Zone: [Pass/Fail]",
       "8. Economic News Cleared: [Pass/Fail]",
       "9. Risk:Reward Acceptable: [Pass/Fail]",
-      "10. No Choppy Price Action: [Pass/Fail]",
-      "11. Raw API Data Confluence (Twelve Data): [Pass/Fail/N/A]"
+      "10. No Choppy Price Action: [Pass/Fail]"
     ]
   },
   "verificationProtocol": {
@@ -713,14 +711,25 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         const response = await runWithModelFallback<GenerateContentResponse>(
             ANALYSIS_MODELS, 
-            (modelId) => ai.models.generateContent({
-                model: modelId,
-                contents: [{ parts: promptParts }],
-                config: { 
+            (modelId) => {
+                const config: any = { 
                     tools: [{googleSearch: {}}], 
                     temperature: 0.1 
-                },
-            })
+                };
+                
+                // Enable thinking for Gemini 3.1 Pro
+                if (modelId === 'gemini-3.1-pro-preview') {
+                    config.thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH };
+                    // Ensure maxOutputTokens is NOT set as per instructions
+                    delete config.maxOutputTokens;
+                }
+
+                return ai.models.generateContent({
+                    model: modelId,
+                    contents: [{ parts: promptParts }],
+                    config: config,
+                });
+            }
         );
 
         let text = response.text || '';

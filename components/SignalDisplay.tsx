@@ -282,12 +282,6 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 <div className="flex-1 min-w-[200px]">
                     <div className="flex items-center gap-3 mb-1">
                         <h2 className="text-4xl sm:text-5xl font-black text-slate-900 dark:text-white break-words tracking-tighter drop-shadow-sm">{data.asset}</h2>
-                        {data.twelveDataQuote && (
-                            <div className="flex items-center gap-1.5 px-3 py-1 bg-green-500/20 border border-green-500/40 rounded-full animate-pulse">
-                                <span className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></span>
-                                <span className="text-[10px] font-black text-green-600 dark:text-green-400 uppercase tracking-widest">Twelve Data Active</span>
-                            </div>
-                        )}
                     </div>
                     <div className="flex items-center gap-2 mt-2">
                         <span className="text-xs sm:text-sm text-slate-800 dark:text-dark-text/70 font-mono font-black uppercase tracking-widest bg-gray-200/50 dark:bg-white/60 px-2 py-0.5 rounded border border-gray-300 dark:border-white/20">{data.timeframe}</span>
@@ -652,6 +646,52 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 </Section>
             )}
 
+            {/* TWELVE DATA CONFLUENCE SECTION */}
+            <Section title="Twelve Data Market Analysis" delay="1060ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}>
+                {data.twelveDataQuote ? (
+                    <div className="bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-xl rounded-2xl border border-blue-500/30 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
+                        <div className="flex items-start gap-4">
+                            <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 font-mono font-black text-lg">[LIVE DATA]</span>
+                            <div className="flex-1">
+                                <div className="text-blue-700 dark:text-blue-300 text-sm sm:text-base font-bold tracking-tight mb-2">
+                                    Real-time Market Confluence for {data.asset}
+                                </div>
+                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-4">
+                                    <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
+                                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">Price</span>
+                                        <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.close || data.twelveDataQuote.price}</span>
+                                    </div>
+                                    <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
+                                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">Change</span>
+                                        <span className={`text-lg font-mono font-black ${parseFloat(data.twelveDataQuote.percent_change) >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                            {data.twelveDataQuote.percent_change}%
+                                        </span>
+                                    </div>
+                                    <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
+                                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">RSI (14)</span>
+                                        <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.rsi}</span>
+                                    </div>
+                                    <div className="bg-white/40 dark:bg-black/20 p-3 rounded-xl border border-blue-500/20">
+                                        <span className="block text-[10px] text-blue-600 dark:text-blue-400 uppercase font-black mb-1">SMA (20)</span>
+                                        <span className="text-lg font-mono font-black text-slate-900 dark:text-white">{data.twelveDataQuote.sma}</span>
+                                    </div>
+                                </div>
+                                <div className="mt-4 text-[10px] text-blue-700/70 dark:text-blue-400/70 font-mono uppercase tracking-widest">
+                                    Interval: {data.twelveDataQuote.interval} | Source: Twelve Data API
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-red-500/10 dark:bg-red-500/20 backdrop-blur-xl rounded-2xl border border-red-500/30 p-8 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] flex items-center justify-center">
+                        <div className="text-center">
+                            <span className="text-4xl font-black text-red-500/50 block mb-2">N/A</span>
+                            <span className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-[0.3em]">Twelve Data Not Utilized</span>
+                        </div>
+                    </div>
+                )}
+            </Section>
+
             {(data.institutionalDrivers?.length || 0) > 0 && (
                 <Section title="Institutional Key Drivers" delay="1075ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -764,26 +804,9 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                      )}
                 </div>
             )}
-
             {Array.isArray(data.sources) && data.sources.length > 0 && (
                  <Section title="Intelligence Sources" delay="1600ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.937 7.937 0 0112 4c1.232 0 2.403.28 3.444.782l1.556-1.556a1 1 0 011.414 1.414l-1.556 1.556c.496 1.056.782 2.227.782 3.444 0 1.241-.3 2.413-.834 3.443L19.293 17.707a1 1 0 01-1.414 1.414l-3.483-3.484A7.935 7.935 0 0112 16a7.937 7.937 0 01-3-4.804l-1.556 1.556a1 1 0 01-1.414-1.414l1.556-1.556A7.935 7.935 0 014 12a7.937 7.937 0 013-4.804L5.444 5.64a1 1 0 011.414-1.414l1.556 1.556C9.403 5.084 10.574 4.804 12 4.804z" /></svg>}>
                     <ul className="space-y-3">
-                        {data.twelveDataQuote && (
-                            <li className="flex items-start bg-green-500/10 dark:bg-green-500/5 backdrop-blur-xl p-4 rounded-xl border border-green-500/30 hover:border-green-500/50 transition-all group overflow-hidden shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
-                                <span className="mr-4 text-green-600 dark:text-green-500 flex-shrink-0 font-mono font-black">[LIVE]</span>
-                                <div className="flex-1 overflow-hidden">
-                                    <div className="text-green-600 dark:text-green-400 text-xs sm:text-sm font-bold tracking-tight mb-1">
-                                        Twelve Data Real-time Quote
-                                    </div>
-                                    <div className="text-[10px] text-green-700 dark:text-green-500 font-mono">
-                                        Price: {data.twelveDataQuote.close || data.twelveDataQuote.price} | {data.twelveDataQuote.percent_change}% Change
-                                    </div>
-                                    <div className="text-[10px] text-green-700/70 dark:text-green-500/70 font-mono mt-1">
-                                        RSI: {data.twelveDataQuote.rsi} | SMA: {data.twelveDataQuote.sma} ({data.twelveDataQuote.interval})
-                                    </div>
-                                </div>
-                            </li>
-                        )}
                         {data.sources.map((source, i) => (
                             <li key={i} className="flex items-start bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl p-4 rounded-xl border border-gray-200 dark:border-white/10 hover:border-blue-500/50 transition-all group overflow-hidden shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                 <span className="mr-4 text-gray-600 dark:text-gray-500 flex-shrink-0 font-mono font-black">[{i+1}]</span>
@@ -798,7 +821,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                             </li>
                         ))}
                     </ul>
-                 </Section>
+                </Section>
             )}
         </div>
     );

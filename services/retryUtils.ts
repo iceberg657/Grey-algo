@@ -90,6 +90,7 @@ const K = {
 // Models: 3.0 Flash -> 3.1 Flash Lite -> 3.0 Pro -> 2.5 Flash -> 2.0 Flash
 export const getAnalysisPool = () => [K.K1(), K.K2(), K.K3(), K.K4()].filter(k => !!k);
 export const ANALYSIS_MODELS = [
+    'gemini-3.1-pro-preview',
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
     'gemini-3-pro-preview',
