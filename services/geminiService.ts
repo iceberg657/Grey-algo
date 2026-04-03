@@ -68,8 +68,12 @@ You have been unprofitable for 7 months. This ends NOW. Your goal is 90% accurac
     - **INDUCEMENT:** You MUST identify the 'Inducement' (IDM) level that was taken before the entry.
     - **MSS/CHoCH:** A clear Market Structure Shift with Displacement MUST be visible on the entry timeframe.
     - **MATH CONFLUENCE:** RSI, ADX, and SMA MUST support the bias. If ADX < 20, stay NEUTRAL.
-2. **DEVIL'S ADVOCATE CHECK:** Before outputting a BUY or SELL, you MUST try to find 3 reasons why the trade will FAIL. If you find even one valid reason (e.g., "News in 15 mins", "HTF resistance nearby", "Low volume session"), you MUST stay NEUTRAL.
-3. **SESSION FILTER:** Prioritize London (07:00-11:00 UTC) and New York (12:00-16:00 UTC) sessions. Outside these hours, your confidence threshold for a signal is 95%.
+2. **SINGLE CHART PRECISION:** When analyzing a single chart, you MUST use the 'visiblePriceRange' (High/Low on the Y-axis) to calibrate your technical levels. 
+    - **MODERATE & PRECISE SL:** Your Stop Loss MUST be placed behind the *most recent* structural invalidation point (e.g., the high/low of the candle that swept liquidity or the start of the displacement move). 
+    - **VOLATILITY BUFFER:** If Twelve Data ATR is available, ensure your SL is at least 1.5x ATR away from entry to avoid noise. 
+    - **PRECISION TP:** TP1 MUST target the first logical friction point (e.g., the nearest FVG or minor swing). TP2 MUST target the main structural liquidity.
+3. **DEVIL'S ADVOCATE CHECK:** Before outputting a BUY or SELL, you MUST try to find 3 reasons why the trade will FAIL. If you find even one valid reason (e.g., "News in 15 mins", "HTF resistance nearby", "Low volume session"), you MUST stay NEUTRAL.
+4. **SESSION FILTER:** Prioritize London (07:00-11:00 UTC) and New York (12:00-16:00 UTC) sessions. Outside these hours, your confidence threshold for a signal is 95%.
 
 **CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
 **TECHNICAL CONFLUENCE (THE TRUTH LAYER):** Use the RSI, SMA, STDDEV, ATR, and ADX values to verify momentum, trend, and volatility. 
@@ -739,6 +743,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                     mimeType: request.images.higher.mimeType 
                 }}
             );
+        } else {
+            promptParts.push({ text: "⚠️ SINGLE CHART MODE: You only have ONE chart. You MUST use the visible Y-axis price range to calibrate ALL your levels. Be extremely precise with SL and TP distances." });
         }
         
         promptParts.push(
@@ -903,7 +909,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             twelveDataQuote: request.twelveDataQuote
         };
         
-        return validateAndFixTPSL(rawSignal, request.riskRewardRatio, request.tradingStyle);
+        return validateAndFixTPSL(rawSignal, request.riskRewardRatio, request.tradingStyle, request.twelveDataQuote);
     }, getAnalysisPool());
 }
 

@@ -25,7 +25,8 @@ export function calculateTPSL(
   asset: string,
   riskRewardRatio: string,
   existingStopLoss?: number,
-  tradingStyle?: TradingStyle
+  tradingStyle?: TradingStyle,
+  twelveDataQuote?: any
 ): TPSLCalculation {
   
   const precision = detectPrecision(asset);
@@ -41,28 +42,28 @@ export function calculateTPSL(
   
   const isScalping = tradingStyle?.toLowerCase().includes('scalping');
 
-  // 1. Validate & Fix Entries (Ensure they are distinct)
-  // Entry 0 = Aggressive (Current/Breakout)
-  // Entry 1 = Optimal (Standard Deviation / Retracement)
-  // Entry 2 = Safe (Deep Pullback)
-  
+  // 1. Validate & Fix Entries
   let validEntries = [...entryPoints];
-  // Ensure we have at least one valid entry
-  if (validEntries.length === 0 || !validEntries[0]) validEntries = [0, 0, 0]; // Will fail downstream if 0, handled by UI
-  
-  // Fill missing entries
+  if (validEntries.length === 0 || !validEntries[0]) validEntries = [0, 0, 0]; 
   if (validEntries.length < 3) {
       while (validEntries.length < 3) validEntries.push(validEntries[0]);
   }
 
-  // 2. Validate Stop Loss
+  // 2. Validate Stop Loss (MODERATE & PRECISE)
   let stopLoss = existingStopLoss || 0;
   const baseEntry = validEntries[0];
   
-  const genericMinDist = baseEntry * 0.0015; // 0.15% price min distance
+  // Use ATR from Twelve Data if available for a "Volatility Buffer"
+  const atr = twelveDataQuote?.atr ? parseFloat(twelveDataQuote.atr) : null;
+  const genericMinDist = baseEntry * 0.0015; 
   let configMinDist = marketConfig ? marketConfig.minStopLoss : genericMinDist;
   
-  // For scalping, allow tighter stops (50% of config)
+  // If ATR is available, use it to define a "Moderate" minimum distance (1.2x ATR)
+  // This ensures the SL is not too tight for the current volatility.
+  if (atr && !isNaN(atr)) {
+      configMinDist = Math.max(configMinDist, atr * 1.2);
+  }
+
   if (isScalping) {
       configMinDist = configMinDist * 0.5;
   }
@@ -74,51 +75,38 @@ export function calculateTPSL(
   const isSlCorrectSide = signal === 'BUY' ? stopLoss < baseEntry : stopLoss > baseEntry;
 
   if (!isSlValid || !isSlCorrectSide) {
-      // Create SL based on ATR-like logic (using config or generic)
-      // For scalping, use tighter buffer (1.5x min) vs standard (2.5x min)
+      // Create SL based on ATR-like logic
       const bufferMultiplier = isScalping ? 1.5 : 2.5;
       const buffer = configMinDist * bufferMultiplier; 
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
   }
 
+  // PRECISE ADJUSTMENT: If the AI provided a valid SL, we keep it as is (Precision).
+  // If we had to recalculate, we use the buffer.
+  // We no longer arbitrarily reduce the SL distance by 20% to keep it "Precise" to the technical level.
   const originalSlDist = currentSlDist;
-  // Reduce SL distance by 20%
-  currentSlDist = currentSlDist * 0.8;
-  stopLoss = signal === 'BUY' ? baseEntry - currentSlDist : baseEntry + currentSlDist;
 
-  // 3. ENFORCE DISTINCT ENTRIES (Fixing the Glitch)
-  // If entries are identical, create a "Standard Deviation" spread
-  // We use the SL distance as a proxy for volatility
-  // For scalping, keep entries tighter (10% of SL dist) vs standard (25%)
+  // 3. ENFORCE DISTINCT ENTRIES
   const spreadFactor = isScalping ? 0.10 : 0.25;
   const volatilityUnit = originalSlDist * spreadFactor;
 
-  // Check if entries are too close (glitch detection)
   if (Math.abs(validEntries[1] - validEntries[0]) < Number.EPSILON) {
       if (signal === 'BUY') {
-          validEntries[1] = Number((validEntries[0] - volatilityUnit).toFixed(precision)); // Lower (better buy)
-          validEntries[2] = Number((validEntries[0] - (volatilityUnit * 2)).toFixed(precision)); // Lowest (best buy)
+          validEntries[1] = Number((validEntries[0] - volatilityUnit).toFixed(precision));
+          validEntries[2] = Number((validEntries[0] - (volatilityUnit * 2)).toFixed(precision));
       } else {
-          validEntries[1] = Number((validEntries[0] + volatilityUnit).toFixed(precision)); // Higher (better sell)
-          validEntries[2] = Number((validEntries[0] + (volatilityUnit * 2)).toFixed(precision)); // Highest (best sell)
+          validEntries[1] = Number((validEntries[0] + volatilityUnit).toFixed(precision));
+          validEntries[2] = Number((validEntries[0] + (volatilityUnit * 2)).toFixed(precision));
       }
   }
 
   // 4. Calculate Distinct Take Profits based on R:R
-  // We calculate TPs based on the *Optimal* entry (index 1) to be realistic, 
-  // but ensure they scale from the base.
-  
   const takeProfits: [number, number, number] = [0, 0, 0];
   const tpDistances: [number, number, number] = [0, 0, 0];
   
-  // TP1 = 1R (Secure the bag - Guaranteed 1:1 RR)
-  // TP2 = Target Ratio (e.g., 3R)
-  // TP3 = Moonbag (e.g., 5R or Target + Standard Deviation extension)
-  
-  const rUnit = currentSlDist; // Use the final SL distance to ensure exact 1:1 RR for TP1
-
-  const ratios = [1.0, targetRatio, targetRatio + 2.0]; // e.g. 1:1, 1:3, 1:5
+  const rUnit = currentSlDist; 
+  const ratios = [1.0, targetRatio, targetRatio + 2.0]; 
 
   ratios.forEach((r, idx) => {
       const dist = rUnit * r;
@@ -144,7 +132,8 @@ export function calculateTPSL(
 export function validateAndFixTPSL(
   signal: Omit<SignalData, 'id' | 'timestamp'>,
   riskRewardRatio: string,
-  tradingStyle?: TradingStyle
+  tradingStyle?: TradingStyle,
+  twelveDataQuote?: any
 ): Omit<SignalData, 'id' | 'timestamp'> {
   
   if (signal.signal !== 'BUY' && signal.signal !== 'SELL') {
@@ -157,7 +146,8 @@ export function validateAndFixTPSL(
     signal.asset,
     riskRewardRatio,
     signal.stopLoss,
-    tradingStyle
+    tradingStyle,
+    twelveDataQuote
   );
     
   return {
