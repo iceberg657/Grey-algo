@@ -215,9 +215,18 @@ export const HomePage: React.FC<HomePageProps> = ({
                 else if (requestData.tradingStyle === 'Day Trading') interval = '15min';
                 else if (requestData.tradingStyle === 'Swing Trading') interval = '4h';
                 
-                // Clean asset name for Twelve Data (e.g., "EURUSD" -> "EUR/USD", "BTCUSD" -> "BTC/USD")
-                let symbol = requestData.asset;
-                if (symbol.length === 6 && !symbol.includes('/')) {
+                // Clean asset name for Twelve Data
+                let symbol = requestData.asset.toUpperCase();
+                if (symbol === 'GOLD') symbol = 'XAU/USD';
+                else if (symbol === 'XAUUSD') symbol = 'XAU/USD';
+                else if (symbol === 'US30' || symbol === 'DJI') symbol = 'DJI';
+                else if (symbol === 'NAS100' || symbol === 'NDX') symbol = 'NDX';
+                else if (symbol === 'SPX500' || symbol === 'SPX') symbol = 'SPX';
+                else if (symbol === 'UK100' || symbol === 'FTSE') symbol = 'FTSE';
+                else if (symbol === 'GER40' || symbol === 'DAX') symbol = 'DAX';
+                else if (symbol === 'USOIL' || symbol === 'WTI') symbol = 'WTI';
+                else if (symbol === 'UKOIL' || symbol === 'BRENT') symbol = 'BRENT';
+                else if (symbol.length === 6 && !symbol.includes('/')) {
                     symbol = `${symbol.substring(0, 3)}/${symbol.substring(3, 6)}`;
                 }
                 

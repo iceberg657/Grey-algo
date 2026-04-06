@@ -171,6 +171,32 @@ export interface SignalData {
     winProbability?: number; // Estimated probability of hitting the target
     recommendedPositions?: number; // Number of positions to split the trade into
     positionLotSize?: string; // Lot size per position
+    neutralConditions?: {
+        buyConditions: string[];
+        sellConditions: string[];
+        buySetupExample: {
+            asset: string;
+            signal: string;
+            entry: string;
+            sl: string;
+            tp1: string;
+            tp2: string;
+            tp3: string;
+            type: string;
+            lotSize: string;
+        };
+        sellSetupExample: {
+            asset: string;
+            signal: string;
+            entry: string;
+            sl: string;
+            tp1: string;
+            tp2: string;
+            tp3: string;
+            type: string;
+            lotSize: string;
+        };
+    };
     partialCloseAmounts?: number[];
     partialCloseSizes?: string[];
     moveToBreakeven?: boolean;

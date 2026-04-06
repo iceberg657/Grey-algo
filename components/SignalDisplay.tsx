@@ -431,6 +431,91 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 )}
             </div>
 
+            {data.signal === 'NEUTRAL' && data.neutralConditions && (
+                <Section title="Conditional Setups" delay="800ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>}>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        {/* BUY CONDITIONS */}
+                        <div className="bg-green-500/10 dark:bg-green-500/20 backdrop-blur-xl rounded-2xl border border-green-500/30 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-black text-green-600 dark:text-green-400 uppercase tracking-widest">BUY CONDITIONS</h3>
+                                <button 
+                                    onClick={() => {
+                                        const text = `BUY CONDITIONS:\n${data.neutralConditions?.buyConditions.map(c => `- ${c}`).join('\n')}\n\nExample Setup:\nAsset: ${data.neutralConditions?.buySetupExample.asset}\nSignal: BUY\nEntry: ${data.neutralConditions?.buySetupExample.entry}\nSL: ${data.neutralConditions?.buySetupExample.sl}\nTP1: ${data.neutralConditions?.buySetupExample.tp1}\nTP2: ${data.neutralConditions?.buySetupExample.tp2}\nTP3: ${data.neutralConditions?.buySetupExample.tp3}\nType: ${data.neutralConditions?.buySetupExample.type}\nLot Size: ${data.neutralConditions?.buySetupExample.lotSize}`;
+                                        navigator.clipboard.writeText(text);
+                                        // Optional: Add a toast notification here
+                                    }}
+                                    className="text-xs bg-green-500/20 hover:bg-green-500/30 text-green-600 dark:text-green-400 px-3 py-1 rounded-full font-bold transition-colors"
+                                >
+                                    COPY
+                                </button>
+                            </div>
+                            <ul className="space-y-2 mb-6">
+                                {data.neutralConditions.buyConditions.map((condition, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 dark:text-gray-300">
+                                        <span className="text-green-500 mt-0.5">•</span>
+                                        <span>{condition}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <div className="bg-white/40 dark:bg-black/20 p-4 rounded-xl border border-green-500/20 font-mono text-xs">
+                                <span className="block text-green-600 dark:text-green-400 font-bold mb-2">EXAMPLE SETUP:</span>
+                                <div className="grid grid-cols-2 gap-2 text-slate-800 dark:text-gray-300">
+                                    <div>Asset: <span className="font-bold">{data.neutralConditions.buySetupExample.asset}</span></div>
+                                    <div>Signal: <span className="font-bold text-green-500">BUY</span></div>
+                                    <div>Entry: <span className="font-bold">{data.neutralConditions.buySetupExample.entry}</span></div>
+                                    <div>SL: <span className="font-bold">{data.neutralConditions.buySetupExample.sl}</span></div>
+                                    <div>TP1: <span className="font-bold">{data.neutralConditions.buySetupExample.tp1}</span></div>
+                                    <div>TP2: <span className="font-bold">{data.neutralConditions.buySetupExample.tp2}</span></div>
+                                    <div>TP3: <span className="font-bold">{data.neutralConditions.buySetupExample.tp3}</span></div>
+                                    <div>Type: <span className="font-bold">{data.neutralConditions.buySetupExample.type}</span></div>
+                                    <div className="col-span-2">Lot Size: <span className="font-bold">{data.neutralConditions.buySetupExample.lotSize}</span></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* SELL CONDITIONS */}
+                        <div className="bg-red-500/10 dark:bg-red-500/20 backdrop-blur-xl rounded-2xl border border-red-500/30 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
+                            <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
+                            <div className="flex justify-between items-center mb-4">
+                                <h3 className="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-widest">SELL CONDITIONS</h3>
+                                <button 
+                                    onClick={() => {
+                                        const text = `SELL CONDITIONS:\n${data.neutralConditions?.sellConditions.map(c => `- ${c}`).join('\n')}\n\nExample Setup:\nAsset: ${data.neutralConditions?.sellSetupExample.asset}\nSignal: SELL\nEntry: ${data.neutralConditions?.sellSetupExample.entry}\nSL: ${data.neutralConditions?.sellSetupExample.sl}\nTP1: ${data.neutralConditions?.sellSetupExample.tp1}\nTP2: ${data.neutralConditions?.sellSetupExample.tp2}\nTP3: ${data.neutralConditions?.sellSetupExample.tp3}\nType: ${data.neutralConditions?.sellSetupExample.type}\nLot Size: ${data.neutralConditions?.sellSetupExample.lotSize}`;
+                                        navigator.clipboard.writeText(text);
+                                    }}
+                                    className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full font-bold transition-colors"
+                                >
+                                    COPY
+                                </button>
+                            </div>
+                            <ul className="space-y-2 mb-6">
+                                {data.neutralConditions.sellConditions.map((condition, idx) => (
+                                    <li key={idx} className="flex items-start gap-2 text-sm text-slate-700 dark:text-gray-300">
+                                        <span className="text-red-500 mt-0.5">•</span>
+                                        <span>{condition}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                            <div className="bg-white/40 dark:bg-black/20 p-4 rounded-xl border border-red-500/20 font-mono text-xs">
+                                <span className="block text-red-600 dark:text-red-400 font-bold mb-2">EXAMPLE SETUP:</span>
+                                <div className="grid grid-cols-2 gap-2 text-slate-800 dark:text-gray-300">
+                                    <div>Asset: <span className="font-bold">{data.neutralConditions.sellSetupExample.asset}</span></div>
+                                    <div>Signal: <span className="font-bold text-red-500">SELL</span></div>
+                                    <div>Entry: <span className="font-bold">{data.neutralConditions.sellSetupExample.entry}</span></div>
+                                    <div>SL: <span className="font-bold">{data.neutralConditions.sellSetupExample.sl}</span></div>
+                                    <div>TP1: <span className="font-bold">{data.neutralConditions.sellSetupExample.tp1}</span></div>
+                                    <div>TP2: <span className="font-bold">{data.neutralConditions.sellSetupExample.tp2}</span></div>
+                                    <div>TP3: <span className="font-bold">{data.neutralConditions.sellSetupExample.tp3}</span></div>
+                                    <div>Type: <span className="font-bold">{data.neutralConditions.sellSetupExample.type}</span></div>
+                                    <div className="col-span-2">Lot Size: <span className="font-bold">{data.neutralConditions.sellSetupExample.lotSize}</span></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Section>
+            )}
+
             {/* INTEGRATED QUANT METRICS SECTION */}
             <Section title="Quant Execution Metrics" delay="1000ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
                 <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden font-mono">

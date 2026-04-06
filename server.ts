@@ -548,19 +548,19 @@ async function startServer() {
     }
 
     // Map common symbols to Twelve Data format
-    let mappedSymbol = symbol;
-    if (symbol === 'XAUUSD') mappedSymbol = 'XAU/USD';
-    else if (symbol === 'EURUSD') mappedSymbol = 'EUR/USD';
-    else if (symbol === 'GBPUSD') mappedSymbol = 'GBP/USD';
-    else if (symbol === 'USDJPY') mappedSymbol = 'USD/JPY';
-    else if (symbol === 'USDCAD') mappedSymbol = 'USD/CAD';
-    else if (symbol === 'AUDUSD') mappedSymbol = 'AUD/USD';
-    else if (symbol === 'NZDUSD') mappedSymbol = 'NZD/USD';
-    else if (symbol === 'BTCUSD') mappedSymbol = 'BTC/USD';
-    else if (symbol === 'ETHUSD') mappedSymbol = 'ETH/USD';
-    else if (symbol.length === 6 && !symbol.includes('/')) {
+    let mappedSymbol = symbol.toUpperCase();
+    if (mappedSymbol === 'GOLD') mappedSymbol = 'XAU/USD';
+    else if (mappedSymbol === 'XAUUSD') mappedSymbol = 'XAU/USD';
+    else if (mappedSymbol === 'US30' || mappedSymbol === 'DJI') mappedSymbol = 'DJI';
+    else if (mappedSymbol === 'NAS100' || mappedSymbol === 'NDX') mappedSymbol = 'NDX';
+    else if (mappedSymbol === 'SPX500' || mappedSymbol === 'SPX') mappedSymbol = 'SPX';
+    else if (mappedSymbol === 'UK100' || mappedSymbol === 'FTSE') mappedSymbol = 'FTSE';
+    else if (mappedSymbol === 'GER40' || mappedSymbol === 'DAX') mappedSymbol = 'DAX';
+    else if (mappedSymbol === 'USOIL' || mappedSymbol === 'WTI') mappedSymbol = 'WTI';
+    else if (mappedSymbol === 'UKOIL' || mappedSymbol === 'BRENT') mappedSymbol = 'BRENT';
+    else if (mappedSymbol.length === 6 && !mappedSymbol.includes('/')) {
       // Generic mapping for other 6-character forex pairs
-      mappedSymbol = `${symbol.slice(0, 3)}/${symbol.slice(3)}`;
+      mappedSymbol = `${mappedSymbol.slice(0, 3)}/${mappedSymbol.slice(3)}`;
     }
 
     try {

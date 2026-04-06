@@ -340,6 +340,12 @@ ${ALGO_LOGIC}
    - If price closes beyond the invalidation level, the trade is dead immediately.
    - If price starts declining (for buys) or inclining (for sells) at a certain level against the setup, CLOSE immediately. Do not wait for SL.
 
+6. **NEUTRAL SIGNAL PROTOCOL:**
+   - If the market is choppy, unclear, or lacks a high-probability setup, you MUST issue a **NEUTRAL** signal.
+   - When issuing a NEUTRAL signal, you MUST provide **Conditional Setups** for both BUY and SELL scenarios using the \`neutralConditions\` JSON field.
+   - Outline the exact conditions (e.g., BOS, CHoCH, specific price levels) that would trigger a valid BUY or SELL.
+   - Provide a complete **Example Setup** for both the potential BUY and SELL scenarios.
+
 ---
 
 ✅ **MANDATORY PRE-TRADE CHECKLIST & CONTEXT RULES:**
@@ -649,6 +655,32 @@ You MUST correctly classify the order type based on the strict relationship betw
   "possiblePips": number, // Estimated pips from Entry to TP3
   "winProbability": number, // Estimated probability (0-100) of hitting TP1
   "recommendedPositions": number, // Usually 2 or 3 depending on how many TPs you want to target
+  "neutralConditions": {
+    "buyConditions": ["Condition 1", "Condition 2"], // Array of strings for buy conditions if signal is NEUTRAL
+    "sellConditions": ["Condition 1", "Condition 2"], // Array of strings for sell conditions if signal is NEUTRAL
+    "buySetupExample": {
+      "asset": "string",
+      "signal": "BUY",
+      "entry": "string",
+      "sl": "string",
+      "tp1": "string",
+      "tp2": "string",
+      "tp3": "string",
+      "type": "string",
+      "lotSize": "string"
+    },
+    "sellSetupExample": {
+      "asset": "string",
+      "signal": "SELL",
+      "entry": "string",
+      "sl": "string",
+      "tp1": "string",
+      "tp2": "string",
+      "tp3": "string",
+      "type": "string",
+      "lotSize": "string"
+    }
+  },
 
   "timeframeRationale": "Why this duration",
   

@@ -58,21 +58,36 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         if (localKey && localKey.length > 10) {
             // If we have a local key, call Twelve Data directly from the client in parallel
             // This maintains the same confluence as the backend proxy
-            const [quoteRes, rsiRes, smaRes] = await Promise.all([
+            const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
                 fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`),
                 fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
-                fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`)
+                fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
+                fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
+                fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
+                fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`)
             ]);
 
             if (quoteRes.ok) {
                 const quoteData = await quoteRes.json();
+                
+                if (quoteData.status === 'error') {
+                    console.error(`Twelve Data API error for ${symbol}:`, quoteData.message);
+                    throw new Error(quoteData.message);
+                }
+
                 const rsiData = rsiRes.ok ? await rsiRes.json() : null;
                 const smaData = smaRes.ok ? await smaRes.json() : null;
+                const stddevData = stddevRes.ok ? await stddevRes.json() : null;
+                const atrData = atrRes.ok ? await atrRes.json() : null;
+                const adxData = adxRes.ok ? await adxRes.json() : null;
 
                 return {
                     ...quoteData,
                     rsi: rsiData?.values?.[0]?.rsi || 'N/A',
                     sma: smaData?.values?.[0]?.sma || 'N/A',
+                    stddev: stddevData?.values?.[0]?.stddev || 'N/A',
+                    atr: atrData?.values?.[0]?.atr || 'N/A',
+                    adx: adxData?.values?.[0]?.adx || 'N/A',
                     interval
                 };
             }
