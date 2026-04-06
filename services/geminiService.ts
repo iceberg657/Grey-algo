@@ -105,6 +105,12 @@ You have been unprofitable for 7 months. This ends NOW.
 - Daily Drawdown Limit: ${userSettings.dailyDrawdown || 'N/A'}%
 - Max Drawdown Limit: ${userSettings.maxDrawdown || 'N/A'}%
 - Trade Mode: ${tradeMode}
+
+**FUNDED ACCOUNT / PROP FIRM DIRECTIVE:**
+If this is a Funded Account or Prop Firm account, you MUST prioritize capital preservation over aggressive entries.
+1. **Wider Stop Losses:** Do not use extremely tight stop losses. Prop firms are notorious for spread widening and stop hunts. Use a wider SL (at least 1.5x ATR) and let the risk calculator reduce the lot size to compensate.
+2. **High Probability Entries Only:** Wait for the pullback. Do not enter on breakouts. If price has already moved, issue a LIMIT order at a discount/premium zone.
+3. **Avoid News:** If high-impact news is within 2 hours, stay NEUTRAL.
 ` : "";
 
   const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
