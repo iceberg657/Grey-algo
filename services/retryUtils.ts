@@ -172,12 +172,16 @@ export async function executeLaneCall<T>(
 
     for (const apiKey of keysToTry) {
         try {
+            // Use server-side proxy to bypass regional blocks (VPN-free execution)
+            // We wrap the operationFactory call to intercept the fetch if it's a Gemini call
+            // However, since operationFactory is already defined in geminiService.ts, 
+            // it's better to modify it there or provide a proxied version here.
             return await operationFactory(apiKey);
         } catch (error: any) {
             lastError = error;
             const errorMsg = (error.message || '').toLowerCase();
             
-            if (errorMsg.includes('429') || error.status === 429) {
+            if (errorMsg.includes('429') || error.status === 429 || errorMsg.includes('quota')) {
                 console.warn(`Neural Cooldown initiated for key ending in ...${apiKey.slice(-4)}`);
                 cooldownMap.set(apiKey, Date.now() + COOLDOWN_DURATION);
                 continue; 
@@ -255,6 +259,7 @@ export async function runWithModelFallback<T>(
                 if (
                     errorMsg.includes('429') || 
                     error.status === 429 ||
+                    errorMsg.includes('quota') ||
                     errorMsg.includes('503') ||
                     errorMsg.includes('500') ||
                     errorMsg.includes('xhr error') ||

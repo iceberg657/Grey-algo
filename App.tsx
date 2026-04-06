@@ -157,7 +157,34 @@ const App: React.FC = () => {
     
     const [isApiKeyInitialized, setIsApiKeyInitialized] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
+    const [isFirebaseConnected, setIsFirebaseConnected] = useState<boolean>(true);
     
+    // Connectivity listener
+    useEffect(() => {
+        const checkConnectivity = async () => {
+            try {
+                // Try to fetch a small doc from Firestore to check connectivity
+                const { getDoc, doc } = await import('firebase/firestore');
+                const timeoutPromise = new Error('timeout');
+                const checkPromise = getDoc(doc(db, 'admin_settings', 'system'));
+                
+                const result = await Promise.race([
+                    checkPromise,
+                    new Promise((_, reject) => setTimeout(() => reject(timeoutPromise), 5000))
+                ]);
+                
+                setIsFirebaseConnected(true);
+            } catch (e) {
+                console.warn("Firebase connectivity check failed. VPN might be required.", e);
+                setIsFirebaseConnected(false);
+            }
+        };
+
+        checkConnectivity();
+        const interval = setInterval(checkConnectivity, 30000); // Check every 30s
+        return () => clearInterval(interval);
+    }, []);
+
     // State to handle redirects to chat with a prompt
     const [pendingChatQuery, setPendingChatQuery] = useState<string | null>(null);
 
@@ -503,6 +530,29 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
+            {/* Connectivity Banner */}
+            <AnimatePresence>
+                {!isFirebaseConnected && (
+                    <motion.div 
+                        initial={{ y: -100 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: -100 }}
+                        className="fixed top-0 left-0 right-0 z-[10000] bg-red-600 text-white py-2 px-4 text-center text-[10px] font-black uppercase tracking-widest shadow-xl flex items-center justify-center gap-3"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Neural Link Interrupted: Firebase is blocked. VPN Required for Admin Panel & Data Sync.</span>
+                        <button 
+                            onClick={() => window.location.reload()}
+                            className="bg-white/20 hover:bg-white/30 px-3 py-1 rounded-lg transition-all"
+                        >
+                            Retry Link
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             {userMetadata?.role === 'admin' && <AutoLearningManager />}
             <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
                 <AnimatePresence mode="wait">

@@ -24,7 +24,8 @@ async function startServer() {
   const wss = new WebSocketServer({ server });
   const PORT = 3000;
 
-  app.use(express.json());
+  app.use(express.json({ limit: '50mb' }));
+  app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
   // MetaApiService initialization removed for testing
   // function getMetaApiService(): MetaApiService {
@@ -482,6 +483,53 @@ async function startServer() {
       maskedKey: apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : null,
       usage: usageInfo
     });
+  });
+
+  // Gemini Proxy Route to bypass regional blocks (VPN-free execution)
+  app.post('/api/gemini/analyze', async (req, res) => {
+    const { model, contents, config, apiKey: clientApiKey } = req.body;
+    
+    // Prioritize client key (which is rotated by the frontend pool), fallback to server env
+    const apiKey = clientApiKey || process.env.API_KEY_1 || process.env.GEMINI_API_KEY;
+    
+    if (!apiKey) {
+      return res.status(400).json({ error: 'Gemini API key not configured' });
+    }
+
+    try {
+      console.log(`[GeminiProxy] Analyzing with model: ${model}...`);
+      
+      // Extract root-level properties from config
+      const { tools, systemInstruction, ...generationConfig } = config || {};
+      
+      const requestBody: any = {
+        contents,
+        generationConfig,
+      };
+      
+      if (tools) requestBody.tools = tools;
+      if (systemInstruction) requestBody.systemInstruction = systemInstruction;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('[GeminiProxy] API Error:', errorData);
+        return res.status(response.status).json(errorData);
+      }
+
+      const data = await response.json();
+      res.json(data);
+    } catch (error) {
+      console.error('[GeminiProxy] Proxy Error:', error);
+      res.status(500).json({ error: 'Internal server error during Gemini proxy' });
+    }
   });
 
   app.get('/api/twelvedata/quote', async (req, res) => {

@@ -91,7 +91,10 @@ You have been unprofitable for 7 months. This ends NOW.
 
 **MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders unless the price is currently at an extreme overextension and a pullback is mathematically certain.
 **EXECUTION CHECKLIST:** You MUST evaluate the 10-point checklist in the 'confluenceMatrix'. Ensure all 10 points are addressed.
-` : `📡 **TWELVE DATA API:** No real-time data available for this asset. Rely strictly on visual chart analysis and search grounding.
+` : `📡 **TWELVE DATA API (CRITICAL FAILURE):** No real-time data available for this asset. This is a HUGE PROBLEM for the 90% Profitability Mandate.
+- You MUST be extremely conservative. 
+- Without Twelve Data, your confidence score MUST NOT exceed 70%.
+- Flag the missing Twelve Data in your reasoning as a high-risk factor.
 `;
 
   const accountInfo = userSettings ? `
@@ -286,10 +289,11 @@ Use 'SD_LOOKBACK = 20' and 'SD_FACTOR = 1'.
 ${ALGO_LOGIC}
 
 **STRICT EXECUTION PROTOCOL (TIME-BOUND < 40s):**
-1. **Phase 1 (15s - Chart Analysis):** Indicator & Price Action Fusion. Extract last 20 candles (OHLC), analyze structure, RSI, OBV, and 50/200 EMAs.
-2. **Phase 2 (10s - Search Grounding):** Fundamental Context. Use googleSearch for real-time news/sentiment.
-3. **Phase 3 (15s - Top-Down Review & Setup):** HTF, Momentum, Liquidity, and Entry Triggers. Calculate risk, lot size, and formulate final setup.
-4. Include the result in the JSON output under key "confluenceMatrix".
+1. **Phase 1 (10s - Chart Analysis):** Indicator & Price Action Fusion. Extract last 20 candles (OHLC), analyze structure, RSI, OBV, and 50/200 EMAs.
+2. **Phase 2 (10s - Twelve Data Verification):** Mathematical Truth. Compare visual chart levels with Twelve Data (RSI, SMA, ADX, ATR). **CRITICAL:** If Twelve Data is missing, you MUST flag this as a major risk.
+3. **Phase 3 (10s - Search Grounding):** Fundamental Context. Use googleSearch for real-time news/sentiment.
+4. **Phase 4 (10s - Top-Down Review & Setup):** HTF, Momentum, Liquidity, and Entry Triggers. Calculate risk, lot size, and formulate final setup.
+5. Include the result in the JSON output under key "confluenceMatrix".
 
 ---
 
@@ -681,7 +685,7 @@ You MUST correctly classify the order type based on the strict relationship betw
       "7. Premium/Discount Zone: [Pass/Fail]",
       "8. Economic News Cleared: [Pass/Fail]",
       "9. Risk:Reward Acceptable: [Pass/Fail]",
-      "10. No Choppy Price Action: [Pass/Fail]"
+      "10. Twelve Data Confluence: [Pass/Fail]"
     ]
   },
   "verificationProtocol": {
@@ -759,26 +763,67 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         const response = await runWithModelFallback<GenerateContentResponse>(
             ANALYSIS_MODELS, 
-            (modelId) => {
-                const config: any = { 
-                    tools: [{googleSearch: {}}], 
-                    temperature: 0.1 
-                };
-                
-                // Enable thinking for Gemini 3.1 Pro
-                if (modelId === 'gemini-3.1-pro-preview') {
-                    config.thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH };
-                    // Ensure maxOutputTokens is NOT set as per instructions
-                    delete config.maxOutputTokens;
-                }
+            async (modelId) => {
+        const config: any = { 
+            tools: [{googleSearch: {}}], 
+            temperature: 0.1 
+        };
+        
+        // Enable thinking for Gemini 3.1 Pro
+        if (modelId === 'gemini-3.1-pro-preview') {
+            config.thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH };
+            // Ensure maxOutputTokens is NOT set as per instructions
+            delete config.maxOutputTokens;
+        }
 
-                return ai.models.generateContent({
+        // Use server-side proxy to bypass regional blocks (VPN-free execution)
+        try {
+            console.log(`[Gemini] Calling proxy for model ${modelId}...`);
+            const proxyRes = await fetch('/api/gemini/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
                     model: modelId,
                     contents: [{ parts: promptParts }],
                     config: config,
-                });
+                    apiKey: apiKey // Pass the key from the pool if server doesn't have one
+                }),
+            });
+
+            if (!proxyRes.ok) {
+                const errorData = await proxyRes.json();
+                throw new Error(errorData.error?.message || errorData.error || 'Proxy analysis failed');
             }
-        );
+
+            const data = await proxyRes.json();
+            // Wrap in a structure that looks like GenerateContentResponse for the rest of the code
+            return {
+                text: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+                candidates: data.candidates,
+                promptFeedback: data.promptFeedback
+            } as any;
+        } catch (proxyError: any) {
+            console.error('[Gemini] Proxy failed:', proxyError);
+            const errorMsg = (proxyError.message || '').toLowerCase();
+            
+            // If it's a quota error, invalid argument, or other API-level error, don't fallback to direct SDK call
+            // as it will just fail again with the same error. Throw it to let runWithModelFallback cascade.
+            if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('400')) {
+                throw proxyError;
+            }
+            
+            console.log('[Gemini] Falling back to direct SDK call...');
+            // Fallback to direct call if proxy fails due to network/CORS (though it might be blocked)
+            return ai.models.generateContent({
+                model: modelId,
+                contents: [{ parts: promptParts }],
+                config: config,
+            });
+        }
+    }
+);
 
         let text = response.text || '';
         
@@ -913,6 +958,57 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
     }, getAnalysisPool());
 }
 
+async function detectAssetFromImage(image: { data: string, mimeType: string }): Promise<string | null> {
+    try {
+        console.log('[AssetDetection] Attempting to detect symbol from image...');
+        const promptParts = [
+            { text: "Look at this trading chart. Identify the asset symbol (e.g., EURUSD, BTCUSD, XAUUSD, GOLD, US30). Return ONLY the symbol name, nothing else. If you cannot find it, return 'UNKNOWN'." },
+            { inlineData: { data: image.data, mimeType: image.mimeType } }
+        ];
+
+        const response = await executeLaneCall<GenerateContentResponse>(async (apiKey) => {
+            return await runWithModelFallback<GenerateContentResponse>(
+                ['gemini-3-flash-preview', 'gemini-3.1-pro-preview'],
+                async (modelId) => {
+                    const config = { temperature: 0.1 };
+                    try {
+                        const proxyRes = await fetch('/api/gemini/analyze', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                model: modelId,
+                                contents: [{ parts: promptParts }],
+                                config: config,
+                                apiKey: apiKey
+                            }),
+                        });
+                        if (!proxyRes.ok) {
+                            const errorData = await proxyRes.json().catch(() => ({}));
+                            const errMsg = errorData.error?.message || errorData.error || `Proxy failed with status ${proxyRes.status}`;
+                            throw new Error(errMsg);
+                        }
+                        const data = await proxyRes.json();
+                        return { text: data.candidates?.[0]?.content?.parts?.[0]?.text || '' } as any;
+                    } catch (e) {
+                        console.error(`[AssetDetection] Proxy failed for ${modelId}, detection skipped.`);
+                        throw e;
+                    }
+                }
+            );
+        }, getAnalysisPool());
+
+        const symbol = response.text?.trim().toUpperCase().replace(/[^A-Z0-9/]/g, '');
+        if (symbol && symbol !== 'UNKNOWN' && symbol.length >= 3) {
+            console.log(`[AssetDetection] Detected: ${symbol}`);
+            return symbol;
+        }
+        return null;
+    } catch (e) {
+        console.error('[AssetDetection] Error:', e);
+        return null;
+    }
+}
+
 export async function generateTradingSignal(
     request: AnalysisRequest
 ): Promise<Omit<SignalData, 'id' | 'timestamp'>> {
@@ -922,13 +1018,22 @@ export async function generateTradingSignal(
         riskRewardRatio: request.riskRewardRatio,
         hasUserSettings: !!request.userSettings,
     });
+
+    // 0. Auto-detect asset if missing
+    let asset = request.asset;
+    if (!asset && request.images.primary) {
+        const detected = await detectAssetFromImage(request.images.primary);
+        if (detected) {
+            asset = detected;
+        }
+    }
     
     // 1. Fetch learned strategies (Global + Local)
     const learnedStrategies = await getLearnedStrategies();
     
     // Fetch Twelve Data for confluence if asset is provided and not already in request
     let twelveDataQuote = request.twelveDataQuote || null;
-    if (request.asset && !twelveDataQuote) {
+    if (asset && !twelveDataQuote) {
         try {
             // Map TradingStyle to Twelve Data Interval
             let interval = '15min';
@@ -939,22 +1044,28 @@ export async function generateTradingSignal(
             else if (style.includes('2 to 4hrs')) interval = '1h';
             else if (style.includes('swing')) interval = '1day';
 
-            console.log(`[TwelveData] Fetching for ${request.asset} at ${interval}...`);
-            const response = await fetch(`/api/twelvedata/quote?symbol=${encodeURIComponent(request.asset)}&interval=${interval}`);
+            console.log(`[TwelveData] Initiating fetch for ${asset} at ${interval}...`);
+            const response = await fetch(`/api/twelvedata/quote?symbol=${encodeURIComponent(asset)}&interval=${interval}`);
             if (response.ok) {
                 twelveDataQuote = await response.json();
-                console.log('[TwelveData] Success:', twelveDataQuote);
+                twelveDataQuote.interval = interval;
+                console.log(`[TwelveData] Successfully retrieved data for ${asset}:`, twelveDataQuote);
             } else {
                 const errorText = await response.text();
-                console.warn('[TwelveData] Fetch failed:', response.status, errorText);
+                console.warn(`[TwelveData] Fetch failed for ${asset} (${response.status}):`, errorText);
             }
         } catch (e) {
-            console.error('Error fetching Twelve Data:', e);
+            console.error(`[TwelveData] Critical error fetching data for ${asset}:`, e);
         }
+    } else if (!asset) {
+        console.warn('[TwelveData] No asset symbol provided in request. Mathematical verification will be skipped.');
+    } else {
+        console.log('[TwelveData] Using provided quote from request:', twelveDataQuote);
     }
 
     const updatedRequest = {
         ...request,
+        asset,
         learnedStrategies: [...(request.learnedStrategies || []), ...learnedStrategies],
         twelveDataQuote
     };

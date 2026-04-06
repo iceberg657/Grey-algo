@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
+import { motion } from 'framer-motion';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { useTheme } from './contexts/ThemeContext';
 import { NeuralBackground } from './NeuralBackground';
@@ -16,6 +17,24 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
     const [password, setPassword] = useState('');
     const [view, setView] = useState<'login' | 'forgot' | 'success'>('login');
     const [isLoading, setIsLoading] = useState(false);
+    const [isFirebaseBlocked, setIsFirebaseBlocked] = useState(false);
+
+    useEffect(() => {
+        const checkConnectivity = async () => {
+            try {
+                const { db } = await import('../firebase');
+                const { getDoc, doc } = await import('firebase/firestore');
+                await Promise.race([
+                    getDoc(doc(db, 'admin_settings', 'system')),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+                ]);
+                setIsFirebaseBlocked(false);
+            } catch (e) {
+                setIsFirebaseBlocked(true);
+            }
+        };
+        checkConnectivity();
+    }, []);
 
     const handleGoogleLogin = async () => {
         try {
@@ -78,6 +97,20 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                 <ThemeToggleButton />
             </div>
             <div className="p-4 w-full flex flex-col items-center justify-center z-10">
+                {isFirebaseBlocked && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-6 p-4 bg-red-500/20 border border-red-500/50 rounded-2xl backdrop-blur-xl text-center max-w-md w-full"
+                    >
+                        <p className="text-[10px] font-black uppercase tracking-widest text-red-400">
+                            ⚠️ Neural Link Blocked: VPN Required for Login
+                        </p>
+                        <p className="text-[9px] text-gray-400 mt-1">
+                            Your current region is blocking Firebase. Please activate a VPN to proceed.
+                        </p>
+                    </motion.div>
+                )}
                 <header className="text-center mb-8">
                     <svg className="h-16 w-16 mx-auto mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <defs>

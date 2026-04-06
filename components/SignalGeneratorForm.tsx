@@ -7,14 +7,46 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.readAsDataURL(file);
-        reader.onload = () => {
-            const result = reader.result as string;
-            const data = result.split(',')[1];
-            if (!data) {
-                reject(new Error("Invalid file format."));
-                return;
-            }
-            resolve({ data, mimeType: file.type });
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+                
+                // Max dimensions for Gemini
+                const MAX_DIMENSION = 2048;
+                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                    if (width > height) {
+                        height = Math.round((height * MAX_DIMENSION) / width);
+                        width = MAX_DIMENSION;
+                    } else {
+                        width = Math.round((width * MAX_DIMENSION) / height);
+                        height = MAX_DIMENSION;
+                    }
+                }
+                
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    reject(new Error("Failed to get canvas context"));
+                    return;
+                }
+                ctx.drawImage(img, 0, 0, width, height);
+                
+                // Compress to JPEG with 0.8 quality
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                const data = dataUrl.split(',')[1];
+                
+                if (!data) {
+                    reject(new Error("Invalid file format."));
+                    return;
+                }
+                resolve({ data, mimeType: 'image/jpeg' });
+            };
+            img.onerror = () => reject(new Error("Failed to load image"));
+            img.src = event.target?.result as string;
         };
         reader.onerror = error => reject(error);
     });
@@ -186,6 +218,7 @@ interface SignalGeneratorFormProps {
 
 export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
+    const [asset, setAsset] = useState<string>('');
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
     const [images, setImages] = useState<{ higher?: File, primary?: File, execution?: File }>({});
@@ -193,6 +226,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
     // Reset local state when formKey changes (which happens on "Back")
     useEffect(() => {
+        setAsset('');
         setImages({});
         setError(null);
     }, []);
@@ -227,6 +261,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             
             onSubmit({ 
                 images: imageParts, 
+                asset: asset.toUpperCase().trim(),
                 riskRewardRatio, 
                 tradingStyle,
                 isMultiDimensional,
@@ -318,7 +353,18 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 )}
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
+                 <div>
+                    <label htmlFor="asset" className="block text-sm font-medium text-gray-800 dark:text-dark-text/80 mb-2">Asset Symbol (e.g. EUR/USD, BTC/USD)</label>
+                    <input
+                        type="text"
+                        id="asset"
+                        value={asset}
+                        onChange={(e) => setAsset(e.target.value)}
+                        placeholder="EUR/USD (or leave blank to auto-detect)"
+                        className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500/50 focus:border-green-500/50 block w-full p-2.5 outline-none transition-all shadow-inner uppercase"
+                    />
+                </div>
                  <div>
                     <label htmlFor="tradingStyle" className="block text-sm font-medium text-gray-800 dark:text-dark-text/80 mb-2">Trading Style</label>
                     <select
