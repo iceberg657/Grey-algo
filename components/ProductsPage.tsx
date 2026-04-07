@@ -23,6 +23,100 @@ interface Product {
 
 const PRODUCTS: Product[] = [
     {
+        id: 'ga-confluence-order-blocks',
+        name: 'GreyAlpha Confluence Order Blocks',
+        description: 'Advanced indicator for detecting order blocks with confluence. Features normalized zones and ATR-based height calculations.',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v6.0',
+        code: `//@version=6
+
+indicator("Confluence Order Blocks", overlay=true, max_boxes_count=50, max_labels_count=50)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INPUTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+use_normalized_zones = input.bool(true,  "Normalize All Zone Heights",   group="Universal Zone Settings")
+zone_height_method   = input.string("ATR Based", "Zone Height Method",   group="Universal Zone Settings", options=["ATR Based","Fixed Percentage"])
+zone_height_atr_mult = input.float(0.75, "Zone Height (ATR Multiplier)", group="Universal Zone Settings", minval=0.1, maxval=3.0,  step=0.05)
+// ... (Code truncated, please paste full code here)`
+    },
+    {
+        id: 'ga-aer-vn',
+        name: 'GreyAlpha Adaptive Regime Filter + Divergence (AER-VN)',
+        description: 'Adaptive Regime Filter with Divergence detection. Uses Efficiency Ratio and Volatility Normalization to filter out market noise.',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v6.0',
+        code: `// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © KeyAlgos
+//@version=6
+indicator("Adaptive Regime Filter + Divergence (AER-VN) [KEYALGOS]", shorttitle="AER+Div [KEYALGOS]", overlay=false, format=format.price, precision=2)
+
+// ========================================================================= //
+// =============================== INPUTS ================================== //
+// ========================================================================= //
+grp_er    = "Efficiency Ratio Settings"
+length    = input.int(10, title="ER Lookback (N)", minval=2, group=grp_er)
+baseEr    = input.float(0.25, title="Base ER Threshold", step=0.05, minval=0.05, maxval=0.8, group=grp_er)
+maxErCap  = input.float(0.65, title="Max Threshold Cap", step=0.05, minval=0.1, maxval=0.99, group=grp_er)
+
+grp_vol   = "Volatility Normalization"
+atrLength = input.int(14, title="ATR Length", minval=1, group=grp_vol)
+// ... (Code truncated, please paste full code here)`
+    },
+    {
+        id: 'ga-supertrend-cluster',
+        name: 'GreyAlpha SuperTrend Cluster',
+        description: 'A cluster of SuperTrend indicators providing a weighted agreement for bullish or bearish trends. Includes live cluster strength gradient.',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v6.0',
+        code: `// This work is licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+// https://creativecommons.org/licenses/by-nc-sa/4.0/
+// © Zeiierman {
+//@version=6
+indicator('SuperTrend Cluster (Zeiierman)', max_labels_count = 200, overlay = true, max_bars_back = 2000, behind_chart = false)
+//}
+
+// ~~ Tooltips {
+var string t1  = "Minimum weighted agreement required for the bullish or bearish cluster to become valid. Higher values demand stronger alignment across the SuperTrend set."
+var string t2  = "Selects which one of the five SuperTrend members is used as the base reference for flip markers, label placement, and final direction alignment."
+var string t3  = "Colors the candles and bars using the live cluster strength gradient. When disabled, chart candles keep their default chart colors."
+var string t4  = "Shows or hides the Bull Cluster and Bear Cluster labels when the selected base SuperTrend flips."
+// ... (Code truncated, please paste full code here)`
+    },
+    {
+        id: 'ga-algo-trend-system-tg',
+        name: 'GreyAlpha Algo Trend System TG',
+        description: 'Algorithmic Trend System with Telegram integration. Uses ATR and Cloud EMAs for trend calculation and fixed dollar distance for SL/TP.',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v5.0',
+        code: `//@version=5
+indicator("Algo Trend System TG", overlay=true, max_lines_count=50, max_labels_count=50)
+
+// ==========================================
+// 1. SETTINGS & INPUTS
+// ==========================================
+atrPeriod = input.int(10, "ATR Period for Trend Calculation")
+factor = input.float(3.0, "Trend Sensitivity Factor", step=0.1)
+cloudFast = input.int(50, "Cloud Fast EMA")
+cloudSlow = input.int(150, "Cloud Slow EMA")
+
+// Fixed Dollar Distance Settings
+sl_dist  = input.float(20.0, "Stop Loss Distance ($)") 
+tp1_dist = input.float(10.0, "TP 1 Distance ($)")
+tp2_dist = input.float(20.0, "TP 2 Distance ($)")
+tp3_dist = input.float(30.0, "TP 3 Distance ($)")
+
+// --- Telegram Settings (Supports up to 5 Groups) ---
+useChat1 = input.bool(false, "Use Chat 1 (Optional)", group="Telegram Settings")
+chatID1  = input.string("", "Telegram Chat ID 1", group="Telegram Settings")
+// ... (Code truncated, please paste full code here)`
+    },
+    {
         id: 'ga-trend-catcher',
         name: 'GreyAlpha Trend Catcher',
         description: 'A classic trend-following system using EMA crossovers with visual buy/sell signals. Perfect for identifying trend reversals on H1 and H4 timeframes.',
@@ -58,6 +152,84 @@ plotshape(shortCondition, title="Sell Signal", location=location.abovebar, color
 
 alertcondition(longCondition, title="GA Buy Alert", message="GreyAlpha Trend Catcher: BUY Detected")
 alertcondition(shortCondition, title="GA Sell Alert", message="GreyAlpha Trend Catcher: SELL Detected")`
+    },
+    {
+        id: 'ga-institutional-order-block',
+        name: 'GreyAlpha Institutional Order Block Finder',
+        description: 'Advanced TradingView indicator that detects institutional order blocks (OBs) and fair value gaps (FVGs) to highlight high-probability reversal zones.',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v2.1',
+        code: `//@version=5
+indicator("GreyAlpha Institutional Order Block Finder", overlay=true, max_boxes_count=50)
+
+// GreyAlpha Theme
+bgcolor(color.new(#0f172a, 90))
+
+// Settings
+obLookback = input.int(10, "OB Lookback Period")
+showFVG = input.bool(true, "Show Fair Value Gaps")
+
+// Order Block Logic (Simplified for demonstration)
+bullishOB = close[1] < open[1] and close > open and close > high[1]
+bearishOB = close[1] > open[1] and close < open and close < low[1]
+
+// Draw OB Boxes
+if bullishOB
+    box.new(left=bar_index[1], top=high[1], right=bar_index+5, bottom=low[1], border_color=color.green, bgcolor=color.new(color.green, 80))
+if bearishOB
+    box.new(left=bar_index[1], top=high[1], right=bar_index+5, bottom=low[1], border_color=color.red, bgcolor=color.new(color.red, 80))
+
+// FVG Logic
+bullishFVG = low > high[2] and close > open
+bearishFVG = high < low[2] and close < open
+
+if showFVG and bullishFVG
+    box.new(left=bar_index[2], top=low, right=bar_index, bottom=high[2], border_color=color.blue, bgcolor=color.new(color.blue, 85))
+if showFVG and bearishFVG
+    box.new(left=bar_index[2], top=low[2], right=bar_index, bottom=high, border_color=color.orange, bgcolor=color.new(color.orange, 85))`
+    },
+    {
+        id: 'ga-multi-tf-dashboard',
+        name: 'GreyAlpha Multi-Timeframe Trend Dashboard',
+        description: 'A comprehensive TradingView dashboard that displays the current trend across 5 different timeframes simultaneously using EMA alignment.',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v1.5',
+        code: `//@version=5
+indicator("GreyAlpha Multi-TF Trend Dashboard", overlay=true)
+
+// Settings
+emaLength = input.int(50, "Trend EMA Length")
+
+// Get TF Data
+tf1 = request.security(syminfo.tickerid, "5", close > ta.ema(close, emaLength))
+tf2 = request.security(syminfo.tickerid, "15", close > ta.ema(close, emaLength))
+tf3 = request.security(syminfo.tickerid, "60", close > ta.ema(close, emaLength))
+tf4 = request.security(syminfo.tickerid, "240", close > ta.ema(close, emaLength))
+tf5 = request.security(syminfo.tickerid, "D", close > ta.ema(close, emaLength))
+
+// Dashboard Table
+var table dash = table.new(position.top_right, 2, 6, bgcolor=color.new(#0f172a, 10), border_color=color.gray, border_width=1)
+
+if barstate.islast
+    table.cell(dash, 0, 0, "Timeframe", text_color=color.white)
+    table.cell(dash, 1, 0, "Trend", text_color=color.white)
+    
+    table.cell(dash, 0, 1, "5m", text_color=color.white)
+    table.cell(dash, 1, 1, tf1 ? "BULL" : "BEAR", text_color=tf1 ? color.green : color.red)
+    
+    table.cell(dash, 0, 2, "15m", text_color=color.white)
+    table.cell(dash, 1, 2, tf2 ? "BULL" : "BEAR", text_color=tf2 ? color.green : color.red)
+    
+    table.cell(dash, 0, 3, "1H", text_color=color.white)
+    table.cell(dash, 1, 3, tf3 ? "BULL" : "BEAR", text_color=tf3 ? color.green : color.red)
+    
+    table.cell(dash, 0, 4, "4H", text_color=color.white)
+    table.cell(dash, 1, 4, tf4 ? "BULL" : "BEAR", text_color=tf4 ? color.green : color.red)
+    
+    table.cell(dash, 0, 5, "Daily", text_color=color.white)
+    table.cell(dash, 1, 5, tf5 ? "BULL" : "BEAR", text_color=tf5 ? color.green : color.red)`
     },
     {
         id: 'ga-volatility-beast',
@@ -1612,6 +1784,1707 @@ plot(show_extremes ? profile_low : na, 'Low', color=color_extreme, linewidth=1, 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //// END
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////`
+    },
+    {
+        id: 'ga-confluence-order-blocks',
+        name: 'GreyAlpha Confluence Order Blocks',
+        description: 'Identifies and merges Order Blocks across multiple timeframes with strength rating and session context. [GREYALPHA]',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v1.0',
+        code: `//@version=6
+
+indicator("Confluence Order Blocks", overlay=true, max_boxes_count=50, max_labels_count=50)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// INPUTS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+use_normalized_zones = input.bool(true,  "Normalize All Zone Heights",   group="Universal Zone Settings")
+zone_height_method   = input.string("ATR Based", "Zone Height Method",   group="Universal Zone Settings", options=["ATR Based","Fixed Percentage"])
+zone_height_atr_mult = input.float(0.75, "Zone Height (ATR Multiplier)", group="Universal Zone Settings", minval=0.1, maxval=3.0,  step=0.05)
+zone_height_percent  = input.float(0.3,  "Zone Height (% of Price)",     group="Universal Zone Settings", minval=0.05, maxval=2.0, step=0.05)
+
+swing_length      = input.int(7,    "Swing Detection Length",  group="Order Block Detection", minval=3, maxval=20)
+lookback          = input.int(20,   "Order Block Lookback",    group="Order Block Detection", minval=5, maxval=50)
+displacement_mult = input.float(1.3,"Displacement Multiplier", group="Order Block Detection", minval=0.5, maxval=5.0, step=0.1)
+max_obs           = input.int(5,    "Max Order Blocks",        group="Order Block Detection", minval=1, maxval=10)
+
+tf1            = input.timeframe("5", "Timeframe 1", group="Multi-Timeframe Confluence")
+tf2            = input.timeframe("10", "Timeframe 2", group="Multi-Timeframe Confluence")
+tf3            = input.timeframe("15", "Timeframe 3", group="Multi-Timeframe Confluence")
+min_confluence = input.int(2, "Minimum Timeframe Confluence", group="Multi-Timeframe Confluence", minval=2, maxval=3)
+proximity_atr_mult = input.float(5.0, "Proximity Tolerance (x ATR14)", group="Multi-Timeframe Confluence", minval=0.5, maxval=10.0, step=0.5)
+
+enable_strength_rating = input.bool(true,  "Enable Strength Rating",  group="Strength Rating")
+min_strength_filter    = input.float(0.0,  "Minimum Strength Filter", group="Strength Rating", minval=0.0, maxval=10.0, step=0.5)
+
+show_bullish = input.bool(true, "Show Bullish OBs", inline="bull", group="Visualization")
+bull_color   = input.color(color.new(color.green, 85), "",       inline="bull", group="Visualization")
+bull_border  = input.color(color.new(color.green, 30), "Border", inline="bull", group="Visualization")
+
+show_bearish = input.bool(true, "Show Bearish OBs", inline="bear", group="Visualization")
+bear_color   = input.color(color.new(color.red, 85), "",       inline="bear", group="Visualization")
+bear_border  = input.color(color.new(color.red, 30), "Border", inline="bear", group="Visualization")
+
+show_labels    = input.bool(true, "Show Labels",               group="Visualization")
+show_info      = input.bool(true, "Show Extended Info Labels", group="Extended Info Labels")
+info_text_size = input.string("Large", "Info Text Size",       group="Extended Info Labels", options=["Tiny","Small","Normal","Large","Huge"])
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════════════════════
+
+get_text_size() =>
+    switch info_text_size
+        "Tiny"   => size.tiny
+        "Small"  => size.small
+        "Normal" => size.normal
+        "Large"  => size.large
+        "Huge"   => size.huge
+        =>          size.large
+
+calc_pips(price_diff) =>
+    is_gold   = str.contains(syminfo.ticker, "XAU") or str.contains(syminfo.ticker, "GOLD")
+    pip_value = is_gold ? 0.01 : syminfo.mintick * 10
+    math.round(price_diff / pip_value)
+
+normalize_zone(original_top, original_bottom, atr_val) =>
+    if use_normalized_zones
+        target_height = zone_height_method == "ATR Based" ? atr_val * zone_height_atr_mult : close * (zone_height_percent / 100.0)
+        original_mid  = (original_top + original_bottom) / 2.0
+        [original_mid + target_height / 2.0, original_mid - target_height / 2.0]
+    else
+        [original_top, original_bottom]
+
+get_session(bar_time) =>
+    t = hour(bar_time, "GMT") * 60 + minute(bar_time, "GMT")
+    string s = "Other"
+    if t >= 480 and t < 1020
+        s := "London"
+    else if t >= 780 and t < 1320
+        s := "NY"
+    else if t >= 0 and t < 540
+        s := "Asian"
+    s
+
+session_int(s) =>
+    s == "London" ? 1 : s == "NY" ? 2 : s == "Asian" ? 3 : 0
+
+session_str(i) =>
+    i == 1 ? "London" : i == 2 ? "NY" : i == 3 ? "Asian" : "Other"
+
+calculate_ob_strength(displacement, zone_height, session_name, atr_val) =>
+    if not enable_strength_rating
+        5.0
+    else
+        disp_score = 0.0
+        if atr_val > 0
+            r = displacement / atr_val
+            disp_score := r >= 3.0 ? 3.0 : r >= 2.0 ? 2.5 : r >= 1.5 ? 2.0 : r >= 1.0 ? 1.5 : 1.0
+        else
+            disp_score := 1.0
+
+        sess_score = session_name == "London" or session_name == "NY" ? 2.0 : session_name == "Asian" ? 1.0 : 0.5
+
+        zone_score = 0.0
+        if atr_val > 0
+            zr = zone_height / atr_val
+            zone_score := zr >= 0.5 and zr <= 2.0 ? 3.0 : zr >= 0.3 and zr <= 3.0 ? 2.0 : 1.0
+        else
+            zone_score := 1.5
+
+        math.min(math.max(disp_score + sess_score + 2.0 + zone_score, 0.0), 10.0)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// STATELESS HTF DETECTION
+// Returns the newest OB on the current HTF bar. NO VAR STATE.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+detect_htf_bull() =>
+    float ob_top = na
+    float ob_bot = na
+    float ob_str = 0.0
+    int   ob_ses = 0
+
+    swing_low_val = ta.pivotlow(low, swing_length, swing_length)
+    if not na(swing_low_val)
+        bool found = false
+        for i = swing_length + 1 to swing_length + lookback
+            if not found
+                if close[i] < open[i]
+                    rng  = high[i] - low[i]
+                    disp = swing_low_val - low[i]
+                    if rng > 0 and disp > rng * displacement_mult
+                        ob_top  := high[i]
+                        ob_bot  := low[i]
+                        sess    = get_session(time[i])
+                        ob_ses  := session_int(sess)
+                        ob_str  := calculate_ob_strength(close - ob_bot, ob_top - ob_bot, sess, ta.atr(14))
+                        found   := true
+
+    [ob_top, ob_bot, ob_str, ob_ses]
+
+detect_htf_bear() =>
+    float ob_top = na
+    float ob_bot = na
+    float ob_str = 0.0
+    int   ob_ses = 0
+
+    swing_high_val = ta.pivothigh(high, swing_length, swing_length)
+    if not na(swing_high_val)
+        bool found = false
+        for i = swing_length + 1 to swing_length + lookback
+            if not found
+                if close[i] > open[i]
+                    rng  = high[i] - low[i]
+                    disp = high[i] - swing_high_val
+                    if rng > 0 and disp > rng * displacement_mult
+                        ob_top  := high[i]
+                        ob_bot  := low[i]
+                        sess    = get_session(time[i])
+                        ob_ses  := session_int(sess)
+                        ob_str  := calculate_ob_strength(ob_top - close, ob_top - ob_bot, sess, ta.atr(14))
+                        found   := true
+
+    [ob_top, ob_bot, ob_str, ob_ses]
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// REQUEST.SECURITY
+// ═══════════════════════════════════════════════════════════════════════════════
+
+[b_t1, b_b1, b_s1, b_e1] = request.security(syminfo.tickerid, tf1, detect_htf_bull(), lookahead=barmerge.lookahead_off)
+[b_t2, b_b2, b_s2, b_e2] = request.security(syminfo.tickerid, tf2, detect_htf_bull(), lookahead=barmerge.lookahead_off)
+[b_t3, b_b3, b_s3, b_e3] = request.security(syminfo.tickerid, tf3, detect_htf_bull(), lookahead=barmerge.lookahead_off)
+
+[r_t1, r_b1, r_s1, r_e1] = request.security(syminfo.tickerid, tf1, detect_htf_bear(), lookahead=barmerge.lookahead_off)
+[r_t2, r_b2, r_s2, r_e2] = request.security(syminfo.tickerid, tf2, detect_htf_bear(), lookahead=barmerge.lookahead_off)
+[r_t3, r_b3, r_s3, r_e3] = request.security(syminfo.tickerid, tf3, detect_htf_bear(), lookahead=barmerge.lookahead_off)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// GLOBAL VAR PERSISTENCE (Maintains state independently of chart TF)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+var float bull_top1 = na, var float bull_bot1 = na, var float bull_str1 = 0.0, var int bull_ses1 = 0
+var float bull_top2 = na, var float bull_bot2 = na, var float bull_str2 = 0.0, var int bull_ses2 = 0
+var float bull_top3 = na, var float bull_bot3 = na, var float bull_str3 = 0.0, var int bull_ses3 = 0
+
+var float bear_top1 = na, var float bear_bot1 = na, var float bear_str1 = 0.0, var int bear_ses1 = 0
+var float bear_top2 = na, var float bear_bot2 = na, var float bear_str2 = 0.0, var int bear_ses2 = 0
+var float bear_top3 = na, var float bear_bot3 = na, var float bear_str3 = 0.0, var int bear_ses3 = 0
+
+// Update state when new HTF zones arrive
+if not na(b_t1)
+    bull_top1 := b_t1, bull_bot1 := b_b1, bull_str1 := b_s1, bull_ses1 := b_e1
+if not na(b_t2)
+    bull_top2 := b_t2, bull_bot2 := b_b2, bull_str2 := b_s2, bull_ses2 := b_e2
+if not na(b_t3)
+    bull_top3 := b_t3, bull_bot3 := b_b3, bull_str3 := b_s3, bull_ses3 := b_e3
+
+if not na(r_t1)
+    bear_top1 := r_t1, bear_bot1 := r_b1, bear_str1 := r_s1, bear_ses1 := r_e1
+if not na(r_t2)
+    bear_top2 := r_t2, bear_bot2 := r_b2, bear_str2 := r_s2, bear_ses2 := r_e2
+if not na(r_t3)
+    bear_top3 := r_t3, bear_bot3 := r_b3, bear_str3 := r_s3, bear_ses3 := r_e3
+
+// Mitigate state
+if not na(bull_bot1) and close < bull_bot1
+    bull_top1 := na, bull_bot1 := na
+if not na(bull_bot2) and close < bull_bot2
+    bull_top2 := na, bull_bot2 := na
+if not na(bull_bot3) and close < bull_bot3
+    bull_top3 := na, bull_bot3 := na
+
+if not na(bear_top1) and close > bear_top1
+    bear_top1 := na, bear_bot1 := na
+if not na(bear_top2) and close > bear_top2
+    bear_top2 := na, bear_bot2 := na
+if not na(bear_top3) and close > bear_top3
+    bear_top3 := na, bear_bot3 := na
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// PROXIMITY-BASED CONFLUENCE CHECK
+// ═══════════════════════════════════════════════════════════════════════════════
+
+zones_confluent(top_a, bot_a, top_b, bot_b, atr_val) =>
+    valid = not na(top_a) and not na(bot_a) and not na(top_b) and not na(bot_b)
+    if valid
+        mid_a     = (top_a + bot_a) / 2.0
+        mid_b     = (top_b + bot_b) / 2.0
+        tolerance = atr_val * proximity_atr_mult
+        math.abs(mid_a - mid_b) <= tolerance
+    else
+        false
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TYPE DEFINITION & ARRAYS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+type OB
+    box    b
+    label  l
+    label  info_label
+    float  top
+    float  bot
+    int    bar_idx
+    bool   bullish
+    string session
+    int    creation_time
+    float  strength
+    int    confluence_count
+
+var array<OB> bull_obs = array.new<OB>()
+var array<OB> bear_obs = array.new<OB>()
+
+atr_value = ta.atr(14)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAINTENANCE HELPERS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+is_mitigated(ob) =>
+    result = false
+    if barstate.isconfirmed
+        result := ob.bullish ? close < ob.bot : close > ob.top
+    result
+
+clean_obs(obs) =>
+    if array.size(obs) > 0
+        for i = array.size(obs) - 1 to 0
+            if i < array.size(obs)
+                ob = array.get(obs, i)
+                if is_mitigated(ob)
+                    box.delete(ob.b)
+                    if not na(ob.l)
+                        label.delete(ob.l)
+                    if not na(ob.info_label)
+                        label.delete(ob.info_label)
+                    array.remove(obs, i)
+
+limit_size(obs, max_size) =>
+    while array.size(obs) > max_size
+        old = array.shift(obs)
+        box.delete(old.b)
+        if not na(old.l)
+            label.delete(old.l)
+        if not na(old.info_label)
+            label.delete(old.info_label)
+
+update_boxes(obs) =>
+    if array.size(obs) > 0
+        for i = 0 to array.size(obs) - 1
+            ob = array.get(obs, i)
+            box.set_right(ob.b, bar_index + 20)
+            if show_info and not na(ob.info_label)
+                age           = bar_index - ob.creation_time
+                pips          = calc_pips(ob.top - ob.bot)
+                distance_pips = calc_pips(math.abs(close - (ob.top + ob.bot) / 2.0))
+                zone_type     = ob.bullish ? "Merged Bullish OB" : "Merged Bearish OB"
+                info_text     = zone_type + " ||| " + str.tostring(ob.confluence_count) + " timeframes ||| Strength: " + str.tostring(math.round(ob.strength * 10) / 10) + "/10 ||| " + ob.session + " ||| Age: " + str.tostring(age) + " bars ||| " + str.tostring(pips) + " pips ||| " + str.tostring(distance_pips) + " pips away"
+                label.set_text(ob.info_label, info_text)
+                mid_price = (ob.top + ob.bot) / 2.0
+                label.set_xy(ob.info_label, bar_index + 25, mid_price)
+                label.set_style(ob.info_label, label.style_label_left)
+                label.set_textalign(ob.info_label, text.align_left)
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// CONFLUENCE MERGE & DRAWING
+// ═══════════════════════════════════════════════════════════════════════════════
+
+if barstate.isconfirmed
+
+    // ─── BULLISH ──────────────────────────────────────────────────────────────
+    if show_bullish
+
+        float m_top = na
+        float m_bot = na
+        float m_str = 0.0
+        int   m_ses = 0
+        int   m_cnt = 0
+
+        if not na(bull_top1)
+            m_top := bull_top1
+            m_bot := bull_bot1
+            m_str := bull_str1
+            m_ses := bull_ses1
+            m_cnt := 1
+
+        if not na(bull_top2)
+            if na(m_top)
+                m_top := bull_top2
+                m_bot := bull_bot2
+                m_str := bull_str2
+                m_ses := bull_ses2
+                m_cnt := 1
+            else if zones_confluent(m_top, m_bot, bull_top2, bull_bot2, atr_value)
+                m_top := math.max(m_top, bull_top2)
+                m_bot := math.min(m_bot, bull_bot2)
+                m_str := math.max(m_str, bull_str2)
+                m_cnt += 1
+
+        if not na(bull_top3)
+            if na(m_top)
+                m_top := bull_top3
+                m_bot := bull_bot3
+                m_str := bull_str3
+                m_ses := bull_ses3
+                m_cnt := 1
+            else if zones_confluent(m_top, m_bot, bull_top3, bull_bot3, atr_value)
+                m_top := math.max(m_top, bull_top3)
+                m_bot := math.min(m_bot, bull_bot3)
+                m_str := math.max(m_str, bull_str3)
+                m_cnt += 1
+
+        if m_cnt >= min_confluence and not na(m_top) and m_str >= min_strength_filter
+
+            bool already_exists = false
+            if array.size(bull_obs) > 0
+                for k = 0 to array.size(bull_obs) - 1
+                    existing = array.get(bull_obs, k)
+                    ex_mid   = (existing.top + existing.bot) / 2.0
+                    new_mid  = (m_top + m_bot) / 2.0
+                    if math.abs(ex_mid - new_mid) < atr_value * 0.5
+                        already_exists := true
+
+            if not already_exists
+                ob_session = session_str(m_ses)
+                [norm_top, norm_bot] = normalize_zone(m_top, m_bot, atr_value)
+
+                b = box.new(bar_index, norm_top, bar_index + 20, norm_bot,
+                     border_color=bull_border, bgcolor=bull_color, border_width=2, extend=extend.right)
+
+                label l = na
+                if show_labels
+                    l := label.new(bar_index, norm_bot, "Bull OB",
+                         color=color.new(color.green, 20), textcolor=color.white,
+                         style=label.style_label_up, size=size.small)
+
+                label info_l = na
+                if show_info
+                    pips          = calc_pips(norm_top - norm_bot)
+                    distance_pips = calc_pips(math.abs(close - (norm_top + norm_bot) / 2.0))
+                    info_text     = "Merged Bullish OB ||| " + str.tostring(m_cnt) + " timeframes ||| Strength: " + str.tostring(math.round(m_str * 10) / 10) + "/10 ||| " + ob_session + " ||| Age: 0 bars ||| " + str.tostring(pips) + " pips ||| " + str.tostring(distance_pips) + " pips away"
+                    mid_price     = (norm_top + norm_bot) / 2.0
+                    info_l := label.new(bar_index + 25, mid_price, info_text,
+                         color=color.new(color.green, 100), textcolor=color.new(color.green, 0),
+                         style=label.style_label_left, size=get_text_size(), textalign=text.align_left)
+
+                array.push(bull_obs, OB.new(b, l, info_l, norm_top, norm_bot, bar_index, true, ob_session, bar_index, m_str, m_cnt))
+
+    // ─── BEARISH ──────────────────────────────────────────────────────────────
+    if show_bearish
+
+        float m_top = na
+        float m_bot = na
+        float m_str = 0.0
+        int   m_ses = 0
+        int   m_cnt = 0
+
+        if not na(bear_top1)
+            m_top := bear_top1
+            m_bot := bear_bot1
+            m_str := bear_str1
+            m_ses := bear_ses1
+            m_cnt := 1
+
+        if not na(bear_top2)
+            if na(m_top)
+                m_top := bear_top2
+                m_bot := bear_bot2
+                m_str := bear_str2
+                m_ses := bear_ses2
+                m_cnt := 1
+            else if zones_confluent(m_top, m_bot, bear_top2, bear_bot2, atr_value)
+                m_top := math.max(m_top, bear_top2)
+                m_bot := math.min(m_bot, bear_bot2)
+                m_str := math.max(m_str, bear_str2)
+                m_cnt += 1
+
+        if not na(bear_top3)
+            if na(m_top)
+                m_top := bear_top3
+                m_bot := bear_bot3
+                m_str := bear_str3
+                m_ses := bear_ses3
+                m_cnt := 1
+            else if zones_confluent(m_top, m_bot, bear_top3, bear_bot3, atr_value)
+                m_top := math.max(m_top, bear_top3)
+                m_bot := math.min(m_bot, bear_bot3)
+                m_str := math.max(m_str, bear_str3)
+                m_cnt += 1
+
+        if m_cnt >= min_confluence and not na(m_top) and m_str >= min_strength_filter
+
+            bool already_exists = false
+            if array.size(bear_obs) > 0
+                for k = 0 to array.size(bear_obs) - 1
+                    existing = array.get(bear_obs, k)
+                    ex_mid   = (existing.top + existing.bot) / 2.0
+                    new_mid  = (m_top + m_bot) / 2.0
+                    if math.abs(ex_mid - new_mid) < atr_value * 0.5
+                        already_exists := true
+
+            if not already_exists
+                ob_session = session_str(m_ses)
+                [norm_top, norm_bot] = normalize_zone(m_top, m_bot, atr_value)
+
+                b = box.new(bar_index, norm_top, bar_index + 20, norm_bot,
+                     border_color=bear_border, bgcolor=bear_color, border_width=2, extend=extend.right)
+
+                label l = na
+                if show_labels
+                    l := label.new(bar_index, norm_top, "Bear OB",
+                         color=color.new(color.red, 20), textcolor=color.white,
+                         style=label.style_label_down, size=size.small)
+
+                label info_l = na
+                if show_info
+                    pips          = calc_pips(norm_top - norm_bot)
+                    distance_pips = calc_pips(math.abs(close - (norm_top + norm_bot) / 2.0))
+                    info_text     = "Merged Bearish OB ||| " + str.tostring(m_cnt) + " timeframes ||| Strength: " + str.tostring(math.round(m_str * 10) / 10) + "/10 ||| " + ob_session + " ||| Age: 0 bars ||| " + str.tostring(pips) + " pips ||| " + str.tostring(distance_pips) + " pips away"
+                    mid_price     = (norm_top + norm_bot) / 2.0
+                    info_l := label.new(bar_index + 25, mid_price, info_text,
+                         color=color.new(color.red, 100), textcolor=color.new(color.red, 0),
+                         style=label.style_label_left, size=get_text_size(), textalign=text.align_left)
+
+                array.push(bear_obs, OB.new(b, l, info_l, norm_top, norm_bot, bar_index, false, ob_session, bar_index, m_str, m_cnt))
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// MAINTENANCE
+// ═══════════════════════════════════════════════════════════════════════════════
+
+clean_obs(bull_obs)
+clean_obs(bear_obs)
+limit_size(bull_obs, max_obs)
+limit_size(bear_obs, max_obs)
+update_boxes(bull_obs)
+update_boxes(bear_obs)
+`
+    },
+    {
+        id: 'ga-adaptive-regime-filter',
+        name: 'GreyAlpha Adaptive Regime Filter + Divergence (AER-VN)',
+        description: 'Advanced efficiency ratio based regime filter with zero-lag divergence detection. [GREYALPHA]',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v1.0',
+        code: `// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © KeyAlgos
+//@version=6
+indicator("Adaptive Regime Filter + Divergence (AER-VN) [KEYALGOS]", shorttitle="AER+Div [KEYALGOS]", overlay=false, format=format.price, precision=2)
+
+// ========================================================================= //
+// =============================== INPUTS ================================== //
+// ========================================================================= //
+grp_er    = "Efficiency Ratio Settings"
+length    = input.int(10, title="ER Lookback (N)", minval=2, group=grp_er)
+baseEr    = input.float(0.25, title="Base ER Threshold", step=0.05, minval=0.05, maxval=0.8, group=grp_er)
+maxErCap  = input.float(0.65, title="Max Threshold Cap", step=0.05, minval=0.1, maxval=0.99, group=grp_er)
+
+grp_vol   = "Volatility Normalization"
+atrLength = input.int(14, title="ATR Length", minval=1, group=grp_vol)
+atrMeanLen= input.int(50, title="ATR Mean Lookback", minval=5, group=grp_vol)
+
+grp_div   = "Divergence Settings"
+divLength = input.int(10, title="Swing Definition Length", minval=3, group=grp_div)
+
+// Marker Toggles
+showReg   = input.bool(true, title="Show Regular Div Markers", group=grp_div)
+showHid   = input.bool(true, title="Show Hidden Div Markers", group=grp_div)
+
+// Line Toggles
+showRegBearLine = input.bool(true, title="Line: Regular Bearish", group=grp_div)
+showRegBullLine = input.bool(true, title="Line: Regular Bullish", group=grp_div)
+showHidBearLine = input.bool(true, title="Line: Hidden Bearish", group=grp_div)
+showHidBullLine = input.bool(true, title="Line: Hidden Bullish", group=grp_div)
+
+grp_vis   = "Visuals"
+showBars  = input.bool(true, title="Color Price Bars", group=grp_vis)
+
+// ========================================================================= //
+// ======================= CORE AER + VOLATILITY =========================== //
+// ========================================================================= //
+
+float displacement = math.abs(close - close[length])
+float pathDistance = math.sum(math.abs(close - close[1]), length)
+float er = pathDistance != 0 ? (displacement / pathDistance) : 0.0
+
+float currentAtr = ta.atr(atrLength)
+float meanAtr    = ta.sma(currentAtr, atrMeanLen)
+float atrRatio   = meanAtr != 0 ? (currentAtr / meanAtr) : 1.0
+
+float rawThreshold     = baseEr * atrRatio
+float dynamicThreshold = math.min(rawThreshold, maxErCap)
+
+// ========================================================================= //
+// ======================= REGIME CLASSIFICATION =========================== //
+// ========================================================================= //
+
+bool isTrending  = er > dynamicThreshold
+bool isUptrend   = isTrending and (close > close[length])
+bool isDowntrend = isTrending and (close < close[length])
+
+bool isNonTrending   = er <= dynamicThreshold
+bool isChop          = isNonTrending and (currentAtr > meanAtr)
+bool isConsolidation = isNonTrending and (currentAtr <= meanAtr)
+
+color colUp   = color.new(color.teal, 0)
+color colDown = color.new(color.maroon, 0)
+color colChop = color.new(color.orange, 0)
+color colCons = color.new(color.gray, 0)
+
+color regimeColor = switch
+    isUptrend       => colUp
+    isDowntrend     => colDown
+    isChop          => colChop
+    isConsolidation => colCons
+    => color.gray
+
+barcolor(showBars ? regimeColor : na)
+
+// ========================================================================= //
+// ================== ZERO-LAG DIVERGENCE DETECTION ======================== //
+// ========================================================================= //
+
+bool swingHighConfirm = (close[1] == ta.highest(close, divLength)[1]) and (close < close[1])
+bool swingLowConfirm  = (close[1] == ta.lowest(close, divLength)[1])  and (close > close[1])
+
+var float lastHighPrice = na
+var float lastHighER    = na
+var int   lastHighBar   = na
+
+var float lastLowPrice  = na
+var float lastLowER     = na
+var int   lastLowBar    = na
+
+bool regBear = false
+bool regBull = false
+bool hidBear = false
+bool hidBull = false
+
+if swingHighConfirm
+    float currentHighPrice = close[1]
+    float currentHighER    = er[1]
+    int   currentHighBar   = bar_index[1]
+    
+    if not na(lastHighPrice)
+        // Reg Bearish: Price Higher High, ER Lower High
+        if (currentHighPrice > lastHighPrice) and (currentHighER < lastHighER)
+            regBear := true
+            if showRegBearLine
+                line.new(lastHighBar, lastHighER, currentHighBar, currentHighER, color=color.red, style=line.style_dotted, width=2)
+                
+        // Hidden Bearish: Price Lower High, ER Higher High
+        if (currentHighPrice < lastHighPrice) and (currentHighER > lastHighER)
+            hidBear := true
+            if showHidBearLine
+                line.new(lastHighBar, lastHighER, currentHighBar, currentHighER, color=color.orange, style=line.style_dotted, width=2)
+            
+    lastHighPrice := currentHighPrice
+    lastHighER    := currentHighER
+    lastHighBar   := currentHighBar
+
+if swingLowConfirm
+    float currentLowPrice = close[1]
+    float currentLowER    = er[1]
+    int   currentLowBar   = bar_index[1]
+    
+    if not na(lastLowPrice)
+        // Reg Bullish: Price Lower Low, ER Higher Low
+        if (currentLowPrice < lastLowPrice) and (currentLowER > lastLowER)
+            regBull := true
+            if showRegBullLine
+                line.new(lastLowBar, lastLowER, currentLowBar, currentLowER, color=color.lime, style=line.style_dotted, width=2)
+                
+        // Hidden Bullish: Price Higher Low, ER Lower Low
+        if (currentLowPrice > lastLowPrice) and (currentLowER < lastLowER)
+            hidBull := true
+            if showHidBullLine
+                line.new(lastLowBar, lastLowER, currentLowBar, currentLowER, color=color.aqua, style=line.style_dotted, width=2)
+            
+    lastLowPrice := currentLowPrice
+    lastLowER    := currentLowER
+    lastLowBar   := currentLowBar
+
+// ========================================================================= //
+// ============================== PLOTTING ================================= //
+// ========================================================================= //
+
+// Base Oscillator
+plot(er, title="Efficiency Ratio", color=regimeColor, linewidth=2, style=plot.style_line)
+plot(dynamicThreshold, title="Dynamic Threshold", color=color.new(color.white, 50), linewidth=1, style=plot.style_cross)
+hline(baseEr, title="Base Threshold", color=color.new(color.gray, 50), linestyle=hline.style_dotted)
+
+// Divergence Visuals (Shapes exactly on the ER line, set to tiny)
+plotshape(showReg and regBear ? er[1] : na, title="Regular Bearish", location=location.absolute, color=color.red, style=shape.circle, size=size.tiny, offset=-1)
+plotshape(showReg and regBull ? er[1] : na, title="Regular Bullish", location=location.absolute, color=color.lime, style=shape.circle, size=size.tiny, offset=-1)
+
+plotshape(showHid and hidBear ? er[1] : na, title="Hidden Bearish", location=location.absolute, color=color.orange, style=shape.circle, size=size.tiny, offset=-1)
+plotshape(showHid and hidBull ? er[1] : na, title="Hidden Bullish", location=location.absolute, color=color.aqua, style=shape.circle, size=size.tiny, offset=-1)
+
+// Dashboard States
+plotchar(isUptrend, title="State: Uptrend", char="", color=colUp, display=display.data_window)
+plotchar(isDowntrend, title="State: Downtrend", char="", color=colDown, display=display.data_window)
+plotchar(isChop, title="State: Choppiness", char="", color=colChop, display=display.data_window)
+plotchar(isConsolidation, title="State: Consol", char="", color=colCons, display=display.data_window)
+
+// Alerts
+alertcondition(regBear, title="Regular Bearish Divergence", message="ER Bearish Divergence Detected")
+alertcondition(regBull, title="Regular Bullish Divergence", message="ER Bullish Divergence Detected")
+`
+    },
+    {
+        id: 'ga-supertrend-cluster',
+        name: 'GreyAlpha SuperTrend Cluster (Zeiierman)',
+        description: 'Multi-SuperTrend cluster analysis with weighted consensus and dynamic visualization. [GREYALPHA]',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v1.0',
+        code: `// This work is licensed under Creative Commons Attribution-NonCommercial-ShareAlike 4.0 International
+// https://creativecommons.org/licenses/by-nc-sa/4.0/
+// © Zeiierman {
+//@version=6
+indicator('SuperTrend Cluster (Zeiierman)', max_labels_count = 200, overlay = true, max_bars_back = 2000, behind_chart = false)
+//}
+
+// ~~ Tooltips {
+var string t1  = "Minimum weighted agreement required for the bullish or bearish cluster to become valid. Higher values demand stronger alignment across the SuperTrend set."
+var string t2  = "Selects which one of the five SuperTrend members is used as the base reference for flip markers, label placement, and final direction alignment."
+var string t3  = "Colors the candles and bars using the live cluster strength gradient. When disabled, chart candles keep their default chart colors."
+var string t4  = "Shows or hides the Bull Cluster and Bear Cluster labels when the selected base SuperTrend flips."
+var string t5  = "Shows or hides the small base SuperTrend flip markers plotted at the selected base SuperTrend line."
+var string t6  = "Main bullish color used for bullish trend lines, bullish labels, bullish markers, and bullish candle coloring."
+var string t7  = "Main bearish color used for bearish trend lines, bearish labels, bearish markers, and bearish candle coloring."
+var string t8  = "Neutral midpoint color used by the bar and candle gradient when bullish and bearish cluster pressure is balanced."
+
+var string t9  = "ATR length for SuperTrend 1. Lower values react faster to price changes, while higher values make this member slower and smoother."
+var string t10 = "ATR multiplier for SuperTrend 1. Higher values place the band farther from price and reduce sensitivity."
+var string t11 = "Smoothing method applied to the source before SuperTrend 1 is calculated."
+var string t12 = "Length of the smoothing used for SuperTrend 1. Higher values smooth more but add lag."
+var string t13 = "Relative influence of SuperTrend 1 inside the weighted cluster. Higher values make this member contribute more to the final consensus."
+
+var string t14 = "ATR length for SuperTrend 2. Lower values react faster to price changes, while higher values make this member slower and smoother."
+var string t15 = "ATR multiplier for SuperTrend 2. Higher values place the band farther from price and reduce sensitivity."
+var string t16 = "Smoothing method applied to the source before SuperTrend 2 is calculated."
+var string t17 = "Length of the smoothing used for SuperTrend 2. Higher values smooth more but add lag."
+var string t18 = "Relative influence of SuperTrend 2 inside the weighted cluster. Higher values make this member contribute more to the final consensus."
+
+var string t19 = "ATR length for SuperTrend 3. Lower values react faster to price changes, while higher values make this member slower and smoother."
+var string t20 = "ATR multiplier for SuperTrend 3. Higher values place the band farther from price and reduce sensitivity."
+var string t21 = "Smoothing method applied to the source before SuperTrend 3 is calculated."
+var string t22 = "Length of the smoothing used for SuperTrend 3. Higher values smooth more but add lag."
+var string t23 = "Relative influence of SuperTrend 3 inside the weighted cluster. Higher values make this member contribute more to the final consensus."
+
+var string t24 = "ATR length for SuperTrend 4. Lower values react faster to price changes, while higher values make this member slower and smoother."
+var string t25 = "ATR multiplier for SuperTrend 4. Higher values place the band farther from price and reduce sensitivity."
+var string t26 = "Smoothing method applied to the source before SuperTrend 4 is calculated."
+var string t27 = "Length of the smoothing used for SuperTrend 4. Higher values smooth more but add lag."
+var string t28 = "Relative influence of SuperTrend 4 inside the weighted cluster. Higher values make this member contribute more to the final consensus."
+
+var string t29 = "ATR length for SuperTrend 5. Lower values react faster to price changes, while higher values make this member slower and smoother."
+var string t30 = "ATR multiplier for SuperTrend 5. Higher values place the band farther from price and reduce sensitivity."
+var string t31 = "Smoothing method applied to the source before SuperTrend 5 is calculated."
+var string t32 = "Length of the smoothing used for SuperTrend 5. Higher values smooth more but add lag."
+var string t33 = "Relative influence of SuperTrend 5 inside the weighted cluster. Higher values make this member contribute more to the final consensus."
+
+var string t34 = "Fills the area between the active cluster SuperTrend line and a smoothed price reference with a translucent cloud."
+var string t35 = "Length of the smoothing used for the hidden price reference that the cloud fills toward. Higher values create a steadier, softer cloud."
+var string t36 = "Bullish cloud color used when the active cluster regime is bullish."
+var string t37 = "Bearish cloud color used when the active cluster regime is bearish."
+var string t38 = "Transparency of the cloud fill. Lower values are more solid, higher values are more subtle."
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ INPUT PARAMETERS {
+gCe = 'Cluster Engine'
+thr = input.float(0.60, 'Consensus Threshold', minval = 0.0, maxval = 1.0, step = 0.01, group = gCe, tooltip = t1)
+baseIx = input.int(3, 'Base SuperTrend Index', minval = 1, maxval = 5, group = gCe, tooltip = t2)
+
+gVi = 'Visual Analytics'
+useBc = input.bool(true, 'Dynamic Bar Coloring', group = gVi, tooltip = t3)
+showLbl = input.bool(true, 'Show Cluster Labels', group = gVi, tooltip = t4)
+showDot = input.bool(true, 'Show Base SuperTrend Flip Dots', group = gVi, tooltip = t5)
+
+cBu = input.color(color.new(color.lime, 0), 'Bull', group = gVi, inline = 'col', tooltip = t6)
+cBe = input.color(color.new(#f7525f, 0), 'Bear', group = gVi, inline = 'col', tooltip = t7)
+cN  = input.color(color.new(#ff9800, 0), 'Neutral', group = gVi, inline = 'col', tooltip = t6 + "\n\n" + t7 + "\n\n" + t8)
+
+gCf = 'Cloud Fill'
+showCloud = input.bool(true, 'Show Cloud Fill', group = gCf, tooltip = t34)
+cloudLen = input.int(8, 'Cloud Reference Length', minval = 1, group = gCf, tooltip = t35)
+cCloudBu = input.color(color.new(color.lime, 0), 'Bull Cloud', group = gCf, inline = 'cf', tooltip = t36)
+cCloudBe = input.color(color.new(#f7525f, 0), 'Bear Cloud', group = gCf, inline = 'cf', tooltip = t37)
+cloudTransp = input.int(65, 'Cloud Transparency', minval = 0, maxval = 95, group = gCf, tooltip = t38)
+
+// ~~ SuperTrend 1 {
+gSt1 = 'SuperTrend 1'
+a1 = input.int(7, 'ATR Length', minval = 1, group = gSt1, inline = '1', tooltip = t9)
+f1 = input.float(1.5, 'Factor', minval = 0.01, step = 0.01, group = gSt1, inline = '1', tooltip = t9 + "\n\n" + t10)
+m1 = input.string('EMA', 'Smoothing', options = ['SMA', 'EMA', 'LSMA', 'WMA', 'HMA', 'RMA'], group = gSt1, inline = '1.', tooltip = t11)
+l1 = input.int(3, 'Length', minval = 1, group = gSt1, inline = '1.', tooltip = t11 + "\n\n" + t12)
+w1 = input.float(1.0, 'Weight', minval = 0.0, step = 0.1, group = gSt1, inline = 'w1', tooltip = t13)
+//}
+
+// ~~ SuperTrend 2 {
+gSt2 = 'SuperTrend 2'
+a2 = input.int(10, 'ATR Length', minval = 1, group = gSt2, inline = '2', tooltip = t14)
+f2 = input.float(2.0, 'Factor', minval = 0.01, step = 0.01, group = gSt2, inline = '2', tooltip = t14 + "\n\n" + t15)
+m2 = input.string('EMA', 'Smoothing', options = ['SMA', 'EMA', 'LSMA', 'WMA', 'HMA', 'RMA'], group = gSt2, inline = '2.', tooltip = t16)
+l2 = input.int(5, 'Length', minval = 1, group = gSt2, inline = '2.', tooltip = t16 + "\n\n" + t17)
+w2 = input.float(1.0, 'Weight', minval = 0.0, step = 0.1, group = gSt2, inline = 'w2', tooltip = t18)
+//}
+
+// ~~ SuperTrend 3 {
+gSt3 = 'SuperTrend 3'
+a3 = input.int(14, 'ATR Length', minval = 1, group = gSt3, inline = '3', tooltip = t19)
+f3 = input.float(2.5, 'Factor', minval = 0.01, step = 0.01, group = gSt3, inline = '3', tooltip = t19 + "\n\n" + t20)
+m3 = input.string('SMA', 'Smoothing', options = ['SMA', 'EMA', 'LSMA', 'WMA', 'HMA', 'RMA'], group = gSt3, inline = '3.', tooltip = t21)
+l3 = input.int(8, 'Length', minval = 1, group = gSt3, inline = '3.', tooltip = t21 + "\n\n" + t22)
+w3 = input.float(1.2, 'Weight', minval = 0.0, step = 0.1, group = gSt3, inline = 'w3', tooltip = t23)
+//}
+
+// ~~ SuperTrend 4 {
+gSt4 = 'SuperTrend 4'
+a4 = input.int(21, 'ATR Length', minval = 1, group = gSt4, inline = '4', tooltip = t24)
+f4 = input.float(3.0, 'Factor', minval = 0.01, step = 0.01, group = gSt4, inline = '4', tooltip = t24 + "\n\n" + t25)
+m4 = input.string('WMA', 'Smoothing', options = ['SMA', 'EMA', 'LSMA', 'WMA', 'HMA', 'RMA'], group = gSt4, inline = '4.', tooltip = t26)
+l4 = input.int(13, 'Length', minval = 1, group = gSt4, inline = '4.', tooltip = t26 + "\n\n" + t27)
+w4 = input.float(1.4, 'Weight', minval = 0.0, step = 0.1, group = gSt4, inline = 'w4', tooltip = t28)
+//}
+
+// ~~ SuperTrend 5 {
+gSt5 = 'SuperTrend 5'
+a5 = input.int(34, 'ATR Length', minval = 1, group = gSt5, inline = '5', tooltip = t29)
+f5 = input.float(4.0, 'Factor', minval = 0.01, step = 0.01, group = gSt5, inline = '5', tooltip = t29 + "\n\n" + t30)
+m5 = input.string('HMA', 'Smoothing', options = ['SMA', 'EMA', 'LSMA', 'WMA', 'HMA', 'RMA'], group = gSt5, inline = '5.', tooltip = t31)
+l5 = input.int(21, 'Length', minval = 1, group = gSt5, inline = '5.', tooltip = t31 + "\n\n" + t32)
+w5 = input.float(1.6, 'Weight', minval = 0.0, step = 0.1, group = gSt5, inline = 'w5', tooltip = t33)
+//}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ CONSTANTS & STYLING {
+EPS = 0.0000001
+N = 5
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ HELPER FUNCTIONS {
+fMa(t, s, l) =>
+    ln = math.max(1, l)
+    switch t
+        'SMA'  => ta.sma(s, ln)
+        'EMA'  => ta.ema(s, ln)
+        'LSMA' => ta.linreg(s, ln, 0)
+        'WMA'  => ta.wma(s, ln)
+        'HMA'  => ta.hma(s, ln)
+        'RMA'  => ta.rma(s, ln)
+        => ta.sma(s, ln)
+
+fSt(src, atrLen, fac) =>
+    atr = ta.atr(math.max(1, atrLen))
+    ub0 = src + fac * atr
+    lb0 = src - fac * atr
+
+    ub = ub0
+    ub := na(ub[1]) ? ub0 : (ub0 < ub[1] or src[1] > ub[1] ? ub0 : ub[1])
+
+    lb = lb0
+    lb := na(lb[1]) ? lb0 : (lb0 > lb[1] or src[1] < lb[1] ? lb0 : lb[1])
+
+    d = 1.0
+    d := na(d[1]) ? 1.0 : d[1] == -1.0 and src > ub[1] ? 1.0 : d[1] == 1.0 and src < lb[1] ? -1.0 : d[1]
+
+    st = d == 1.0 ? lb : ub
+    [st, d]
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ MULTI-SUPERTREND ENGINE {
+src = hlc3
+
+s1 = fMa(m1, src, l1)
+s2 = fMa(m2, src, l2)
+s3 = fMa(m3, src, l3)
+s4 = fMa(m4, src, l4)
+s5 = fMa(m5, src, l5)
+
+[st1, d1] = fSt(s1, a1, f1)
+[st2, d2] = fSt(s2, a2, f2)
+[st3, d3] = fSt(s3, a3, f3)
+[st4, d4] = fSt(s4, a4, f4)
+[st5, d5] = fSt(s5, a5, f5)
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ ARRAYS FOR STORAGE {
+var array<float> wArr = array.new_float(0)
+var array<float> stArr = array.new_float(0)
+var array<float> dArr = array.new_float(0)
+
+if barstate.isfirst
+    array.push(wArr, w1), array.push(wArr, w2), array.push(wArr, w3), array.push(wArr, w4), array.push(wArr, w5)
+    for _ = 0 to N - 1
+        array.push(stArr, na)
+        array.push(dArr, na)
+
+if array.size(wArr) != N or array.size(stArr) != N or array.size(dArr) != N
+    runtime.error('Array size mismatch. Expected 5 elements in all arrays.')
+
+array.set(stArr, 0, st1), array.set(stArr, 1, st2), array.set(stArr, 2, st3), array.set(stArr, 3, st4), array.set(stArr, 4, st5)
+array.set(dArr, 0, d1), array.set(dArr, 1, d2), array.set(dArr, 2, d3), array.set(dArr, 3, d4), array.set(dArr, 4, d5)
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ CONSENSUS ENGINE {
+var matrix<float> mDat = matrix.new<float>(N, 3, na)
+
+if matrix.rows(mDat) != N or matrix.columns(mDat) != 3
+    runtime.error('Matrix size mismatch. Expected 5x3.')
+
+for i = 0 to N - 1
+    matrix.set(mDat, i, 0, array.get(dArr, i))
+    matrix.set(mDat, i, 1, array.get(wArr, i))
+    matrix.set(mDat, i, 2, array.get(stArr, i))
+
+wSum = 0.0
+wBu = 0.0
+wBe = 0.0
+lnBuNum = 0.0
+lnBeNum = 0.0
+
+for i = 0 to N - 1
+    d = matrix.get(mDat, i, 0)
+    w = matrix.get(mDat, i, 1)
+    st = matrix.get(mDat, i, 2)
+
+    wSum += w
+
+    if d > 0
+        wBu += w
+        lnBuNum += st * w
+    else if d < 0
+        wBe += w
+        lnBeNum += st * w
+
+wSum := math.max(wSum, EPS)
+
+scBu = wBu / wSum
+scBe = wBe / wSum
+scCl = scBu - scBe
+strCl = math.abs(scCl)
+
+lnBu = wBu > 0 ? lnBuNum / wBu : na
+lnBe = wBe > 0 ? lnBeNum / wBe : na
+
+baseRow = math.max(0, math.min(N - 1, baseIx - 1))
+stB = matrix.get(mDat, baseRow, 2)
+dB  = matrix.get(mDat, baseRow, 0)
+
+flipBu = ta.crossover(dB, 0)
+flipBe = ta.crossunder(dB, 0)
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ FINAL FILTERED REGIME {
+isBu = scBu >= thr
+isBe = scBe >= thr
+
+okBu = isBu and dB > 0
+okBe = isBe and dB < 0
+
+var float dLast = 0.0
+if okBu and not okBe
+    dLast := 1.0
+else if okBe and not okBu
+    dLast := -1.0
+
+lnCl = dLast > 0 ? lnBu : dLast < 0 ? lnBe : na
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ VISUALIZATION {
+cBar = scCl > 0 ? color.from_gradient(strCl, 0.0, 1.0, cN, cBu) : color.from_gradient(strCl, 0.0, 1.0, cN, cBe)
+
+barcolor(useBc ? cBar : na)
+plotcandle(useBc ? open : na, useBc ? high : na, useBc ? low : na, useBc ? close : na, color = useBc ? cBar : na, bordercolor = useBc ? cBar : na, wickcolor = useBc ? cBar : na)
+
+plotshape(ta.crossover(dLast, 0), 'Major Long', shape.labelup, location.belowbar, color.new(cBu, 30), size = size.tiny, text = '▲', textcolor = color.white)
+plotshape(ta.crossunder(dLast, 0), 'Major Short', shape.labeldown, location.abovebar, color.new(cBe, 30), size = size.tiny, text = '▼', textcolor = color.white)
+
+plotshape(showDot and flipBu ? stB : na, 'Base ST Long', shape.triangleup, location.absolute, dLast > 0 ? color.new(cBu, 40) : color.new(cBe, 40), size = size.tiny)
+plotshape(showDot and flipBe ? stB : na, 'Base ST Short', shape.triangledown, location.absolute, dLast > 0 ? color.new(cBu, 40) : color.new(cBe, 40), size = size.tiny)
+
+if showLbl and flipBu
+    label.new(bar_index, stB, text = 'Bull Cluster\n' + str.tostring(scBu * 100.0, '#.#') + '%', color = color.new(cBu, 90), textcolor = cBu, style = label.style_label_up, yloc = yloc.price, size = size.small)
+
+if showLbl and flipBe
+    label.new(bar_index, stB, text = 'Bear Cluster\n' + str.tostring(scBe * 100.0, '#.#') + '%', color = color.new(cBe, 90), textcolor = cBe, style = label.style_label_down, yloc = yloc.price, size = size.small)
+
+pUp = plot(dLast == 1 ? lnCl : na, 'Cluster Up Trend', color = cBu, style = plot.style_linebr, linewidth = 2)
+pDn = plot(dLast == -1 ? lnCl : na, 'Cluster Down Trend', color = cBe, style = plot.style_linebr, linewidth = 2)
+
+// Hidden active-line plot for cloud fill
+pCl = plot(lnCl, 'Active Cluster Line', color = color.new(chart.fg_color, 100), display = display.none)
+
+// Hidden smoothed price reference for cloud fill
+cloudRef = ta.sma(hlc3, cloudLen)
+pRef = plot(cloudRef, 'Cloud Reference', color = color.new(chart.fg_color, 100), display = display.none)
+
+cloudClr = showCloud ? dLast > 0 ? color.new(cCloudBu, cloudTransp) : dLast < 0 ? color.new(cCloudBe, cloudTransp) : na : na
+fill(pCl, pRef, lnCl, cloudRef, cloudClr, color(na))
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+
+// ~~ ALERTS {
+alBu = ta.crossover(dLast, 0)
+alBe = ta.crossunder(dLast, 0)
+alAny = alBu or alBe
+
+alertcondition(alBu, 'Long', 'Bullish clustered SuperTrend signal')
+alertcondition(alBe, 'Short', 'Bearish clustered SuperTrend signal')
+alertcondition(alAny, 'Signal', 'Clustered SuperTrend signal')
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~}
+`
+    },
+    {
+        id: 'ga-helion-trend-weave',
+        name: 'GreyAlpha Helion Trend Weave [JOAT]',
+        description: 'Advanced trend ribbon with volatility morphing, compression detection, and multi-state scoring. [GREYALPHA]',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v1.0',
+        code: `// This Pine Script® code is subject to the terms of the Mozilla Public License 2.0 at https://mozilla.org/MPL/2.0/
+// © officialjackofalltrades
+//@version=6
+indicator("Helion Trend Weave [JOAT]", shorttitle="HTW [JOAT]", overlay=true)
+
+// ──────────────────── INPUTS ────────────────────────────────────────────────
+string GRP_CORE = "Helix Parameters"
+string maType   = input.string("EMA", "Filament Type", options=["EMA", "SMA", "SMMA"], group=GRP_CORE)
+int    basePer  = input.int(5,  "Origin Period",     minval=2,  maxval=20,  group=GRP_CORE, tooltip="Fastest MA period in the ribbon")
+int    ribbonN  = input.int(8,  "Weave Depth",       minval=3,  maxval=12,  group=GRP_CORE, tooltip="Number of MA filaments in the weave")
+int    spacing  = input.int(5,  "Filament Spacing",  minval=2,  maxval=15,  group=GRP_CORE, tooltip="Period increment between successive filaments")
+bool   adaptive = input.bool(true, "Volatility Morphing", group=GRP_CORE, tooltip="Dynamically adjust periods based on ATR regime")
+
+string GRP_ADAPT = "Morphic Tuning"
+int    atrFast   = input.int(10, "Impulse ATR",   minval=3,  maxval=30,  group=GRP_ADAPT, tooltip="Fast ATR for volatility ratio")
+int    atrSlowP  = input.int(50, "Anchor ATR",    minval=20, maxval=100, group=GRP_ADAPT, tooltip="Slow ATR for volatility ratio")
+float  adaptMin  = input.float(0.5, "Morph Floor", minval=0.2, maxval=1.0, step=0.1, group=GRP_ADAPT)
+float  adaptMax  = input.float(2.0, "Morph Ceiling", minval=1.0, maxval=4.0, step=0.1, group=GRP_ADAPT)
+
+string GRP_SQ   = "Compression Chamber"
+bool   showSqueeze = input.bool(true, "Compression Aura", group=GRP_SQ, tooltip="Background highlight when ribbon compresses below threshold")
+int    sqLen       = input.int(100, "Chamber Lookback", minval=20, maxval=300, group=GRP_SQ)
+float  sqPctile    = input.float(10, "Compression Percentile", minval=1, maxval=30, step=1, group=GRP_SQ)
+
+string GRP_TWS  = "Twist Detection"
+bool   showTwist  = input.bool(true, "Show Twist Events", group=GRP_TWS, tooltip="Mark ribbon inversion points where alignment flips")
+int    twistConf  = input.int(2, "Twist Confirmation",   minval=1, maxval=5, group=GRP_TWS, tooltip="Bars of sustained inversion to confirm twist")
+
+string GRP_VIS  = "Optics Layer"
+bool   showFill  = input.bool(true, "Weave Fill",          group=GRP_VIS)
+bool   showLead  = input.bool(true, "Lead Filament Glow",  group=GRP_VIS)
+bool   showDash  = input.bool(true, "Command Panel",       group=GRP_VIS)
+bool   showBarC  = input.bool(false, "Candle Tinting",     group=GRP_VIS, tooltip="Tint chart candles based on trend phase")
+
+string GRP_COL  = "Chromatic Scheme"
+color  colBullS  = input.color(#0affab, "Ascent Dominant",   group=GRP_COL)
+color  colBullW  = input.color(#056b4d, "Ascent Fading",     group=GRP_COL)
+color  colBearS  = input.color(#ff2e63, "Descent Dominant",  group=GRP_COL)
+color  colBearW  = input.color(#8b1a3a, "Descent Fading",    group=GRP_COL)
+color  colSqz    = input.color(#ffa502, "Compression Tone",  group=GRP_COL)
+color  colTwist  = input.color(#a29bfe, "Twist Accent",      group=GRP_COL)
+color  colSurge  = input.color(#00d2ff, "Surge Accent",      group=GRP_COL)
+color  colFan    = input.color(#00e676, "Fan Accent",        group=GRP_COL)
+
+string GRP_SIG   = "Signal Architecture"
+bool   showCross   = input.bool(true, "Weave Cross Signals",     group=GRP_SIG, tooltip="Label when lead filament crosses anchor")
+bool   showTwistSig = input.bool(true, "Twist Lock Signals",     group=GRP_SIG, tooltip="Label on confirmed ribbon inversions")
+bool   showSurgeSig = input.bool(true, "Momentum Surge",         group=GRP_SIG, tooltip="Detect rapid spread expansion after compression")
+bool   showFanSig   = input.bool(true, "Filament Fan",           group=GRP_SIG, tooltip="Mark when all filaments achieve perfect sequential order")
+bool   showSnapSig  = input.bool(true, "Snap Recoil",            group=GRP_SIG, tooltip="Detect price snapping back through the ribbon midpoint")
+bool   showDriftSig = input.bool(true, "Drift Fade",             group=GRP_SIG, tooltip="Warn when trend strength decays below dormant threshold")
+
+// ──────────────────── MORPHIC PERIOD ──────────────────────────────────────
+float atrS = ta.atr(atrFast)
+float atrL = ta.atr(atrSlowP)
+float volReg   = atrL != 0 ? atrS / atrL : 1.0
+float adaptMult = adaptive ? math.max(adaptMin, math.min(adaptMax, 1.5 / volReg)) : 1.0
+
+// ──────────────────── MA CALCULATION ────────────────────────────────────
+// SMA helper using for-loop (works with series int length)
+flexSMA(float src, int len) =>
+    float s = 0.0
+    int n = math.max(2, len)
+    for j = 0 to n - 1
+        s += nz(src[j])
+    s / n
+
+// Periods (series int due to adaptive ATR-based multiplier)
+int per01 = math.max(2, math.round((basePer + 0  * spacing) * adaptMult))
+int per02 = math.max(2, math.round((basePer + 1  * spacing) * adaptMult))
+int per03 = math.max(2, math.round((basePer + 2  * spacing) * adaptMult))
+int per04 = math.max(2, math.round((basePer + 3  * spacing) * adaptMult))
+int per05 = math.max(2, math.round((basePer + 4  * spacing) * adaptMult))
+int per06 = math.max(2, math.round((basePer + 5  * spacing) * adaptMult))
+int per07 = math.max(2, math.round((basePer + 6  * spacing) * adaptMult))
+int per08 = math.max(2, math.round((basePer + 7  * spacing) * adaptMult))
+int per09 = math.max(2, math.round((basePer + 8  * spacing) * adaptMult))
+int per10 = math.max(2, math.round((basePer + 9  * spacing) * adaptMult))
+int per11 = math.max(2, math.round((basePer + 10 * spacing) * adaptMult))
+int per12 = math.max(2, math.round((basePer + 11 * spacing) * adaptMult))
+
+// Inline EMA per MA (each var is isolated at global scope)
+var float e01 = na
+var float e02 = na
+var float e03 = na
+var float e04 = na
+var float e05 = na
+var float e06 = na
+var float e07 = na
+var float e08 = na
+var float e09 = na
+var float e10 = na
+var float e11 = na
+var float e12 = na
+float a01 = 2.0 / (per01 + 1)
+float a02 = 2.0 / (per02 + 1)
+float a03 = 2.0 / (per03 + 1)
+float a04 = 2.0 / (per04 + 1)
+float a05 = 2.0 / (per05 + 1)
+float a06 = 2.0 / (per06 + 1)
+float a07 = 2.0 / (per07 + 1)
+float a08 = 2.0 / (per08 + 1)
+float a09 = 2.0 / (per09 + 1)
+float a10 = 2.0 / (per10 + 1)
+float a11 = 2.0 / (per11 + 1)
+float a12 = 2.0 / (per12 + 1)
+e01 := na(e01) ? close : a01 * close + (1 - a01) * e01
+e02 := na(e02) ? close : a02 * close + (1 - a02) * e02
+e03 := na(e03) ? close : a03 * close + (1 - a03) * e03
+e04 := na(e04) ? close : a04 * close + (1 - a04) * e04
+e05 := na(e05) ? close : a05 * close + (1 - a05) * e05
+e06 := na(e06) ? close : a06 * close + (1 - a06) * e06
+e07 := na(e07) ? close : a07 * close + (1 - a07) * e07
+e08 := na(e08) ? close : a08 * close + (1 - a08) * e08
+e09 := na(e09) ? close : a09 * close + (1 - a09) * e09
+e10 := na(e10) ? close : a10 * close + (1 - a10) * e10
+e11 := na(e11) ? close : a11 * close + (1 - a11) * e11
+e12 := na(e12) ? close : a12 * close + (1 - a12) * e12
+
+// Inline RMA per MA (for SMMA mode)
+var float r01 = na
+var float r02 = na
+var float r03 = na
+var float r04 = na
+var float r05 = na
+var float r06 = na
+var float r07 = na
+var float r08 = na
+var float r09 = na
+var float r10 = na
+var float r11 = na
+var float r12 = na
+float ra01 = 1.0 / per01
+float ra02 = 1.0 / per02
+float ra03 = 1.0 / per03
+float ra04 = 1.0 / per04
+float ra05 = 1.0 / per05
+float ra06 = 1.0 / per06
+float ra07 = 1.0 / per07
+float ra08 = 1.0 / per08
+float ra09 = 1.0 / per09
+float ra10 = 1.0 / per10
+float ra11 = 1.0 / per11
+float ra12 = 1.0 / per12
+r01 := na(r01) ? close : ra01 * close + (1 - ra01) * r01
+r02 := na(r02) ? close : ra02 * close + (1 - ra02) * r02
+r03 := na(r03) ? close : ra03 * close + (1 - ra03) * r03
+r04 := na(r04) ? close : ra04 * close + (1 - ra04) * r04
+r05 := na(r05) ? close : ra05 * close + (1 - ra05) * r05
+r06 := na(r06) ? close : ra06 * close + (1 - ra06) * r06
+r07 := na(r07) ? close : ra07 * close + (1 - ra07) * r07
+r08 := na(r08) ? close : ra08 * close + (1 - ra08) * r08
+r09 := na(r09) ? close : ra09 * close + (1 - ra09) * r09
+r10 := na(r10) ? close : ra10 * close + (1 - ra10) * r10
+r11 := na(r11) ? close : ra11 * close + (1 - ra11) * r11
+r12 := na(r12) ? close : ra12 * close + (1 - ra12) * r12
+
+// Select MA type
+float ma01 = maType == "SMA" ? flexSMA(close, per01) : maType == "SMMA" ? r01 : e01
+float ma02 = maType == "SMA" ? flexSMA(close, per02) : maType == "SMMA" ? r02 : e02
+float ma03 = maType == "SMA" ? flexSMA(close, per03) : maType == "SMMA" ? r03 : e03
+float ma04 = maType == "SMA" ? flexSMA(close, per04) : maType == "SMMA" ? r04 : e04
+float ma05 = maType == "SMA" ? flexSMA(close, per05) : maType == "SMMA" ? r05 : e05
+float ma06 = maType == "SMA" ? flexSMA(close, per06) : maType == "SMMA" ? r06 : e06
+float ma07 = maType == "SMA" ? flexSMA(close, per07) : maType == "SMMA" ? r07 : e07
+float ma08 = maType == "SMA" ? flexSMA(close, per08) : maType == "SMMA" ? r08 : e08
+float ma09 = maType == "SMA" ? flexSMA(close, per09) : maType == "SMMA" ? r09 : e09
+float ma10 = maType == "SMA" ? flexSMA(close, per10) : maType == "SMMA" ? r10 : e10
+float ma11 = maType == "SMA" ? flexSMA(close, per11) : maType == "SMMA" ? r11 : e11
+float ma12 = maType == "SMA" ? flexSMA(close, per12) : maType == "SMMA" ? r12 : e12
+
+// Reference lines for trend determination
+float fastest = ma01
+float slowest = ribbonN >= 12 ? ma12 : ribbonN >= 11 ? ma11 : ribbonN >= 10 ? ma10 : ribbonN >= 9 ? ma09 : ribbonN >= 8 ? ma08 : ribbonN >= 7 ? ma07 : ribbonN >= 6 ? ma06 : ribbonN >= 5 ? ma05 : ribbonN >= 4 ? ma04 : ma03
+
+// ──────────────────── TREND SCORING ─────────────────────────────────────────
+bool bullTrend = fastest > slowest
+bool rising    = ta.rising(fastest, 2)
+bool falling   = ta.falling(fastest, 2)
+
+// Four-state colour (wolfpack phase logic)
+color trendCol = bullTrend and rising     ? colBullS :
+                 bullTrend and not rising  ? colBullW :
+                 not bullTrend and falling ? colBearS : colBearW
+
+// Ribbon spread — normalised by ATR as trend strength proxy
+float atrRef    = ta.atr(14)
+float spread    = math.abs(fastest - slowest)
+float spreadN   = atrRef != 0 ? spread / atrRef : 0.0
+float spreadPct = ta.percentrank(spreadN, 100)
+
+string strengthLabel = spreadPct > 70 ? "DOMINANT" : spreadPct > 30 ? "DEVELOPING" : "DORMANT"
+
+// Ribbon alignment score — percentage of MAs in correct sequential order
+alignCount(bool isBull) =>
+    int cnt = 0
+    if ribbonN >= 3 and ((isBull and ma01 > ma02 and ma02 > ma03) or (not isBull and ma01 < ma02 and ma02 < ma03))
+        cnt += 1
+    if ribbonN >= 5 and ((isBull and ma03 > ma04 and nz(ma04) > nz(ma05)) or (not isBull and ma03 < ma04 and nz(ma04) < nz(ma05)))
+        cnt += 1
+    if ribbonN >= 7 and ((isBull and nz(ma05) > nz(ma06) and nz(ma06) > nz(ma07)) or (not isBull and nz(ma05) < nz(ma06) and nz(ma06) < nz(ma07)))
+        cnt += 1
+    if ribbonN >= 9 and ((isBull and nz(ma07) > nz(ma08) and nz(ma08) > nz(ma09)) or (not isBull and nz(ma07) < nz(ma08) and nz(ma08) < nz(ma09)))
+        cnt += 1
+    cnt
+
+int maxSegs   = ribbonN >= 9 ? 4 : ribbonN >= 7 ? 3 : ribbonN >= 5 ? 2 : 1
+int alignSegs = alignCount(bullTrend)
+float alignPct = maxSegs > 0 ? alignSegs * 100.0 / maxSegs : 0
+string alignLabel = alignPct >= 100 ? "LOCKED" : alignPct >= 50 ? "PARTIAL" : "SCATTERED"
+
+// Spread momentum — rate of change for early expansion/contraction
+float spreadRoc = spreadN - nz(spreadN[3])
+string spreadDir = spreadRoc > 0 ? "EXPANDING" : spreadRoc < 0 ? "CONTRACTING" : "FLAT"
+
+// ──────────────────── COMPRESSION CHAMBER ──────────────────────────────────
+float spreadRank = ta.percentrank(spread, sqLen)
+bool  isSqueeze  = spreadRank <= sqPctile
+
+bgcolor(showSqueeze and isSqueeze ? color.new(colSqz, 93) : na, title="Compression Aura")
+
+// ──────────────────── TWIST DETECTION ──────────────────────────────────────
+bool twistBull = ta.crossover(fastest, slowest)
+bool twistBear = ta.crossunder(fastest, slowest)
+var int twistBullCnt = 0
+var int twistBearCnt = 0
+
+if bullTrend
+    twistBullCnt += 1
+    twistBearCnt := 0
+else
+    twistBearCnt += 1
+    twistBullCnt := 0
+
+bool confirmedTwistBull = twistBullCnt == twistConf
+bool confirmedTwistBear = twistBearCnt == twistConf
+
+// Candle tinting
+barcolor(showBarC ? trendCol : na, title="Phase Candle Tint")
+
+// ──────────────────── PLOTS ─────────────────────────────────────────────────
+int leadW = showLead ? 3 : 1
+
+p01 = plot(ma01, "MA 1",  color=showLead ? trendCol : color.new(trendCol, 30), linewidth=leadW)
+p02 = plot(ma02, "MA 2",  color=color.new(trendCol, 30), linewidth=1)
+p03 = plot(ma03, "MA 3",  color=color.new(trendCol, 40), linewidth=1)
+p04 = plot(ma04, "MA 4",  color=color.new(trendCol, 48), linewidth=1)
+p05 = plot(ma05, "MA 5",  color=color.new(trendCol, 54), linewidth=1)
+p06 = plot(ma06, "MA 6",  color=color.new(trendCol, 60), linewidth=1)
+p07 = plot(ma07, "MA 7",  color=color.new(trendCol, 65), linewidth=1)
+p08 = plot(ma08, "MA 8",  color=color.new(trendCol, 70), linewidth=1)
+p09 = plot(ma09, "MA 9",  color=color.new(trendCol, 74), linewidth=1)
+p10 = plot(ma10, "MA 10", color=color.new(trendCol, 78), linewidth=1)
+p11 = plot(ma11, "MA 11", color=color.new(trendCol, 82), linewidth=1)
+p12 = plot(ma12, "MA 12", color=color.new(trendCol, 86), linewidth=1)
+
+// Weave fill between fastest and a mid-ribbon filament
+fill(p01, p08, color=showFill ? color.new(trendCol, 88) : na, title="Weave Core Fill")
+
+// ──────────────────── SIGNAL DETECTION ───────────────────────────────────────
+float atrVal = nz(atrRef, 1)
+
+// Cooldown counters — prevent any signal from repeating within N bars of itself
+var int cdCross = 0
+var int cdTwist = 0
+var int cdSurge = 0
+var int cdFan   = 0
+var int cdSnap  = 0
+var int cdDrift = 0
+int CD_CROSS = 8
+int CD_TWIST = 10
+int CD_SURGE = 12
+int CD_FAN   = 10
+int CD_SNAP  = 8
+int CD_DRIFT = 15
+cdCross := math.max(0, cdCross - 1)
+cdTwist := math.max(0, cdTwist - 1)
+cdSurge := math.max(0, cdSurge - 1)
+cdFan   := math.max(0, cdFan   - 1)
+cdSnap  := math.max(0, cdSnap  - 1)
+cdDrift := math.max(0, cdDrift - 1)
+
+// Weave Cross — lead filament crosses anchor (core directional signal)
+bool bullCross = ta.crossover(fastest, slowest)  and barstate.isconfirmed and cdCross == 0
+bool bearCross = ta.crossunder(fastest, slowest) and barstate.isconfirmed and cdCross == 0
+
+// Momentum Surge — compression release into expansion (structural breakout)
+bool sqzRelease   = not isSqueeze and isSqueeze[1]
+bool surgeUp      = sqzRelease and spreadRoc > 0 and bullTrend and barstate.isconfirmed and cdSurge == 0
+bool surgeDn      = sqzRelease and spreadRoc > 0 and not bullTrend and barstate.isconfirmed and cdSurge == 0
+
+// Filament Fan — all filaments snap into perfect sequential order (trend confirmation)
+bool fanBull = alignPct >= 100 and nz(alignPct[1]) < 100 and bullTrend and barstate.isconfirmed and cdFan == 0
+bool fanBear = alignPct >= 100 and nz(alignPct[1]) < 100 and not bullTrend and barstate.isconfirmed and cdFan == 0
+
+// Twist Lock — ribbon inversion confirmed (edge-detected: fires only once per twist event)
+bool twistBullEdge = confirmedTwistBull and not confirmedTwistBull[1] and barstate.isconfirmed and cdTwist == 0
+bool twistBearEdge = confirmedTwistBear and not confirmedTwistBear[1] and barstate.isconfirmed and cdTwist == 0
+
+// Snap Recoil — price crosses ribbon midpoint against trend (mean reversion)
+// Requires minimum ribbon width to avoid noise in tight ranges
+float ribbonMid = (fastest + slowest) / 2
+bool snapBull   = ta.crossover(close, ribbonMid)  and not bullTrend and spreadN > 0.3 and barstate.isconfirmed and cdSnap == 0
+bool snapBear   = ta.crossunder(close, ribbonMid) and bullTrend and spreadN > 0.3 and barstate.isconfirmed and cdSnap == 0
+
+// Drift Fade — warning placed opposite to trend direction
+bool driftWarn = spreadPct <= 15 and nz(spreadPct[1]) > 15 and barstate.isconfirmed and cdDrift == 0
+
+// Arm cooldowns when signals fire
+if bullCross or bearCross
+    cdCross := CD_CROSS
+if surgeUp or surgeDn
+    cdSurge := CD_SURGE
+if fanBull or fanBear
+    cdFan := CD_FAN
+if twistBullEdge or twistBearEdge
+    cdTwist := CD_TWIST
+if snapBull or snapBear
+    cdSnap := CD_SNAP
+if driftWarn
+    cdDrift := CD_DRIFT
+
+// Global anti-overlap: only one label per bar (priority: Cross > Surge > Twist > Fan > Snap > Drift)
+bool barUsed = false
+
+bool doCross    = (bullCross or bearCross) and not barUsed
+bool doSurge    = (surgeUp or surgeDn) and not barUsed and not doCross
+bool doTwist    = (twistBullEdge or twistBearEdge) and not barUsed and not doCross and not doSurge
+bool doFan      = (fanBull or fanBear) and not barUsed and not doCross and not doSurge and not doTwist
+bool doSnap     = (snapBull or snapBear) and not barUsed and not doCross and not doSurge and not doTwist and not doFan
+bool doDrift    = driftWarn and not barUsed and not doCross and not doSurge and not doTwist and not doFan and not doSnap
+
+// ──────────────────── LABEL SIGNALS ─────────────────────────────────────────
+// Weave Cross — below/above price at ribbon edge
+if showCross and doCross and bullCross
+    label.new(bar_index, low - atrVal * 0.5, "IGNITE", style=label.style_label_up, color=color.new(colBullS, 10), textcolor=color.rgb(5, 20, 15), size=size.tiny, tooltip="Ascent cross — lead filament surged above anchor | Spread: " + str.tostring(spreadN, "#.##") + " | Align: " + str.tostring(alignPct, "#") + "%")
+if showCross and doCross and bearCross
+    label.new(bar_index, high + atrVal * 0.5, "QUENCH", style=label.style_label_down, color=color.new(colBearS, 10), textcolor=color.rgb(255, 240, 245), size=size.tiny, tooltip="Descent cross — lead filament dropped below anchor | Spread: " + str.tostring(spreadN, "#.##") + " | Align: " + str.tostring(alignPct, "#") + "%")
+
+// Twist Lock — further from price to avoid cross overlap
+if showTwistSig and doTwist and twistBullEdge
+    label.new(bar_index, low - atrVal * 1.0, "TWIST LOCK", style=label.style_label_up, color=color.new(colTwist, 10), textcolor=color.rgb(240, 235, 255), size=size.tiny, tooltip="Bullish twist confirmed — ribbon inversion sustained " + str.tostring(twistConf) + " bars | Phase: " + (rising ? "RISING" : "FADING"))
+if showTwistSig and doTwist and twistBearEdge
+    label.new(bar_index, high + atrVal * 1.0, "TWIST LOCK", style=label.style_label_down, color=color.new(colTwist, 10), textcolor=color.rgb(240, 235, 255), size=size.tiny, tooltip="Bearish twist confirmed — ribbon inversion sustained " + str.tostring(twistConf) + " bars | Phase: " + (falling ? "FALLING" : "FADING"))
+
+// Momentum Surge — furthest from price (structural breakout, high importance)
+if showSurgeSig and doSurge and surgeUp
+    label.new(bar_index, low - atrVal * 1.4, "SURGE", style=label.style_label_up, color=color.new(colSurge, 5), textcolor=color.rgb(0, 15, 30), size=size.tiny, tooltip="Bullish momentum surge — compression released into expansion | Force: " + strengthLabel + " " + str.tostring(spreadPct, "#") + "%")
+if showSurgeSig and doSurge and surgeDn
+    label.new(bar_index, high + atrVal * 1.4, "SURGE", style=label.style_label_down, color=color.new(colSurge, 5), textcolor=color.rgb(0, 15, 30), size=size.tiny, tooltip="Bearish momentum surge — compression released into expansion | Force: " + strengthLabel + " " + str.tostring(spreadPct, "#") + "%")
+
+// Filament Fan — near price (confirmation, subtle)
+if showFanSig and doFan and fanBull
+    label.new(bar_index, low - atrVal * 0.3, "FAN", style=label.style_label_up, color=color.new(colFan, 8), textcolor=color.rgb(0, 25, 10), size=size.tiny, tooltip="Bullish filament fan — all MAs in perfect ascending order | Morph: " + str.tostring(adaptMult, "#.##") + "x")
+if showFanSig and doFan and fanBear
+    label.new(bar_index, high + atrVal * 0.3, "FAN", style=label.style_label_down, color=color.new(colFan, 8), textcolor=color.rgb(0, 25, 10), size=size.tiny, tooltip="Bearish filament fan — all MAs in perfect descending order | Morph: " + str.tostring(adaptMult, "#.##") + "x")
+
+// Snap Recoil — mid distance (counter-trend, placed at ribbon midpoint zone)
+if showSnapSig and doSnap and snapBull
+    label.new(bar_index, low - atrVal * 0.7, "SNAP", style=label.style_label_up, color=color.new(colSurge, 25), textcolor=color.rgb(200, 245, 255), size=size.tiny, tooltip="Bullish snap recoil — price crossed ribbon midpoint against bearish trend | Spread: " + str.tostring(spreadN, "#.##"))
+if showSnapSig and doSnap and snapBear
+    label.new(bar_index, high + atrVal * 0.7, "SNAP", style=label.style_label_down, color=color.new(colBearS, 25), textcolor=color.rgb(255, 220, 230), size=size.tiny, tooltip="Bearish snap recoil — price crossed ribbon midpoint against bullish trend | Spread: " + str.tostring(spreadN, "#.##"))
+
+// Drift Fade — warning placed opposite to trend direction
+if showDriftSig and doDrift
+    color driftCol = bullTrend ? color.new(colBullW, 20) : color.new(colBearW, 20)
+    label.new(bar_index, bullTrend ? high + atrVal * 0.5 : low - atrVal * 0.5, "DRIFT", style=bullTrend ? label.style_label_down : label.style_label_up, color=driftCol, textcolor=color.rgb(180, 175, 160), size=size.tiny, tooltip="Drift fade — trend force decayed to dormant (" + str.tostring(spreadPct, "#") + "%) | Weave losing conviction")
+
+// ──────────────────── COMMAND PANEL (DASHBOARD) ───────────────────────────
+color dashBg   = color.rgb(8, 8, 22, 5)
+color dashBord = color.rgb(40, 40, 65)
+color dashLbl  = color.rgb(140, 145, 175)
+color dashDim  = color.rgb(85, 88, 110)
+
+var table htwDash = table.new(position.top_right, 2, 12, bgcolor=dashBg, border_color=dashBord, border_width=1, frame_width=1, frame_color=dashBord)
+
+if showDash and barstate.islast
+    string tDir = bullTrend ? "ASCENT" : "DESCENT"
+    // Row 0 — Title
+    table.cell(htwDash, 0, 0, "HTW [JOAT]",   text_color=trendCol, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 0, tDir,             text_color=trendCol, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 1 — Phase
+    string phaseStr = bullTrend and rising ? "DOMINANT RISE" : bullTrend and not rising ? "FADING RISE" : not bullTrend and falling ? "DOMINANT FALL" : "FADING FALL"
+    color phaseCol = bullTrend and rising ? colBullS : bullTrend and not rising ? colBullW : not bullTrend and falling ? colBearS : colBearW
+    table.cell(htwDash, 0, 1, "PHASE",         text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 1, phaseStr,         text_color=phaseCol, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 2 — Strength
+    color forceCol = spreadPct > 70 ? colBullS : spreadPct > 30 ? colSurge : colBearW
+    table.cell(htwDash, 0, 2, "FORCE",         text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 2, strengthLabel + " " + str.tostring(spreadPct, "#") + "%", text_color=forceCol, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 3 — Spread
+    table.cell(htwDash, 0, 3, "APERTURE",      text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 3, str.tostring(spreadN, "#.##") + " (" + spreadDir + ")", text_color=spreadRoc > 0 ? colFan : spreadRoc < 0 ? colBearS : dashDim, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 4 — Alignment
+    table.cell(htwDash, 0, 4, "ALIGNMENT",     text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    color alCol = alignPct >= 100 ? colFan : alignPct >= 50 ? colSurge : dashDim
+    table.cell(htwDash, 1, 4, alignLabel + " " + str.tostring(alignPct, "#") + "%", text_color=alCol, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 5 — Morphic multiplier
+    color morphCol = adaptMult > 1.5 ? colSqz : adaptMult < 0.7 ? colSurge : dashDim
+    table.cell(htwDash, 0, 5, "MORPH",         text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 5, str.tostring(adaptMult, "#.##") + "x", text_color=morphCol, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 6 — Compression
+    table.cell(htwDash, 0, 6, "COMPRESS",      text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 6, isSqueeze ? "ACTIVE" : "NONE", text_color=isSqueeze ? colSqz : dashDim, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 7 — Filament config
+    table.cell(htwDash, 0, 7, "WEAVE",         text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 7, maType + " x" + str.tostring(ribbonN), text_color=dashDim, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 8 — Vol regime
+    table.cell(htwDash, 0, 8, "VOL REG",       text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 8, str.tostring(volReg, "#.##"), text_color=volReg > 1.2 ? colSqz : volReg < 0.8 ? colSurge : dashDim, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 9 — Ribbon midpoint
+    table.cell(htwDash, 0, 9, "MIDPOINT",      text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    string midRel = close > ribbonMid ? "ABOVE" : "BELOW"
+    color midCol = close > ribbonMid ? colBullS : colBearS
+    table.cell(htwDash, 1, 9, midRel + " " + str.tostring(ribbonMid, "#.##"), text_color=midCol, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 10 — Lead period
+    table.cell(htwDash, 0, 10, "LEAD PER",     text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 10, str.tostring(per01), text_color=colSurge, text_size=size.small, text_font_family=font.family_monospace)
+    // Row 11 — Anchor period
+    table.cell(htwDash, 0, 11, "ANCHOR PER",   text_color=dashLbl, text_size=size.small, text_font_family=font.family_monospace)
+    table.cell(htwDash, 1, 11, str.tostring(ribbonN >= 12 ? per12 : ribbonN >= 8 ? per08 : per04), text_color=colTwist, text_size=size.small, text_font_family=font.family_monospace)
+
+// ──────────────────── ALERTS ────────────────────────────────────────────────
+alertcondition(bullCross,              title="Ascent Cross",         message="HTW: Weave turned bullish — lead filament crossed above anchor")
+alertcondition(bearCross,              title="Descent Cross",        message="HTW: Weave turned bearish — lead filament crossed below anchor")
+alertcondition(twistBullEdge,          title="Bull Twist Confirmed", message="HTW: Bullish twist confirmed — ribbon inversion sustained")
+alertcondition(twistBearEdge,          title="Bear Twist Confirmed", message="HTW: Bearish twist confirmed — ribbon inversion sustained")
+alertcondition(isSqueeze and not isSqueeze[1], title="Compression Onset",   message="HTW: Ribbon compression detected")
+alertcondition(not isSqueeze and isSqueeze[1], title="Compression Release", message="HTW: Ribbon compression released — expansion beginning")
+alertcondition(alignPct >= 100 and nz(alignPct[1]) < 100, title="Full Alignment", message="HTW: All filaments in perfect sequential alignment")
+alertcondition(surgeUp or surgeDn,     title="Momentum Surge",      message="HTW: Momentum surge — compression released into rapid expansion")
+alertcondition(fanBull or fanBear,     title="Filament Fan",         message="HTW: Filament fan — all MAs achieved perfect sequential order")
+alertcondition(snapBull or snapBear,   title="Snap Recoil",          message="HTW: Snap recoil — price crossed ribbon midpoint against trend")
+alertcondition(driftWarn,              title="Drift Fade",            message="HTW: Drift fade — trend force decayed to dormant level")
+// ══════════════════════════════════════════════════════════════════════════════
+`
+    },
+    {
+        id: 'ga-algo-trend-system-tg',
+        name: 'GreyAlpha Algo Trend System TG',
+        description: 'Advanced trend engine with EMA cloud, Supertrend, fixed dollar SL/TP levels, and multi-channel Telegram integration. [GREYALPHA]',
+        type: 'Indicator',
+        platform: 'TradingView',
+        version: 'v1.0',
+        code: `//@version=5
+indicator("Algo Trend System TG", overlay=true, max_lines_count=50, max_labels_count=50)
+
+// ==========================================
+// 1. SETTINGS & INPUTS
+// ==========================================
+atrPeriod = input.int(10, "ATR Period for Trend Calculation")
+factor = input.float(3.0, "Trend Sensitivity Factor", step=0.1)
+cloudFast = input.int(50, "Cloud Fast EMA")
+cloudSlow = input.int(150, "Cloud Slow EMA")
+
+// Fixed Dollar Distance Settings
+sl_dist  = input.float(20.0, "Stop Loss Distance ($)") 
+tp1_dist = input.float(10.0, "TP 1 Distance ($)")
+tp2_dist = input.float(20.0, "TP 2 Distance ($)")
+tp3_dist = input.float(30.0, "TP 3 Distance ($)")
+
+// --- Telegram Settings (Supports up to 5 Groups) ---
+useChat1 = input.bool(false, "Use Chat 1 (Optional)", group="Telegram Settings")
+chatID1  = input.string("", "Telegram Chat ID 1", group="Telegram Settings")
+
+useChat2 = input.bool(false, "Use Chat 2 (Optional)", group="Telegram Settings")
+chatID2  = input.string("", "Telegram Chat ID 2", group="Telegram Settings")
+
+useChat3 = input.bool(false, "Use Chat 3 (Optional)", group="Telegram Settings")
+chatID3  = input.string("", "Telegram Chat ID 3", group="Telegram Settings")
+
+useChat4 = input.bool(false, "Use Chat 4 (Optional)", group="Telegram Settings")
+chatID4  = input.string("", "Telegram Chat ID 4", group="Telegram Settings")
+
+useChat5 = input.bool(false, "Use Chat 5 (Optional)", group="Telegram Settings")
+chatID5  = input.string("", "Telegram Chat ID 5", group="Telegram Settings")
+
+// Telegram Broadcast Function (Fires dynamically for all enabled chats)
+sendTelegramAlerts(string alertText) =>
+    if useChat1 and chatID1 != ""
+        alert('{"chat_id": "' + chatID1 + '", "text": "' + alertText + '"}', alert.freq_once_per_bar_close)
+    if useChat2 and chatID2 != ""
+        alert('{"chat_id": "' + chatID2 + '", "text": "' + alertText + '"}', alert.freq_once_per_bar_close)
+    if useChat3 and chatID3 != ""
+        alert('{"chat_id": "' + chatID3 + '", "text": "' + alertText + '"}', alert.freq_once_per_bar_close)
+    if useChat4 and chatID4 != ""
+        alert('{"chat_id": "' + chatID4 + '", "text": "' + alertText + '"}', alert.freq_once_per_bar_close)
+    if useChat5 and chatID5 != ""
+        alert('{"chat_id": "' + chatID5 + '", "text": "' + alertText + '"}', alert.freq_once_per_bar_close)
+
+// --- Time Filter Settings ---
+useTimeFilter = input.bool(true, "Use Time Filters for Trading", group="Time Filters")
+session1 = input.session("2100-0700", "Trading Session 1", group="Time Filters") 
+session2 = input.session("0925-1255", "Trading Session 2", group="Time Filters")
+tz = input.string("America/New_York", "Timezone (America/New_York handles UTC-4/UTC-5)", group="Time Filters")
+
+// --- Dashboard Settings ---
+useDateFilter = input.bool(true, "Use Date Filter for Dashboard Stats", group="Dashboard Settings")
+startDate     = input.time(timestamp("2022-01-01T00:00:00"), "Start Date", group="Dashboard Settings")
+endDate       = input.time(timestamp("2030-01-01T00:00:00"), "End Date", group="Dashboard Settings")
+closing_tp    = input.string("TP3", "Final Take Profit (Win Condition)", options=["TP1", "TP2", "TP3"], group="Dashboard Settings", tooltip="Select which TP target signifies the end of a successful trade. Once hit, the trade is marked as a WIN and tracking visually stops.")
+
+// --- Visual Toggles ---
+show_tp1 = input.bool(true, "Show TP1 on Chart", group="Visual Settings")
+show_tp2 = input.bool(true, "Show TP2 on Chart", group="Visual Settings")
+show_tp3 = input.bool(true, "Show TP3 on Chart", group="Visual Settings")
+
+// Colors to match the screenshot
+colorUp = color.new(#00e676, 0) // Bright Green
+colorDn = color.new(#ff1744, 0) // Bright Red
+cloudUp = color.new(#00e676, 85) // Transparent Green
+cloudDn = color.new(#ff1744, 85) // Transparent Red
+
+// ==========================================
+// 2. CORE TREND ENGINE (Supertrend & Cloud)
+// ==========================================
+[supertrend, direction] = ta.supertrend(factor, atrPeriod)
+trendColor = direction < 0 ? colorUp : colorDn
+
+// Stepped Trailing Line plot
+plot(supertrend, title="Trailing Line", color=trendColor, linewidth=2, style=plot.style_stepline)
+
+// EMA Cloud
+emaF = ta.ema(close, cloudFast)
+emaS = ta.ema(close, cloudSlow)
+p1 = plot(emaF, title="EMA Fast", color=color.new(color.gray, 100))
+p2 = plot(emaS, title="EMA Slow", color=color.new(color.gray, 100))
+fillColor = emaF > emaS ? cloudUp : cloudDn
+fill(p1, p2, title="Trend Cloud", color=fillColor)
+
+// ==========================================
+// 3. SIGNALS, METRICS & TARGET CALCULATIONS
+// ==========================================
+// --- Time Filter Logic ---
+inSession(sess) =>
+    not na(time(timeframe.period, sess, tz))
+
+inAllowedTime = not useTimeFilter or inSession(session1) or inSession(session2)
+
+// Variables for keeping Target Levels & Trade State Tracker
+var float entryPrice = na
+var float stopLoss = na
+var float tp1 = na
+var float tp2 = na
+var float tp3 = na
+var float finalTPTarget = na // The one that officially decides Win logic
+
+var bool inTrade = false
+var int tradeDirection = 0 // 1 = Long, -1 = Short, 0 = Flat
+
+// --- Dashboard Statistical Variables ---
+var int totalTrades = 0
+var int buyTrades = 0
+var int sellTrades = 0
+var int closedTrades = 0
+var int winningTrades = 0
+var bool trackCurrentTrade = false
+
+// Monitor active trade to check if SL or our chosen final TP has been hit
+if inTrade
+    if tradeDirection == 1
+        if low <= stopLoss // Hit SL -> Loss
+            inTrade := false
+            tradeDirection := 0
+            if trackCurrentTrade
+                closedTrades += 1
+        else if high >= finalTPTarget // Hit Chosen TP target -> Win
+            inTrade := false
+            tradeDirection := 0
+            if trackCurrentTrade
+                winningTrades += 1
+                closedTrades += 1
+                
+    else if tradeDirection == -1
+        if high >= stopLoss // Hit SL -> Loss
+            inTrade := false
+            tradeDirection := 0
+            if trackCurrentTrade
+                closedTrades += 1
+        else if low <= finalTPTarget // Hit Chosen TP target -> Win
+            inTrade := false
+            tradeDirection := 0
+            if trackCurrentTrade
+                winningTrades += 1
+                closedTrades += 1
+
+// Validation to check if the current bar is inside the set Date Range for dashboard metrics
+inDateRange = not useDateFilter or (time >= startDate and time <= endDate)
+
+// Raw Signal Filters
+rawBuySignal = ta.crossunder(direction, 0) and (emaF > emaS) and inAllowedTime
+rawSellSignal = ta.crossover(direction, 0) and (emaF < emaS) and inAllowedTime
+
+// Filter signals based on current state (prevent consecutive same-directional trades)
+buySignal = rawBuySignal and tradeDirection != 1
+sellSignal = rawSellSignal and tradeDirection != -1
+
+// Update Levels and Metrics when a new filtered signal hits
+if buySignal
+    entryPrice := close
+    stopLoss := close - sl_dist 
+    tp1 := entryPrice + tp1_dist
+    tp2 := entryPrice + tp2_dist
+    tp3 := entryPrice + tp3_dist
+    
+    // Assign the tracking target value based on dropdown choice
+    finalTPTarget := closing_tp == "TP1" ? tp1 : closing_tp == "TP2" ? tp2 : tp3
+    
+    inTrade := true
+    tradeDirection := 1
+    
+    // Register Statistical Trackers (Only if within selected timeline)
+    if inDateRange
+        totalTrades += 1
+        buyTrades += 1
+        trackCurrentTrade := true
+    else
+        trackCurrentTrade := false
+        
+    // Telegram Alert Trigger (Fires Broadcast Function)
+    alertText = "PAIR : " + syminfo.ticker + "\\nBUY NOW " + str.tostring(entryPrice, "#.##") + "\\nSL " + str.tostring(stopLoss, "#.##") + "\\nTP1 " + str.tostring(tp1, "#.##") + "\\nTP2 " + str.tostring(tp2, "#.##") + "\\nTP3 " + str.tostring(tp3, "#.##")
+    sendTelegramAlerts(alertText)
+
+if sellSignal
+    entryPrice := close
+    stopLoss := close + sl_dist // Stop loss above entry
+    tp1 := entryPrice - tp1_dist
+    tp2 := entryPrice - tp2_dist
+    tp3 := entryPrice - tp3_dist
+    
+    // Assign the tracking target value based on dropdown choice
+    finalTPTarget := closing_tp == "TP1" ? tp1 : closing_tp == "TP2" ? tp2 : tp3
+    
+    inTrade := true
+    tradeDirection := -1
+    
+    // Register Statistical Trackers (Only if within selected timeline)
+    if inDateRange
+        totalTrades += 1
+        sellTrades += 1
+        trackCurrentTrade := true
+    else
+        trackCurrentTrade := false
+        
+    // Telegram Alert Trigger (Fires Broadcast Function)
+    alertText = "PAIR : " + syminfo.ticker + "\\nSELL NOW " + str.tostring(entryPrice, "#.##") + "\\nSL " + str.tostring(stopLoss, "#.##") + "\\nTP1 " + str.tostring(tp1, "#.##") + "\\nTP2 " + str.tostring(tp2, "#.##") + "\\nTP3 " + str.tostring(tp3, "#.##")
+    sendTelegramAlerts(alertText)
+
+// Plot the Smart Buy/Sell Labels
+plotshape(buySignal, title="Buy Signal", style=shape.labelup, location=location.belowbar, color=colorUp, text="+SMART\\nBUY", textcolor=color.black, size=size.small)
+plotshape(sellSignal, title="Sell Signal", style=shape.labeldown, location=location.abovebar, color=colorDn, text="+SMART\\nSELL", textcolor=color.white, size=size.small)
+
+// ==========================================
+// 4. DRAWING THE LEVELS (TP/SL/Entry Lines)
+// ==========================================
+var line l_entry = na
+var line l_sl = na
+var line l_tp1 = na
+var line l_tp2 = na
+var line l_tp3 = na
+
+var label lb_entry = na
+var label lb_sl = na
+var label lb_tp1 = na
+var label lb_tp2 = na
+var label lb_tp3 = na
+
+if (buySignal or sellSignal)
+    // Clear old drawings safely
+    line.delete(l_entry), line.delete(l_sl), line.delete(l_tp1), line.delete(l_tp2), line.delete(l_tp3)
+    label.delete(lb_entry), label.delete(lb_sl), label.delete(lb_tp1), label.delete(lb_tp2), label.delete(lb_tp3)
+
+    // Draw Core structural lines extending to the right
+    l_entry := line.new(bar_index, entryPrice, bar_index + 15, entryPrice, color=color.orange, style=line.style_dashed)
+    l_sl := line.new(bar_index, stopLoss, bar_index + 15, stopLoss, color=color.red, style=line.style_solid)
+    
+    lb_entry := label.new(bar_index + 15, entryPrice, "ENTRY : " + str.tostring(math.round(entryPrice, 2)), color=color.orange, textcolor=color.black, style=label.style_label_left, size=size.normal)
+    lb_sl := label.new(bar_index + 15, stopLoss, "SL : " + str.tostring(math.round(stopLoss, 2)), color=color.red, textcolor=color.white, style=label.style_label_left, size=size.normal)
+
+    // Draw TP visual targets based on toggle options
+    if show_tp1
+        l_tp1 := line.new(bar_index, tp1, bar_index + 15, tp1, color=color.green, style=line.style_dashed)
+        lb_tp1 := label.new(bar_index + 15, tp1, "TP 1 : " + str.tostring(math.round(tp1, 2)), color=colorUp, textcolor=color.black, style=label.style_label_left, size=size.normal)
+    if show_tp2
+        l_tp2 := line.new(bar_index, tp2, bar_index + 15, tp2, color=color.green, style=line.style_dashed)
+        lb_tp2 := label.new(bar_index + 15, tp2, "TP 2 : " + str.tostring(math.round(tp2, 2)), color=colorUp, textcolor=color.black, style=label.style_label_left, size=size.normal)
+    if show_tp3
+        l_tp3 := line.new(bar_index, tp3, bar_index + 15, tp3, color=color.green, style=line.style_dashed)
+        lb_tp3 := label.new(bar_index + 15, tp3, "TP 3 : " + str.tostring(math.round(tp3, 2)), color=colorUp, textcolor=color.black, style=label.style_label_left, size=size.normal)
+
+// Continuously shift the right anchor of all visible lines and labels forward 
+// Drawing progression stops automatically when Trade reaches SL or Chosen Final TP setting (inTrade == false)
+if barstate.islast and inTrade
+    line.set_x2(l_entry, bar_index + 15), line.set_x2(l_sl, bar_index + 15)
+    label.set_x(lb_entry, bar_index + 15), label.set_x(lb_sl, bar_index + 15)
+    
+    if show_tp1
+        line.set_x2(l_tp1, bar_index + 15)
+        label.set_x(lb_tp1, bar_index + 15)
+    if show_tp2
+        line.set_x2(l_tp2, bar_index + 15)
+        label.set_x(lb_tp2, bar_index + 15)
+    if show_tp3
+        line.set_x2(l_tp3, bar_index + 15)
+        label.set_x(lb_tp3, bar_index + 15)
+
+// ==========================================
+// 5. DASHBOARD (Right Side Strategy Metrics)
+// ==========================================
+var table dashInfo = table.new(position.top_right, 2, 6, bgcolor=color.new(color.black, 85), border_width=1, border_color=color.gray)
+
+if barstate.islast
+    // Calculate Win Rate (Safecatch for dividing by zero)
+    winRate = closedTrades > 0 ? (winningTrades / closedTrades) * 100 : 0
+    
+    // Format Display Text for the date so it dynamically updates when you change it
+    dateDisplay = useDateFilter ? str.format("{0,date,yyyy.MM.dd}", startDate) : "All Time"
+    
+    // Header
+    table.cell(dashInfo, 0, 0, "Stats Timeline", text_color=color.white, text_halign=text.align_left)
+    table.cell(dashInfo, 1, 0, "Since " + dateDisplay, text_color=color.orange, text_halign=text.align_right)
+    
+    // Data Rows
+    table.cell(dashInfo, 0, 1, "Total Trades", text_color=color.gray, text_halign=text.align_left)
+    table.cell(dashInfo, 1, 1, str.tostring(totalTrades), text_color=color.white, text_halign=text.align_right)
+    
+    table.cell(dashInfo, 0, 2, "Buy Trades", text_color=color.gray, text_halign=text.align_left)
+    table.cell(dashInfo, 1, 2, str.tostring(buyTrades), text_color=colorUp, text_halign=text.align_right)
+    
+    table.cell(dashInfo, 0, 3, "Sell Trades", text_color=color.gray, text_halign=text.align_left)
+    table.cell(dashInfo, 1, 3, str.tostring(sellTrades), text_color=colorDn, text_halign=text.align_right)
+    
+    table.cell(dashInfo, 0, 4, "Closed Trades", text_color=color.gray, text_halign=text.align_left)
+    table.cell(dashInfo, 1, 4, str.tostring(closedTrades), text_color=color.white, text_halign=text.align_right)
+    
+    // Win Rate dynamically reflects whatever Closing target is set in inputs
+    table.cell(dashInfo, 0, 5, "Win Rate (Hits " + closing_tp + ")", text_color=color.gray, text_halign=text.align_left)
+    table.cell(dashInfo, 1, 5, str.tostring(math.round(winRate, 2)) + "%", text_color=winRate >= 50 ? colorUp : colorDn, text_halign=text.align_right)
+`
     }
 ];
 

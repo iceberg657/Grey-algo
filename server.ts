@@ -533,12 +533,12 @@ async function startServer() {
   });
 
   app.get('/api/twelvedata/quote', async (req, res) => {
-    const { symbol, interval = '15min' } = req.query;
+    const { symbol, interval = '15min', apikey } = req.query;
     if (!symbol || typeof symbol !== 'string') {
       return res.status(400).json({ error: 'Missing symbol' });
     }
 
-    const apiKey = process.env.TWELVE_DATA_API_KEY || 
+    const apiKey = apikey || process.env.TWELVE_DATA_API_KEY || 
                    process.env.VITE_TWELVE_DATA_API_KEY || 
                    process.env.TWELVEDATA_API_KEY || 
                    process.env.VITE_TWELVEDATA_API_KEY;
@@ -610,6 +610,32 @@ async function startServer() {
     } catch (error) {
       console.error('Error fetching Twelve Data:', error);
       res.status(500).json({ error: 'Failed to fetch from Twelve Data' });
+    }
+  });
+
+  app.get('/api/twelvedata/status', async (req, res) => {
+    const apiKey = process.env.TWELVE_DATA_API_KEY || 
+                   process.env.VITE_TWELVE_DATA_API_KEY || 
+                   process.env.TWELVEDATA_API_KEY || 
+                   process.env.VITE_TWELVEDATA_API_KEY;
+                   
+    if (!apiKey) {
+      return res.json({ configured: false, valid: false });
+    }
+
+    try {
+      // Test the key with a lightweight request
+      const response = await fetch(`https://api.twelvedata.com/quote?symbol=AAPL&apikey=${apiKey}`);
+      const data = await response.json();
+      
+      if (data.status === 'error') {
+        return res.json({ configured: true, valid: false, error: data.message });
+      }
+      
+      return res.json({ configured: true, valid: true });
+    } catch (error) {
+      console.error('Error checking Twelve Data status:', error);
+      return res.status(500).json({ error: 'Failed to check status' });
     }
   });
 

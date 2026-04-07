@@ -438,10 +438,10 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <div className="bg-green-500/10 dark:bg-green-500/20 backdrop-blur-xl rounded-2xl border border-green-500/30 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1 h-full bg-green-500"></div>
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-sm font-black text-green-600 dark:text-green-400 uppercase tracking-widest">BUY CONDITIONS</h3>
+                                <h3 className="text-sm font-black text-green-600 dark:text-green-400 uppercase tracking-widest">BUY CONDITIONS <span className="text-xs font-normal normal-case opacity-75">(only if continuation is confirmed)</span></h3>
                                 <button 
                                     onClick={() => {
-                                        const text = `BUY CONDITIONS:\n${(data.neutralConditions?.buyConditions || []).map(c => `- ${c}`).join('\n')}\n\nExample Setup:\nAsset: ${data.neutralConditions?.buySetupExample?.asset || 'N/A'}\nSignal: BUY\nEntry: ${data.neutralConditions?.buySetupExample?.entry || 'N/A'}\nSL: ${data.neutralConditions?.buySetupExample?.sl || 'N/A'}\nTP1: ${data.neutralConditions?.buySetupExample?.tp1 || 'N/A'}\nTP2: ${data.neutralConditions?.buySetupExample?.tp2 || 'N/A'}\nTP3: ${data.neutralConditions?.buySetupExample?.tp3 || 'N/A'}\nType: ${data.neutralConditions?.buySetupExample?.type || 'N/A'}\nLot Size: ${data.neutralConditions?.buySetupExample?.lotSize || 'N/A'}`;
+                                        const text = `BUY CONDITIONS (only if continuation is confirmed)\nYour app should switch to BUY only when:\n${(data.neutralConditions?.buyConditions || []).map(c => `- ${c}`).join('\n')}\n\nExample Setup\nAsset: ${data.neutralConditions?.buySetupExample?.asset || 'N/A'}\nSignal: BUY\nEntry: ${data.neutralConditions?.buySetupExample?.entry || 'N/A'}\nSL: ${data.neutralConditions?.buySetupExample?.sl || 'N/A'}\nTP1: ${data.neutralConditions?.buySetupExample?.tp1 || 'N/A'}\nTP2: ${data.neutralConditions?.buySetupExample?.tp2 || 'N/A'}\nTP3: ${data.neutralConditions?.buySetupExample?.tp3 || 'N/A'}\nType: ${data.neutralConditions?.buySetupExample?.type || 'N/A'}\nLot Size: ${data.neutralConditions?.buySetupExample?.lotSize || 'N/A'}`;
                                         navigator.clipboard.writeText(text);
                                         // Optional: Add a toast notification here
                                     }}
@@ -478,10 +478,10 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <div className="bg-red-500/10 dark:bg-red-500/20 backdrop-blur-xl rounded-2xl border border-red-500/30 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
                             <div className="absolute top-0 left-0 w-1 h-full bg-red-500"></div>
                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-widest">SELL CONDITIONS</h3>
+                                <h3 className="text-sm font-black text-red-600 dark:text-red-400 uppercase tracking-widest">SELL CONDITIONS <span className="text-xs font-normal normal-case opacity-75">(higher probability based on H4 bias)</span></h3>
                                 <button 
                                     onClick={() => {
-                                        const text = `SELL CONDITIONS:\n${(data.neutralConditions?.sellConditions || []).map(c => `- ${c}`).join('\n')}\n\nExample Setup:\nAsset: ${data.neutralConditions?.sellSetupExample?.asset || 'N/A'}\nSignal: SELL\nEntry: ${data.neutralConditions?.sellSetupExample?.entry || 'N/A'}\nSL: ${data.neutralConditions?.sellSetupExample?.sl || 'N/A'}\nTP1: ${data.neutralConditions?.sellSetupExample?.tp1 || 'N/A'}\nTP2: ${data.neutralConditions?.sellSetupExample?.tp2 || 'N/A'}\nTP3: ${data.neutralConditions?.sellSetupExample?.tp3 || 'N/A'}\nType: ${data.neutralConditions?.sellSetupExample?.type || 'N/A'}\nLot Size: ${data.neutralConditions?.sellSetupExample?.lotSize || 'N/A'}`;
+                                        const text = `SELL CONDITIONS (higher probability based on H4 bias)\nYour app should switch to SELL when:\n${(data.neutralConditions?.sellConditions || []).map(c => `- ${c}`).join('\n')}\n\nExample Setup\nAsset: ${data.neutralConditions?.sellSetupExample?.asset || 'N/A'}\nSignal: SELL\nEntry: ${data.neutralConditions?.sellSetupExample?.entry || 'N/A'}\nSL: ${data.neutralConditions?.sellSetupExample?.sl || 'N/A'}\nTP1: ${data.neutralConditions?.sellSetupExample?.tp1 || 'N/A'}\nTP2: ${data.neutralConditions?.sellSetupExample?.tp2 || 'N/A'}\nTP3: ${data.neutralConditions?.sellSetupExample?.tp3 || 'N/A'}\nType: ${data.neutralConditions?.sellSetupExample?.type || 'N/A'}\nLot Size: ${data.neutralConditions?.sellSetupExample?.lotSize || 'N/A'}`;
                                         navigator.clipboard.writeText(text);
                                     }}
                                     className="text-xs bg-red-500/20 hover:bg-red-500/30 text-red-600 dark:text-red-400 px-3 py-1 rounded-full font-bold transition-colors"
@@ -754,7 +754,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
 
             {/* TWELVE DATA CONFLUENCE SECTION */}
             <Section title="Twelve Data Market Analysis" delay="1060ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}>
-                {data.twelveDataQuote ? (
+                {data.twelveDataQuote && !data.twelveDataQuote.error ? (
                     <div className="bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-xl rounded-2xl border border-blue-500/30 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                         <div className="flex items-start gap-4">
                             <span className="text-blue-600 dark:text-blue-400 flex-shrink-0 font-mono font-black text-lg">[LIVE DATA]</span>
@@ -854,7 +854,9 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     <div className="bg-red-500/10 dark:bg-red-500/20 backdrop-blur-xl rounded-2xl border border-red-500/30 p-8 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] flex items-center justify-center">
                         <div className="text-center">
                             <span className="text-4xl font-black text-red-500/50 block mb-2">N/A</span>
-                            <span className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-[0.3em]">Twelve Data Not Utilized</span>
+                            <span className="text-[10px] font-black text-red-600 dark:text-red-400 uppercase tracking-[0.3em]">
+                                {data.twelveDataQuote?.error ? `Twelve Data Error: ${data.twelveDataQuote.error}` : 'Twelve Data Not Utilized'}
+                            </span>
                         </div>
                     </div>
                 )}

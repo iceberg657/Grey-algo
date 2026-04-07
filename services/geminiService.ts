@@ -44,7 +44,7 @@ You MUST prioritize these lessons to avoid repeating past mistakes and to replic
 ${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
 
-  const twelveDataContext = twelveDataQuote ? `
+  const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
 📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
 Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
 - Symbol: ${twelveDataQuote.symbol}
@@ -219,7 +219,6 @@ ${tradeModeInstructions}
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
 1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY, SELL, or NEUTRAL. If the signal is NEUTRAL, you MUST explain why the market is currently indecisive (e.g., ranging, waiting for news, or lack of confluence). 
    - **BIAS OVER NEUTRALITY:** If a clear trend bias exists (UP or DOWN), prioritize a directional signal (BUY/SELL) over NEUTRAL, even if some secondary confluences are missing. Only use NEUTRAL if the market is truly directionless or extremely high-risk news is imminent.
-   - For NEUTRAL signals, do NOT provide a single specific trade setup; instead, provide key levels to watch for potential breakouts in either direction.
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
@@ -349,8 +348,23 @@ ${ALGO_LOGIC}
 6. **NEUTRAL SIGNAL PROTOCOL:**
    - If the market is choppy, unclear, or lacks a high-probability setup, you MUST issue a **NEUTRAL** signal.
    - When issuing a NEUTRAL signal, you MUST provide **Conditional Setups** for both BUY and SELL scenarios using the \`neutralConditions\` JSON field.
-   - Outline the exact conditions (e.g., BOS, CHoCH, specific price levels) that would trigger a valid BUY or SELL.
-   - Provide a complete **Example Setup** for both the potential BUY and SELL scenarios.
+   - For \`buyConditions\`, use this format/logic:
+     - M5 or M15 Break of Structure (BOS)
+     - Strong close above [Key Level]
+     - Pullback into FVG / Demand
+     - Price retraces after breakout (don’t chase)
+     - Respect + Rejection
+     - Wicks + bullish candle from zone
+   - For \`sellConditions\`, use this format/logic:
+     - Rejection at [Key Level] zone
+     - Long wicks / weak bullish candles
+     - M5 CHoCH (Change of Character)
+     - First lower low after bullish move
+     - Break below minor structure (~[Minor Level])
+     - Entry at supply / FVG
+   - Provide a complete **Example Setup** for both the potential BUY and SELL scenarios in the \`buySetupExample\` and \`sellSetupExample\` fields.
+   - Ensure the example setups include Asset, Signal, Entry, SL, TP1, TP2, TP3, Type (e.g., Breakout Continuation, Reversal / Supply Rejection), and Lot Size (e.g., 1-2% risk).
+   - **CRITICAL:** If you output "signal": "NEUTRAL", you MUST populate the "neutralConditions" object with both "buyConditions" and "sellConditions", and provide both "buySetupExample" and "sellSetupExample". DO NOT LEAVE THEM EMPTY.
 
 ---
 
@@ -1006,7 +1020,7 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
 
         const response = await executeLaneCall<GenerateContentResponse>(async (apiKey) => {
             return await runWithModelFallback<GenerateContentResponse>(
-                ['gemini-3-flash-preview', 'gemini-3.1-pro-preview'],
+                ['gemini-3.1-flash-lite-preview', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview'],
                 async (modelId) => {
                     const config = { temperature: 0.1 };
                     try {

@@ -90,8 +90,8 @@ const K = {
 // Models: 3.0 Flash -> 3.1 Flash Lite -> 3.0 Pro -> 2.5 Flash -> 2.0 Flash
 export const getAnalysisPool = () => [K.K1(), K.K2(), K.K3(), K.K4()].filter(k => !!k);
 export const ANALYSIS_MODELS = [
-    'gemini-3.1-pro-preview',
     'gemini-3.1-flash-lite-preview',
+    'gemini-3.1-pro-preview',
     'gemini-3-flash-preview',
     'gemini-3-pro-preview',
     'gemini-2.5-flash',
@@ -109,12 +109,13 @@ export const CHAT_MODELS = [
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
-// Models: 2.5 Flash -> Lite -> 3.1 Flash Lite -> 2.0
+// Models: 3.1 Flash Lite -> 3.1 Pro -> 2.5 Flash -> 2.0
 export const getSuggestionPool = () => [K.K6()].filter(k => !!k);
 export const SUGGESTION_MODELS = [
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3.1-pro-preview',
     'gemini-2.5-flash',
     'gemini-flash-lite-latest',
-    'gemini-3.1-flash-lite-preview',
     'gemini-2.0-flash'
 ];
 
@@ -123,8 +124,8 @@ export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
 export const getSuggestionStructurePool = () => getChatPool(); // Global Market uses Chat Pool (K5) to save other keys
 
 export const LANE_2_MODELS = [
-    'gemini-2.5-flash',
     'gemini-3.1-flash-lite-preview',
+    'gemini-2.5-flash',
     'gemini-flash-lite-latest'
 ];
 

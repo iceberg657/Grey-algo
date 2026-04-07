@@ -56,45 +56,50 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         const localKey = userSettings?.twelveDataApiKey;
 
         if (localKey && localKey.length > 10) {
-            // If we have a local key, call Twelve Data directly from the client in parallel
-            // This maintains the same confluence as the backend proxy
-            const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
-                fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`),
-                fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
-                fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
-                fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
-                fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
-                fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`)
-            ]);
+            try {
+                // If we have a local key, call Twelve Data directly from the client in parallel
+                // This maintains the same confluence as the backend proxy
+                const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
+                    fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`),
+                    fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
+                    fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
+                    fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
+                    fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
+                    fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`)
+                ]);
 
-            if (quoteRes.ok) {
-                const quoteData = await quoteRes.json();
-                
-                if (quoteData.status === 'error') {
-                    console.error(`Twelve Data API error for ${symbol}:`, quoteData.message);
-                    throw new Error(quoteData.message);
+                if (quoteRes.ok) {
+                    const quoteData = await quoteRes.json();
+                    
+                    if (quoteData.status !== 'error') {
+                        const rsiData = rsiRes.ok ? await rsiRes.json() : null;
+                        const smaData = smaRes.ok ? await smaRes.json() : null;
+                        const stddevData = stddevRes.ok ? await stddevRes.json() : null;
+                        const atrData = atrRes.ok ? await atrRes.json() : null;
+                        const adxData = adxRes.ok ? await adxRes.json() : null;
+
+                        return {
+                            ...quoteData,
+                            rsi: rsiData?.values?.[0]?.rsi || 'N/A',
+                            sma: smaData?.values?.[0]?.sma || 'N/A',
+                            stddev: stddevData?.values?.[0]?.stddev || 'N/A',
+                            atr: atrData?.values?.[0]?.atr || 'N/A',
+                            adx: adxData?.values?.[0]?.adx || 'N/A',
+                            interval
+                        };
+                    } else {
+                        console.warn(`Twelve Data API error with local key for ${symbol}:`, quoteData.message);
+                        // Fall through to backend proxy
+                    }
                 }
-
-                const rsiData = rsiRes.ok ? await rsiRes.json() : null;
-                const smaData = smaRes.ok ? await smaRes.json() : null;
-                const stddevData = stddevRes.ok ? await stddevRes.json() : null;
-                const atrData = atrRes.ok ? await atrRes.json() : null;
-                const adxData = adxRes.ok ? await adxRes.json() : null;
-
-                return {
-                    ...quoteData,
-                    rsi: rsiData?.values?.[0]?.rsi || 'N/A',
-                    sma: smaData?.values?.[0]?.sma || 'N/A',
-                    stddev: stddevData?.values?.[0]?.stddev || 'N/A',
-                    atr: atrData?.values?.[0]?.atr || 'N/A',
-                    adx: adxData?.values?.[0]?.adx || 'N/A',
-                    interval
-                };
+            } catch (localError) {
+                console.warn('Failed to fetch Twelve Data with local key, falling back to proxy:', localError);
+                // Fall through to backend proxy
             }
         }
 
         // Fallback to backend proxy
-        const url = `/api/twelvedata/quote?symbol=${encodeURIComponent(symbol)}&interval=${interval}`;
+        const url = `/api/twelvedata/quote?symbol=${encodeURIComponent(symbol)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
         const response = await fetch(url);
         
         if (!response.ok) {
@@ -108,6 +113,6 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         return data;
     } catch (error) {
         console.error('Failed to fetch Twelve Data via proxy:', error);
-        return null;
+        return { error: error instanceof Error ? error.message : 'Unknown error fetching Twelve Data' };
     }
 }
