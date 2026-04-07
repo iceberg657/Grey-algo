@@ -94,9 +94,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 const data = await res.json();
                 console.log('Twelve Data Status Response:', data);
+                
                 // Consider it configured if either the backend has it OR we have it locally
                 const isConfigured = (data.configured && data.valid) || (!!localKey && localKey.length > 10);
                 setIsTwelveDataConfigured(isConfigured);
+                
+                if (!isConfigured && retryCount === 0) {
+                    console.warn('[TwelveData] API Key missing or invalid. Market confluence will be limited.');
+                }
             } catch (err) {
                 console.error('Twelve Data Status Error:', err);
                 
@@ -395,12 +400,16 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className={`w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col perspective-1000 ${broadcasts.length > 0 ? 'pt-16' : ''}`}
             >
                 <header className="text-center mb-10 relative">
-                     <div className="absolute top-0 right-0 flex items-center gap-2">
+                      <div className="absolute top-0 right-0 flex items-center gap-2">
                         {isTwelveDataConfigured !== null && (
-                            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider ${isTwelveDataConfigured ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'}`} title={isTwelveDataConfigured ? "Twelve Data API Connected" : "Twelve Data API Key Missing"}>
+                            <button 
+                                onClick={() => setShowSettings(true)}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${isTwelveDataConfigured ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 animate-pulse'}`} 
+                                title={isTwelveDataConfigured ? "Twelve Data API Connected" : "Twelve Data API Key Missing - Click to Fix"}
+                            >
                                 <div className={`w-1.5 h-1.5 rounded-full ${isTwelveDataConfigured ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                                <span className="hidden sm:inline">Twelve Data</span>
-                            </div>
+                                <span className="hidden sm:inline">{isTwelveDataConfigured ? 'Twelve Data Active' : 'Twelve Data Offline'}</span>
+                            </button>
                         )}
                         <ThemeToggleButton />
                     </div>

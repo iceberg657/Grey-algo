@@ -519,12 +519,25 @@ async function startServer() {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
+        let errorData;
+        try {
+          errorData = await response.json();
+        } catch (e) {
+          const text = await response.text();
+          errorData = { error: { message: `Gemini API error (${response.status}): ${text.substring(0, 200)}` } };
+        }
         console.error('[GeminiProxy] API Error:', errorData);
         return res.status(response.status).json(errorData);
       }
 
-      const data = await response.json();
+      let data;
+      try {
+        data = await response.json();
+      } catch (e) {
+        const text = await response.text();
+        console.error('[GeminiProxy] JSON Parse Error:', text.substring(0, 200));
+        return res.status(500).json({ error: 'Failed to parse Gemini API response as JSON', raw: text.substring(0, 200) });
+      }
       res.json(data);
     } catch (error) {
       console.error('[GeminiProxy] Proxy Error:', error);
@@ -567,13 +580,14 @@ async function startServer() {
       console.log(`Calling Twelve Data API for ${mappedSymbol} at ${interval}...`);
       
       // Fetch Quote, RSI, SMA, STDDEV, ATR, and ADX in parallel for confluence
+      const encodedSymbol = encodeURIComponent(mappedSymbol);
       const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
-        fetch(`https://api.twelvedata.com/quote?symbol=${mappedSymbol}&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/rsi?symbol=${mappedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/sma?symbol=${mappedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/stddev?symbol=${mappedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/atr?symbol=${mappedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/adx?symbol=${mappedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`)
+        fetch(`https://api.twelvedata.com/quote?symbol=${encodedSymbol}&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/rsi?symbol=${encodedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/sma?symbol=${encodedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/stddev?symbol=${encodedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/atr?symbol=${encodedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
+        fetch(`https://api.twelvedata.com/adx?symbol=${encodedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`)
       ]);
 
       const quoteData = await quoteRes.json();

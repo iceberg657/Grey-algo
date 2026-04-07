@@ -265,7 +265,10 @@ export async function runWithModelFallback<T>(
                     errorMsg.includes('500') ||
                     errorMsg.includes('xhr error') ||
                     errorMsg.includes('rpc failed') ||
-                    errorMsg.includes('fetch failed')
+                    errorMsg.includes('fetch failed') ||
+                    errorMsg.includes('unexpected token') ||
+                    errorMsg.includes('not valid json') ||
+                    errorMsg.includes('failed to parse')
                 ) {
                     
                     // Check if this is the last model in the list

@@ -601,6 +601,22 @@ You MUST correctly classify the order type based on the strict relationship betw
 
 ---
 
+**CRITICAL INSTRUCTION FOR NEUTRAL SIGNALS:**
+If you output 'signal': 'NEUTRAL', you MUST populate the 'neutralConditions' object with both 'buyConditions' and 'sellConditions', and provide both 'buySetupExample' and 'sellSetupExample'. DO NOT LEAVE THEM EMPTY. Use the following format for conditions:
+- BUY CONDITIONS (only if continuation is confirmed): [List specific triggers like Break of Structure, Close above level, Pullback into FVG]
+- SELL CONDITIONS (higher probability based on H4 bias): [List specific triggers like Rejection at zone, CHoCH, Break below structure]
+
+**EXAMPLE SETUP FORMAT FOR NEUTRAL:**
+Asset: XAUUSD
+Signal: BUY
+Entry: 4705 (after retest)
+SL: 4675
+TP1: 4735
+TP2: 4760
+TP3: 4800
+Type: Breakout Continuation
+Lot Size: 1–2% risk
+
 **JSON OUTPUT (RAW ONLY - NO MARKDOWN):**
 {
   "signal": "BUY" | "SELL" | "NEUTRAL",
@@ -845,8 +861,15 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             });
 
             if (!proxyRes.ok) {
-                const errorData = await proxyRes.json();
-                throw new Error(errorData.error?.message || errorData.error || 'Proxy analysis failed');
+                let errorMsg = 'Proxy analysis failed';
+                try {
+                    const errorData = await proxyRes.json();
+                    errorMsg = errorData.error?.message || errorData.error || errorMsg;
+                } catch (e) {
+                    const text = await proxyRes.text();
+                    errorMsg = `Proxy error (${proxyRes.status}): ${text.substring(0, 100)}...`;
+                }
+                throw new Error(errorMsg);
             }
 
             const data = await proxyRes.json();
@@ -862,7 +885,14 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             
             // If it's a quota error, invalid argument, or other API-level error, don't fallback to direct SDK call
             // as it will just fail again with the same error. Throw it to let runWithModelFallback cascade.
-            if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('400')) {
+            if (
+                errorMsg.includes('quota') || 
+                errorMsg.includes('429') || 
+                errorMsg.includes('400') ||
+                errorMsg.includes('unexpected token') ||
+                errorMsg.includes('not valid json') ||
+                errorMsg.includes('failed to parse')
+            ) {
                 throw proxyError;
             }
             
@@ -1035,14 +1065,20 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
                             }),
                         });
                         if (!proxyRes.ok) {
-                            const errorData = await proxyRes.json().catch(() => ({}));
-                            const errMsg = errorData.error?.message || errorData.error || `Proxy failed with status ${proxyRes.status}`;
-                            throw new Error(errMsg);
+                            let errorMsg = 'Asset detection failed';
+                            try {
+                                const errorData = await proxyRes.json();
+                                errorMsg = errorData.error?.message || errorData.error || errorMsg;
+                            } catch (e) {
+                                const text = await proxyRes.text();
+                                errorMsg = `Asset detection error (${proxyRes.status}): ${text.substring(0, 100)}...`;
+                            }
+                            throw new Error(errorMsg);
                         }
                         const data = await proxyRes.json();
                         return { text: data.candidates?.[0]?.content?.parts?.[0]?.text || '' } as any;
                     } catch (e) {
-                        console.error(`[AssetDetection] Proxy failed for ${modelId}, detection skipped.`);
+                        console.warn(`[AssetDetection] Model ${modelId} failed. Attempting fallback if available...`);
                         throw e;
                     }
                 }
@@ -1097,7 +1133,21 @@ export async function generateTradingSignal(
             else if (style.includes('swing')) interval = '1day';
 
             console.log(`[TwelveData] Initiating fetch for ${asset} at ${interval}...`);
-            const response = await fetch(`/api/twelvedata/quote?symbol=${encodeURIComponent(asset)}&interval=${interval}`);
+            
+            // Check for local key in localStorage
+            let localKey = '';
+            try {
+                const stored = localStorage.getItem('greyquant_user_settings');
+                if (stored) {
+                    const settings = JSON.parse(stored);
+                    localKey = settings.twelveDataApiKey || '';
+                }
+            } catch (e) {
+                console.warn('Failed to read local Twelve Data key:', e);
+            }
+
+            const url = `/api/twelvedata/quote?symbol=${encodeURIComponent(asset)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
+            const response = await fetch(url);
             if (response.ok) {
                 twelveDataQuote = await response.json();
                 twelveDataQuote.interval = interval;
