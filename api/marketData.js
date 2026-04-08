@@ -55,7 +55,7 @@ export async function fetchFromGemini() {
             const ai = new GoogleGenAI({ apiKey });
             // Use a lighter model and NO google search for background ticker to save quota
             const response = await ai.models.generateContent({
-                model: 'gemini-1.5-flash',
+                model: 'gemini-2.5-flash-lite',
                 contents: `Current approximate price & 24h % change for: ${SYMBOLS.join(', ')}. Return JSON array of objects with symbol, price, change, changePercent.`
             });
 
