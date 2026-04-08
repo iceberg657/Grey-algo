@@ -5,7 +5,8 @@ const KEYS = [
     process.env.API_KEY_4,
     process.env.API_KEY_5,
     process.env.API_KEY_6,
-    process.env.API_KEY
+    process.env.API_KEY,
+    process.env.GEMINI_API_KEY
 ].filter(key => !!key && key.trim() !== '');
 
 const TWELVE_DATA_KEY = process.env.TWELVE_DATA_API_KEY || 

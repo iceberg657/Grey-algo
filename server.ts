@@ -14,7 +14,8 @@ import { GoogleGenAI } from "@google/genai";
 import fs from 'node:fs/promises';
 import { encrypt } from './src/services/encryptionService';
 import marketDataHandler from './api/marketData.js';
-import fetchDataHandler from './api/fetchData.js';
+import configHandler from './api/config.js';
+import analyzeHandler from './api/gemini/analyze.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
@@ -354,23 +355,9 @@ async function startServer() {
   }
 
   // API routes
-  app.get('/api/config', (req, res) => {
-    res.json({ 
-      apiKey: process.env.API_KEY || process.env.API_KEY_1,
-      keys: {
-        k1: process.env.API_KEY_1,
-        k2: process.env.API_KEY_2,
-        k3: process.env.API_KEY_3,
-        k4: process.env.API_KEY_4,
-        k5: process.env.API_KEY_5,
-        k6: process.env.API_KEY_6,
-        k7: process.env.API_KEY_7,
-      }
-    });
-  });
+  app.all('/api/config', configHandler);
 
   app.all('/api/marketData', marketDataHandler);
-  app.all('/api/fetchData', fetchDataHandler);
 
   app.post('/api/admin/activate-strategy', async (req, res) => {
     const { strategyId } = req.body;
@@ -562,64 +549,7 @@ async function startServer() {
   });
 
   // Gemini Proxy Route to bypass regional blocks (VPN-free execution)
-  app.post('/api/gemini/analyze', async (req, res) => {
-    const { model, contents, config, apiKey: clientApiKey } = req.body;
-    
-    // Prioritize client key (which is rotated by the frontend pool), fallback to server env
-    const apiKey = clientApiKey || process.env.API_KEY_1 || process.env.GEMINI_API_KEY;
-    
-    if (!apiKey) {
-      return res.status(400).json({ error: 'Gemini API key not configured' });
-    }
-
-    try {
-      console.log(`[GeminiProxy] Analyzing with model: ${model}...`);
-      
-      // Extract root-level properties from config
-      const { tools, systemInstruction, ...generationConfig } = config || {};
-      
-      const requestBody: any = {
-        contents,
-        generationConfig,
-      };
-      
-      if (tools) requestBody.tools = tools;
-      if (systemInstruction) requestBody.systemInstruction = systemInstruction;
-
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(requestBody),
-      });
-
-      if (!response.ok) {
-        let errorData;
-        try {
-          errorData = await response.json();
-        } catch (e) {
-          const text = await response.text();
-          errorData = { error: { message: `Gemini API error (${response.status}): ${text.substring(0, 200)}` } };
-        }
-        console.error('[GeminiProxy] API Error:', errorData);
-        return res.status(response.status).json(errorData);
-      }
-
-      let data;
-      try {
-        data = await response.json();
-      } catch (e) {
-        const text = await response.text();
-        console.error('[GeminiProxy] JSON Parse Error:', text.substring(0, 200));
-        return res.status(500).json({ error: 'Failed to parse Gemini API response as JSON', raw: text.substring(0, 200) });
-      }
-      res.json(data);
-    } catch (error) {
-      console.error('[GeminiProxy] Proxy Error:', error);
-      res.status(500).json({ error: 'Internal server error during Gemini proxy' });
-    }
-  });
+  app.post('/api/gemini/analyze', analyzeHandler);
 
   // Push Notification Route
   app.post('/api/notifications/broadcast', async (req, res) => {
