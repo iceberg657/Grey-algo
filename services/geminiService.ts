@@ -876,9 +876,15 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             }
 
             const data = await proxyRes.json();
+            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            
+            if (!responseText) {
+                throw new Error("Empty response from AI - The model returned no content.");
+            }
+
             // Wrap in a structure that looks like GenerateContentResponse for the rest of the code
             return {
-                text: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+                text: responseText,
                 candidates: data.candidates,
                 promptFeedback: data.promptFeedback
             } as any;
@@ -901,21 +907,22 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             
             console.log('[Gemini] Falling back to direct SDK call...');
             // Fallback to direct call if proxy fails due to network/CORS (though it might be blocked)
-            return ai.models.generateContent({
+            const fallbackResponse = await ai.models.generateContent({
                 model: modelId,
                 contents: [{ parts: promptParts }],
                 config: config,
             });
+            
+            if (!fallbackResponse.text) {
+                throw new Error("Empty response from AI - The model returned no content.");
+            }
+            
+            return fallbackResponse;
         }
     }
 );
 
         let text = response.text || '';
-        
-        if (!text) {
-            console.error("Neural alignment failure. Empty response received.");
-            throw new Error("Empty response from AI - The model returned no content.");
-        }
 
         // Robust JSON extraction
         const extractJson = (str: string) => {

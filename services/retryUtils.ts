@@ -201,7 +201,7 @@ export async function executeLaneCall<T>(
             }
             
             // If it's a 400 or other fatal error, don't rotate keys as it's likely a request issue
-            if (error.status === 400 || errorMsg.includes('invalid') || errorMsg.includes('bad request')) {
+            if (error.status === 400 || errorMsg.includes('invalid') || errorMsg.includes('bad request') || errorMsg.includes('safety block')) {
                 throw error;
             }
             
@@ -276,6 +276,10 @@ export async function runWithModelFallback<T>(
                 lastError = error;
                 const errorMsg = (error.message || '').toLowerCase();
                 
+                if (errorMsg.includes('safety block')) {
+                    break outerLoop; // Stop immediately, don't try other models or keys
+                }
+
                 // If it's a 429 (Quota), 400 (Invalid Argument/Model Limit), OR a persistent 5xx/Network error
                 if (
                     errorMsg.includes('429') || 
@@ -313,7 +317,7 @@ export async function runWithModelFallback<T>(
                 }
                 
                 // For non-retryable errors (e.g. 400 Bad Request), stop immediately
-                break;
+                break outerLoop;
             }
         }
     }
