@@ -76,32 +76,38 @@ export async function initializeApiKey() {
 
 const K = {
     P: () => KEYS.k1 || API_KEY || '',
-    K1: () => KEYS.k1 || API_KEY || '',
-    K2: () => KEYS.k2 || KEYS.k1 || API_KEY || '',
-    K3: () => KEYS.k3 || KEYS.k1 || API_KEY || '',
-    K4: () => KEYS.k4 || KEYS.k1 || API_KEY || '',
-    K5: () => KEYS.k5 || KEYS.k1 || API_KEY || '',
-    K6: () => KEYS.k6 || KEYS.k1 || API_KEY || '',
-    K7: () => KEYS.k7 || KEYS.k1 || API_KEY || '',
-    K8: () => KEYS.k8 || KEYS.k1 || API_KEY || ''
+    K1: () => KEYS.k1 || '',
+    K2: () => KEYS.k2 || '',
+    K3: () => KEYS.k3 || '',
+    K4: () => KEYS.k4 || '',
+    K5: () => KEYS.k5 || '',
+    K6: () => KEYS.k6 || '',
+    K7: () => KEYS.k7 || '',
+    K8: () => KEYS.k8 || ''
+};
+
+// Helper to get unique keys from a list of potential keys
+const getUniqueKeys = (keys: string[]) => {
+    return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));
 };
 
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4)
-// Models: 3.0 Flash -> 3.1 Flash Lite -> 3.0 Pro -> 2.5 Flash -> 2.0 Flash
-export const getAnalysisPool = () => [K.K1(), K.K2(), K.K3(), K.K4()].filter(k => !!k);
+// Models: 3.1 Flash Lite -> 3.0 Flash -> 2.5 Pro -> 2.5 Flash -> 2.5 Flash Lite -> 2.0 Flash
+export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]);
 export const ANALYSIS_MODELS = [
     'gemini-3.1-flash-lite-preview',
-    'gemini-3.1-pro-preview',
     'gemini-3-flash-preview',
-    'gemini-3-pro-preview',
+    'gemini-2.5-pro',
     'gemini-2.5-flash',
-    'gemini-2.0-flash'
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
 ];
 
 // 2. CHAT & NEWS (Key 5)
 // Models: 2.5 Flash -> 3.1 Flash Lite -> 2.0 Flash
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
-export const getChatPool = () => [K.K5()].filter(k => !!k);
+export const getChatPool = () => getUniqueKeys([K.K5(), K.K1()]); // Fallback to K1 if K5 missing
 export const CHAT_MODELS = [
     'gemini-2.5-flash',
     'gemini-3.1-flash-lite-preview',
@@ -110,7 +116,7 @@ export const CHAT_MODELS = [
 
 // 3. AI ASSETS SUGGESTION (Key 6)
 // Models: 3.1 Flash Lite -> 3.1 Pro -> 2.5 Flash -> 2.0
-export const getSuggestionPool = () => [K.K6()].filter(k => !!k);
+export const getSuggestionPool = () => getUniqueKeys([K.K6(), K.K2()]); // Fallback to K2 if K6 missing
 export const SUGGESTION_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3.1-pro-preview',
@@ -165,32 +171,46 @@ export async function executeLaneCall<T>(
 ): Promise<T> {
     await initializeApiKey();
     const resolvedPool = typeof pool === 'function' ? pool() : pool;
-    const activePool = resolvedPool.length > 0 && resolvedPool[0] !== '' ? resolvedPool : [K.P()];
+    
+    // Deduplicate and filter pool
+    const uniquePool = Array.from(new Set(resolvedPool.filter(k => !!k && k.length > 5)));
+    const activePool = uniquePool.length > 0 ? uniquePool : [K.P()];
+    
     let lastError: any = null;
 
     const availableKeys = activePool.filter(k => !isThrottled(k));
+    
+    // If all keys are throttled, we try them anyway as a last resort, 
+    // but we should prioritize the one that was throttled longest ago.
     const keysToTry = availableKeys.length > 0 ? availableKeys : activePool;
+
+    console.log(`[LaneOrchestrator] Attempting call with pool size: ${keysToTry.length}`);
 
     for (const apiKey of keysToTry) {
         try {
-            // Use server-side proxy to bypass regional blocks (VPN-free execution)
-            // We wrap the operationFactory call to intercept the fetch if it's a Gemini call
-            // However, since operationFactory is already defined in geminiService.ts, 
-            // it's better to modify it there or provide a proxied version here.
+            console.log(`[LaneOrchestrator] Using key ending in ...${apiKey.slice(-4)}`);
             return await operationFactory(apiKey);
         } catch (error: any) {
             lastError = error;
             const errorMsg = (error.message || '').toLowerCase();
             
             if (errorMsg.includes('429') || error.status === 429 || errorMsg.includes('quota')) {
-                console.warn(`Neural Cooldown initiated for key ending in ...${apiKey.slice(-4)}`);
+                console.warn(`[LaneOrchestrator] Quota hit for key ending in ...${apiKey.slice(-4)}. Throttling for ${COOLDOWN_DURATION/1000}s.`);
                 cooldownMap.set(apiKey, Date.now() + COOLDOWN_DURATION);
                 continue; 
             }
-            throw error;
+            
+            // If it's a 400 or other fatal error, don't rotate keys as it's likely a request issue
+            if (error.status === 400 || errorMsg.includes('invalid') || errorMsg.includes('bad request')) {
+                throw error;
+            }
+            
+            // For other errors, try next key
+            console.warn(`[LaneOrchestrator] Error with key ...${apiKey.slice(-4)}: ${errorMsg.substring(0, 100)}. Trying next key...`);
+            continue;
         }
     }
-    throw lastError || new Error("All Neural Lanes are currently congested.");
+    throw lastError || new Error("All Neural Lanes are currently congested or exhausted.");
 }
 
 export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?: string[]): Promise<T> {
@@ -256,11 +276,15 @@ export async function runWithModelFallback<T>(
                 lastError = error;
                 const errorMsg = (error.message || '').toLowerCase();
                 
-                // If it's a 429 (Quota) OR a persistent 5xx/Network error after retries
+                // If it's a 429 (Quota), 400 (Invalid Argument/Model Limit), OR a persistent 5xx/Network error
                 if (
                     errorMsg.includes('429') || 
                     error.status === 429 ||
+                    error.status === 400 ||
+                    (error.status && error.status >= 500) ||
                     errorMsg.includes('quota') ||
+                    errorMsg.includes('invalid') ||
+                    errorMsg.includes('unsupported') ||
                     errorMsg.includes('503') ||
                     errorMsg.includes('500') ||
                     errorMsg.includes('xhr error') ||
@@ -268,6 +292,8 @@ export async function runWithModelFallback<T>(
                     errorMsg.includes('fetch failed') ||
                     errorMsg.includes('unexpected token') ||
                     errorMsg.includes('not valid json') ||
+                    errorMsg.includes('non-json') ||
+                    errorMsg.includes('empty response') ||
                     errorMsg.includes('failed to parse')
                 ) {
                     

@@ -834,16 +834,9 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             async (modelId) => {
         const config: any = { 
             tools: [{googleSearch: {}}], 
-            temperature: 0.1 
+            temperature: 0.1
         };
         
-        // Enable thinking for Gemini 3.1 Pro
-        if (modelId === 'gemini-3.1-pro-preview') {
-            config.thinkingConfig = { thinkingLevel: ThinkingLevel.HIGH };
-            // Ensure maxOutputTokens is NOT set as per instructions
-            delete config.maxOutputTokens;
-        }
-
         // Use server-side proxy to bypass regional blocks (VPN-free execution)
         try {
             console.log(`[Gemini] Calling proxy for model ${modelId}...`);
@@ -869,7 +862,17 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                     const text = await proxyRes.text();
                     errorMsg = `Proxy error (${proxyRes.status}): ${text.substring(0, 100)}...`;
                 }
-                throw new Error(errorMsg);
+                const err: any = new Error(errorMsg);
+                err.status = proxyRes.status;
+                throw err;
+            }
+
+            const contentType = proxyRes.headers.get('content-type');
+            if (proxyRes.ok && contentType && !contentType.includes('application/json')) {
+                const text = await proxyRes.text();
+                const err: any = new Error(`Proxy returned non-JSON response: ${text.substring(0, 100)}...`);
+                err.status = 500; // Treat as server error
+                throw err;
             }
 
             const data = await proxyRes.json();
@@ -909,31 +912,31 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         let text = response.text || '';
         
-        // Try to extract JSON from markdown block first
-        const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        if (jsonMatch) {
-            text = jsonMatch[1];
-        } else {
-            // Fallback: find the first balanced JSON object
-            const start = text.indexOf('{');
-            if (start !== -1) {
-                let end = start;
-                let braceCount = 0;
-                for (let i = start; i < text.length; i++) {
-                    if (text[i] === '{') braceCount++;
-                    else if (text[i] === '}') braceCount--;
-                    
-                    if (braceCount === 0) {
-                        end = i;
-                        break;
-                    }
-                }
-                text = text.substring(start, end + 1);
-            }
+        if (!text) {
+            console.error("Neural alignment failure. Empty response received.");
+            throw new Error("Empty response from AI - The model returned no content.");
         }
+
+        // Robust JSON extraction
+        const extractJson = (str: string) => {
+            // 1. Try markdown code block
+            const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+            if (jsonMatch) return jsonMatch[1].trim();
+
+            // 2. Find first { and last }
+            const start = str.indexOf('{');
+            const end = str.lastIndexOf('}');
+            if (start !== -1 && end !== -1 && end > start) {
+                return str.substring(start, end + 1).trim();
+            }
+            return str.trim();
+        };
+
+        text = extractJson(text);
         
         if (!text || !text.startsWith('{')) {
-            throw new Error("Neural alignment failure - Invalid JSON response");
+            console.error("Neural alignment failure. Raw response:", response.text);
+            throw new Error("Neural alignment failure - Invalid JSON response structure");
         }
         
         let data;
