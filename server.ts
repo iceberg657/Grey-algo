@@ -237,14 +237,21 @@ async function startServer() {
       const automlKey = process.env.AUTOML_API_KEY || process.env.API_KEY_5 || process.env.GEMINI_API_KEY || '';
       const automlAi = new GoogleGenAI({ apiKey: automlKey });
 
-      const prompt = `As an expert quantitative trader, analyze current market trends and generate a new, high-probability trading strategy.
+      const prompt = `As an elite Quantitative and Institutional Trading AI, analyze current market trends and generate a new, high-probability trading strategy.
+      Your goal is to discover "Alpha" by identifying institutional footprints and statistical anomalies.
+      
       Market Data Context: ${JSON.stringify(marketData.slice(0, 10))}
+      
+      Focus on:
+      1. **Institutional Liquidity:** POI mitigation, Liquidity Sweeps, and Order Flow.
+      2. **Statistical Arbitrage:** Mean reversion from standard deviation extremes.
+      3. **Confluence:** Merging SMC/ICT logic with mathematical indicators (RSI, SMA, ADX).
       
       Return the strategy in JSON format:
       {
         "name": "Strategy Name",
-        "description": "Brief explanation of the logic",
-        "rules": "Specific entry/exit rules and indicators used",
+        "description": "Brief explanation of the institutional/quantitative logic",
+        "rules": "Specific entry/exit rules, POI identification, and statistical filters",
         "performance": 0.85
       }`;
 
