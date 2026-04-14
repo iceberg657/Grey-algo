@@ -70,7 +70,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             analysisCount: 0,
                             access: {
                                 autoTrade: 'locked',
-                                products: 'locked'
+                                products: 'locked',
+                                sniperLiveTrade: 'locked'
                             },
                             createdAt: Date.now()
                         };

@@ -14,7 +14,8 @@
           "type": "object",
           "properties": {
             "autoTrade": { "type": "string", "enum": ["locked", "pending", "granted"] },
-            "products": { "type": "string", "enum": ["locked", "pending", "granted"] }
+            "products": { "type": "string", "enum": ["locked", "pending", "granted"] },
+            "sniperLiveTrade": { "type": "string", "enum": ["locked", "pending", "granted"] }
           }
         },
         "mt5Credentials": {
@@ -96,9 +97,10 @@
       "properties": {
         "maintenanceMode": { "type": "boolean" },
         "chatLocked": { "type": "boolean" },
+        "sniperLocked": { "type": "boolean" },
         "updatedAt": { "type": "integer" }
       },
-      "required": ["maintenanceMode", "chatLocked", "updatedAt"]
+      "required": ["maintenanceMode", "chatLocked", "sniperLocked", "updatedAt"]
     },
     "GlobalStrategy": {
       "title": "GlobalStrategy",
