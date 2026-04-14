@@ -35,7 +35,7 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
         const timeout = setTimeout(() => {
             ws.close();
             reject(new Error('Deriv API timeout'));
-        }, 20000);
+        }, 10000);
 
         ws.on('open', () => {
             // First authorize

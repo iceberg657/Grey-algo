@@ -6,8 +6,7 @@ const KEYS = [
     process.env.API_KEY_5,
     process.env.API_KEY_6,
     process.env.API_KEY,
-    process.env.GEMINI_API_KEY,
-    process.env.VITE_GEMINI_API_KEY
+    process.env.GEMINI_API_KEY
 ].filter(key => 
     !!key && 
     key.trim() !== '' && 
