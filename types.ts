@@ -43,6 +43,8 @@ export interface UserSettings extends Partial<AccountSettings> {
     riskRewardRatio?: string;
     partialClose?: PartialCloseConfig;
     tradeMode?: 'Aggressive' | 'Sniper';
+    twelveDataApiKey?: string;
+    derivApiToken?: string;
 }
 
 export interface AnalysisRequest {
