@@ -22,13 +22,17 @@ import { TradingStyle, SignalData, UserMetadata } from '../types';
 import { Loader } from './Loader';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { useTheme } from './contexts/ThemeContext';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface SniperLiveTradeProps {
   onBack: () => void;
   userMetadata: UserMetadata | null;
+  isLocked?: boolean;
 }
 
-export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata }) => {
+export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata, isLocked }) => {
+  const { theme } = useTheme();
   const [query, setQuery] = useState('');
   const [style, setStyle] = useState<TradingStyle>('scalping(1 to 15mins)');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -40,7 +44,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const accessStatus = 'granted'; // Temporary free access for testing
+  const accessStatus = isLocked ? 'locked' : (userMetadata?.access?.sniperLiveTrade || 'locked');
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -157,17 +161,24 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       <div className="w-24 h-24 bg-rose-500/10 rounded-[2.5rem] flex items-center justify-center text-rose-500 mb-8 border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
         <Lock className="w-10 h-10" />
       </div>
-      <h2 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter italic">Sniper Access Restricted</h2>
-      <p className="text-slate-400 max-w-md mb-10 text-sm leading-relaxed">
+      <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4 uppercase tracking-tighter italic">Sniper Access Restricted</h2>
+      <p className="text-gray-500 dark:text-slate-400 max-w-md mb-10 text-sm leading-relaxed">
         The Sniper Live Trade engine requires high-level clearance. 
         Request authorization to access institutional-grade setups powered by Gemini 3.1 Flash Lite.
       </p>
-      <button 
-        onClick={handleRequestAccess}
-        className="px-12 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
-      >
-        Request Clearance
-      </button>
+      {!isLocked && (
+        <button 
+          onClick={handleRequestAccess}
+          className="px-12 py-4 bg-emerald-500 hover:bg-emerald-400 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg shadow-emerald-500/20 active:scale-95"
+        >
+          Request Clearance
+        </button>
+      )}
+      {isLocked && (
+        <div className="px-8 py-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-rose-500 text-[10px] font-black uppercase tracking-widest">
+          System Lock Active: Access Suspended
+        </div>
+      )}
     </div>
   );
 
@@ -176,8 +187,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       <div className="w-24 h-24 bg-amber-500/10 rounded-[2.5rem] flex items-center justify-center text-amber-500 mb-8 border border-amber-500/20 animate-pulse">
         <Clock className="w-10 h-10" />
       </div>
-      <h2 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter italic">Clearance Pending</h2>
-      <p className="text-slate-400 max-w-md mb-10 text-sm leading-relaxed">
+      <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4 uppercase tracking-tighter italic">Clearance Pending</h2>
+      <p className="text-gray-500 dark:text-slate-400 max-w-md mb-10 text-sm leading-relaxed">
         Your request for Sniper access is currently being processed by the Neural Oversight team. 
         Neural links will be established once verification is complete.
       </p>
@@ -185,15 +196,15 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   );
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-white dark:bg-[#020617] text-gray-800 dark:text-slate-200 font-sans selection:bg-emerald-500/30 transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/50 px-4 py-4">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-gray-200 dark:border-slate-800/50 px-4 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button 
             onClick={onBack}
-            className="p-2 hover:bg-slate-800/50 rounded-xl transition-colors group"
+            className="p-2 hover:bg-gray-100 dark:hover:bg-slate-800/50 rounded-xl transition-colors group"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+            <ArrowLeft className="w-5 h-5 text-gray-500 dark:text-slate-400 group-hover:text-emerald-400 transition-colors" />
           </button>
           
           <div className="flex items-center gap-3">
@@ -201,7 +212,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               <Target className="w-6 h-6 text-emerald-500" />
             </div>
             <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-gray-900 dark:from-white to-gray-500 dark:to-slate-400 bg-clip-text text-transparent">
                 Sniper Live Trade
               </h1>
               <div className="flex items-center gap-2">
@@ -211,7 +222,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
             </div>
           </div>
 
-          <div className="w-10" /> {/* Spacer */}
+          <ThemeToggleButton />
         </div>
       </header>
 
@@ -220,10 +231,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           <>
             {/* Style Selector */}
             <div className="mb-8">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block ml-1">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-slate-500 mb-3 block ml-1">
                 Execution Style
               </label>
-              <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1 rounded-2xl border border-slate-800/50">
+              <div className="grid grid-cols-3 gap-2 bg-gray-100 dark:bg-slate-900/50 p-1 rounded-2xl border border-gray-200 dark:border-slate-800/50">
                 {tradingStyles.map((s) => (
                   <button
                     key={s.id}
@@ -231,7 +242,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                     className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
                       style === s.id 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        : 'text-gray-500 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-200 hover:bg-gray-200 dark:hover:bg-slate-800/50'
                     }`}
                   >
                     {s.label}
@@ -249,11 +260,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                     animate={{ opacity: 1, y: 0 }}
                     className="flex flex-col items-center justify-center py-20 text-center"
                   >
-                    <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-slate-800">
-                      <Activity className="w-10 h-10 text-slate-700" />
+                    <div className="w-20 h-20 bg-gray-100 dark:bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-gray-200 dark:border-slate-800">
+                      <Activity className="w-10 h-10 text-gray-400 dark:text-slate-700" />
                     </div>
-                    <h2 className="text-xl font-bold text-slate-400 mb-2">Ready for Analysis</h2>
-                    <p className="text-slate-500 text-sm max-w-xs">
+                    <h2 className="text-xl font-bold text-gray-500 dark:text-slate-400 mb-2">Ready for Analysis</h2>
+                    <p className="text-gray-400 dark:text-slate-500 text-sm max-w-xs">
                       Enter an asset name or trade query below to receive a high-precision institutional setup.
                     </p>
                   </motion.div>
@@ -323,18 +334,18 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                               }`}>
                                 {signal.signal} SIGNAL
                               </span>
-                              <span className="text-slate-600">•</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{style.split('(')[0]}</span>
+                              <span className="text-gray-400 dark:text-slate-600">•</span>
+                              <span className="text-[10px] font-bold text-gray-400 dark:text-slate-400 uppercase tracking-widest">{style.split('(')[0]}</span>
                             </div>
-                            <h2 className="text-3xl font-black tracking-tighter italic uppercase">{signal.asset}</h2>
+                            <h2 className="text-3xl font-black tracking-tighter italic uppercase text-gray-900 dark:text-white">{signal.asset}</h2>
                           </div>
                         </div>
 
                         <div className="flex flex-col items-end">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Confidence</span>
+                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-slate-500 mb-1">Confidence</span>
                           <div className="flex items-center gap-3">
-                            <div className="text-3xl font-black italic tracking-tighter text-white">{signal.confidence}%</div>
-                            <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                            <div className="text-3xl font-black italic tracking-tighter text-gray-900 dark:text-white">{signal.confidence}%</div>
+                            <div className="w-12 h-1.5 bg-gray-200 dark:bg-slate-800 rounded-full overflow-hidden">
                               <motion.div 
                                 initial={{ width: 0 }}
                                 animate={{ width: `${signal.confidence}%` }}
@@ -348,60 +359,60 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                       {/* Price Levels Grid */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                         {/* Entry */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                        <div className="bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
                           <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Market Entry</span>
-                            <button onClick={() => copyToClipboard(signal.entryPoints[0].toString(), 'Entry')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'Entry' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                            <span className="text-[10px] font-black uppercase tracking-widest text-gray-500 dark:text-slate-500">Market Entry</span>
+                            <button onClick={() => copyToClipboard(signal.entryPoints[0].toString(), 'Entry')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                              {copied === 'Entry' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />}
                             </button>
                           </div>
-                          <div className="text-2xl font-black tracking-tighter text-white">{signal.entryPoints[0]}</div>
+                          <div className="text-2xl font-black tracking-tighter text-gray-900 dark:text-white">{signal.entryPoints[0]}</div>
                         </div>
 
                         {/* Stop Loss */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-rose-500/30 transition-colors">
+                        <div className="bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-rose-500/30 transition-colors">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Stop Loss</span>
-                            <button onClick={() => copyToClipboard(signal.stopLoss.toString(), 'SL')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'SL' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                            <button onClick={() => copyToClipboard(signal.stopLoss.toString(), 'SL')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                              {copied === 'SL' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />}
                             </button>
                           </div>
-                          <div className="text-2xl font-black tracking-tighter text-rose-400">{signal.stopLoss}</div>
+                          <div className="text-2xl font-black tracking-tighter text-rose-500 dark:text-rose-400">{signal.stopLoss}</div>
                         </div>
 
                         {/* Take Profit 1 */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                        <div className="bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 1</span>
-                            <button onClick={() => copyToClipboard(signal.takeProfits[0].toString(), 'TP1')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'TP1' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                            <button onClick={() => copyToClipboard(signal.takeProfits[0].toString(), 'TP1')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                              {copied === 'TP1' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />}
                             </button>
                           </div>
-                          <div className="text-2xl font-black tracking-tighter text-emerald-400">{signal.takeProfits[0]}</div>
+                          <div className="text-2xl font-black tracking-tighter text-emerald-500 dark:text-emerald-400">{signal.takeProfits[0]}</div>
                         </div>
 
                         {/* Take Profit 2 */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                        <div className="bg-gray-50 dark:bg-slate-900/40 border border-gray-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
                           <div className="flex justify-between items-center mb-2">
                             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 2</span>
-                            <button onClick={() => copyToClipboard(signal.takeProfits[1].toString(), 'TP2')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'TP2' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                            <button onClick={() => copyToClipboard(signal.takeProfits[1].toString(), 'TP2')} className="p-1.5 hover:bg-gray-200 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                              {copied === 'TP2' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500" />}
                             </button>
                           </div>
-                          <div className="text-2xl font-black tracking-tighter text-emerald-400">{signal.takeProfits[1]}</div>
+                          <div className="text-2xl font-black tracking-tighter text-emerald-500 dark:text-emerald-400">{signal.takeProfits[1]}</div>
                         </div>
                       </div>
 
                       {/* Reasoning */}
                       <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Neural Reasoning</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-slate-500">Neural Reasoning</h3>
                         <div className="space-y-2">
                           {signal.reasoning.map((r, i) => (
-                            <div key={i} className="flex items-start gap-3 bg-slate-900/30 p-3 rounded-2xl border border-slate-800/30">
+                            <div key={i} className="flex items-start gap-3 bg-gray-100 dark:bg-slate-900/30 p-3 rounded-2xl border border-gray-200 dark:border-slate-800/30">
                               <div className="w-5 h-5 bg-emerald-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                                 <Zap className="w-3 h-3 text-emerald-500" />
                               </div>
-                              <p className="text-xs text-slate-400 leading-relaxed">{r}</p>
+                              <p className="text-xs text-gray-500 dark:text-slate-400 leading-relaxed">{r}</p>
                             </div>
                           ))}
                         </div>
@@ -409,13 +420,13 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                     </div>
 
                     {/* Checklist */}
-                    <div className="bg-slate-900/30 border border-slate-800/50 rounded-[2rem] p-6">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                    <div className="bg-gray-50 dark:bg-slate-900/30 border border-gray-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-500 dark:text-slate-500 mb-4 flex items-center gap-2">
                         <Shield className="w-3 h-3" /> Institutional Checklist
                       </h3>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {signal.checklist?.map((item, i) => (
-                          <div key={i} className="flex items-center gap-3 text-xs text-slate-400">
+                          <div key={i} className="flex items-center gap-3 text-xs text-gray-500 dark:text-slate-400">
                             <CheckCircle2 className="w-4 h-4 text-emerald-500/50" />
                             {item}
                           </div>
@@ -434,7 +445,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
       {/* Input Area */}
       {accessStatus === 'granted' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617] to-transparent pt-10 pb-6 px-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-white dark:from-[#020617] via-white dark:via-[#020617] to-transparent pt-10 pb-6 px-4">
           <div className="max-w-4xl mx-auto">
             <form 
               onSubmit={handleAnalyze}
@@ -445,13 +456,13 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Enter asset (e.g. 'Setup for Gold' or 'EURUSD analysis')"
-                className="w-full bg-slate-900/80 border border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-600 backdrop-blur-xl"
+                className="w-full bg-gray-50 dark:bg-slate-900/80 border border-gray-200 dark:border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-gray-400 dark:placeholder:text-slate-600 backdrop-blur-xl text-gray-900 dark:text-white"
                 disabled={isAnalyzing}
               />
               <button
                 type="submit"
                 disabled={!query.trim() || isAnalyzing}
-                className="absolute right-2 top-2 bottom-2 px-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center"
+                className="absolute right-2 top-2 bottom-2 px-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-gray-200 dark:disabled:bg-slate-800 disabled:text-gray-400 dark:disabled:text-slate-600 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center"
               >
                 {isAnalyzing ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

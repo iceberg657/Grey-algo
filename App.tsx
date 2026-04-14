@@ -530,6 +530,7 @@ const App: React.FC = () => {
                 <SniperLiveTrade 
                     onBack={handleNavigateToHome} 
                     userMetadata={userMetadata}
+                    isLocked={systemSettings?.sniperLocked && userMetadata?.role !== 'admin'}
                 />
             );
             break;
