@@ -79,7 +79,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       else if (normalized.length === 6 && !normalized.startsWith('FRX')) symbol = 'frx' + normalized;
       else if (normalized.startsWith('FRX')) symbol = 'frx' + normalized.substring(3);
       
-      const response = await fetch(`/api/deriv/quote?symbol=${symbol}`);
+      // Grab token from Vite env to bypass Vercel serverless env issues
+      const clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || '';
+      const url = `/api/deriv/quote?symbol=${symbol}${clientToken ? `&token=${clientToken}` : ''}`;
+      
+      const response = await fetch(url);
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       setLivePrice(data);
