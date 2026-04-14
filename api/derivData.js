@@ -3,8 +3,13 @@ import WebSocket from 'ws';
 
 const DERIV_APP_ID = 1089; // Default app id for testing or use a specific one if provided
 
-export async function fetchDerivQuote(symbol) {
-    const token = process.env.DERIV_API_TOKEN;
+export async function fetchDerivQuote(symbol, clientToken = null) {
+    const token = clientToken || 
+                  process.env.DERIV_API_TOKEN || 
+                  process.env.VITE_DERIV_API_TOKEN || 
+                  process.env.DERIV_TOKEN || 
+                  process.env.VITE_DERIV_TOKEN;
+                  
     if (!token) {
         throw new Error('DERIV_API_TOKEN not configured');
     }
@@ -75,13 +80,13 @@ export async function fetchDerivQuote(symbol) {
 }
 
 export default async (req, res) => {
-    const { symbol } = req.query;
+    const { symbol, token } = req.query;
     if (!symbol) {
         return res.status(400).json({ error: 'Missing symbol' });
     }
 
     try {
-        const data = await fetchDerivQuote(symbol);
+        const data = await fetchDerivQuote(symbol, token);
         res.status(200).json(data);
     } catch (error) {
         console.error('[DerivData] Error:', error.message);
