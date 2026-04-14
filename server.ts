@@ -16,6 +16,8 @@ import { encrypt } from './src/services/encryptionService';
 import marketDataHandler from './api/marketData.js';
 import configHandler from './api/config.js';
 import analyzeHandler from './api/gemini/analyze.js';
+import derivHandler from './api/derivData.js';
+import { statusHandler as twelveDataStatusHandler, quoteHandler as twelveDataQuoteHandler } from './api/twelveData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
@@ -30,154 +32,9 @@ async function startServer() {
 
   console.log('[Server] Initializing API routes...');
 
-  // Cache for Twelve Data API key validation
-  let twelveDataKeyCache: { key: string, valid: boolean, usage: any, timestamp: number } | null = null;
-  const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
-
-  app.get('/api/twelvedata/status', async (req, res) => {
-    console.log('[TwelveData] Status check requested');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-    const apiKey = process.env.TWELVE_DATA_API_KEY || 
-                   process.env.VITE_TWELVE_DATA_API_KEY || 
-                   process.env.TWELVEDATA_API_KEY || 
-                   process.env.VITE_TWELVEDATA_API_KEY;
-                   
-    // Check cache first
-    if (apiKey && twelveDataKeyCache && twelveDataKeyCache.key === apiKey && (Date.now() - twelveDataKeyCache.timestamp < CACHE_DURATION)) {
-      console.log('[TwelveData] Returning cached status');
-      return res.json({ 
-        configured: true,
-        valid: twelveDataKeyCache.valid,
-        keyName: 'Cached',
-        maskedKey: `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`,
-        usage: twelveDataKeyCache.usage
-      });
-    }
-
-    console.log('[TwelveData] API Key present:', !!apiKey);
-    
-    // Debug: log all env keys that might be related to twelvedata
-    const relatedKeys = Object.keys(process.env).filter(k => k.toLowerCase().includes('twelve'));
-    console.log('[TwelveData] Related env keys found:', relatedKeys);
-    
-    let isValid = false;
-    let usageInfo = null;
-    if (apiKey) {
-      try {
-        // Test the key with a simple usage request
-        const testRes = await fetch(`https://api.twelvedata.com/api_usage?apikey=${apiKey}`);
-        const testData = await testRes.json();
-        isValid = testData.status !== 'error';
-        usageInfo = testData;
-        
-        // Update cache
-        twelveDataKeyCache = {
-          key: apiKey,
-          valid: isValid,
-          usage: usageInfo,
-          timestamp: Date.now()
-        };
-
-        if (!isValid) {
-          console.warn('[TwelveData] API key is present but invalid:', testData.message);
-        } else {
-          console.log('[TwelveData] API key validated successfully');
-        }
-      } catch (e) {
-        console.error('[TwelveData] Error validating API key:', e);
-      }
-    }
-    
-    res.json({ 
-      configured: !!apiKey,
-      valid: isValid,
-      keyName: relatedKeys[0] || 'None',
-      maskedKey: apiKey ? `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}` : null,
-      usage: usageInfo
-    });
-  });
-
-  app.get('/api/twelvedata/quote', async (req, res) => {
-    const { symbol, interval = '15min', apikey } = req.query;
-    if (!symbol || typeof symbol !== 'string') {
-      return res.status(400).json({ error: 'Missing symbol' });
-    }
-
-    const apiKey = apikey || process.env.TWELVE_DATA_API_KEY || 
-                   process.env.VITE_TWELVE_DATA_API_KEY || 
-                   process.env.TWELVEDATA_API_KEY || 
-                   process.env.VITE_TWELVEDATA_API_KEY;
-    if (!apiKey) {
-      console.warn('Twelve Data API key not configured in environment variables.');
-      return res.status(500).json({ error: 'Twelve Data API key not configured' });
-    }
-
-    // Map common symbols to Twelve Data format
-    let mappedSymbol = symbol.toUpperCase();
-    if (mappedSymbol === 'GOLD') mappedSymbol = 'XAU/USD';
-    else if (mappedSymbol === 'XAUUSD') mappedSymbol = 'XAU/USD';
-    else if (mappedSymbol === 'US30' || mappedSymbol === 'DJI') mappedSymbol = 'DJI';
-    else if (mappedSymbol === 'NAS100' || mappedSymbol === 'NDX') mappedSymbol = 'NDX';
-    else if (mappedSymbol === 'SPX500' || mappedSymbol === 'SPX') mappedSymbol = 'SPX';
-    else if (mappedSymbol === 'UK100' || mappedSymbol === 'FTSE') mappedSymbol = 'FTSE';
-    else if (mappedSymbol === 'GER40' || mappedSymbol === 'DAX') mappedSymbol = 'DAX';
-    else if (mappedSymbol === 'USOIL' || mappedSymbol === 'WTI') mappedSymbol = 'WTI';
-    else if (mappedSymbol === 'UKOIL' || mappedSymbol === 'BRENT') mappedSymbol = 'BRENT';
-    else if (mappedSymbol.length === 6 && !mappedSymbol.includes('/')) {
-      // Generic mapping for other 6-character forex pairs
-      mappedSymbol = `${mappedSymbol.slice(0, 3)}/${mappedSymbol.slice(3)}`;
-    }
-
-    try {
-      console.log(`Calling Twelve Data API for ${mappedSymbol} at ${interval}...`);
-      
-      // Fetch Quote, RSI, SMA, STDDEV, ATR, and ADX in parallel for confluence
-      const encodedSymbol = encodeURIComponent(mappedSymbol);
-      const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
-        fetch(`https://api.twelvedata.com/quote?symbol=${encodedSymbol}&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/rsi?symbol=${encodedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/sma?symbol=${encodedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/stddev?symbol=${encodedSymbol}&interval=${interval}&time_period=20&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/atr?symbol=${encodedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`),
-        fetch(`https://api.twelvedata.com/adx?symbol=${encodedSymbol}&interval=${interval}&time_period=14&apikey=${apiKey}`)
-      ]);
-
-      const quoteData = await quoteRes.json();
-      const rsiData = await rsiRes.json();
-      const smaData = await smaRes.json();
-      const stddevData = await stddevRes.json();
-      const atrData = await atrRes.json();
-      const adxData = await adxRes.json();
-      
-      if (quoteData.status === 'error') {
-        console.error('Twelve Data API Error:', quoteData.message);
-        return res.status(400).json({ error: quoteData.message });
-      }
-
-      const latestRsi = rsiData.values?.[0]?.rsi || 'N/A';
-      const latestSma = smaData.values?.[0]?.sma || 'N/A';
-      const latestStdDev = stddevData.values?.[0]?.stddev || 'N/A';
-      const latestAtr = atrData.values?.[0]?.atr || 'N/A';
-      const latestAdx = adxData.values?.[0]?.adx || 'N/A';
-
-      const combinedData = {
-        ...quoteData,
-        indicators: {
-          rsi: latestRsi,
-          sma: latestSma,
-          stddev: latestStdDev,
-          atr: latestAtr,
-          adx: latestAdx
-        }
-      };
-
-      console.log(`Twelve Data API success for ${mappedSymbol}. RSI: ${latestRsi}, SMA: ${latestSma}, STDDEV: ${latestStdDev}, ATR: ${latestAtr}, ADX: ${latestAdx}`);
-      res.json(combinedData);
-    } catch (error) {
-      console.error('Error fetching Twelve Data:', error);
-      res.status(500).json({ error: 'Failed to fetch from Twelve Data' });
-    }
-  });
+  // Twelve Data Routes
+  app.get('/api/twelvedata/status', twelveDataStatusHandler);
+  app.get('/api/twelvedata/quote', twelveDataQuoteHandler);
 
   // MetaApiService initialization removed for testing
   // function getMetaApiService(): MetaApiService {
@@ -557,6 +414,9 @@ async function startServer() {
 
   // Gemini Proxy Route to bypass regional blocks (VPN-free execution)
   app.post('/api/gemini/analyze', analyzeHandler);
+
+  // Deriv API Route
+  app.get('/api/deriv/quote', derivHandler);
 
   // Push Notification Route
   app.post('/api/notifications/broadcast', async (req, res) => {

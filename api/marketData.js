@@ -7,7 +7,13 @@ const KEYS = [
     process.env.API_KEY_6,
     process.env.API_KEY,
     process.env.GEMINI_API_KEY
-].filter(key => !!key && key.trim() !== '');
+].filter(key => 
+    !!key && 
+    key.trim() !== '' && 
+    !key.includes('TODO') && 
+    !key.includes('YOUR_') &&
+    key.length > 20 // Real keys are usually longer
+);
 
 const TWELVE_DATA_KEY = process.env.TWELVE_DATA_API_KEY || 
                         process.env.VITE_TWELVE_DATA_API_KEY || 
@@ -61,15 +67,25 @@ export async function fetchFromGemini() {
             });
 
             const text = response.text;
+            if (!text) continue;
+
             const start = text.indexOf('[');
             const end = text.lastIndexOf(']') + 1;
             if (start !== -1 && end !== -1) {
                 const data = JSON.parse(text.substring(start, end));
-                marketDataCache = { timestamp: Date.now(), data };
-                return data;
+                if (Array.isArray(data) && data.length > 0) {
+                    marketDataCache = { timestamp: Date.now(), data };
+                    return data;
+                }
             }
         } catch (e) { 
-            console.warn(`[MarketData] Gemini fetch failed for key ...${apiKey.slice(-4)}:`, e.message);
+            const msg = e.message || String(e);
+            // Don't log full error for common quota/overload issues to keep logs clean
+            if (msg.includes('503') || msg.includes('429') || msg.includes('high demand')) {
+                console.warn(`[MarketData] Key ...${apiKey.slice(-4)} is congested (503/429). Trying next...`);
+            } else {
+                console.warn(`[MarketData] Gemini fetch failed for key ...${apiKey.slice(-4)}:`, msg.substring(0, 100));
+            }
             continue; 
         }
     }

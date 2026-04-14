@@ -251,8 +251,8 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
 1. **🌐 MULTI-DIMENSIONAL WORKFLOW (MANDATORY):**
    Once you receive the prompt and images, you MUST execute this internal workflow:
    - **Phase 1: Strategic Analysis (HTF Chart):** Determine the macro trend, major Supply/Demand zones, and overall market structure.
-   - **Phase 2: Tactical Analysis (Primary Chart):** Identify the trade setup, patterns, and refined levels within the strategic context.
-   - **Phase 3: Execution Analysis (Execution Chart):** Pinpoint the exact entry, Stop Loss (SL), and Take Profit (TP) levels for trade execution.
+   - **Phase 2: Tactical Analysis (Primary Chart):** Identify the trade setup, patterns, and refined levels within the strategic context. This is your primary source for entry bias.
+   - **Phase 3: Execution Analysis (Execution Chart):** Pinpoint the exact entry, Stop Loss (SL), and Take Profit (TP) levels for trade execution. You MUST use the Execution View for precise SL and TP placements.
    - **Phase 4: Fundamental Context (Search Grounding):** Use the googleSearch tool to fetch real-time macroeconomic news and sentiment to ensure a sudden news event won't invalidate the setup.
 
 2. **Risk Management & Lot Size Calculation:**
@@ -260,6 +260,7 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
    - **Standard Risk:** Default to a strict 1% risk per trade based on total account balance.
    - **Cross-Asset Correlation Analysis (MANDATORY):** Before issuing a signal, you MUST check the correlation of the asset with its primary drivers (e.g., DXY for EURUSD, Gold for XAUUSD, Oil for USDCAD). If the asset's move is contradicted by its primary driver (e.g., EURUSD BUY signal while DXY is showing extreme bullish strength), DO NOT issue the signal.
    - **ATR-Based Stop Loss (MANDATORY):** You MUST calculate the Stop Loss using an ATR multiplier (e.g., 1.5x or 2x ATR) to ensure the stop is placed outside of normal market noise.
+   - **PRECISION ENTRY:** Use BOTH the Primary and Execution charts to find the most precise entry point. Do not be a day trader for a scalp trade; aim for sniper precision.
    - **Session-Specific Risk:** Adjust your risk aggressiveness based on the current trading session. Be more conservative (e.g., 0.5% risk) during low-volume Asian sessions and more aggressive (up to 1% risk) during high-volume London/New York sessions.
    - **The Formula:**
      * Risk Amount = Account Balance * (Risk Percentage / 100)
@@ -841,14 +842,24 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             }}
         );
         
-
+        if (request.isMultiDimensional && (request.images as any).execution) {
+            promptParts.push(
+                { text: "EXECUTION CHART (Lower Timeframe for Precise SL/TP and Entry)" }, 
+                { inlineData: { 
+                    data: (request.images as any).execution.data, 
+                    mimeType: (request.images as any).execution.mimeType 
+                }}
+            );
+        }
 
         const response = await runWithModelFallback<GenerateContentResponse>(
             ANALYSIS_MODELS, 
             async (modelId) => {
         const config: any = { 
             tools: [{googleSearch: {}}], 
-            temperature: 0.1
+            temperature: 0.1,
+            maxOutputTokens: 8192,
+            responseMimeType: "application/json"
         };
         
         // Use server-side proxy to bypass regional blocks (VPN-free execution)
@@ -938,34 +949,28 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         let text = response.text || '';
 
-        // Robust JSON extraction
-        const extractJson = (str: string) => {
-            // 1. Try markdown code block
-            const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-            if (jsonMatch) return jsonMatch[1].trim();
-
-            // 2. Find first { and last }
-            const start = str.indexOf('{');
-            const end = str.lastIndexOf('}');
-            if (start !== -1 && end !== -1 && end > start) {
-                return str.substring(start, end + 1).trim();
-            }
-            return str.trim();
-        };
-
         text = extractJson(text);
         
         if (!text || !text.startsWith('{')) {
             console.error("Neural alignment failure. Raw response:", response.text);
-            throw new Error("Neural alignment failure - Invalid JSON response structure");
+            throw new Error("Neural alignment failure - Invalid JSON response structure. The model might have returned non-JSON text or failed to start the JSON block.");
         }
         
         let data;
         try {
-            data = JSON.parse(text);
+            // Attempt to fix common truncation issues (missing closing braces)
+            let jsonToParse = text;
+            const openBraces = (jsonToParse.match(/{/g) || []).length;
+            const closeBraces = (jsonToParse.match(/}/g) || []).length;
+            if (openBraces > closeBraces) {
+                console.warn(`Detected truncated JSON (${openBraces} vs ${closeBraces}). Attempting to close braces...`);
+                jsonToParse += '}'.repeat(openBraces - closeBraces);
+            }
+
+            data = JSON.parse(jsonToParse);
         } catch (e) {
             console.error("JSON Parse Error. Raw text:", text);
-            throw new Error(`Neural alignment failure - JSON parse error: ${e instanceof Error ? e.message : String(e)}`);
+            throw new Error(`Neural alignment failure - JSON parse error: ${e instanceof Error ? e.message : String(e)}. This often happens if the model output was truncated due to token limits.`);
         }
 
         // Calculate Confluence Score strictly from Execution Checklist
@@ -1239,4 +1244,135 @@ export async function generateTradingSignal(
     );
     
     return completeSetup;
+}
+
+/**
+ * Generates a high-precision trade setup using Gemini 3.1 Flash Lite and live Deriv data.
+ * Focused on Market Execution and Institutional logic.
+ */
+export async function generateSniperLiveSignal(
+  query: string,
+  style: TradingStyle,
+  derivData: any,
+  learnedStrategies: string[] = []
+): Promise<SignalData> {
+  const prompt = `As an elite Institutional Trading AI, generate a high-precision trade setup based on the following live market data and user request.
+
+USER REQUEST: "${query}"
+TRADING STYLE: ${style}
+LIVE MARKET DATA (DERIV): ${JSON.stringify(derivData)}
+
+NEURAL LEARNING (PAST LESSONS):
+${learnedStrategies.map(s => `- ${s}`).join('\n')}
+
+MANDATORY REQUIREMENTS:
+1. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution'. Do NOT provide limit or stop orders.
+2. **INSTITUTIONAL LOGIC:** Focus on Liquidity Sweeps, Order Blocks, and Market Structure Shifts.
+3. **PRECISION LEVELS:** Provide exact Entry, TP1, TP2, and SL.
+4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+
+The setup should be optimized for the selected style (${style}). 
+If the market data is not sufficient or the setup is low probability, you MUST return a NEUTRAL signal.
+
+JSON Structure:
+{
+  "signal": "BUY" | "SELL" | "NEUTRAL",
+  "confidence": number (0-100),
+  "asset": string,
+  "entryPoints": [number],
+  "entryType": "Market Execution",
+  "stopLoss": number,
+  "takeProfits": [number, number],
+  "reasoning": [string, string, string],
+  "checklist": [string, string, string]
+}`;
+
+  return await executeLaneCall<SignalData>(async (apiKey) => {
+    const response = await runWithModelFallback<GenerateContentResponse>(
+      ANALYSIS_MODELS,
+      async (modelId) => {
+        const config: any = { 
+          temperature: 0.2,
+          maxOutputTokens: 2048,
+          responseMimeType: "application/json"
+        };
+        
+        try {
+          const proxyRes = await fetch('/api/gemini/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: modelId,
+              contents: [{ parts: [{ text: prompt }] }],
+              config: config,
+              apiKey: apiKey
+            }),
+          });
+
+          if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
+          const data = await proxyRes.json();
+          return {
+            text: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+            candidates: data.candidates
+          } as any;
+        } catch (e) {
+          // Fallback to direct SDK if proxy fails
+          const ai = new GoogleGenAI({ apiKey });
+          const result = await ai.models.generateContent({
+            model: modelId,
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            config: config
+          });
+          return result;
+        }
+      }
+    );
+
+    const signal = extractJson(response.text);
+    
+    // Ensure all required fields exist to prevent UI crashes
+    return {
+      id: `sniper_${Date.now()}`,
+      timestamp: Date.now(),
+      asset: signal.asset || derivData?.symbol || 'Unknown',
+      signal: signal.signal || 'NEUTRAL',
+      confidence: signal.confidence || 0,
+      timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
+      entryPoints: Array.isArray(signal.entryPoints) ? signal.entryPoints : [derivData?.price || 0],
+      stopLoss: signal.stopLoss || 0,
+      takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
+      reasoning: Array.isArray(signal.reasoning) ? signal.reasoning : ['Analysis pending or inconclusive.'],
+      checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
+      entryType: 'Market Execution'
+    } as SignalData;
+  }, getAnalysisPool());
+}
+
+function extractJson(str: string): any {
+    try {
+        // 1. Try markdown code block
+        const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        const rawJson = jsonMatch ? jsonMatch[1].trim() : str.trim();
+
+        // 2. Find first { and last }
+        const start = rawJson.indexOf('{');
+        const end = rawJson.lastIndexOf('}');
+        
+        let jsonToParse = rawJson;
+        if (start !== -1 && end !== -1 && end > start) {
+            jsonToParse = rawJson.substring(start, end + 1).trim();
+        } else if (start !== -1 && end === -1) {
+            // 3. If it looks like it started but didn't finish (truncated)
+            jsonToParse = rawJson.substring(start).trim();
+            // Attempt to close it
+            if (!jsonToParse.endsWith('}')) {
+                jsonToParse += '}';
+            }
+        }
+
+        return JSON.parse(jsonToParse);
+    } catch (e) {
+        console.error('Failed to extract JSON from AI response:', e);
+        return {};
+    }
 }

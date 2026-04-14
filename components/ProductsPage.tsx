@@ -3490,7 +3490,7 @@ if barstate.islast
 
 export const ProductsPage: React.FC<ProductsPageProps> = ({ onBack, onLogout, userMetadata }) => {
     const [copiedId, setCopiedId] = useState<string | null>(null);
-    const accessStatus = userMetadata?.access?.products || 'locked';
+    const accessStatus = userMetadata?.role === 'admin' ? 'granted' : (userMetadata?.access?.products || 'locked');
 
     const handleCopy = (code: string, id: string) => {
         navigator.clipboard.writeText(code);

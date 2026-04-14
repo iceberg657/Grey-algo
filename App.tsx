@@ -10,6 +10,7 @@ import { ChatPage } from './components/ChatPage';
 import { ProductsPage } from './components/ProductsPage';
 import { AdminPanel } from './components/AdminPanel';
 import { AutoTradePage } from './components/AutoTradePage';
+import { SniperLiveTrade } from './components/SniperLiveTrade';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';
@@ -28,7 +29,7 @@ import type { AdminSettings } from './types';
 import { requestNotificationPermission, onMessageListener } from './services/notificationService';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -282,6 +283,10 @@ const App: React.FC = () => {
         navigateTo('autotrade');
     };
 
+    const handleNavigateToSniper = () => {
+        navigateTo('sniper');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         navigateTo(previousView); 
@@ -427,6 +432,7 @@ const App: React.FC = () => {
                     onNavigateToJournal={handleNavigateToJournal}
                     onNavigateToAdmin={handleNavigateToAdmin}
                     onNavigateToAutoTrade={handleNavigateToAutoTrade}
+                    onNavigateToSniper={handleNavigateToSniper}
                     onAssetSelect={handleAssetSelect}
                     userMetadata={userMetadata}
                 />
@@ -514,6 +520,14 @@ const App: React.FC = () => {
         case 'autotrade':
             content = (
                 <AutoTradePage 
+                    onBack={handleNavigateToHome} 
+                    userMetadata={userMetadata}
+                />
+            );
+            break;
+        case 'sniper':
+            content = (
+                <SniperLiveTrade 
                     onBack={handleNavigateToHome} 
                     userMetadata={userMetadata}
                 />

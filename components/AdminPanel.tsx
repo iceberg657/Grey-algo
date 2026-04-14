@@ -234,7 +234,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         }
     };
 
-    const handleUpdateUserAccess = async (userId: string, feature: 'autoTrade' | 'products', status: 'locked' | 'pending' | 'granted') => {
+    const handleUpdateUserAccess = async (userId: string, feature: 'autoTrade' | 'products' | 'sniperLiveTrade', status: 'locked' | 'pending' | 'granted') => {
         const path = `users/${userId}`;
         try {
             const userRef = doc(db, 'users', userId);
@@ -245,12 +245,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             // Send notification if granted
             if (status === 'granted') {
                 try {
+                    let featureName = 'Premium Products';
+                    if (feature === 'autoTrade') featureName = 'Auto Trade';
+                    if (feature === 'sniperLiveTrade') featureName = 'Sniper Live Trade';
+
                     const response = await fetch('/api/notifications/broadcast', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             title: 'Access Granted!',
-                            body: `Your access to ${feature === 'autoTrade' ? 'Auto Trade' : 'Premium Products'} has been approved.`,
+                            body: `Your access to ${featureName} has been approved.`,
                             targetUserId: userId
                         })
                     });
@@ -486,6 +490,17 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                                 <select 
                                                     value={user.access?.products || 'locked'}
                                                     onChange={(e) => handleUpdateUserAccess(user.uid, 'products', e.target.value as any)}
+                                                    className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
+                                                >
+                                                    <option value="locked">LOCKED</option>
+                                                    <option value="pending">PENDING</option>
+                                                    <option value="granted">GRANTED</option>
+                                                </select>
+                                            </td>
+                                            <td className="p-6">
+                                                <select 
+                                                    value={user.access?.sniperLiveTrade || 'locked'}
+                                                    onChange={(e) => handleUpdateUserAccess(user.uid, 'sniperLiveTrade', e.target.value as any)}
                                                     className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
                                                 >
                                                     <option value="locked">LOCKED</option>

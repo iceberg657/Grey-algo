@@ -110,6 +110,10 @@ export class PropFirmProtector {
     if (!this.connection) return;
     try {
       const positions = await this.connection.getPositions();
+      if (!Array.isArray(positions)) {
+        console.log('No active positions found or invalid response.');
+        return;
+      }
       for (const position of positions) {
         console.log(`Closing position ${position.id}...`);
         await this.connection.closePosition(position.id);

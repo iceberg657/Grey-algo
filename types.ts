@@ -310,6 +310,7 @@ export interface UserMetadata {
     access: {
         autoTrade: 'locked' | 'pending' | 'granted';
         products: 'locked' | 'pending' | 'granted';
+        sniperLiveTrade: 'locked' | 'pending' | 'granted';
     };
     mt5Credentials?: {
         server: string;

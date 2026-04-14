@@ -5,7 +5,7 @@
 
 let API_KEY: string | null = null;
 const KEYS: Record<string, string | null> = {
-    k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null, k8: null
+    k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null, k8: null, k9: null
 };
 
 export async function initializeApiKey() {
@@ -22,6 +22,7 @@ export async function initializeApiKey() {
         k6: import.meta.env.VITE_API_KEY_6,
         k7: import.meta.env.VITE_API_KEY_7,
         k8: import.meta.env.VITE_API_KEY_8,
+        k9: import.meta.env.VITE_API_KEY_9,
     };
 
     if (envKeys.k1) {
@@ -63,7 +64,8 @@ export async function initializeApiKey() {
             KEYS.k5 = (process.env as any).API_KEY_5;
             KEYS.k6 = (process.env as any).API_KEY_6;
             KEYS.k7 = (process.env as any).API_KEY_7;
-            KEYS.k8 = (process.env as any).VITE_API_KEY_8;
+            KEYS.k8 = (process.env as any).API_KEY_8;
+            KEYS.k9 = (process.env as any).API_KEY_9;
         }
     } catch (e) {
         // Ignore process.env errors in browser
@@ -83,7 +85,8 @@ const K = {
     K5: () => KEYS.k5 || '',
     K6: () => KEYS.k6 || '',
     K7: () => KEYS.k7 || '',
-    K8: () => KEYS.k8 || ''
+    K8: () => KEYS.k8 || '',
+    K9: () => KEYS.k9 || ''
 };
 
 // Helper to get unique keys from a list of potential keys
@@ -91,8 +94,8 @@ const getUniqueKeys = (keys: string[]) => {
     return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));
 };
 
-// 1. CHART ANALYSIS (Keys 1, 2, 3, 4)
-export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]);
+// 1. CHART ANALYSIS (Keys 1, 2, 3, 4, 9)
+export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K9()]);
 export const ANALYSIS_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
@@ -165,10 +168,10 @@ export async function executeLaneCall<T>(
     pool: string[] | (() => string[])
 ): Promise<T> {
     await initializeApiKey();
-    const resolvedPool = typeof pool === 'function' ? pool() : pool;
+    const resolvedPool = typeof pool === 'function' ? pool() : (pool || []);
     
     // Deduplicate and filter pool
-    const uniquePool = Array.from(new Set(resolvedPool.filter(k => !!k && k.length > 5)));
+    const uniquePool = Array.from(new Set((resolvedPool || []).filter(k => !!k && k.length > 5)));
     const activePool = uniquePool.length > 0 ? uniquePool : [K.P()];
     
     let lastError: any = null;
@@ -288,6 +291,8 @@ export async function runWithModelFallback<T>(
                     errorMsg.includes('xhr error') ||
                     errorMsg.includes('rpc failed') ||
                     errorMsg.includes('fetch failed') ||
+                    errorMsg.includes('max tokens') ||
+                    errorMsg.includes('finish_reason: length') ||
                     errorMsg.includes('unexpected token') ||
                     errorMsg.includes('not valid json') ||
                     errorMsg.includes('non-json') ||

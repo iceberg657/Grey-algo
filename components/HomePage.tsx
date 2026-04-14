@@ -28,6 +28,7 @@ interface HomePageProps {
     onNavigateToJournal: () => void;
     onNavigateToAdmin: () => void;
     onNavigateToAutoTrade: () => void;
+    onNavigateToSniper: () => void;
     onAssetSelect?: (asset: string) => void;
     userMetadata: UserMetadata | null;
 }
@@ -66,6 +67,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     onNavigateToJournal, 
     onNavigateToAdmin, 
     onNavigateToAutoTrade,
+    onNavigateToSniper,
     onAssetSelect,
     userMetadata 
 }) => {
@@ -92,6 +94,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             try {
                 const res = await fetch('/api/twelvedata/status');
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+                
+                const contentType = res.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    throw new Error('Server returned non-JSON response');
+                }
+                
                 const data = await res.json();
                 console.log('Twelve Data Status Response:', data);
                 
@@ -278,6 +286,13 @@ export const HomePage: React.FC<HomePageProps> = ({
             ariaLabel: 'Open Auto Trade Terminal',
             highlight: true,
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+        },
+        {
+            onClick: onNavigateToSniper,
+            label: 'Sniper',
+            ariaLabel: 'Open Sniper Live Trade',
+            highlight: true,
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /><circle cx="12" cy="12" r="3" /></svg>
         },
         ...(isAdmin ? [{
             onClick: onNavigateToAdmin,
