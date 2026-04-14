@@ -17,7 +17,7 @@ import marketDataHandler from './api/marketData.js';
 import configHandler from './api/config.js';
 import analyzeHandler from './api/gemini/analyze.js';
 import derivHandler from './api/derivData.js';
-import { statusHandler as twelveDataStatusHandler, quoteHandler as twelveDataQuoteHandler } from './api/twelveData.js';
+import twelveDataHandler from './api/twelveData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
@@ -33,8 +33,7 @@ async function startServer() {
   console.log('[Server] Initializing API routes...');
 
   // Twelve Data Routes
-  app.get('/api/twelvedata/status', twelveDataStatusHandler);
-  app.get('/api/twelvedata/quote', twelveDataQuoteHandler);
+  app.get('/api/twelveData', twelveDataHandler);
 
   // MetaApiService initialization removed for testing
   // function getMetaApiService(): MetaApiService {
@@ -416,7 +415,7 @@ async function startServer() {
   app.post('/api/gemini/analyze', analyzeHandler);
 
   // Deriv API Route
-  app.get('/api/deriv/quote', derivHandler);
+  app.get('/api/derivData', derivHandler);
 
   // Push Notification Route
   app.post('/api/notifications/broadcast', async (req, res) => {

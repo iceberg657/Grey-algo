@@ -95,7 +95,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || '';
       }
 
-      const url = `/api/deriv/quote?symbol=${symbol}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`;
+      const url = `/api/derivData?symbol=${symbol}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`;
       
       const response = await fetch(url);
       const data = await response.json();

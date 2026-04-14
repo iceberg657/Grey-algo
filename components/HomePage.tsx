@@ -92,7 +92,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             const localKey = userSettings?.twelveDataApiKey;
 
             try {
-                const res = await fetch('/api/twelvedata/status');
+                const res = await fetch('/api/twelveData?action=status');
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 
                 const contentType = res.headers.get('content-type');

@@ -1175,7 +1175,7 @@ export async function generateTradingSignal(
                 console.warn('Failed to read local Twelve Data key:', e);
             }
 
-            const url = `/api/twelvedata/quote?symbol=${encodeURIComponent(asset)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
+            const url = `/api/twelveData?action=quote&symbol=${encodeURIComponent(asset)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
             const response = await fetch(url);
             if (response.ok) {
                 twelveDataQuote = await response.json();

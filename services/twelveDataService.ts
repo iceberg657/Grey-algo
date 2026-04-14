@@ -99,7 +99,7 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         }
 
         // Fallback to backend proxy
-        const url = `/api/twelvedata/quote?symbol=${encodeURIComponent(symbol)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
+        const url = `/api/twelveData?action=quote&symbol=${encodeURIComponent(symbol)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
         const response = await fetch(url);
         
         if (!response.ok) {

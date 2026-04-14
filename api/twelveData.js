@@ -116,3 +116,12 @@ export async function quoteHandler(req, res) {
         res.status(500).json({ error: 'Failed to fetch data from Twelve Data' });
     }
 }
+
+export default async function handler(req, res) {
+    const { action } = req.query;
+    if (action === 'status') {
+        return statusHandler(req, res);
+    } else {
+        return quoteHandler(req, res);
+    }
+}
