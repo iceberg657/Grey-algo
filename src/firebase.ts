@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getMessaging } from 'firebase/messaging';
-import firebaseConfig from './firebase-applet-config.json';
+import firebaseConfig from '../firebase-applet-config.json';
 
 const { firestoreDatabaseId, ...config } = firebaseConfig;
 const app = initializeApp(config);
