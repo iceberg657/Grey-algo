@@ -95,7 +95,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || '';
       }
 
-      const url = `/api/deriv/quote?symbol=${symbol}${clientToken ? `&token=${clientToken}` : ''}`;
+      const url = `/api/deriv/quote?symbol=${symbol}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`;
       
       const response = await fetch(url);
       const data = await response.json();
@@ -104,7 +104,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       return data;
     } catch (err: any) {
       console.error('Deriv Price Fetch Error:', err);
-      return null;
+      throw new Error(`Deriv API Error: ${err.message}`);
     } finally {
       setIsFetchingPrice(false);
     }
