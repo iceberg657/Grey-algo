@@ -98,9 +98,10 @@
         "maintenanceMode": { "type": "boolean" },
         "chatLocked": { "type": "boolean" },
         "sniperLocked": { "type": "boolean" },
+        "autoTradeLocked": { "type": "boolean" },
         "updatedAt": { "type": "integer" }
       },
-      "required": ["maintenanceMode", "chatLocked", "sniperLocked", "updatedAt"]
+      "required": ["maintenanceMode", "chatLocked", "sniperLocked", "autoTradeLocked", "updatedAt"]
     },
     "GlobalStrategy": {
       "title": "GlobalStrategy",

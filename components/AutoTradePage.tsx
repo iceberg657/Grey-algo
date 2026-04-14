@@ -8,10 +8,13 @@ import { doc, updateDoc } from 'firebase/firestore';
 interface AutoTradePageProps {
     onBack: () => void;
     userMetadata: UserMetadata | null;
+    isLocked?: boolean;
 }
 
-export const AutoTradePage: React.FC<AutoTradePageProps> = ({ onBack, userMetadata }) => {
-    const accessStatus = userMetadata?.role === 'admin' ? 'granted' : (userMetadata?.access?.autoTrade || 'locked');
+export const AutoTradePage: React.FC<AutoTradePageProps> = ({ onBack, userMetadata, isLocked }) => {
+    const accessStatus = userMetadata?.role === 'admin' 
+        ? 'granted' 
+        : (isLocked ? 'locked' : (userMetadata?.access?.autoTrade || 'locked'));
 
     const handleRequestAccess = async () => {
         if (!userMetadata?.uid) return;

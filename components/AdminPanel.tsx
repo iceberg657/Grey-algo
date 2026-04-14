@@ -15,7 +15,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     const [recentStrategies, setRecentStrategies] = useState<GlobalStrategy[]>([]);
     const [autoMLStrategies, setAutoMLStrategies] = useState<AutoMLStrategy[]>([]);
     const [users, setUsers] = useState<UserMetadata[]>([]);
-    const [systemSettings, setSystemSettings] = useState<{ maintenanceMode: boolean; chatLocked: boolean; sniperLocked: boolean }>({ maintenanceMode: false, chatLocked: false, sniperLocked: false });
+    const [systemSettings, setSystemSettings] = useState<{ maintenanceMode: boolean; chatLocked: boolean; sniperLocked: boolean; autoTradeLocked: boolean }>({ maintenanceMode: false, chatLocked: false, sniperLocked: false, autoTradeLocked: false });
     const [isLoading, setIsLoading] = useState(true);
     const [broadcastMsg, setBroadcastMsg] = useState('');
     const [isSending, setIsSending] = useState(false);
@@ -68,7 +68,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 setSystemSettings({
                     maintenanceMode: data.maintenanceMode || false,
                     chatLocked: data.chatLocked || false,
-                    sniperLocked: data.sniperLocked || false
+                    sniperLocked: data.sniperLocked || false,
+                    autoTradeLocked: data.autoTradeLocked || false
                 });
             }
         }, (error) => {
@@ -145,7 +146,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         };
     }, []);
 
-    const handleUpdateSystemSetting = async (setting: 'maintenanceMode' | 'chatLocked' | 'sniperLocked', value: boolean) => {
+    const handleUpdateSystemSetting = async (setting: 'maintenanceMode' | 'chatLocked' | 'sniperLocked' | 'autoTradeLocked', value: boolean) => {
         const path = 'admin_settings/system';
         try {
             const settingsRef = doc(db, 'admin_settings', 'system');
@@ -423,6 +424,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                             className={`w-14 h-8 rounded-full transition-all relative ${systemSettings.chatLocked ? 'bg-orange-500' : 'bg-slate-300 dark:bg-white/10'}`}
                                         >
                                             <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${systemSettings.chatLocked ? 'left-7' : 'left-1'}`} />
+                                        </button>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-4 bg-slate-100 dark:bg-white/5 rounded-2xl border border-slate-200 dark:border-white/5">
+                                        <div>
+                                            <h4 className="text-sm font-black uppercase tracking-widest">Auto Trade Lock</h4>
+                                            <p className="text-[10px] opacity-50 uppercase tracking-widest mt-1">Disable Auto Trade Terminal</p>
+                                        </div>
+                                        <button 
+                                            onClick={() => handleUpdateSystemSetting('autoTradeLocked', !systemSettings.autoTradeLocked)}
+                                            className={`w-14 h-8 rounded-full transition-all relative ${systemSettings.autoTradeLocked ? 'bg-indigo-500' : 'bg-slate-300 dark:bg-white/10'}`}
+                                        >
+                                            <div className={`absolute top-1 w-6 h-6 bg-white rounded-full transition-all ${systemSettings.autoTradeLocked ? 'left-7' : 'left-1'}`} />
                                         </button>
                                     </div>
 

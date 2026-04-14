@@ -435,6 +435,7 @@ const App: React.FC = () => {
                     onNavigateToSniper={handleNavigateToSniper}
                     onAssetSelect={handleAssetSelect}
                     userMetadata={userMetadata}
+                    systemSettings={systemSettings}
                 />
             );
             break;
@@ -522,6 +523,7 @@ const App: React.FC = () => {
                 <AutoTradePage 
                     onBack={handleNavigateToHome} 
                     userMetadata={userMetadata}
+                    isLocked={systemSettings?.autoTradeLocked && userMetadata?.role !== 'admin'}
                 />
             );
             break;

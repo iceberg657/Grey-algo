@@ -351,5 +351,6 @@ export interface AdminSettings {
     maintenanceMode: boolean;
     chatLocked: boolean;
     sniperLocked: boolean;
+    autoTradeLocked: boolean;
     updatedAt: number;
 }

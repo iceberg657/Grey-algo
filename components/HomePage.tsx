@@ -31,6 +31,7 @@ interface HomePageProps {
     onNavigateToSniper: () => void;
     onAssetSelect?: (asset: string) => void;
     userMetadata: UserMetadata | null;
+    systemSettings: any | null;
 }
 
 const NavButton: React.FC<{
@@ -40,19 +41,27 @@ const NavButton: React.FC<{
     label: string;
     index: number;
     highlight?: boolean;
-}> = ({ onClick, 'aria-label': ariaLabel, icon, label, index, highlight }) => (
+    isLocked?: boolean;
+}> = ({ onClick, 'aria-label': ariaLabel, icon, label, index, highlight, isLocked }) => (
     <motion.button
         initial={{ opacity: 0, rotateY: -90 }}
         animate={{ opacity: 1, rotateY: 0 }}
         transition={{ delay: 0.1 + index * 0.05, duration: 0.5 }}
         onClick={onClick}
         aria-label={ariaLabel}
-        className={`group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl transition-all duration-300 border backdrop-blur-md hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] ${
+        className={`group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl transition-all duration-300 border backdrop-blur-md hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] relative ${
             highlight 
                 ? 'bg-green-600 text-white border-green-500 hover:bg-green-500' 
                 : 'text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50'
         }`}
     >
+        {isLocked && (
+            <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-lg z-20">
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                </svg>
+            </div>
+        )}
         {icon}
         <span className="hidden md:inline md:ml-3 text-xs font-black uppercase tracking-widest">{label}</span>
     </motion.button>
@@ -69,7 +78,8 @@ export const HomePage: React.FC<HomePageProps> = ({
     onNavigateToAutoTrade,
     onNavigateToSniper,
     onAssetSelect,
-    userMetadata 
+    userMetadata,
+    systemSettings
 }) => {
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string | null>(null);
@@ -278,6 +288,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick: onNavigateToChat,
             label: 'Chat',
             ariaLabel: 'Open Oracle Chat',
+            isLocked: systemSettings?.chatLocked && !isAdmin,
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
         },
         {
@@ -285,6 +296,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             label: 'Auto Trade',
             ariaLabel: 'Open Auto Trade Terminal',
             highlight: true,
+            isLocked: (systemSettings?.autoTradeLocked || userMetadata?.access?.autoTrade === 'locked') && !isAdmin,
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
         },
         {
@@ -292,6 +304,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             label: 'Sniper',
             ariaLabel: 'Open Sniper Live Trade',
             highlight: true,
+            isLocked: (systemSettings?.sniperLocked || userMetadata?.access?.sniperLiveTrade === 'locked') && !isAdmin,
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /><circle cx="12" cy="12" r="3" /></svg>
         },
         ...(isAdmin ? [{
@@ -316,6 +329,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             onClick: onNavigateToProducts,
             label: 'Products',
             ariaLabel: 'Open GreyAlpha Products',
+            isLocked: userMetadata?.access?.products === 'locked' && !isAdmin,
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
         },
         {
@@ -475,6 +489,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                             label={item.label}
                             index={idx}
                             highlight={item.highlight}
+                            isLocked={item.isLocked}
                         />
                     ))}
                 </nav>
