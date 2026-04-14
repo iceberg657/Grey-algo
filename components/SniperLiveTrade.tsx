@@ -15,20 +15,24 @@ import {
   AlertCircle,
   Activity,
   Lock,
-  Clock
+  Clock,
+  Moon,
+  Sun
 } from 'lucide-react';
 import { generateSniperLiveSignal } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata } from '../types';
 import { Loader } from './Loader';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
+import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface SniperLiveTradeProps {
   onBack: () => void;
   userMetadata: UserMetadata | null;
+  isLocked?: boolean;
 }
 
-export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata }) => {
+export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata, isLocked }) => {
   const [query, setQuery] = useState('');
   const [style, setStyle] = useState<TradingStyle>('scalping(1 to 15mins)');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -40,7 +44,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const accessStatus = 'granted'; // Temporary free access for testing
+  const accessStatus = isLocked ? 'locked' : (userMetadata?.access?.sniperLiveTrade || 'locked');
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -157,7 +161,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       <div className="w-24 h-24 bg-rose-500/10 rounded-[2.5rem] flex items-center justify-center text-rose-500 mb-8 border border-rose-500/20 shadow-[0_0_30px_rgba(244,63,94,0.1)]">
         <Lock className="w-10 h-10" />
       </div>
-      <h2 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter italic">Sniper Access Restricted</h2>
+      <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter italic">Sniper Access Restricted</h2>
       <p className="text-slate-400 max-w-md mb-10 text-sm leading-relaxed">
         The Sniper Live Trade engine requires high-level clearance. 
         Request authorization to access institutional-grade setups powered by Gemini 3.1 Flash Lite.
@@ -176,7 +180,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       <div className="w-24 h-24 bg-amber-500/10 rounded-[2.5rem] flex items-center justify-center text-amber-500 mb-8 border border-amber-500/20 animate-pulse">
         <Clock className="w-10 h-10" />
       </div>
-      <h2 className="text-3xl font-black text-white mb-4 uppercase tracking-tighter italic">Clearance Pending</h2>
+      <h2 className="text-3xl font-black text-slate-900 dark:text-white mb-4 uppercase tracking-tighter italic">Clearance Pending</h2>
       <p className="text-slate-400 max-w-md mb-10 text-sm leading-relaxed">
         Your request for Sniper access is currently being processed by the Neural Oversight team. 
         Neural links will be established once verification is complete.
@@ -185,15 +189,15 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   );
 
   return (
-    <div className="min-h-screen bg-[#020617] text-slate-200 font-sans selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-800 dark:text-slate-200 font-sans selection:bg-emerald-500/30 transition-colors duration-300">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-[#020617]/80 backdrop-blur-xl border-b border-slate-800/50 px-4 py-4">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 px-4 py-4 transition-colors duration-300">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button 
             onClick={onBack}
-            className="p-2 hover:bg-slate-800/50 rounded-xl transition-colors group"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-colors group"
           >
-            <ArrowLeft className="w-5 h-5 text-slate-400 group-hover:text-emerald-400 transition-colors" />
+            <ArrowLeft className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
           </button>
           
           <div className="flex items-center gap-3">
@@ -201,17 +205,19 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               <Target className="w-6 h-6 text-emerald-500" />
             </div>
             <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-white to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
                 Sniper Live Trade
               </h1>
               <div className="flex items-center gap-2">
                 <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-500/70">Live Market Feed</span>
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-500/70">Live Market Feed</span>
               </div>
             </div>
           </div>
 
-          <div className="w-10" /> {/* Spacer */}
+          <div className="flex items-center gap-2">
+            <ThemeToggleButton />
+          </div>
         </div>
       </header>
 
@@ -220,10 +226,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           <>
             {/* Style Selector */}
             <div className="mb-8">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-3 block ml-1">
+              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3 block ml-1">
                 Execution Style
               </label>
-              <div className="grid grid-cols-3 gap-2 bg-slate-900/50 p-1 rounded-2xl border border-slate-800/50">
+              <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
                 {tradingStyles.map((s) => (
                   <button
                     key={s.id}
@@ -231,7 +237,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                     className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
                       style === s.id 
                         ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                     }`}
                   >
                     {s.label}
@@ -434,7 +440,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
       {/* Input Area */}
       {accessStatus === 'granted' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-[#020617] via-[#020617] to-transparent pt-10 pb-6 px-4">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50 dark:from-[#020617] dark:via-[#020617] to-transparent pt-10 pb-6 px-4 transition-colors duration-300">
           <div className="max-w-4xl mx-auto">
             <form 
               onSubmit={handleAnalyze}
@@ -445,7 +451,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Enter asset (e.g. 'Setup for Gold' or 'EURUSD analysis')"
-                className="w-full bg-slate-900/80 border border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-600 backdrop-blur-xl"
+                className="w-full bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 backdrop-blur-xl shadow-xl dark:shadow-none text-slate-900 dark:text-slate-100"
                 disabled={isAnalyzing}
               />
               <button

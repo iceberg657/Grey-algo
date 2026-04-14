@@ -350,5 +350,6 @@ export interface Broadcast {
 export interface AdminSettings {
     maintenanceMode: boolean;
     chatLocked: boolean;
+    sniperLocked: boolean;
     updatedAt: number;
 }
