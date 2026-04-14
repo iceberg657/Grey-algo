@@ -8,72 +8,77 @@ const KEYS: Record<string, string | null> = {
     k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null, k8: null, k9: null
 };
 
+let initializationPromise: Promise<void> | null = null;
+
 export async function initializeApiKey() {
     if (API_KEY || KEYS.k1) return;
     
-    // 1. Check for Vite environment variables (Client-side build/Vercel)
-    // Note: On Vercel, these must be prefixed with VITE_ to be visible to the browser
-    const envKeys = {
-        k1: import.meta.env.VITE_API_KEY_1 || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY,
-        k2: import.meta.env.VITE_API_KEY_2,
-        k3: import.meta.env.VITE_API_KEY_3,
-        k4: import.meta.env.VITE_API_KEY_4,
-        k5: import.meta.env.VITE_API_KEY_5,
-        k6: import.meta.env.VITE_API_KEY_6,
-        k7: import.meta.env.VITE_API_KEY_7,
-        k8: import.meta.env.VITE_API_KEY_8,
-        k9: import.meta.env.VITE_API_KEY_9,
-    };
+    if (initializationPromise) return initializationPromise;
 
-    if (envKeys.k1) {
-        API_KEY = envKeys.k1;
-        Object.assign(KEYS, envKeys);
-        // If we found at least one client-side key, we're good
-        if (API_KEY) return;
-    }
+    initializationPromise = (async () => {
+        // 1. Check for Vite environment variables (Client-side build/Vercel)
+        const envKeys = {
+            k1: import.meta.env.VITE_API_KEY_1 || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY,
+            k2: import.meta.env.VITE_API_KEY_2,
+            k3: import.meta.env.VITE_API_KEY_3,
+            k4: import.meta.env.VITE_API_KEY_4,
+            k5: import.meta.env.VITE_API_KEY_5,
+            k6: import.meta.env.VITE_API_KEY_6,
+            k7: import.meta.env.VITE_API_KEY_7,
+            k8: import.meta.env.VITE_API_KEY_8,
+            k9: import.meta.env.VITE_API_KEY_9,
+        };
 
-    // 2. Fallback to server endpoint (Local development or Proxy)
-    try {
-        const response = await fetch('/api/config');
-        if (response.ok) {
-            const config = await response.json();
-            API_KEY = config.apiKey;
-            if (config.keys) {
-                // Map server keys (k1, k2...) to our internal store
-                KEYS.k1 = config.keys.k1 || API_KEY;
-                KEYS.k2 = config.keys.k2;
-                KEYS.k3 = config.keys.k3;
-                KEYS.k4 = config.keys.k4;
-                KEYS.k5 = config.keys.k5;
-                KEYS.k6 = config.keys.k6;
-                KEYS.k7 = config.keys.k7;
+        if (envKeys.k1) {
+            API_KEY = envKeys.k1;
+            Object.assign(KEYS, envKeys);
+            if (API_KEY) return;
+        }
+
+        // 2. Fallback to server endpoint (Local development or Proxy)
+        try {
+            const response = await fetch('/api/config');
+            if (response.ok) {
+                const config = await response.json();
+                API_KEY = config.apiKey;
+                if (config.keys) {
+                    KEYS.k1 = config.keys.k1 || API_KEY;
+                    KEYS.k2 = config.keys.k2;
+                    KEYS.k3 = config.keys.k3;
+                    KEYS.k4 = config.keys.k4;
+                    KEYS.k5 = config.keys.k5;
+                    KEYS.k6 = config.keys.k6;
+                    KEYS.k7 = config.keys.k7;
+                    KEYS.k8 = config.keys.k8;
+                    KEYS.k9 = config.keys.k9;
+                }
             }
+        } catch (error) {
+            console.warn('Failed to fetch API key from server, checking process.env...');
         }
-    } catch (error) {
-        console.warn('Failed to fetch API key from server, checking process.env...');
-    }
 
-    // 3. Last resort: check process.env (for some environments that might inject it)
-    try {
-        if (!API_KEY && typeof process !== 'undefined' && process.env) {
-            API_KEY = (process.env as any).GEMINI_API_KEY || (process.env as any).API_KEY_1 || (process.env as any).API_KEY;
-            KEYS.k1 = (process.env as any).API_KEY_1 || API_KEY;
-            KEYS.k2 = (process.env as any).API_KEY_2;
-            KEYS.k3 = (process.env as any).API_KEY_3;
-            KEYS.k4 = (process.env as any).API_KEY_4;
-            KEYS.k5 = (process.env as any).API_KEY_5;
-            KEYS.k6 = (process.env as any).API_KEY_6;
-            KEYS.k7 = (process.env as any).API_KEY_7;
-            KEYS.k8 = (process.env as any).API_KEY_8;
-            KEYS.k9 = (process.env as any).API_KEY_9;
+        // 3. Last resort: check process.env
+        try {
+            if (!API_KEY && typeof process !== 'undefined' && process.env) {
+                API_KEY = (process.env as any).GEMINI_API_KEY || (process.env as any).API_KEY_1 || (process.env as any).API_KEY;
+                KEYS.k1 = (process.env as any).API_KEY_1 || API_KEY;
+                KEYS.k2 = (process.env as any).API_KEY_2;
+                KEYS.k3 = (process.env as any).API_KEY_3;
+                KEYS.k4 = (process.env as any).API_KEY_4;
+                KEYS.k5 = (process.env as any).API_KEY_5;
+                KEYS.k6 = (process.env as any).API_KEY_6;
+                KEYS.k7 = (process.env as any).API_KEY_7;
+                KEYS.k8 = (process.env as any).API_KEY_8;
+                KEYS.k9 = (process.env as any).API_KEY_9;
+            }
+        } catch (e) {}
+
+        if (!API_KEY && !KEYS.k1) {
+            console.error('API key not available in any environment.');
         }
-    } catch (e) {
-        // Ignore process.env errors in browser
-    }
+    })();
 
-    if (!API_KEY && !KEYS.k1) {
-        throw new Error('API key not available. Please check server configuration or environment variables.');
-    }
+    return initializationPromise;
 }
 
 const K = {
