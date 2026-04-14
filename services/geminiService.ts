@@ -1268,16 +1268,14 @@ ${learnedStrategies.map(s => `- ${s}`).join('\n')}
 MANDATORY REQUIREMENTS:
 1. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution'. Do NOT provide limit or stop orders.
 2. **INSTITUTIONAL LOGIC:** Focus on Liquidity Sweeps, Order Blocks, and Market Structure Shifts.
-3. **PRECISION LEVELS:** Provide exact Entry, TP1, TP2, and SL.
+3. **PRECISION LEVELS:** Provide exact Entry, TP1, TP2, and SL anchored around the LIVE MARKET DATA price provided.
 4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
-
-The setup should be optimized for the selected style (${style}). 
-If the market data is not sufficient or the setup is low probability, you MUST return a NEUTRAL signal.
+5. **FORCE SETUP:** Even if the live data only contains a single price tick, you MUST generate a valid BUY or SELL setup using your internal market knowledge anchored to this exact live price. Do NOT return NEUTRAL unless explicitly requested.
 
 JSON Structure:
 {
-  "signal": "BUY" | "SELL" | "NEUTRAL",
-  "confidence": number (0-100),
+  "signal": "BUY" | "SELL",
+  "confidence": number (80-100),
   "asset": string,
   "entryPoints": [number],
   "entryType": "Market Execution",
@@ -1311,8 +1309,13 @@ JSON Structure:
 
           if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
           const data = await proxyRes.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          if (!text) {
+              const finishReason = data.candidates?.[0]?.finishReason;
+              throw new Error(`Empty response from model. Finish reason: ${finishReason || 'Unknown'}`);
+          }
           return {
-            text: data.candidates?.[0]?.content?.parts?.[0]?.text || '',
+            text,
             candidates: data.candidates
           } as any;
         } catch (e) {
@@ -1323,12 +1326,18 @@ JSON Structure:
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: config
           });
+          if (!result.text) {
+              throw new Error('Empty response from direct SDK fallback.');
+          }
           return result;
         }
       }
     );
 
     const signal = extractJson(response.text);
+    if (!signal || Object.keys(signal).length === 0 || !signal.signal) {
+        throw new Error('Failed to parse valid JSON signal from model response.');
+    }
     
     // Ensure all required fields exist to prevent UI crashes
     return {

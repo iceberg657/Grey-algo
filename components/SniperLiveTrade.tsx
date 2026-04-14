@@ -125,9 +125,13 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
       // 2. Fetch live price from Deriv
       const derivData = await fetchLivePrice(asset);
+      
+      if (!derivData) {
+        throw new Error('Failed to fetch live market data. Please ensure your Deriv API Token is correct in Settings.');
+      }
 
       // 3. Generate signal using Gemini 3.1 Flash Lite
-      const result = await generateSniperLiveSignal(query, style, derivData || { symbol: asset, note: 'Live data unavailable' });
+      const result = await generateSniperLiveSignal(query, style, derivData);
       setSignal(result);
     } catch (err: any) {
       setError(err.message || 'Failed to generate setup. Please try again.');
