@@ -4,5 +4,11 @@
       "source": "/:path((?!api/|.*\\.).*)",
       "destination": "/index.html"
     }
+  ],
+  "crons": [
+    {
+      "path": "/api/cron/automl",
+      "schedule": "0 */4 * * *"
+    }
   ]
 }

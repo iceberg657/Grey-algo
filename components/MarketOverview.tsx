@@ -183,22 +183,25 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
 
     useEffect(() => {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const ws = new WebSocket(`${protocol}//${window.location.host}`);
+        // Vercel Serverless Functions do not support WebSockets.
+        // We can fetch suggestions initially and then poll or use Firestore if needed.
+        // For now, we will just fetch them once on mount or rely on the getOrRefreshSuggestions function.
         
-        ws.onmessage = (event) => {
-            const message = JSON.parse(event.data);
-            if (message.type === 'MARKET_DATA_UPDATE') {
-                console.log('Received market data update:', message.data);
-                // Assuming message.data has { bullish: MomentumAsset[], bearish: MomentumAsset[] }
-                // or similar structure. Based on getOrRefreshSuggestions, it should be compatible.
-                // Let's assume it returns an object with bullish and bearish arrays.
-                if (message.data.bullish) setBullishSuggestions(message.data.bullish);
-                if (message.data.bearish) setBearishSuggestions(message.data.bearish);
-            }
-        };
+        // Initial fetch
+        getOrRefreshSuggestions().then(data => {
+            if (data.bullish) setBullishSuggestions(data.bullish);
+            if (data.bearish) setBearishSuggestions(data.bearish);
+        });
 
-        return () => ws.close();
+        // Optional: Poll every 1 hour
+        const intervalId = setInterval(() => {
+            getOrRefreshSuggestions().then(data => {
+                if (data.bullish) setBullishSuggestions(data.bullish);
+                if (data.bearish) setBearishSuggestions(data.bearish);
+            });
+        }, 60 * 60 * 1000);
+
+        return () => clearInterval(intervalId);
     }, []);
 
     // --- Structural Sentiment Logic ---
