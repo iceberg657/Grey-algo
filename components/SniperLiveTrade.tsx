@@ -17,7 +17,10 @@ import {
   Lock,
   Clock,
   Moon,
-  Sun
+  Sun,
+  Trash2,
+  User,
+  Bot
 } from 'lucide-react';
 import { generateSniperLiveSignal } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata } from '../types';
@@ -25,6 +28,14 @@ import { Loader } from './Loader';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, updateDoc } from 'firebase/firestore';
 import { ThemeToggleButton } from './ThemeToggleButton';
+
+interface SniperMessage {
+  id: string;
+  type: 'user' | 'ai';
+  content: string;
+  signal?: SignalData;
+  timestamp: number;
+}
 
 interface SniperLiveTradeProps {
   onBack: () => void;
@@ -36,21 +47,40 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [query, setQuery] = useState('');
   const [style, setStyle] = useState<TradingStyle>('scalping(1 to 15mins)');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [signal, setSignal] = useState<SignalData | null>(null);
+  const [messages, setMessages] = useState<SniperMessage[]>(() => {
+    try {
+      const saved = localStorage.getItem('greyquant_sniper_chat');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [livePrice, setLivePrice] = useState<any>(null);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const accessStatus = isLocked ? 'locked' : (userMetadata?.access?.sniperLiveTrade || 'locked');
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [signal, isAnalyzing]);
+  }, [messages, isAnalyzing]);
+
+  useEffect(() => {
+    localStorage.setItem('greyquant_sniper_chat', JSON.stringify(messages));
+  }, [messages]);
+
+  const handleClearChat = () => {
+    if (window.confirm('Are you sure you want to clear the neural link history?')) {
+      setMessages([]);
+      localStorage.removeItem('greyquant_sniper_chat');
+    }
+  };
 
   const handleRequestAccess = async () => {
     if (!userMetadata?.uid) return;
@@ -65,23 +95,62 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     }
   };
 
+  const getDerivSymbol = (asset: string) => {
+    const normalized = asset.toUpperCase().replace(/[^A-Z0-9]/g, '');
+    
+    // Forex
+    if (normalized.includes('GOLD') || normalized.includes('XAUUSD')) return 'frxXAUUSD';
+    if (normalized.includes('EURUSD')) return 'frxEURUSD';
+    if (normalized.includes('GBPUSD')) return 'frxGBPUSD';
+    if (normalized.includes('USDJPY')) return 'frxUSDJPY';
+    if (normalized.includes('AUDUSD')) return 'frxAUDUSD';
+    if (normalized.includes('USDCAD')) return 'frxUSDCAD';
+    if (normalized.includes('USDCHF')) return 'frxUSDCHF';
+    if (normalized.includes('NZDUSD')) return 'frxNZDUSD';
+    
+    // Volatility Indices
+    if (normalized === 'V10' || normalized === 'VOLATILITY10') return 'R_10';
+    if (normalized === 'V25' || normalized === 'VOLATILITY25') return 'R_25';
+    if (normalized === 'V50' || normalized === 'VOLATILITY50') return 'R_50';
+    if (normalized === 'V75' || normalized === 'VOLATILITY75') return 'R_75';
+    if (normalized === 'V100' || normalized === 'VOLATILITY100') return 'R_100';
+    if (normalized === 'V101S') return '1HZ10V';
+    if (normalized === 'V251S') return '1HZ25V';
+    if (normalized === 'V501S') return '1HZ50V';
+    if (normalized === 'V751S') return '1HZ75V';
+    if (normalized === 'V1001S') return '1HZ100V';
+    
+    // Boom/Crash
+    if (normalized === 'BOOM1000') return 'BOOM1000';
+    if (normalized === 'BOOM500') return 'BOOM500';
+    if (normalized === 'BOOM300') return 'BOOM300';
+    if (normalized === 'CRASH1000') return 'CRASH1000';
+    if (normalized === 'CRASH500') return 'CRASH500';
+    if (normalized === 'CRASH300') return 'CRASH300';
+    
+    // Step
+    if (normalized === 'STEP' || normalized === 'STEPINDEX') return 'STP';
+    
+    // Jump
+    if (normalized.startsWith('JUMP')) {
+      const num = normalized.replace('JUMP', '');
+      return `JDM${num}`;
+    }
+
+    // Range Break
+    if (normalized === 'RANGE100') return 'RB_100';
+    if (normalized === 'RANGE200') return 'RB_200';
+
+    // Forex fallback
+    if (normalized.length === 6) return 'frx' + normalized;
+    
+    return normalized;
+  };
+
   const fetchLivePrice = async (asset: string) => {
     setIsFetchingPrice(true);
     try {
-      // Map common names to Deriv symbols
-      const normalized = asset.toUpperCase().replace('/', '').replace(' ', '');
-      let symbol = normalized;
-      
-      if (normalized === 'GOLD' || normalized === 'XAUUSD') symbol = 'frxXAUUSD';
-      else if (normalized === 'EURUSD') symbol = 'frxEURUSD';
-      else if (normalized === 'GBPUSD') symbol = 'frxGBPUSD';
-      else if (normalized === 'USDJPY') symbol = 'frxUSDJPY';
-      else if (normalized === 'AUDUSD') symbol = 'frxAUDUSD';
-      else if (normalized === 'USDCAD') symbol = 'frxUSDCAD';
-      else if (normalized === 'USDCHF') symbol = 'frxUSDCHF';
-      else if (normalized === 'NZDUSD') symbol = 'frxNZDUSD';
-      else if (normalized.length === 6 && !normalized.startsWith('FRX')) symbol = 'frx' + normalized;
-      else if (normalized.startsWith('FRX')) symbol = 'frx' + normalized.substring(3);
+      const symbol = getDerivSymbol(asset);
       
       // Grab token from user settings first, then fallback to Vite env to bypass Vercel serverless env issues
       let clientToken = '';
@@ -116,15 +185,25 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
   const handleAnalyze = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!query.trim() || isAnalyzing) return;
+    const currentQuery = query.trim();
+    if (!currentQuery || isAnalyzing) return;
 
+    setQuery('');
     setIsAnalyzing(true);
     setError(null);
-    setSignal(null);
+
+    // Add user message
+    const userMsg: SniperMessage = {
+      id: Date.now().toString(),
+      type: 'user',
+      content: currentQuery,
+      timestamp: Date.now()
+    };
+    setMessages(prev => [...prev, userMsg]);
 
     try {
-      // 1. Extract asset from query (simple heuristic)
-      const assetMatch = query.match(/(gold|eurusd|gbpusd|usdjpy|btc|eth|xauusd)/i);
+      // 1. Extract asset from query
+      const assetMatch = currentQuery.match(/(gold|eurusd|gbpusd|usdjpy|btc|eth|xauusd|v75|v100|boom|crash|step|jump|range)/i);
       const asset = assetMatch ? assetMatch[0] : 'EURUSD';
 
       // 2. Fetch live price from Deriv
@@ -135,10 +214,27 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
 
       // 3. Generate signal using Gemini 3.1 Flash Lite
-      const result = await generateSniperLiveSignal(query, style, derivData);
-      setSignal(result);
+      const result = await generateSniperLiveSignal(currentQuery, style, derivData);
+      
+      // Add AI message
+      const aiMsg: SniperMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: `Neural analysis complete for ${result.asset}.`,
+        signal: result,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, aiMsg]);
     } catch (err: any) {
       setError(err.message || 'Failed to generate setup. Please try again.');
+      // Add error message to chat
+      const errorMsg: SniperMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: `System Anomaly: ${err.message || 'Neural link failed.'}`,
+        timestamp: Date.now()
+      };
+      setMessages(prev => [...prev, errorMsg]);
     } finally {
       setIsAnalyzing(false);
     }
@@ -216,6 +312,15 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           </div>
 
           <div className="flex items-center gap-2">
+            {messages.length > 0 && (
+              <button 
+                onClick={handleClearChat}
+                className="p-2 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-xl transition-colors group"
+                title="Clear Neural History"
+              >
+                <Trash2 className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-rose-500 transition-colors" />
+              </button>
+            )}
             <ThemeToggleButton />
           </div>
         </div>
@@ -225,7 +330,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         {accessStatus === 'locked' ? renderLocked() : accessStatus === 'pending' ? renderPending() : (
           <>
             {/* Style Selector */}
-            <div className="mb-8">
+            <div className="mb-8 sticky top-20 z-40 bg-slate-50/80 dark:bg-[#020617]/80 backdrop-blur-md py-2 transition-colors duration-300">
               <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3 block ml-1">
                 Execution Style
               </label>
@@ -247,192 +352,215 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
             </div>
 
             {/* Results Area */}
-            <div className="space-y-6 min-h-[400px]">
-              <AnimatePresence mode="wait">
-                {!signal && !isAnalyzing && !error && (
+            <div className="space-y-8 min-h-[400px]">
+              {messages.length === 0 && !isAnalyzing && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex flex-col items-center justify-center py-20 text-center"
+                >
+                  <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-slate-800">
+                    <Activity className="w-10 h-10 text-slate-700" />
+                  </div>
+                  <h2 className="text-xl font-bold text-slate-400 mb-2">Neural Link Ready</h2>
+                  <p className="text-slate-500 text-sm max-w-xs">
+                    Establish a neural connection by entering an asset name or trade query below.
+                  </p>
+                </motion.div>
+              )}
+
+              <div className="space-y-10">
+                {messages.map((msg) => (
                   <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
+                    key={msg.id}
+                    initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="flex flex-col items-center justify-center py-20 text-center"
+                    className={`flex flex-col ${msg.type === 'user' ? 'items-end' : 'items-start'}`}
                   >
-                    <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-slate-800">
-                      <Activity className="w-10 h-10 text-slate-700" />
-                    </div>
-                    <h2 className="text-xl font-bold text-slate-400 mb-2">Ready for Analysis</h2>
-                    <p className="text-slate-500 text-sm max-w-xs">
-                      Enter an asset name or trade query below to receive a high-precision institutional setup.
-                    </p>
-                  </motion.div>
-                )}
-
-                {isAnalyzing && (
-                  <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex flex-col items-center justify-center py-20"
-                  >
-                    <Loader />
-                    <p className="mt-6 text-sm font-medium text-emerald-500 animate-pulse">
-                      {isFetchingPrice ? 'Fetching Live Deriv Quotes...' : 'Neural Network Processing...'}
-                    </p>
-                  </motion.div>
-                )}
-
-                {error && (
-                  <motion.div 
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="bg-red-500/10 border border-red-500/20 p-6 rounded-3xl flex items-start gap-4"
-                  >
-                    <AlertCircle className="w-6 h-6 text-red-500 flex-shrink-0" />
-                    <div>
-                      <h3 className="font-bold text-red-400">System Anomaly</h3>
-                      <p className="text-sm text-red-400/70 mt-1">{error}</p>
-                    </div>
-                  </motion.div>
-                )}
-
-                {signal && (
-                  <motion.div 
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="space-y-6"
-                  >
-                    {/* Signal Card */}
-                    <div className={`relative overflow-hidden rounded-[2.5rem] border p-8 backdrop-blur-xl ${
-                      signal.signal === 'BUY' 
-                        ? 'bg-emerald-500/5 border-emerald-500/20' 
-                        : signal.signal === 'SELL' 
-                        ? 'bg-rose-500/5 border-rose-500/20' 
-                        : 'bg-slate-500/5 border-slate-500/20'
-                    }`}>
-                      {/* Background Glow */}
-                      <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-20 ${
-                        signal.signal === 'BUY' ? 'bg-emerald-500' : signal.signal === 'SELL' ? 'bg-rose-500' : 'bg-slate-500'
-                      }`} />
-
-                      <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border shadow-2xl ${
-                            signal.signal === 'BUY' 
-                              ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500' 
-                              : signal.signal === 'SELL' 
-                              ? 'bg-rose-500/20 border-rose-500/30 text-rose-500' 
-                              : 'bg-slate-500/20 border-slate-500/30 text-slate-500'
-                          }`}>
-                            {signal.signal === 'BUY' ? <TrendingUp className="w-8 h-8" /> : signal.signal === 'SELL' ? <TrendingDown className="w-8 h-8" /> : <Activity className="w-8 h-8" />}
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${
-                                signal.signal === 'BUY' ? 'text-emerald-500' : signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-500'
-                              }`}>
-                                {signal.signal} SIGNAL
-                              </span>
-                              <span className="text-slate-600">•</span>
-                              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{style.split('(')[0]}</span>
-                            </div>
-                            <h2 className="text-3xl font-black tracking-tighter italic uppercase">{signal.asset}</h2>
-                          </div>
+                    {msg.type === 'user' ? (
+                      <div className="flex items-start gap-3 max-w-[85%]">
+                        <div className="bg-emerald-500 text-white px-6 py-3 rounded-2xl rounded-tr-none shadow-lg shadow-emerald-500/10 text-sm font-medium">
+                          {msg.content}
                         </div>
-
-                        <div className="flex flex-col items-end">
-                          <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Confidence</span>
-                          <div className="flex items-center gap-3">
-                            <div className="text-3xl font-black italic tracking-tighter text-white">{signal.confidence}%</div>
-                            <div className="w-12 h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                              <motion.div 
-                                initial={{ width: 0 }}
-                                animate={{ width: `${signal.confidence}%` }}
-                                className={`h-full rounded-full ${signal.signal === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500'}`}
-                              />
-                            </div>
-                          </div>
+                        <div className="w-8 h-8 bg-emerald-500/10 rounded-lg flex items-center justify-center border border-emerald-500/20 flex-shrink-0">
+                          <User className="w-4 h-4 text-emerald-500" />
                         </div>
                       </div>
-
-                      {/* Price Levels Grid */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
-                        {/* Entry */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Market Entry</span>
-                            <button onClick={() => copyToClipboard(signal.entryPoints[0].toString(), 'Entry')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'Entry' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                            </button>
+                    ) : (
+                      <div className="flex flex-col items-start gap-4 w-full">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-800 flex-shrink-0">
+                            <Bot className="w-4 h-4 text-emerald-500" />
                           </div>
-                          <div className="text-2xl font-black tracking-tighter text-white">{signal.entryPoints[0]}</div>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Neural Response</span>
                         </div>
+                        
+                        {msg.signal ? (
+                          <div className="w-full">
+                            {/* Signal Card */}
+                            <div className={`relative overflow-hidden rounded-[2.5rem] border p-8 backdrop-blur-xl ${
+                              msg.signal.signal === 'BUY' 
+                                ? 'bg-emerald-500/5 border-emerald-500/20' 
+                                : msg.signal.signal === 'SELL' 
+                                ? 'bg-rose-500/5 border-rose-500/20' 
+                                : 'bg-slate-500/5 border-slate-500/20'
+                            }`}>
+                              {/* Background Glow */}
+                              <div className={`absolute -top-24 -right-24 w-64 h-64 rounded-full blur-[100px] opacity-20 ${
+                                msg.signal.signal === 'BUY' ? 'bg-emerald-500' : msg.signal.signal === 'SELL' ? 'bg-rose-500' : 'bg-slate-500'
+                              }`} />
 
-                        {/* Stop Loss */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-rose-500/30 transition-colors">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Stop Loss</span>
-                            <button onClick={() => copyToClipboard(signal.stopLoss.toString(), 'SL')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'SL' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                            </button>
-                          </div>
-                          <div className="text-2xl font-black tracking-tighter text-rose-400">{signal.stopLoss}</div>
-                        </div>
+                              <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8">
+                                <div className="flex items-center gap-4">
+                                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center border shadow-2xl ${
+                                    msg.signal.signal === 'BUY' 
+                                      ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-500' 
+                                      : msg.signal.signal === 'SELL' 
+                                      ? 'bg-rose-500/20 border-rose-500/30 text-rose-500' 
+                                      : 'bg-slate-500/20 border-slate-500/30 text-slate-500'
+                                  }`}>
+                                    {msg.signal.signal === 'BUY' ? <TrendingUp className="w-8 h-8" /> : msg.signal.signal === 'SELL' ? <TrendingDown className="w-8 h-8" /> : <Activity className="w-8 h-8" />}
+                                  </div>
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-1">
+                                      <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${
+                                        msg.signal.signal === 'BUY' ? 'text-emerald-500' : msg.signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-500'
+                                      }`}>
+                                        {msg.signal.signal} SIGNAL
+                                      </span>
+                                      <span className="text-slate-600">•</span>
+                                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{msg.signal.timeframe || 'M5'}</span>
+                                    </div>
+                                    <h2 className="text-3xl font-black tracking-tighter italic uppercase">{msg.signal.asset}</h2>
+                                  </div>
+                                </div>
 
-                        {/* Take Profit 1 */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 1</span>
-                            <button onClick={() => copyToClipboard(signal.takeProfits[0].toString(), 'TP1')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'TP1' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                            </button>
-                          </div>
-                          <div className="text-2xl font-black tracking-tighter text-emerald-400">{signal.takeProfits[0]}</div>
-                        </div>
-
-                        {/* Take Profit 2 */}
-                        <div className="bg-slate-900/40 border border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
-                          <div className="flex justify-between items-center mb-2">
-                            <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 2</span>
-                            <button onClick={() => copyToClipboard(signal.takeProfits[1].toString(), 'TP2')} className="p-1.5 hover:bg-slate-800 rounded-lg transition-colors">
-                              {copied === 'TP2' ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                            </button>
-                          </div>
-                          <div className="text-2xl font-black tracking-tighter text-emerald-400">{signal.takeProfits[1]}</div>
-                        </div>
-                      </div>
-
-                      {/* Reasoning */}
-                      <div className="space-y-4">
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Neural Reasoning</h3>
-                        <div className="space-y-2">
-                          {signal.reasoning.map((r, i) => (
-                            <div key={i} className="flex items-start gap-3 bg-slate-900/30 p-3 rounded-2xl border border-slate-800/30">
-                              <div className="w-5 h-5 bg-emerald-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                <Zap className="w-3 h-3 text-emerald-500" />
+                                <div className="flex flex-col items-end">
+                                  <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Confidence</span>
+                                  <div className="flex items-center gap-3">
+                                    <div className="text-3xl font-black italic tracking-tighter text-slate-900 dark:text-white">{msg.signal.confidence}%</div>
+                                    <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                      <motion.div 
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${msg.signal.confidence}%` }}
+                                        className={`h-full rounded-full ${msg.signal.signal === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500'}`}
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
                               </div>
-                              <p className="text-xs text-slate-400 leading-relaxed">{r}</p>
+
+                              {/* Price Levels Grid */}
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+                                {/* Entry */}
+                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Market Entry</span>
+                                    <button onClick={() => copyToClipboard(msg.signal!.entryPoints[0].toString(), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                      {copied === `Entry-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                                    </button>
+                                  </div>
+                                  <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">{msg.signal.entryPoints[0]}</div>
+                                </div>
+
+                                {/* Stop Loss */}
+                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-rose-500/30 transition-colors">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Stop Loss</span>
+                                    <button onClick={() => copyToClipboard(msg.signal!.stopLoss.toString(), `SL-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                      {copied === `SL-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                                    </button>
+                                  </div>
+                                  <div className="text-2xl font-black tracking-tighter text-rose-500 dark:text-rose-400">{msg.signal.stopLoss}</div>
+                                </div>
+
+                                {/* Take Profit 1 */}
+                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 1</span>
+                                    <button onClick={() => copyToClipboard(msg.signal!.takeProfits[0].toString(), `TP1-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                      {copied === `TP1-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                                    </button>
+                                  </div>
+                                  <div className="text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{msg.signal.takeProfits[0]}</div>
+                                </div>
+
+                                {/* Take Profit 2 */}
+                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 2</span>
+                                    <button onClick={() => copyToClipboard(msg.signal!.takeProfits[1].toString(), `TP2-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                      {copied === `TP2-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
+                                    </button>
+                                  </div>
+                                  <div className="text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{msg.signal.takeProfits[1]}</div>
+                                </div>
+                              </div>
+
+                              {/* Reasoning */}
+                              <div className="space-y-4">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Neural Reasoning</h3>
+                                <div className="space-y-2">
+                                  {msg.signal.reasoning.map((r, i) => (
+                                    <div key={i} className="flex items-start gap-3 bg-white/30 dark:bg-slate-900/30 p-3 rounded-2xl border border-slate-200/30 dark:border-slate-800/30">
+                                      <div className="w-5 h-5 bg-emerald-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <Zap className="w-3 h-3 text-emerald-500" />
+                                      </div>
+                                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{r}</p>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
 
-                    {/* Checklist */}
-                    <div className="bg-slate-900/30 border border-slate-800/50 rounded-[2rem] p-6">
-                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
-                        <Shield className="w-3 h-3" /> Institutional Checklist
-                      </h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                        {signal.checklist?.map((item, i) => (
-                          <div key={i} className="flex items-center gap-3 text-xs text-slate-400">
-                            <CheckCircle2 className="w-4 h-4 text-emerald-500/50" />
-                            {item}
+                            {/* Checklist */}
+                            <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                              <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                                <Shield className="w-3 h-3" /> Institutional Checklist
+                              </h3>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                {msg.signal.checklist?.map((item, i) => (
+                                  <div key={i} className="flex items-center gap-3 text-xs text-slate-500">
+                                    <CheckCircle2 className="w-4 h-4 text-emerald-500/50" />
+                                    {item}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
                           </div>
-                        ))}
+                        ) : (
+                          <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                            {msg.content}
+                          </div>
+                        )}
                       </div>
-                    </div>
-
-                    <div ref={scrollRef} />
+                    )}
                   </motion.div>
-                )}
-              </AnimatePresence>
+                ))}
+              </div>
+
+              {isAnalyzing && (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="flex flex-col items-start gap-4"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-800 flex-shrink-0">
+                      <Bot className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Neural Network Active</span>
+                  </div>
+                  <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 px-8 py-6 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-4">
+                    <Loader />
+                    <span className="text-xs font-medium text-emerald-500 animate-pulse">
+                      {isFetchingPrice ? 'Fetching Live Deriv Quotes...' : 'Neural Network Processing...'}
+                    </span>
+                  </div>
+                </motion.div>
+              )}
+
+              <div ref={messagesEndRef} />
             </div>
           </>
         )}
