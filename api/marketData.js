@@ -1,93 +1,111 @@
 
-import { GoogleGenAI } from "@google/genai";
+import WebSocket from 'ws';
 
-const KEYS = [
-    process.env.API_KEY_4,
-    process.env.API_KEY_5,
-    process.env.API_KEY_6,
-    process.env.API_KEY,
-    process.env.GEMINI_API_KEY
-].filter(key => 
-    !!key && 
-    key.trim() !== '' && 
-    !key.includes('TODO') && 
-    !key.includes('YOUR_') &&
-    key.length > 20 // Real keys are usually longer
-);
-
-const TWELVE_DATA_KEY = process.env.TWELVE_DATA_API_KEY || 
-                        process.env.VITE_TWELVE_DATA_API_KEY || 
-                        process.env.TWELVEDATA_API_KEY || 
-                        process.env.VITE_TWELVEDATA_API_KEY;
+const DERIV_APP_ID = 1089;
+const DERIV_TOKEN = process.env.DERIV_API_TOKEN || 
+                    process.env.VITE_DERIV_API_TOKEN || 
+                    process.env.DERIV_TOKEN || 
+                    process.env.VITE_DERIV_TOKEN;
 
 let marketDataCache = { timestamp: null, data: [] };
-const CACHE_DURATION = 15 * 60 * 1000; // Increased to 15 minutes
+const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
 
-const SYMBOLS = ['EUR/USD', 'GBP/USD', 'USD/JPY', 'XAU/USD', 'BTC/USD', 'ETH/USD', 'DJI', 'NDX'];
+const SYMBOLS_MAP = {
+    'EUR/USD': 'frxEURUSD',
+    'GBP/USD': 'frxGBPUSD',
+    'USD/JPY': 'frxUSDJPY',
+    'XAU/USD': 'frxXAUUSD',
+    'BTC/USD': 'cryBTCUSD',
+    'ETH/USD': 'cryETHUSD',
+    'DJI': 'otcDJI',
+    'NDX': 'otcNDX'
+};
 
-export async function fetchFromTwelveData() {
-    if (!TWELVE_DATA_KEY) return null;
-    try {
-        const symbols = SYMBOLS.join(',');
-        const response = await fetch(`https://api.twelvedata.com/quote?symbol=${symbols}&apikey=${TWELVE_DATA_KEY}`);
-        const data = await response.json();
-        
-        if (data.status === 'error') return null;
+async function fetchSymbolData(symbol, derivSymbol) {
+    return new Promise((resolve) => {
+        const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+        const timeout = setTimeout(() => {
+            ws.close();
+            resolve(null);
+        }, 5000);
 
-        // Handle both single and multiple symbol responses
-        const results = SYMBOLS.map(s => {
-            const item = data[s] || data;
-            if (!item || !item.close) return null;
-            return {
-                symbol: s,
-                price: parseFloat(item.close),
-                change: parseFloat(item.change || 0),
-                changePercent: parseFloat(item.percent_change || 0)
-            };
-        }).filter(Boolean);
+        ws.on('open', () => {
+            if (DERIV_TOKEN) {
+                ws.send(JSON.stringify({ authorize: DERIV_TOKEN }));
+            } else {
+                // Try without auth for public ticks_history if possible, 
+                // but Deriv usually requires auth for many symbols
+                ws.send(JSON.stringify({ 
+                    ticks_history: derivSymbol,
+                    adjust_start_time: 1,
+                    count: 2,
+                    end: 'latest',
+                    style: 'ticks'
+                }));
+            }
+        });
 
-        if (results.length > 0) {
-            marketDataCache = { timestamp: Date.now(), data: results };
-            return results;
-        }
-    } catch (e) {
-        console.error('[MarketData] Twelve Data fetch failed:', e);
-    }
-    return null;
+        ws.on('message', (data) => {
+            const response = JSON.parse(data);
+            
+            if (response.msg_type === 'authorize' && !response.error) {
+                ws.send(JSON.stringify({ 
+                    ticks_history: derivSymbol,
+                    adjust_start_time: 1,
+                    count: 2,
+                    end: 'latest',
+                    style: 'ticks'
+                }));
+            } else if (response.msg_type === 'ticks_history') {
+                const history = response.history;
+                if (history && history.prices && history.prices.length >= 2) {
+                    const currentPrice = parseFloat(history.prices[1]);
+                    const prevPrice = parseFloat(history.prices[0]);
+                    const change = currentPrice - prevPrice;
+                    const changePercent = (change / prevPrice) * 100;
+
+                    resolve({
+                        symbol,
+                        price: currentPrice,
+                        change: change,
+                        changePercent: changePercent
+                    });
+                } else {
+                    resolve(null);
+                }
+                ws.close();
+                clearTimeout(timeout);
+            } else if (response.error) {
+                ws.close();
+                clearTimeout(timeout);
+                resolve(null);
+            }
+        });
+
+        ws.on('error', () => {
+            ws.close();
+            clearTimeout(timeout);
+            resolve(null);
+        });
+    });
 }
 
-export async function fetchFromGemini() {
-    for (const apiKey of KEYS) {
-        try {
-            const ai = new GoogleGenAI({ apiKey });
-            // Use a lighter model and NO google search for background ticker to save quota
-            const response = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite-preview',
-                contents: `Current approximate price & 24h % change for: ${SYMBOLS.join(', ')}. Return JSON array of objects with symbol, price, change, changePercent.`
-            });
+export async function fetchFromDeriv() {
+    if (!DERIV_TOKEN) {
+        console.warn('[MarketData] Deriv Token missing, cannot fetch ticker data.');
+        return marketDataCache.data;
+    }
 
-            const text = response.text;
-            if (!text) continue;
+    console.log('[MarketData] Fetching ticker data from Deriv...');
+    const results = [];
+    for (const [displaySymbol, derivSymbol] of Object.entries(SYMBOLS_MAP)) {
+        const data = await fetchSymbolData(displaySymbol, derivSymbol);
+        if (data) results.push(data);
+    }
 
-            const start = text.indexOf('[');
-            const end = text.lastIndexOf(']') + 1;
-            if (start !== -1 && end !== -1) {
-                const data = JSON.parse(text.substring(start, end));
-                if (Array.isArray(data) && data.length > 0) {
-                    marketDataCache = { timestamp: Date.now(), data };
-                    return data;
-                }
-            }
-        } catch (e) { 
-            const msg = e.message || String(e);
-            // Don't log full error for common quota/overload issues to keep logs clean
-            if (msg.includes('503') || msg.includes('429') || msg.includes('high demand')) {
-                console.warn(`[MarketData] Key ...${apiKey.slice(-4)} is congested (503/429). Trying next...`);
-            } else {
-                console.warn(`[MarketData] Gemini fetch failed for key ...${apiKey.slice(-4)}:`, msg.substring(0, 100));
-            }
-            continue; 
-        }
+    if (results.length > 0) {
+        marketDataCache = { timestamp: Date.now(), data: results };
+        return results;
     }
     return marketDataCache.data;
 }
@@ -95,9 +113,7 @@ export async function fetchFromGemini() {
 export default async (req, res) => {
     const isStale = !marketDataCache.timestamp || (Date.now() - marketDataCache.timestamp > CACHE_DURATION);
     if (isStale) {
-        // Use Gemini only for background ticker to save Twelve Data credits for active analysis
-        console.log('[MarketData] Fetching ticker data from Gemini...');
-        const data = await fetchFromGemini();
+        const data = await fetchFromDeriv();
         res.status(200).json(data || []);
     } else {
         res.status(200).json(marketDataCache.data);
