@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { UserMetadata } from '../types';
 import { db, handleFirestoreError, OperationType } from '../firebase';

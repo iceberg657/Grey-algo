@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { SignalDisplay } from './SignalDisplay';
 import { AnnotatedChart } from './AnnotatedChart';
 import type { SignalData } from '../types';

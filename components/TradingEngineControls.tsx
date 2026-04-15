@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 export const TradingEngineControls: React.FC = () => {
     const [isRunning, setIsRunning] = useState(false);

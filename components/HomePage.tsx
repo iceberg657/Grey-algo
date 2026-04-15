@@ -1,6 +1,6 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { Loader } from './Loader';
 import { ErrorMessage } from './ErrorMessage';

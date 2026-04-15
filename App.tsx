@@ -22,7 +22,7 @@ import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
-import { AnimatePresence, motion } from 'framer-motion';
+import { AnimatePresence, motion } from 'motion/react';
 import { 
   doc, 
   onSnapshot, 

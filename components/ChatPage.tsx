@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName } from '../services/chatService';
 import { ThemeToggleButton } from './ThemeToggleButton';

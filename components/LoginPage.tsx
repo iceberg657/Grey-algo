@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { useTheme } from './contexts/ThemeContext';
 import { NeuralBackground } from './NeuralBackground';

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, getDocs, query, where, orderBy, limit, addDoc, updateDoc, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 import { Trade, GlobalStrategy, UserMetadata, Broadcast, AutoMLStrategy } from '../types';

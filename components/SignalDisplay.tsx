@@ -4,7 +4,7 @@ import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { updateTradeOutcome } from '../services/historyService';
 import { TiltCard } from './TiltCard';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 
 interface InfoCardProps {
     label: string;

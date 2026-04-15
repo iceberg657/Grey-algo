@@ -1261,30 +1261,39 @@ export async function generateSniperLiveSignal(
   query: string,
   style: TradingStyle,
   derivData: any,
-  learnedStrategies: string[] = []
+  learnedStrategies: string[] = [],
+  twelveDataQuote?: any
 ): Promise<SignalData> {
-  const prompt = `As an elite Institutional Trading AI, generate a high-precision trade setup based on the following live market data and user request.
+  const livePrice = derivData?.price || 0;
+  const assetName = derivData?.symbol || 'Asset';
+
+  const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup.
+
+**CRITICAL DATA (THE ONLY TRUTH):**
+- ASSET: ${assetName}
+- LIVE MARKET PRICE: ${livePrice}
+${twelveDataQuote ? `- TWELVE DATA CONFLUENCE: RSI=${twelveDataQuote.rsi}, ADX=${twelveDataQuote.adx}, SMA=${twelveDataQuote.sma}` : ''}
 
 USER REQUEST: "${query}"
 TRADING STYLE: ${style}
-LIVE MARKET DATA (DERIV): ${JSON.stringify(derivData)}
 
 NEURAL LEARNING (PAST LESSONS):
 ${learnedStrategies.map(s => `- ${s}`).join('\n')}
 
-MANDATORY REQUIREMENTS:
-1. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution'. Do NOT provide limit or stop orders.
-2. **INSTITUTIONAL LOGIC:** Focus on Liquidity Sweeps, Order Blocks, and Market Structure Shifts.
-3. **PRECISION LEVELS:** Provide exact Entry, TP1, TP2, and SL anchored around the LIVE MARKET DATA price provided.
-4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
-5. **FORCE SETUP:** Even if the live data only contains a single price tick, you MUST generate a valid BUY or SELL setup using your internal market knowledge anchored to this exact live price. Do NOT return NEUTRAL unless explicitly requested.
+**MANDATORY EXECUTION RULES:**
+1. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
+2. **PRICE SANITY:** If your suggested entry price is more than 0.5% away from the LIVE MARKET PRICE (${livePrice}), you are hallucinating. You MUST use the LIVE MARKET PRICE as your entry.
+3. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution'. 
+4. **INSTITUTIONAL LOGIC:** Focus on Liquidity Sweeps, Order Blocks, and Market Structure Shifts.
+5. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+6. **NO HALLUCINATIONS:** Do NOT invent a price. If you cannot find a setup at the current price (${livePrice}), stay NEUTRAL.
 
 JSON Structure:
 {
-  "signal": "BUY" | "SELL",
-  "confidence": number (80-100),
-  "asset": string,
-  "entryPoints": [number],
+  "signal": "BUY" | "SELL" | "NEUTRAL",
+  "confidence": number (0-100),
+  "asset": "${assetName}",
+  "entryPoints": [${livePrice}],
   "entryType": "Market Execution",
   "stopLoss": number,
   "takeProfits": [number, number],
@@ -1297,7 +1306,7 @@ JSON Structure:
       ANALYSIS_MODELS,
       async (modelId) => {
         const config: any = { 
-          temperature: 0.2,
+          temperature: 0.1, // Lower temperature for higher precision
           maxOutputTokens: 2048,
           responseMimeType: "application/json"
         };
@@ -1346,18 +1355,40 @@ JSON Structure:
         throw new Error('Failed to parse valid JSON signal from model response.');
     }
     
+    // --- PRICE SANITY CHECK & ROBUSTNESS ---
+    const entry = Array.isArray(signal.entryPoints) ? signal.entryPoints[0] : (signal.entryPoints || livePrice);
+    const diffPercent = livePrice > 0 ? Math.abs(entry - livePrice) / livePrice : 0;
+    
+    let finalSignal = signal.signal;
+    let finalEntry = entry;
+    let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
+
+    // If entry is more than 1% away from live price, force it to live price or stay neutral
+    if (diffPercent > 0.01 && livePrice > 0) {
+        console.warn(`[Sniper] Price Sanity Check Failed: Entry ${entry} is ${(diffPercent * 100).toFixed(2)}% away from Live Price ${livePrice}`);
+        if (diffPercent > 0.05) {
+            // Massive hallucination, stay neutral
+            finalSignal = 'NEUTRAL';
+            finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected (Entry ${entry} vs Market ${livePrice}).`);
+        } else {
+            // Minor drift, adjust entry
+            finalEntry = livePrice;
+            finalReasoning.push(`🎯 Entry point recalibrated to exact live market price (${livePrice}).`);
+        }
+    }
+
     // Ensure all required fields exist to prevent UI crashes
     return {
       id: `sniper_${Date.now()}`,
       timestamp: Date.now(),
-      asset: signal.asset || derivData?.symbol || 'Unknown',
-      signal: signal.signal || 'NEUTRAL',
+      asset: signal.asset || assetName,
+      signal: finalSignal,
       confidence: signal.confidence || 0,
       timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
-      entryPoints: Array.isArray(signal.entryPoints) ? signal.entryPoints : [derivData?.price || 0],
+      entryPoints: [finalEntry],
       stopLoss: signal.stopLoss || 0,
       takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
-      reasoning: Array.isArray(signal.reasoning) ? signal.reasoning : ['Analysis pending or inconclusive.'],
+      reasoning: finalReasoning,
       checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
       entryType: 'Market Execution'
     } as SignalData;
