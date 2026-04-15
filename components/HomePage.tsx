@@ -137,8 +137,8 @@ export const HomePage: React.FC<HomePageProps> = ({
         // Initial check
         checkStatus();
 
-        // Check every 5 minutes (reduced from 10s to save credits)
-        const interval = setInterval(checkStatus, 300000);
+        // Check every 1 hour (increased from 5m to save credits)
+        const interval = setInterval(checkStatus, 3600000);
 
         return () => {
             clearInterval(interval);

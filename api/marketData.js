@@ -95,12 +95,9 @@ export async function fetchFromGemini() {
 export default async (req, res) => {
     const isStale = !marketDataCache.timestamp || (Date.now() - marketDataCache.timestamp > CACHE_DURATION);
     if (isStale) {
-        // Try Twelve Data first as it's more reliable and doesn't hit Gemini quota
-        let data = await fetchFromTwelveData();
-        if (!data) {
-            console.log('[MarketData] Falling back to Gemini for ticker...');
-            data = await fetchFromGemini();
-        }
+        // Use Gemini only for background ticker to save Twelve Data credits for active analysis
+        console.log('[MarketData] Fetching ticker data from Gemini...');
+        const data = await fetchFromGemini();
         res.status(200).json(data || []);
     } else {
         res.status(200).json(marketDataCache.data);

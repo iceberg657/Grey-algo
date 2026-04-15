@@ -26,7 +26,19 @@ import { generateSniperLiveSignal } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata } from '../types';
 import { Loader } from './Loader';
 import { db, handleFirestoreError, OperationType } from '../firebase';
-import { doc, updateDoc } from 'firebase/firestore';
+import { 
+  doc, 
+  updateDoc, 
+  collection, 
+  query as firestoreQuery, 
+  orderBy, 
+  onSnapshot, 
+  addDoc, 
+  deleteDoc, 
+  getDocs, 
+  writeBatch,
+  setDoc
+} from 'firebase/firestore';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface SniperMessage {
@@ -47,18 +59,12 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [query, setQuery] = useState('');
   const [style, setStyle] = useState<TradingStyle>('scalping(1 to 15mins)');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [messages, setMessages] = useState<SniperMessage[]>(() => {
-    try {
-      const saved = localStorage.getItem('greyquant_sniper_chat');
-      return saved ? JSON.parse(saved) : [];
-    } catch (e) {
-      return [];
-    }
-  });
+  const [messages, setMessages] = useState<SniperMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [livePrice, setLivePrice] = useState<any>(null);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
+  const [showAssets, setShowAssets] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -72,13 +78,43 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   }, [messages, isAnalyzing]);
 
   useEffect(() => {
-    localStorage.setItem('greyquant_sniper_chat', JSON.stringify(messages));
-  }, [messages]);
+    if (!userMetadata?.uid) return;
 
-  const handleClearChat = () => {
+    const path = `users/${userMetadata.uid}/sniper_messages`;
+    const msgRef = collection(db, 'users', userMetadata.uid, 'sniper_messages');
+    const q = firestoreQuery(msgRef, orderBy('timestamp', 'asc'));
+
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const msgs = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      })) as SniperMessage[];
+      setMessages(msgs);
+    }, (err) => {
+      handleFirestoreError(err, OperationType.GET, path);
+    });
+
+    return () => unsubscribe();
+  }, [userMetadata?.uid]);
+
+  const handleClearChat = async () => {
     if (window.confirm('Are you sure you want to clear the neural link history?')) {
-      setMessages([]);
-      localStorage.removeItem('greyquant_sniper_chat');
+      if (userMetadata?.uid) {
+        const path = `users/${userMetadata.uid}/sniper_messages`;
+        try {
+          const msgRef = collection(db, 'users', userMetadata.uid, 'sniper_messages');
+          const snapshot = await getDocs(msgRef);
+          const batch = writeBatch(db);
+          snapshot.docs.forEach((doc) => {
+            batch.delete(doc.ref);
+          });
+          await batch.commit();
+        } catch (err) {
+          handleFirestoreError(err, OperationType.DELETE, path);
+        }
+      } else {
+        setMessages([]);
+      }
     }
   };
 
@@ -193,13 +229,25 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     setError(null);
 
     // Add user message
+    const userMsgId = Date.now().toString();
     const userMsg: SniperMessage = {
-      id: Date.now().toString(),
+      id: userMsgId,
       type: 'user',
       content: currentQuery,
       timestamp: Date.now()
     };
-    setMessages(prev => [...prev, userMsg]);
+    
+    if (userMetadata?.uid) {
+      const path = `users/${userMetadata.uid}/sniper_messages/${userMsgId}`;
+      try {
+        const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', userMsgId);
+        await setDoc(msgRef, userMsg);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.WRITE, path);
+      }
+    } else {
+      setMessages(prev => [...prev, userMsg]);
+    }
 
     try {
       // 1. Extract asset from query
@@ -217,24 +265,48 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       const result = await generateSniperLiveSignal(currentQuery, style, derivData);
       
       // Add AI message
+      const aiMsgId = (Date.now() + 1).toString();
       const aiMsg: SniperMessage = {
-        id: (Date.now() + 1).toString(),
+        id: aiMsgId,
         type: 'ai',
         content: `Neural analysis complete for ${result.asset}.`,
         signal: result,
         timestamp: Date.now()
       };
-      setMessages(prev => [...prev, aiMsg]);
+      
+      if (userMetadata?.uid) {
+        const path = `users/${userMetadata.uid}/sniper_messages/${aiMsgId}`;
+        try {
+          const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', aiMsgId);
+          await setDoc(msgRef, aiMsg);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, path);
+        }
+      } else {
+        setMessages(prev => [...prev, aiMsg]);
+      }
     } catch (err: any) {
       setError(err.message || 'Failed to generate setup. Please try again.');
       // Add error message to chat
+      const errorMsgId = (Date.now() + 1).toString();
       const errorMsg: SniperMessage = {
-        id: (Date.now() + 1).toString(),
+        id: errorMsgId,
         type: 'ai',
         content: `System Anomaly: ${err.message || 'Neural link failed.'}`,
         timestamp: Date.now()
       };
-      setMessages(prev => [...prev, errorMsg]);
+      
+      if (userMetadata?.uid) {
+        const path = `users/${userMetadata.uid}/sniper_messages/${errorMsgId}`;
+        try {
+          const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', errorMsgId);
+          await setDoc(msgRef, errorMsg);
+        } catch (err) {
+          handleFirestoreError(err, OperationType.WRITE, path);
+        }
+      } else {
+        setMessages(prev => [...prev, errorMsg]);
+      }
     } finally {
       setIsAnalyzing(false);
     }
@@ -250,6 +322,13 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     { id: 'scalping(1 to 15mins)', label: 'Scalp' },
     { id: 'day trading(1 to 2hrs)', label: 'Day' },
     { id: 'swing trading', label: 'Swing' }
+  ];
+
+  const SUPPORTED_ASSETS = [
+    { category: 'Forex', items: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'XAUUSD (Gold)'] },
+    { category: 'Volatility Indices', items: ['V10', 'V25', 'V50', 'V75', 'V100', 'V10 (1s)', 'V25 (1s)', 'V50 (1s)', 'V75 (1s)', 'V100 (1s)'] },
+    { category: 'Boom/Crash', items: ['Boom 1000', 'Boom 500', 'Boom 300', 'Crash 1000', 'Crash 500', 'Crash 300'] },
+    { category: 'Other', items: ['Step Index', 'Jump Indices (10-100)', 'Range Break 100/200'] }
   ];
 
   const renderLocked = () => (
@@ -331,9 +410,43 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           <>
             {/* Style Selector */}
             <div className="mb-8 sticky top-20 z-40 bg-slate-50/80 dark:bg-[#020617]/80 backdrop-blur-md py-2 transition-colors duration-300">
-              <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-3 block ml-1">
-                Execution Style
-              </label>
+              <div className="flex items-center justify-between mb-3 px-1">
+                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+                  Execution Style
+                </label>
+                <button 
+                  onClick={() => setShowAssets(!showAssets)}
+                  className="text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors flex items-center gap-1"
+                >
+                  <Activity className="w-3 h-3" />
+                  {showAssets ? 'Hide Assets' : 'Supported Assets'}
+                </button>
+              </div>
+              
+              <AnimatePresence>
+                {showAssets && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    className="overflow-hidden mb-4"
+                  >
+                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                      {SUPPORTED_ASSETS.map((cat) => (
+                        <div key={cat.category}>
+                          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">{cat.category}</h4>
+                          <ul className="space-y-1">
+                            {cat.items.map((item) => (
+                              <li key={item} className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
                 {tradingStyles.map((s) => (
                   <button

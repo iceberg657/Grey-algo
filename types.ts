@@ -301,6 +301,7 @@ export interface ChatMessage {
     role: 'user' | 'model';
     text: string;
     images?: string[]; // Data URL for rendering
+    timestamp?: number;
 }
 
 export interface UserMetadata {

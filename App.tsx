@@ -23,7 +23,19 @@ import { Loader } from './components/Loader';
 import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
 import { AnimatePresence, motion } from 'framer-motion';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { 
+  doc, 
+  onSnapshot, 
+  collection, 
+  query as firestoreQuery, 
+  orderBy, 
+  addDoc, 
+  deleteDoc, 
+  getDocs, 
+  writeBatch, 
+  serverTimestamp,
+  setDoc
+} from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from './firebase';
 import type { AdminSettings } from './types';
 import { requestNotificationPermission, onMessageListener } from './services/notificationService';
@@ -189,15 +201,31 @@ const App: React.FC = () => {
     // State to handle redirects to chat with a prompt
     const [pendingChatQuery, setPendingChatQuery] = useState<string | null>(null);
 
-    // State for ChatPage with localStorage persistence
-    const [chatMessages, setChatMessages] = useState<ChatMessage[]>(() => {
-        try {
-            const storedMessages = window.localStorage.getItem(CHAT_STORAGE_KEY);
-            return storedMessages ? JSON.parse(storedMessages) : [];
-        } catch (error) {
-            return [];
-        }
-    });
+    // State for ChatPage with Firestore sync
+    const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+
+    useEffect(() => {
+        if (!isLoggedIn || !userMetadata?.uid) return;
+
+        const path = `users/${userMetadata.uid}/chat_messages`;
+        const chatRef = collection(db, 'users', userMetadata.uid, 'chat_messages');
+        const q = firestoreQuery(chatRef, orderBy('timestamp', 'asc'));
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const messages = snapshot.docs.map(doc => ({
+                ...doc.data(),
+                id: doc.id
+            })) as ChatMessage[];
+            
+            if (messages.length > 0) {
+                setChatMessages(messages);
+            }
+        }, (err) => {
+            handleFirestoreError(err, OperationType.GET, path);
+        });
+
+        return () => unsubscribe();
+    }, [isLoggedIn, userMetadata?.uid]);
 
     useEffect(() => {
         const init = async () => {
@@ -223,7 +251,21 @@ const App: React.FC = () => {
         }
     }, [isLoggedIn, appView, analysisData]);
     
-    const handleNewChat = () => {
+    const handleNewChat = async () => {
+        if (userMetadata?.uid) {
+            const path = `users/${userMetadata.uid}/chat_messages`;
+            try {
+                const chatRef = collection(db, 'users', userMetadata.uid, 'chat_messages');
+                const snapshot = await getDocs(chatRef);
+                const batch = writeBatch(db);
+                snapshot.docs.forEach((doc) => {
+                    batch.delete(doc.ref);
+                });
+                await batch.commit();
+            } catch (err) {
+                handleFirestoreError(err, OperationType.DELETE, path);
+            }
+        }
         setChatMessages([]);
         resetChatService();
     };
@@ -450,6 +492,7 @@ const App: React.FC = () => {
                     initialInput={pendingChatQuery}
                     onClearInitialInput={() => setPendingChatQuery(null)}
                     isLocked={systemSettings?.chatLocked && userMetadata?.role !== 'admin'}
+                    userMetadata={userMetadata}
                 />
             );
             break;

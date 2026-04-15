@@ -5,6 +5,9 @@ import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName } from
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { NeuralBackground } from './NeuralBackground';
+import { db, handleFirestoreError, OperationType } from '../firebase';
+import { doc, setDoc } from 'firebase/firestore';
+import type { UserMetadata } from '../types';
 
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
@@ -160,6 +163,7 @@ interface ChatPageProps {
     initialInput?: string | null;
     onClearInitialInput?: () => void;
     isLocked?: boolean;
+    userMetadata?: UserMetadata | null;
 }
 
 const OracleLogo: React.FC = () => (
@@ -196,7 +200,7 @@ const getModelSymbol = (modelName: string) => {
     return 'Σ'; 
 };
 
-export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput, isLocked }) => {
+export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput, isLocked, userMetadata }) => {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -336,8 +340,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             role: 'user',
             text: text,
             images: previews,
+            timestamp: Date.now()
         };
-        setMessages(prev => [...prev, userMessage]);
+        
+        if (userMetadata?.uid) {
+            const path = `users/${userMetadata.uid}/chat_messages/${userMessage.id}`;
+            try {
+                const msgRef = doc(db, 'users', userMetadata.uid, 'chat_messages', userMessage.id);
+                await setDoc(msgRef, userMessage);
+            } catch (err) {
+                handleFirestoreError(err, OperationType.WRITE, path);
+            }
+        } else {
+            setMessages(prev => [...prev, userMessage]);
+        }
         
         setIsLoading(true);
         setError(null);
@@ -370,6 +386,23 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     }
                     return newMessages;
                 });
+            }
+
+            // Save final model message to Firestore
+            if (userMetadata?.uid) {
+                const finalModelMessage: ChatMessage = {
+                    id: streamMessageId,
+                    role: 'model',
+                    text: responseText,
+                    timestamp: Date.now()
+                };
+                const path = `users/${userMetadata.uid}/chat_messages/${streamMessageId}`;
+                try {
+                    const msgRef = doc(db, 'users', userMetadata.uid, 'chat_messages', streamMessageId);
+                    await setDoc(msgRef, finalModelMessage);
+                } catch (err) {
+                    handleFirestoreError(err, OperationType.WRITE, path);
+                }
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
@@ -428,8 +461,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         </div>
                         <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-4">Neural Link Offline</h2>
                         <p className="text-slate-400 text-sm mb-8">
-                            The Oracle AI neural interface has been temporarily restricted by Command. 
-                            Please check back later.
+                            Chat is closed, please try again later.
                         </p>
                         <button 
                             onClick={onBack}

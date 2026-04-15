@@ -149,6 +149,14 @@
       "schema": "Trade",
       "description": "User's trade history"
     },
+    "/users/{userId}/chat_messages/{messageId}": {
+      "schema": "object",
+      "description": "User's general chat history"
+    },
+    "/users/{userId}/sniper_messages/{messageId}": {
+      "schema": "object",
+      "description": "User's sniper chat history"
+    },
     "/broadcasts/{broadcastId}": {
       "schema": "Broadcast",
       "description": "System-wide broadcast messages"
