@@ -254,40 +254,40 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     try {
       // 1. Extract asset from query
       const assetMatch = currentQuery.match(/(gold|eurusd|gbpusd|usdjpy|btc|eth|xauusd|v75|v100|boom|crash|step|jump|range|usdchf|audusd|usdcad|nzdusd)/i);
-      const asset = assetMatch ? assetMatch[0].toUpperCase() : 'EURUSD';
+      const asset = assetMatch ? assetMatch[0].toUpperCase() : null;
 
-      // 2. Determine required timeframes based on style
-      const getTimeframesForStyle = (s: TradingStyle) => {
-        if (s.includes('scalping')) return ['1min', '5min', '15min'];
-        if (s.includes('day trading')) return ['15min', '30min', '1h', '4h'];
-        if (s.includes('swing')) return ['4h', '1day', '1week'];
-        return ['15min'];
-      };
-
-      const tfs = getTimeframesForStyle(style);
-
-      // 3. Fetch live price and multi-timeframe data in parallel
-      const twelveDataPromises = tfs.map(tf => fetchMarketData(asset, tf).catch(e => {
-        console.warn(`Twelve Data fetch failed for ${tf}:`, e);
-        return null;
-      }));
-
-      const [derivData, ...twelveDataResults] = await Promise.all([
-        fetchLivePrice(asset),
-        ...twelveDataPromises
-      ]);
-      
-      if (!derivData) {
-        throw new Error('Failed to fetch live market data. Please ensure your Deriv API Token is correct in Settings.');
+      if (!asset) {
+        const aiMsgId = (Date.now() + 1).toString();
+        const aiMsg: SniperMessage = {
+          id: aiMsgId,
+          type: 'ai',
+          content: `Asset not available, coming soon.`,
+          timestamp: Date.now()
+        };
+        if (userMetadata?.uid) {
+          const path = `users/${userMetadata.uid}/sniper_messages/${aiMsgId}`;
+          try {
+            const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', aiMsgId);
+            await setDoc(msgRef, aiMsg);
+          } catch (err) {
+            handleFirestoreError(err, OperationType.WRITE, path);
+          }
+        } else {
+          setMessages(prev => [...prev, aiMsg]);
+        }
+        setIsAnalyzing(false);
+        return;
       }
 
-      const twelveDataMap = tfs.reduce((acc, tf, i) => {
-        if (twelveDataResults[i]) acc[tf] = twelveDataResults[i];
-        return acc;
-      }, {} as Record<string, any>);
+      // 2. Fetch live price only from Deriv API (ignore Twelve Data as requested)
+      const derivData = await fetchLivePrice(asset);
+      
+      if (!derivData) {
+        throw new Error(`Failed to fetch live market data for ${asset}. Ensure your Deriv API Token is correct.`);
+      }
 
-      // 4. Generate signal using Gemini 3.1 Flash Lite with full multi-timeframe confluence
-      const result = await generateSniperLiveSignal(currentQuery, style, derivData, [], twelveDataMap);
+      // 3. Generate signal using Gemini 3.1 Flash Lite purely with price action
+      const result = await generateSniperLiveSignal(currentQuery, style, derivData, []);
       
       // Add AI message
       const aiMsgId = (Date.now() + 1).toString();
@@ -620,14 +620,14 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors relative overflow-hidden">
                                   <div className="flex justify-between items-center mb-2">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sniper Entry Range</span>
-                                    <button onClick={() => copyToClipboard(msg.signal.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : msg.signal.entryPoints[0].toString(), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                    <button onClick={() => copyToClipboard(msg.signal?.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : (msg.signal?.entryPoints?.[0]?.toString() || ''), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `Entry-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
                                   <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">
-                                    {msg.signal.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : msg.signal.entryPoints[0]}
+                                    {msg.signal?.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : (msg.signal?.entryPoints?.[0] || 'N/A')}
                                   </div>
-                                  {msg.signal.triggerConditions && (
+                                  {msg.signal?.triggerConditions && (
                                     <div className="mt-2 text-[9px] font-bold text-emerald-500/70 uppercase tracking-tighter flex items-center gap-1">
                                       <Zap className="w-2.5 h-2.5" />
                                       {msg.signal.triggerConditions.entryTriggerCandle || 'Neural Trigger Active'}
@@ -685,14 +685,23 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                   )}
                                 </div>
                                 <div className="space-y-2">
-                                  {msg.signal.reasoning.map((r, i) => (
-                                    <div key={i} className="flex items-start gap-3 bg-white/30 dark:bg-slate-900/30 p-3 rounded-2xl border border-slate-200/30 dark:border-slate-800/30">
-                                      <div className="w-5 h-5 bg-emerald-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
-                                        <Zap className="w-3 h-3 text-emerald-500" />
+                                  {msg.signal.reasoning.map((r, i) => {
+                                    const parts = r.split(':');
+                                    const title = parts.length > 1 ? parts[0] : '';
+                                    const content = parts.length > 1 ? parts.slice(1).join(':').trim() : r;
+                                    
+                                    return (
+                                      <div key={i} className="flex items-start gap-3 bg-white/30 dark:bg-slate-900/30 p-3 rounded-2xl border border-slate-200/30 dark:border-slate-800/30">
+                                        <div className="w-5 h-5 bg-emerald-500/10 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                          <Zap className="w-3 h-3 text-emerald-500" />
+                                        </div>
+                                        <div className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                                          {title && <span className="font-bold text-slate-900 dark:text-slate-200 mr-2">{title}:</span>}
+                                          {content}
+                                        </div>
                                       </div>
-                                      <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">{r}</p>
-                                    </div>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             </div>

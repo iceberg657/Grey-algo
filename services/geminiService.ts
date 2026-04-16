@@ -1261,19 +1261,13 @@ export async function generateSniperLiveSignal(
   query: string,
   style: TradingStyle,
   derivData: any,
-  learnedStrategies: string[] = [],
-  twelveDataQuotes?: Record<string, any>
+  learnedStrategies: string[] = []
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
-
-  // Format multi-timeframe data for the prompt
-  const tfContext = twelveDataQuotes ? Object.entries(twelveDataQuotes).map(([tf, data]) => {
-    if (!data || data.error) return `[${tf}]: Data unavailable`;
-    return `[${tf}]: Price=${data.close}, Volume=${data.volume}, RSI=${data.rsi}, ADX=${data.adx}, SMA=${data.sma}, ATR=${data.atr}, STDDEV=${data.stddev}`;
-  }).join('\n') : 'No multi-timeframe data available.';
-
-  const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup.
+  // We strictly use Deriv price + basic market context to avoid noisy indicator requirements.
+  
+  const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
 
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:
@@ -1287,26 +1281,24 @@ style.includes('day trading') ? `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
 
-**SNIPER ENTRY PROTOCOL (REDUCE SL HITS):**
-1. **IDENTIFY INDUCEMENT:** Locate the "Retail Liquidity" (equal highs/lows) and wait for a sweep BEFORE entering.
-2. **OTE (OPTIMAL TRADE ENTRY):** Prioritize entries in the 61.8% - 78.6% Fibonacci retracement zone of the current structural leg.
-3. **CHoCH (CHANGE OF CHARACTER):** Ensure there is a shift in market structure on the ENTRY timeframes within your HTF zone.
-4. **ORDER BLOCK ANCHORING:** Your Stop Loss MUST be placed exactly 2 pips behind the "Institutional Order Block" or the "Liquidity Sweep High/Low".
-5. **VOLUME CONFIRMATION:** Analyze the provided Volume data. A valid breakout or reversal MUST be accompanied by a surge in volume (relative to the SMA of volume) to confirm institutional participation. Low volume on a breakout is a trap.
+**SNIPER ENTRY PROTOCOL (PURE REASONING & MARKET EXECUTION):**
+1. **IDENTIFY INDUCEMENT:** Locate Retail Liquidity (equal highs/lows) and wait for a sweep BEFORE entering.
+2. **PREMIUM/DISCOUNT ZONES:** Prioritize entries in deep Discount (for buys) or Premium (for sells). Do NOT rigidly default to 61.8% Fibonacci. Look for unmitigated Order Blocks or FVGs across the relevant structural leg.
+3. **CHoCH / MSS:** Ensure a Market Structure Shift on the entry timeframe.
+4. **ORDER BLOCK ANCHORING:** Place Stop Loss strictly behind the anchor Order Block or the high/low of the liquidity sweep.
+5. **PURE PRICE ACTION & VOLUME:** Validate institutional participation by identifying visual Volume Spikes, VWAP alignment (if implied), or On-Balance Volume shifts. DO NOT require SMA, RSI, or ADX data to issue a signal. 
+6. **PREVENT STOP LOSS HUNTING:** Provide detailed reasoning including the current Market Price, prevailing market conditions, and structure to justify your entry zone. 
 
 **CRITICAL DATA (THE ONLY TRUTH):**
 - ASSET: ${assetName}
 - LIVE MARKET PRICE: ${livePrice}
-- MULTI-TIMEFRAME CONFLUENCE:
-${tfContext}
 
 USER REQUEST: "${query}"
 
 **MANDATORY EXECUTION RULES:**
 1. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-2. **IMMEDIATE MARKET EXECUTION:** This is a SNIPER signal meant for IMMEDIATE execution. Do NOT suggest Limit or Stop orders. If the current price is within your calculated OTE (Optimal Trade Entry) range, provide an entry range bounding the current price. If it is NOT ready, return a "NEUTRAL" signal and explain what you are waiting for.
-3. **VOLATILITY BANDS (STDDEV):** Use the Standard Deviation to identify "Extreme Overextensions". If price is > SMA + 2*STDDEV or < SMA - 2*STDDEV, prioritize reversal setups (Mean Reversion) or wait for a deep pullback.
-4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+2. **IMMEDIATE MARKET EXECUTION:** This is a SNIPER signal meant for IMMEDIATE execution. Do NOT suggest Limit or Stop orders. If the current price is within your calculated Premium/Discount zone, provide an entry range bounding the current price. If it is NOT ready, return a "NEUTRAL" signal and explain what you are waiting for based on pure price action.
+3. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
@@ -1318,7 +1310,11 @@ JSON Structure:
   "entryType": "Market Execution",
   "stopLoss": number,
   "takeProfits": [number, number],
-  "reasoning": ["Inducement identified at...", "OTE level at...", "CHoCH confirmed via..."],
+  "reasoning": [
+    "Market Price vs Structure: [Detailed explanation]",
+    "Current Conditions: [Detailed explanation]",
+    "Why this prevents SL hunting: [Detailed explanation]"
+  ],
   "checklist": ["Liquidity Sweep", "Order Block Tap", "FVG Fill"],
   "triggerConditions": {
     "breakoutLevel": number,
