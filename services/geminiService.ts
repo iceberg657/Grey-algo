@@ -1270,7 +1270,7 @@ export async function generateSniperLiveSignal(
   // Format multi-timeframe data for the prompt
   const tfContext = twelveDataQuotes ? Object.entries(twelveDataQuotes).map(([tf, data]) => {
     if (!data || data.error) return `[${tf}]: Data unavailable`;
-    return `[${tf}]: Price=${data.close}, RSI=${data.rsi}, ADX=${data.adx}, SMA=${data.sma}, ATR=${data.atr}, STDDEV=${data.stddev}`;
+    return `[${tf}]: Price=${data.close}, Volume=${data.volume}, RSI=${data.rsi}, ADX=${data.adx}, SMA=${data.sma}, ATR=${data.atr}, STDDEV=${data.stddev}`;
   }).join('\n') : 'No multi-timeframe data available.';
 
   const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup.
@@ -1292,6 +1292,7 @@ style.includes('day trading') ? `
 2. **OTE (OPTIMAL TRADE ENTRY):** Prioritize entries in the 61.8% - 78.6% Fibonacci retracement zone of the current structural leg.
 3. **CHoCH (CHANGE OF CHARACTER):** Ensure there is a shift in market structure on the ENTRY timeframes within your HTF zone.
 4. **ORDER BLOCK ANCHORING:** Your Stop Loss MUST be placed exactly 2 pips behind the "Institutional Order Block" or the "Liquidity Sweep High/Low".
+5. **VOLUME CONFIRMATION:** Analyze the provided Volume data. A valid breakout or reversal MUST be accompanied by a surge in volume (relative to the SMA of volume) to confirm institutional participation. Low volume on a breakout is a trap.
 
 **CRITICAL DATA (THE ONLY TRUTH):**
 - ASSET: ${assetName}
