@@ -39,6 +39,7 @@ import {
 import { db, handleFirestoreError, OperationType } from './firebase';
 import type { AdminSettings } from './types';
 import { requestNotificationPermission, onMessageListener } from './services/notificationService';
+import { SplashScreen } from './components/SplashScreen';
 
 type AuthPage = 'login' | 'signup';
 type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper';
@@ -119,6 +120,7 @@ const App: React.FC = () => {
     const [previousView, setPreviousView] = useState<AppView>('home');
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
     const [systemSettings, setSystemSettings] = useState<AdminSettings | null>(null);
+    const [showSplash, setShowSplash] = useState<boolean>(true);
 
     useEffect(() => {
         const path = 'admin_settings/system';
@@ -590,6 +592,8 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
+            {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+            
             {/* Connectivity Banner */}
             <AnimatePresence>
                 {!isFirebaseConnected && (

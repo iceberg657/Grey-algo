@@ -34,16 +34,22 @@ export const Loader: React.FC = () => {
     }, []);
 
     return (
-        <div className="flex flex-col items-center justify-center text-center p-4">
-            <div className="flex items-end justify-center h-28 space-x-2">
-                <CandleIcon color="#3b82f6" className="animate-bounce-candle" />
-                <CandleIcon color="#2563eb" className="animate-bounce-candle [animation-delay:-0.5s]" />
-                <CandleIcon color="#3b82f6" className="animate-bounce-candle [animation-delay:-0.25s]" />
+        <div className="flex flex-col items-center justify-center text-center p-8 liquid-glass rounded-3xl border border-white/10 shadow-2xl max-w-sm w-full mx-4">
+            <div className="relative mb-8">
+                <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full animate-pulse"></div>
+                <div className="flex items-end justify-center h-28 space-x-3 relative z-10">
+                    <CandleIcon color="#10b981" className="animate-bounce-candle" />
+                    <CandleIcon color="#059669" className="animate-bounce-candle [animation-delay:-0.5s]" />
+                    <CandleIcon color="#10b981" className="animate-bounce-candle [animation-delay:-0.25s]" />
+                </div>
             </div>
-            <p className="mt-6 text-lg font-semibold text-gray-800 dark:text-dark-text">AI is Analyzing the Market...</p>
-            <p key={message} className="text-sm text-gray-700 dark:text-dark-text/70 animate-fade-in min-h-[20px]">
+            <h2 className="text-xl font-black uppercase tracking-tighter italic text-slate-900 dark:text-green-400 mb-2">Neural Processing</h2>
+            <p key={message} className="text-xs font-mono text-slate-600 dark:text-dark-text/50 animate-fade-in min-h-[40px] px-4 leading-relaxed uppercase tracking-widest">
                 {message}
             </p>
+            <div className="mt-6 w-full h-1 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500 animate-shimmer w-full"></div>
+            </div>
         </div>
     );
 };

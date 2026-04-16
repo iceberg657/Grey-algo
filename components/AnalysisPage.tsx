@@ -98,7 +98,7 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                     <div className={`absolute -bottom-3 -right-3 w-10 h-10 border-b-4 border-r-4 z-10 transition-all duration-700 group-hover:translate-x-1 group-hover:translate-y-1 ${cornerClass}`}></div>
 
                     <div className={`
-                        bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-6 sm:p-10 rounded-2xl border border-gray-200 dark:border-white/10 
+                        liquid-glass p-6 sm:p-10 rounded-2xl border border-gray-200 dark:border-white/10 
                         transition-all duration-500 transform shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] relative overflow-hidden
                         ${accentBorderClass}
                     `}>

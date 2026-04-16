@@ -158,7 +158,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                     </h1>
                 </header>
                 
-                <div className="bg-white/95 dark:bg-slate-900/40 backdrop-blur-xl p-8 rounded-2xl border border-gray-300 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] w-full max-w-sm transition-all duration-500">
+                <div className="liquid-glass p-8 rounded-2xl border border-gray-300 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] w-full max-w-sm transition-all duration-500">
                     {view === 'login' && (
                         <>
                             <h2 className="text-2xl font-bold text-center text-green-600 dark:text-green-400 mb-6 border-b-2 border-green-500/50 pb-4 uppercase tracking-widest">Login</h2>

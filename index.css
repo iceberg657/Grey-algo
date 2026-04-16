@@ -46,6 +46,12 @@
     --animate-marquee: marquee 30s linear infinite;
     --animate-flip-3d: flip3D 0.3s ease-out forwards;
     --animate-shimmer: shimmer 3s linear infinite;
+    --animate-liquid: liquid 10s ease-in-out infinite;
+}
+
+@keyframes liquid {
+    0%, 100% { border-radius: 60% 40% 30% 70% / 60% 30% 70% 40%; }
+    50% { border-radius: 30% 60% 70% 40% / 50% 60% 30% 60%; }
 }
 
 @keyframes fadeIn {
@@ -143,6 +149,38 @@ body.learning-mode::after {
     -webkit-text-fill-color: transparent;
     color: transparent;
     background-clip: text;
+}
+
+/* Liquid Glass Effect */
+.liquid-glass {
+    background: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.dark .liquid-glass {
+    background: rgba(15, 23, 42, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.liquid-glass-accent {
+    position: relative;
+    overflow: hidden;
+}
+
+.liquid-glass-accent::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle at center, rgba(16, 185, 129, 0.1) 0%, transparent 70%);
+    animation: liquid 15s ease-in-out infinite;
+    pointer-events: none;
+    z-index: -1;
 }
 
 /* Smooth Custom Scrollbar */
