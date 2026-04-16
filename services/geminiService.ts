@@ -1262,39 +1262,58 @@ export async function generateSniperLiveSignal(
   style: TradingStyle,
   derivData: any,
   learnedStrategies: string[] = [],
-  twelveDataQuote?: any
+  twelveDataQuotes?: Record<string, any>
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
 
+  // Format multi-timeframe data for the prompt
+  const tfContext = twelveDataQuotes ? Object.entries(twelveDataQuotes).map(([tf, data]) => {
+    if (!data || data.error) return `[${tf}]: Data unavailable`;
+    return `[${tf}]: Price=${data.close}, RSI=${data.rsi}, ADX=${data.adx}, SMA=${data.sma}, ATR=${data.atr}, STDDEV=${data.stddev}`;
+  }).join('\n') : 'No multi-timeframe data available.';
+
   const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup.
+
+**TRADING STYLE CONTEXT: ${style}**
+You MUST use the following timeframe hierarchy for this style:
+${style.includes('scalping') ? `
+- ENTRY TIMEFRAMES: 1min, 5min (Prioritize for exact entry trigger)
+- STRUCTURE/CONTEXT: 15min, 30min (Use for trend and major levels)` : 
+style.includes('day trading') ? `
+- ENTRY TIMEFRAMES: 15min, 30min, 1hr (Prioritize for entry confirmation)
+- STRUCTURE/CONTEXT: 4hrs (Use for daily bias and institutional zones)` : 
+`
+- ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
+- STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
 
 **SNIPER ENTRY PROTOCOL (REDUCE SL HITS):**
 1. **IDENTIFY INDUCEMENT:** Locate the "Retail Liquidity" (equal highs/lows) and wait for a sweep BEFORE entering.
 2. **OTE (OPTIMAL TRADE ENTRY):** Prioritize entries in the 61.8% - 78.6% Fibonacci retracement zone of the current structural leg.
-3. **CHoCH (CHANGE OF CHARACTER):** Ensure there is a shift in market structure on the lower timeframe (M1/M5) within your HTF zone.
+3. **CHoCH (CHANGE OF CHARACTER):** Ensure there is a shift in market structure on the ENTRY timeframes within your HTF zone.
 4. **ORDER BLOCK ANCHORING:** Your Stop Loss MUST be placed exactly 2 pips behind the "Institutional Order Block" or the "Liquidity Sweep High/Low".
 
 **CRITICAL DATA (THE ONLY TRUTH):**
 - ASSET: ${assetName}
 - LIVE MARKET PRICE: ${livePrice}
-${twelveDataQuote ? `- TWELVE DATA CONFLUENCE: RSI=${twelveDataQuote.rsi}, ADX=${twelveDataQuote.adx}, SMA=${twelveDataQuote.sma}, ATR=${twelveDataQuote.atr}, STDDEV=${twelveDataQuote.stddev}` : ''}
+- MULTI-TIMEFRAME CONFLUENCE:
+${tfContext}
 
 USER REQUEST: "${query}"
-TRADING STYLE: ${style}
 
 **MANDATORY EXECUTION RULES:**
 1. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
 2. **VOLATILITY BANDS (STDDEV):** Use the Standard Deviation to identify "Extreme Overextensions". If price is > SMA + 2*STDDEV or < SMA - 2*STDDEV, prioritize reversal setups (Mean Reversion) or wait for a deep pullback to the SMA.
-3. **PRECISION ENTRY:** Do not just enter at the current price. If the current price is in the middle of a move, suggest a "Limit Order" at the OTE level or wait for a "Market Execution" only if a CHoCH is confirmed.
-3. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution' for this live stream, but the entry price must be the "Sniper Point".
-4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+3. **PRECISION ENTRY:** Do not just enter at the current price. If the current price is in the middle of a move, suggest a "Limit Order" at the OTE level or wait for a "Market Execution" only if a CHoCH is confirmed on the entry timeframes.
+4. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution' for this live stream, but the entry price must be the "Sniper Point".
+5. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
   "signal": "BUY" | "SELL" | "NEUTRAL",
   "confidence": number (0-100),
   "asset": "${assetName}",
+  "timeframe": "The specific timeframe used for entry",
   "entryPoints": [number],
   "entryType": "Market Execution",
   "stopLoss": number,

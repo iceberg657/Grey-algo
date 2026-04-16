@@ -256,21 +256,38 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       const assetMatch = currentQuery.match(/(gold|eurusd|gbpusd|usdjpy|btc|eth|xauusd|v75|v100|boom|crash|step|jump|range|usdchf|audusd|usdcad|nzdusd)/i);
       const asset = assetMatch ? assetMatch[0].toUpperCase() : 'EURUSD';
 
-      // 2. Fetch live price from Deriv and Twelve Data in parallel for maximum confluence
-      const [derivData, twelveData] = await Promise.all([
+      // 2. Determine required timeframes based on style
+      const getTimeframesForStyle = (s: TradingStyle) => {
+        if (s.includes('scalping')) return ['1min', '5min', '15min'];
+        if (s.includes('day trading')) return ['15min', '30min', '1h', '4h'];
+        if (s.includes('swing')) return ['4h', '1day', '1week'];
+        return ['15min'];
+      };
+
+      const tfs = getTimeframesForStyle(style);
+
+      // 3. Fetch live price and multi-timeframe data in parallel
+      const twelveDataPromises = tfs.map(tf => fetchMarketData(asset, tf).catch(e => {
+        console.warn(`Twelve Data fetch failed for ${tf}:`, e);
+        return null;
+      }));
+
+      const [derivData, ...twelveDataResults] = await Promise.all([
         fetchLivePrice(asset),
-        fetchMarketData(asset, style.includes('scalping') ? '5min' : '15min').catch(e => {
-          console.warn('Twelve Data fetch failed for Sniper:', e);
-          return null;
-        })
+        ...twelveDataPromises
       ]);
       
       if (!derivData) {
         throw new Error('Failed to fetch live market data. Please ensure your Deriv API Token is correct in Settings.');
       }
 
-      // 3. Generate signal using Gemini 3.1 Flash Lite with full confluence
-      const result = await generateSniperLiveSignal(currentQuery, style, derivData, [], twelveData);
+      const twelveDataMap = tfs.reduce((acc, tf, i) => {
+        if (twelveDataResults[i]) acc[tf] = twelveDataResults[i];
+        return acc;
+      }, {} as Record<string, any>);
+
+      // 4. Generate signal using Gemini 3.1 Flash Lite with full multi-timeframe confluence
+      const result = await generateSniperLiveSignal(currentQuery, style, derivData, [], twelveDataMap);
       
       // Add AI message
       const aiMsgId = (Date.now() + 1).toString();
