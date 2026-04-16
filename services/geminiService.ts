@@ -1314,7 +1314,7 @@ JSON Structure:
   "confidence": number (0-100),
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
-  "entryPoints": [number],
+  "entryRange": {"min": number, "max": number},
   "entryType": "Market Execution",
   "stopLoss": number,
   "takeProfits": [number, number],
@@ -1382,12 +1382,13 @@ JSON Structure:
     }
     
     // --- SNIPER PRECISION LAYER ---
-    const entry = Array.isArray(signal.entryPoints) ? signal.entryPoints[0] : (signal.entryPoints || livePrice);
+    const entryRange = signal.entryRange || { min: livePrice * 0.999, max: livePrice * 1.001 };
     const sl = signal.stopLoss || 0;
-    const diffPercent = livePrice > 0 ? Math.abs(entry - livePrice) / livePrice : 0;
+    const midEntry = (entryRange.min + entryRange.max) / 2;
+    const diffPercent = livePrice > 0 ? Math.abs(midEntry - livePrice) / livePrice : 0;
     
     let finalSignal = signal.signal;
-    let finalEntry = entry;
+    let finalEntryRange = entryRange;
     let finalSL = sl;
     let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
 
@@ -1397,19 +1398,21 @@ JSON Structure:
             finalSignal = 'NEUTRAL';
             finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
         } else {
-            finalEntry = livePrice;
-            finalReasoning.push(`🎯 Entry point recalibrated to live market price for immediate execution.`);
+            // Recalibrate range around live price
+            const rangeWidth = entryRange.max - entryRange.min;
+            finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
+            finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
         }
     }
 
     // 2. Sniper SL Tightening (Institutional Logic)
     // If SL is too wide (e.g. > 1% of price), it's likely not a sniper entry
-    const slDistance = Math.abs(finalEntry - finalSL);
+    const slDistance = Math.abs(midEntry - finalSL);
     const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
     if (slPercent > 0.02 && finalSignal !== 'NEUTRAL') {
         // Force a tighter SL based on ATR or structure if AI provided a "swing" SL for a "scalp"
-        const adjustment = finalEntry * 0.005; // 0.5% max SL for sniper
-        finalSL = finalSignal === 'BUY' ? finalEntry - adjustment : finalEntry + adjustment;
+        const adjustment = midEntry * 0.005; // 0.5% max SL for sniper
+        finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
         finalReasoning.push(`🛡️ Stop Loss tightened to Institutional Invalidation Point (0.5% risk zone).`);
     }
 
@@ -1421,7 +1424,8 @@ JSON Structure:
       signal: finalSignal,
       confidence: signal.confidence || 0,
       timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
-      entryPoints: [finalEntry],
+      entryPoints: [midEntry],
+      entryRange: finalEntryRange,
       stopLoss: finalSL,
       takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
       reasoning: finalReasoning,

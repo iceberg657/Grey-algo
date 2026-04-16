@@ -619,12 +619,14 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 {/* Entry */}
                                 <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors relative overflow-hidden">
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sniper Entry</span>
-                                    <button onClick={() => copyToClipboard(msg.signal!.entryPoints[0].toString(), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sniper Entry Range</span>
+                                    <button onClick={() => copyToClipboard(msg.signal.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : msg.signal.entryPoints[0].toString(), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `Entry-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
-                                  <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">{msg.signal.entryPoints[0]}</div>
+                                  <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">
+                                    {msg.signal.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : msg.signal.entryPoints[0]}
+                                  </div>
                                   {msg.signal.triggerConditions && (
                                     <div className="mt-2 text-[9px] font-bold text-emerald-500/70 uppercase tracking-tighter flex items-center gap-1">
                                       <Zap className="w-2.5 h-2.5" />
