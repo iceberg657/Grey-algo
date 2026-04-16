@@ -646,6 +646,20 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                       {msg.signal.triggerConditions.entryTriggerCandle || 'Neural Trigger Active'}
                                     </div>
                                   )}
+                                  <div className="mt-2 flex flex-col gap-1">
+                                    {msg.signal?.entryType && (
+                                      <div className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded inline-flex items-center gap-1 w-fit">
+                                        <Target className="w-3 h-3" />
+                                        {msg.signal.entryType}
+                                      </div>
+                                    )}
+                                    {msg.signal?.expirationTime && (
+                                      <div className="text-[10px] font-bold text-amber-600/80 dark:text-amber-500/80 bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded w-fit mt-1 max-w-full">
+                                        <Clock className="w-3 h-3 inline-block mr-1 mb-0.5" />
+                                        <span className="leading-tight">{msg.signal.expirationTime}</span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
 
                                 {/* Stop Loss */}

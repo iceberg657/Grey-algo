@@ -614,6 +614,12 @@ You MUST correctly classify the order type based on the strict relationship betw
 - **'Buy Stop Limit'**: Stop Price is ABOVE current price, Limit Price is BELOW the Stop Price.
 - **'Sell Stop Limit'**: Stop Price is BELOW current price, Limit Price is ABOVE the Stop Price.
 
+**EXPIRATION TIME FOR PENDING ORDERS (MANDATORY):**
+If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirationTime' string based on this logic:
+- **Scalping (M1/M5):** "Cancel order if not triggered within 10 minutes of signal generation."
+- **Day Trading (M15/H1):** "Expiration: End of New York AM session (11:00 AM ET) or 4 hours from signal."
+- **Swing Trading (H4/Daily):** "Set Good-Til-Date (GTD) for 48 hours. Invalidate immediately if a New High/Low is formed before entry."
+
 ---
 
 **TP Calculation Formula (MUST BE DISTINCT):**
@@ -703,6 +709,7 @@ Lot Size: 1–2% risk
   
   "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry],
   "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
+  "expirationTime": "string if entryType is Limit/Stop based on Expiration Time Logic, or null if Market Execution",
   "triggerConditions": {
     "breakoutLevel": number | null, // Exact numeric level for a breakout, or null if not applicable
     "retestLogic": "string", // Precise logic for retest (e.g., 'Wait for 15m candle close above 4570, then retest of 4568')
@@ -1305,7 +1312,10 @@ USER REQUEST: "${query}"
 **MANDATORY EXECUTION RULES:**
 1. **CONFIDENCE CAP:** The maximum allowable confidence score is 85%. You must strictly end at an 85% confidence score or lower to prevent overfitting. Do NOT return a confidence score higher than 85.
 2. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-3. **IMMEDIATE MARKET EXECUTION:** This is a SNIPER signal meant for IMMEDIATE execution. Do NOT suggest Limit or Stop orders. If the current price is within your calculated Premium/Discount zone, provide an entry range bounding the current price. If it is NOT ready, return a "NEUTRAL" signal and explain what you are waiting for based on pure price action.
+3. **EXECUTION & PENDING ORDERS:** You can provide 'Market Execution' if price is already in the optimal discount/premium zone. HOWEVER, if proposing Limit/Stop pending orders (Buy Limit, Sell Limit, Buy Stop, Sell Stop), you MUST supply a strict 'expirationTime' string based on this logic:
+   - **Scalping (M1/M5):** "Cancel order if not triggered within 10 minutes of signal generation." (3-8 candles window).
+   - **Day Trading (M15/H1):** "Expiration: End of New York AM session (11:00 AM ET) or 4 hours from signal." (Kill Zone expiration).
+   - **Swing Trading (H4/Daily):** "Set Good-Til-Date (GTD) for 48 hours. Invalidate immediately if a New High/Low is formed before entry."
 4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
@@ -1315,7 +1325,8 @@ JSON Structure:
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
   "entryRange": {"min": number, "max": number},
-  "entryType": "Market Execution",
+  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop",
+  "expirationTime": "String explaining the exact cancellation/expiration rule based on trading style",
   "stopLoss": number,
   "takeProfits": [number, number],
   "reasoning": [

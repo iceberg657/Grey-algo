@@ -214,7 +214,7 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     };
 
     const copyFullSignal = () => {
-        const signalText = `
+        let signalText = `
 Asset: ${data.asset}
 Signal: ${data.signal}
 Entry: ${entry}
@@ -225,6 +225,11 @@ TP3: ${data.takeProfits[2]}
 Type: ${data.entryType}
 Lot Size: ${data.formattedLotSize || 'N/A'}
         `.trim();
+        
+        if (data.expirationTime) {
+            signalText += `\nExpiration: ${data.expirationTime}`;
+        }
+        
         copyToClipboard(signalText, 'Full Signal');
     };
 
@@ -399,8 +404,15 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                 })}
                              </div>
                              {data.entryType && data.signal !== 'NEUTRAL' && (
-                                <div className={`mt-6 inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${getEntryTypeBadgeColor(data.entryType)}`}>
-                                    {data.entryType}
+                                <div className="flex flex-col items-center gap-2 mt-6">
+                                    <div className={`inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${getEntryTypeBadgeColor(data.entryType)}`}>
+                                        {data.entryType}
+                                    </div>
+                                    {data.expirationTime && (
+                                        <div className="text-[10px] font-bold text-amber-600/80 dark:text-amber-500/80 bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded items-center justify-center flex max-w-[90%] text-center leading-tight shadow-md">
+                                            <span className="mr-1.5 mb-px opacity-70">⏱️</span> {data.expirationTime}
+                                        </div>
+                                    )}
                                 </div>
                              )}
                         </div>

@@ -143,6 +143,7 @@ export interface SignalData {
     entryPoints: number[];
     entryRange?: { min: number; max: number };
     entryType: 'Market Execution' | 'Buy Limit' | 'Sell Limit' | 'Buy Stop' | 'Sell Stop' | 'Buy Stop Limit' | 'Sell Stop Limit';
+    expirationTime?: string;
     triggerConditions?: {
         breakoutLevel: number;
         retestLogic: string;
