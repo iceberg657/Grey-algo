@@ -279,15 +279,28 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         return;
       }
 
-      // 2. Fetch live price only from Deriv API (ignore Twelve Data as requested)
-      const derivData = await fetchLivePrice(asset);
+      // 2. Fetch live price from Deriv API and potentially Twelve Data for Z-Score mean/stddev
+      const [derivData, twelveData] = await Promise.all([
+        fetchLivePrice(asset),
+        fetchMarketData(asset, '15min').catch(() => null)
+      ]);
       
       if (!derivData) {
         throw new Error(`Failed to fetch live market data for ${asset}. Ensure your Deriv API Token is correct.`);
       }
 
-      // 3. Generate signal using Gemini 3.1 Flash Lite purely with price action
-      const result = await generateSniperLiveSignal(currentQuery, style, derivData, []);
+      // Calculate Z-Score relative to Twelve Data mean
+      let zScore: number | null = null;
+      if (twelveData && !twelveData.error && twelveData.sma && twelveData.stddev && twelveData.sma !== 'N/A' && twelveData.stddev !== 'N/A') {
+          const sma = parseFloat(twelveData.sma);
+          const stddev = parseFloat(twelveData.stddev);
+          if (!isNaN(sma) && !isNaN(stddev) && stddev !== 0) {
+              zScore = (derivData.price - sma) / stddev;
+          }
+      }
+
+      // 3. Generate signal using Gemini 3.1 Flash Lite with Z-Score constraints
+      const result = await generateSniperLiveSignal(currentQuery, style, derivData, zScore);
       
       // Add AI message
       const aiMsgId = (Date.now() + 1).toString();
@@ -602,11 +615,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 <div className="flex flex-col items-end">
                                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Confidence</span>
                                   <div className="flex items-center gap-3">
-                                    <div className="text-3xl font-black italic tracking-tighter text-slate-900 dark:text-white">{msg.signal.confidence}%</div>
+                                    <div className="text-3xl font-black italic tracking-tighter text-slate-900 dark:text-white">{Math.min(msg.signal.confidence, 85)}%</div>
                                     <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                                       <motion.div 
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${msg.signal.confidence}%` }}
+                                        animate={{ width: `${Math.min(msg.signal.confidence, 85)}%` }}
                                         className={`h-full rounded-full ${msg.signal.signal === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500'}`}
                                       />
                                     </div>

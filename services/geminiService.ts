@@ -1261,12 +1261,18 @@ export async function generateSniperLiveSignal(
   query: string,
   style: TradingStyle,
   derivData: any,
+  zScore?: number | null,
   learnedStrategies: string[] = []
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
   // We strictly use Deriv price + basic market context to avoid noisy indicator requirements.
-  
+  // Z-Score is provided as an explicit mathematical validator constraint.
+  const zScoreContext = zScore !== undefined && zScore !== null ? `
+- CURRENT Z-SCORE (Price vs Twelve Data Mean): ${zScore.toFixed(3)}
+  * Only allow a SNIPER (BUY/SELL) entry if Z-Score > 2 (Overbought - Look for Sells) or Z-Score < -2 (Oversold - Look for Buys) AND you identify an SMC "Order Block" in your reasoning. Otherwise, issue NEUTRAL.` : `
+- CURRENT Z-SCORE: N/A (Cannot validate mathematically, rely on pure SMC Structure)`;
+
   const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
 
 **TRADING STYLE CONTEXT: ${style}**
@@ -1282,28 +1288,30 @@ style.includes('day trading') ? `
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
 
 **SNIPER ENTRY PROTOCOL (PURE REASONING & MARKET EXECUTION):**
-1. **IDENTIFY INDUCEMENT:** Locate Retail Liquidity (equal highs/lows) and wait for a sweep BEFORE entering.
-2. **PREMIUM/DISCOUNT ZONES:** Prioritize entries in deep Discount (for buys) or Premium (for sells). Do NOT rigidly default to 61.8% Fibonacci. Look for unmitigated Order Blocks or FVGs across the relevant structural leg.
-3. **CHoCH / MSS:** Ensure a Market Structure Shift on the entry timeframe.
-4. **ORDER BLOCK ANCHORING:** Place Stop Loss strictly behind the anchor Order Block or the high/low of the liquidity sweep.
-5. **PURE PRICE ACTION & VOLUME:** Validate institutional participation by identifying visual Volume Spikes, VWAP alignment (if implied), or On-Balance Volume shifts. DO NOT require SMA, RSI, or ADX data to issue a signal. 
-6. **PREVENT STOP LOSS HUNTING:** Provide detailed reasoning including the current Market Price, prevailing market conditions, and structure to justify your entry zone. 
+1. **Z-SCORE & SMC ORDER BLOCK CONSTRAINT:** You MUST evaluate the Z-Score constraint below. A "Sniper" Buy or Sell signal is ONLY permitted if the mathematical condition (Extreme Z-Score) is met AND an SMC Order Block is valid.
+2. **IDENTIFY INDUCEMENT:** Locate Retail Liquidity (equal highs/lows) and wait for a sweep BEFORE entering.
+3. **PREMIUM/DISCOUNT ZONES:** Prioritize entries in deep Discount (for buys) or Premium (for sells). Do NOT rigidly default to 61.8% Fibonacci. Look for unmitigated Order Blocks or FVGs across the relevant structural leg.
+4. **CHoCH / MSS:** Ensure a Market Structure Shift on the entry timeframe.
+5. **ORDER BLOCK ANCHORING:** Place Stop Loss strictly behind the anchor Order Block or the high/low of the liquidity sweep.
+6. **PURE PRICE ACTION & VOLUME:** Validate institutional participation by identifying visual Volume Spikes, VWAP alignment (if implied), or On-Balance Volume shifts.
+7. **PREVENT STOP LOSS HUNTING:** Provide detailed reasoning including the current Market Price, prevailing market conditions, and structure to justify your entry zone. 
 
 **CRITICAL DATA (THE ONLY TRUTH):**
 - ASSET: ${assetName}
-- LIVE MARKET PRICE: ${livePrice}
+- LIVE MARKET PRICE: ${livePrice}${zScoreContext}
 
 USER REQUEST: "${query}"
 
 **MANDATORY EXECUTION RULES:**
-1. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-2. **IMMEDIATE MARKET EXECUTION:** This is a SNIPER signal meant for IMMEDIATE execution. Do NOT suggest Limit or Stop orders. If the current price is within your calculated Premium/Discount zone, provide an entry range bounding the current price. If it is NOT ready, return a "NEUTRAL" signal and explain what you are waiting for based on pure price action.
-3. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+1. **CONFIDENCE CAP:** The maximum allowable confidence score is 85%. You must strictly end at an 85% confidence score or lower to prevent overfitting. Do NOT return a confidence score higher than 85.
+2. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
+3. **IMMEDIATE MARKET EXECUTION:** This is a SNIPER signal meant for IMMEDIATE execution. Do NOT suggest Limit or Stop orders. If the current price is within your calculated Premium/Discount zone, provide an entry range bounding the current price. If it is NOT ready, return a "NEUTRAL" signal and explain what you are waiting for based on pure price action.
+4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
   "signal": "BUY" | "SELL" | "NEUTRAL",
-  "confidence": number (0-100),
+  "confidence": number (MAX 85),
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
   "entryRange": {"min": number, "max": number},
