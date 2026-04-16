@@ -89,7 +89,7 @@ You have been unprofitable for 7 months. This ends NOW.
 3. **LEARN FROM FAILURE:** Review the 'NEURAL LEARNING' section below. If a setup looks like a past 'Loss', DO NOT TAKE IT.
 4. **SNIPER DISCIPLINE:** In Sniper Mode, if even ONE confluence is missing, you MUST stay NEUTRAL.
 
-**MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders unless the price is currently at an extreme overextension and a pullback is mathematically certain.
+**MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders. Limit and Stop orders should be used EXTREMELY sparingly, ONLY if the price is far from your calculated OTE (Optimal Trade Entry). If price is near or within your OTE, you MUST provide an entry range for immediate market execution.
 **EXECUTION CHECKLIST:** You MUST evaluate the 10-point checklist in the 'confluenceMatrix'. Ensure all 10 points are addressed.
 ` : `📡 **TWELVE DATA API (CRITICAL FAILURE):** No real-time data available for this asset. This is a HUGE PROBLEM for the 90% Profitability Mandate.
 - You MUST be extremely conservative. 
@@ -1304,10 +1304,9 @@ USER REQUEST: "${query}"
 
 **MANDATORY EXECUTION RULES:**
 1. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-2. **VOLATILITY BANDS (STDDEV):** Use the Standard Deviation to identify "Extreme Overextensions". If price is > SMA + 2*STDDEV or < SMA - 2*STDDEV, prioritize reversal setups (Mean Reversion) or wait for a deep pullback to the SMA.
-3. **PRECISION ENTRY:** Do not just enter at the current price. If the current price is in the middle of a move, suggest a "Limit Order" at the OTE level or wait for a "Market Execution" only if a CHoCH is confirmed on the entry timeframes.
-4. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution' for this live stream, but the entry price must be the "Sniper Point".
-5. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+2. **IMMEDIATE MARKET EXECUTION:** This is a SNIPER signal meant for IMMEDIATE execution. Do NOT suggest Limit or Stop orders. If the current price is within your calculated OTE (Optimal Trade Entry) range, provide an entry range bounding the current price. If it is NOT ready, return a "NEUTRAL" signal and explain what you are waiting for.
+3. **VOLATILITY BANDS (STDDEV):** Use the Standard Deviation to identify "Extreme Overextensions". If price is > SMA + 2*STDDEV or < SMA - 2*STDDEV, prioritize reversal setups (Mean Reversion) or wait for a deep pullback.
+4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
