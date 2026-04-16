@@ -66,6 +66,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [livePrice, setLivePrice] = useState<any>(null);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -99,23 +100,23 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   }, [userMetadata?.uid]);
 
   const handleClearChat = async () => {
-    if (window.confirm('Are you sure you want to clear the neural link history?')) {
-      if (userMetadata?.uid) {
-        const path = `users/${userMetadata.uid}/sniper_messages`;
-        try {
-          const msgRef = collection(db, 'users', userMetadata.uid, 'sniper_messages');
-          const snapshot = await getDocs(msgRef);
-          const batch = writeBatch(db);
-          snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
-          });
-          await batch.commit();
-        } catch (err) {
-          handleFirestoreError(err, OperationType.DELETE, path);
-        }
-      } else {
-        setMessages([]);
+    if (userMetadata?.uid) {
+      const path = `users/${userMetadata.uid}/sniper_messages`;
+      try {
+        const msgRef = collection(db, 'users', userMetadata.uid, 'sniper_messages');
+        const snapshot = await getDocs(msgRef);
+        const batch = writeBatch(db);
+        snapshot.docs.forEach((doc) => {
+          batch.delete(doc.ref);
+        });
+        await batch.commit();
+        setShowDeleteConfirm(false);
+      } catch (err) {
+        handleFirestoreError(err, OperationType.DELETE, path);
       }
+    } else {
+      setMessages([]);
+      setShowDeleteConfirm(false);
     }
   };
 
@@ -399,13 +400,39 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
           <div className="flex items-center gap-2">
             {messages.length > 0 && (
-              <button 
-                onClick={handleClearChat}
-                className="p-2 hover:bg-rose-100 dark:hover:bg-rose-500/10 rounded-xl transition-colors group"
-                title="Clear Neural History"
-              >
-                <Trash2 className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-rose-500 transition-colors" />
-              </button>
+              <div className="relative">
+                <AnimatePresence>
+                  {showDeleteConfirm && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                      animate={{ opacity: 1, scale: 1, x: 0 }}
+                      exit={{ opacity: 0, scale: 0.9, x: 10 }}
+                      className="absolute right-full mr-2 top-0 bottom-0 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 shadow-xl z-10 whitespace-nowrap"
+                    >
+                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Clear History?</span>
+                      <button 
+                        onClick={handleClearChat}
+                        className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 px-2 py-1 rounded-lg transition-colors"
+                      >
+                        Confirm
+                      </button>
+                      <button 
+                        onClick={() => setShowDeleteConfirm(false)}
+                        className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded-lg transition-colors"
+                      >
+                        Cancel
+                      </button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+                <button 
+                  onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                  className={`p-2 rounded-xl transition-colors group ${showDeleteConfirm ? 'bg-rose-100 dark:bg-rose-500/20' : 'hover:bg-rose-100 dark:hover:bg-rose-500/10'}`}
+                  title="Clear Neural History"
+                >
+                  <Trash2 className={`w-5 h-5 transition-colors ${showDeleteConfirm ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400 group-hover:text-rose-500'}`} />
+                </button>
+              </div>
             )}
             <ThemeToggleButton />
           </div>
@@ -573,14 +600,20 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                               {/* Price Levels Grid */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                                 {/* Entry */}
-                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors relative overflow-hidden">
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Market Entry</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sniper Entry</span>
                                     <button onClick={() => copyToClipboard(msg.signal!.entryPoints[0].toString(), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `Entry-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
                                   <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">{msg.signal.entryPoints[0]}</div>
+                                  {msg.signal.triggerConditions && (
+                                    <div className="mt-2 text-[9px] font-bold text-emerald-500/70 uppercase tracking-tighter flex items-center gap-1">
+                                      <Zap className="w-2.5 h-2.5" />
+                                      {msg.signal.triggerConditions.entryTriggerCandle || 'Neural Trigger Active'}
+                                    </div>
+                                  )}
                                 </div>
 
                                 {/* Stop Loss */}
@@ -619,7 +652,19 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
                               {/* Reasoning */}
                               <div className="space-y-4">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Neural Reasoning</h3>
+                                <div className="flex items-center justify-between">
+                                  <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">Neural Reasoning</h3>
+                                  {msg.signal.triggerConditions?.retestLogic && (
+                                    <div className="flex gap-2">
+                                      <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full">
+                                        {msg.signal.triggerConditions.retestLogic}
+                                      </span>
+                                      <span className="text-[9px] font-bold text-emerald-500/70 uppercase tracking-widest bg-emerald-500/5 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/10">
+                                        STDDEV Active
+                                      </span>
+                                    </div>
+                                  )}
+                                </div>
                                 <div className="space-y-2">
                                   {msg.signal.reasoning.map((r, i) => (
                                     <div key={i} className="flex items-start gap-3 bg-white/30 dark:bg-slate-900/30 p-3 rounded-2xl border border-slate-200/30 dark:border-slate-800/30">

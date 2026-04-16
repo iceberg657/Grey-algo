@@ -205,6 +205,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const [speakingMessageId, setSpeakingMessageId] = useState<string | null>(null);
     const [waitingMessageId, setWaitingMessageId] = useState<string | null>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -284,7 +285,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             const newFiles = (Array.from(files) as File[]).filter(f => f.type.startsWith('image/'));
             
             if (imageFiles.length + newFiles.length > 3) {
-                alert("You can only upload up to 3 images.");
+                setUploadError("You can only upload up to 3 images.");
+                setTimeout(() => setUploadError(null), 3000);
                 return;
             }
 
@@ -309,7 +311,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
         if (files.length > 0) {
             if (imageFiles.length + files.length > 3) {
-                alert("You can only upload up to 3 images.");
+                setUploadError("You can only upload up to 3 images.");
+                setTimeout(() => setUploadError(null), 3000);
                 return;
             }
             setImageFiles(prev => [...prev, ...files]);
@@ -542,6 +545,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             <footer className="flex-shrink-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm border-t border-gray-200 dark:border-slate-800 z-10 pb-[env(safe-area-inset-bottom)]">
                 <div className="w-full max-w-7xl mx-auto px-3 py-2 sm:p-4">
+                    {uploadError && (
+                        <div className="mx-4 mb-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-xs font-bold text-center animate-bounce">
+                            {uploadError}
+                        </div>
+                    )}
                     {imagePreviews.length > 0 && (
                         <div className="flex flex-wrap gap-2 p-2 bg-gray-100 dark:bg-slate-800/60 rounded-lg mb-2 mx-1">
                             {imagePreviews.map((preview, index) => (

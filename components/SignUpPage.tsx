@@ -13,6 +13,7 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
     const { loginWithGoogle, signUpWithEmail } = useAuth();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     const handleGoogleSignUp = async () => {
         try {
@@ -27,7 +28,8 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
     const handleEmailSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
         if (password.length < 6) {
-            alert('Password must be at least 6 characters long.');
+            setErrorMsg('Password must be at least 6 characters long.');
+            setTimeout(() => setErrorMsg(null), 3000);
             return;
         }
         try {
@@ -47,7 +49,8 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            alert(`Email sign up failed: ${errorMessage}`);
+            setErrorMsg(`Email sign up failed: ${errorMessage}`);
+            setTimeout(() => setErrorMsg(null), 5000);
         }
     };
 
@@ -58,6 +61,11 @@ export const SignUpPage: React.FC<SignUpPageProps> = ({ onNavigateToLogin, onSig
                 <ThemeToggleButton />
             </div>
             <div className="p-4 w-full flex flex-col items-center justify-center">
+                {errorMsg && (
+                    <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-xs font-bold w-full max-w-md text-center animate-fade-in">
+                        {errorMsg}
+                    </div>
+                )}
                 <header className="text-center mb-8">
                     <svg className="h-16 w-16 mx-auto mb-4" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <defs>

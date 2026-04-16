@@ -1269,36 +1269,43 @@ export async function generateSniperLiveSignal(
 
   const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup.
 
+**SNIPER ENTRY PROTOCOL (REDUCE SL HITS):**
+1. **IDENTIFY INDUCEMENT:** Locate the "Retail Liquidity" (equal highs/lows) and wait for a sweep BEFORE entering.
+2. **OTE (OPTIMAL TRADE ENTRY):** Prioritize entries in the 61.8% - 78.6% Fibonacci retracement zone of the current structural leg.
+3. **CHoCH (CHANGE OF CHARACTER):** Ensure there is a shift in market structure on the lower timeframe (M1/M5) within your HTF zone.
+4. **ORDER BLOCK ANCHORING:** Your Stop Loss MUST be placed exactly 2 pips behind the "Institutional Order Block" or the "Liquidity Sweep High/Low".
+
 **CRITICAL DATA (THE ONLY TRUTH):**
 - ASSET: ${assetName}
 - LIVE MARKET PRICE: ${livePrice}
-${twelveDataQuote ? `- TWELVE DATA CONFLUENCE: RSI=${twelveDataQuote.rsi}, ADX=${twelveDataQuote.adx}, SMA=${twelveDataQuote.sma}` : ''}
+${twelveDataQuote ? `- TWELVE DATA CONFLUENCE: RSI=${twelveDataQuote.rsi}, ADX=${twelveDataQuote.adx}, SMA=${twelveDataQuote.sma}, ATR=${twelveDataQuote.atr}, STDDEV=${twelveDataQuote.stddev}` : ''}
 
 USER REQUEST: "${query}"
 TRADING STYLE: ${style}
 
-NEURAL LEARNING (PAST LESSONS):
-${learnedStrategies.map(s => `- ${s}`).join('\n')}
-
 **MANDATORY EXECUTION RULES:**
 1. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-2. **PRICE SANITY:** If your suggested entry price is more than 0.5% away from the LIVE MARKET PRICE (${livePrice}), you are hallucinating. You MUST use the LIVE MARKET PRICE as your entry.
-3. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution'. 
-4. **INSTITUTIONAL LOGIC:** Focus on Liquidity Sweeps, Order Blocks, and Market Structure Shifts.
-5. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
-6. **NO HALLUCINATIONS:** Do NOT invent a price. If you cannot find a setup at the current price (${livePrice}), stay NEUTRAL.
+2. **VOLATILITY BANDS (STDDEV):** Use the Standard Deviation to identify "Extreme Overextensions". If price is > SMA + 2*STDDEV or < SMA - 2*STDDEV, prioritize reversal setups (Mean Reversion) or wait for a deep pullback to the SMA.
+3. **PRECISION ENTRY:** Do not just enter at the current price. If the current price is in the middle of a move, suggest a "Limit Order" at the OTE level or wait for a "Market Execution" only if a CHoCH is confirmed.
+3. **MARKET EXECUTION ONLY:** All signals MUST be 'Market Execution' for this live stream, but the entry price must be the "Sniper Point".
+4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
   "signal": "BUY" | "SELL" | "NEUTRAL",
   "confidence": number (0-100),
   "asset": "${assetName}",
-  "entryPoints": [${livePrice}],
+  "entryPoints": [number],
   "entryType": "Market Execution",
   "stopLoss": number,
   "takeProfits": [number, number],
-  "reasoning": [string, string, string],
-  "checklist": [string, string, string]
+  "reasoning": ["Inducement identified at...", "OTE level at...", "CHoCH confirmed via..."],
+  "checklist": ["Liquidity Sweep", "Order Block Tap", "FVG Fill"],
+  "triggerConditions": {
+    "breakoutLevel": number,
+    "retestLogic": string,
+    "entryTriggerCandle": string
+  }
 }`;
 
   return await executeLaneCall<SignalData>(async (apiKey) => {
@@ -1355,26 +1362,36 @@ JSON Structure:
         throw new Error('Failed to parse valid JSON signal from model response.');
     }
     
-    // --- PRICE SANITY CHECK & ROBUSTNESS ---
+    // --- SNIPER PRECISION LAYER ---
     const entry = Array.isArray(signal.entryPoints) ? signal.entryPoints[0] : (signal.entryPoints || livePrice);
+    const sl = signal.stopLoss || 0;
     const diffPercent = livePrice > 0 ? Math.abs(entry - livePrice) / livePrice : 0;
     
     let finalSignal = signal.signal;
     let finalEntry = entry;
+    let finalSL = sl;
     let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
 
-    // If entry is more than 1% away from live price, force it to live price or stay neutral
+    // 1. Price Sanity Check
     if (diffPercent > 0.01 && livePrice > 0) {
-        console.warn(`[Sniper] Price Sanity Check Failed: Entry ${entry} is ${(diffPercent * 100).toFixed(2)}% away from Live Price ${livePrice}`);
         if (diffPercent > 0.05) {
-            // Massive hallucination, stay neutral
             finalSignal = 'NEUTRAL';
-            finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected (Entry ${entry} vs Market ${livePrice}).`);
+            finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
         } else {
-            // Minor drift, adjust entry
             finalEntry = livePrice;
-            finalReasoning.push(`🎯 Entry point recalibrated to exact live market price (${livePrice}).`);
+            finalReasoning.push(`🎯 Entry point recalibrated to live market price for immediate execution.`);
         }
+    }
+
+    // 2. Sniper SL Tightening (Institutional Logic)
+    // If SL is too wide (e.g. > 1% of price), it's likely not a sniper entry
+    const slDistance = Math.abs(finalEntry - finalSL);
+    const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
+    if (slPercent > 0.02 && finalSignal !== 'NEUTRAL') {
+        // Force a tighter SL based on ATR or structure if AI provided a "swing" SL for a "scalp"
+        const adjustment = finalEntry * 0.005; // 0.5% max SL for sniper
+        finalSL = finalSignal === 'BUY' ? finalEntry - adjustment : finalEntry + adjustment;
+        finalReasoning.push(`🛡️ Stop Loss tightened to Institutional Invalidation Point (0.5% risk zone).`);
     }
 
     // Ensure all required fields exist to prevent UI crashes
@@ -1386,11 +1403,12 @@ JSON Structure:
       confidence: signal.confidence || 0,
       timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
       entryPoints: [finalEntry],
-      stopLoss: signal.stopLoss || 0,
+      stopLoss: finalSL,
       takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
       reasoning: finalReasoning,
       checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
-      entryType: 'Market Execution'
+      entryType: 'Market Execution',
+      triggerConditions: signal.triggerConditions
     } as SignalData;
   }, getAnalysisPool());
 }

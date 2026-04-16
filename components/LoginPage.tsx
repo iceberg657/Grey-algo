@@ -18,6 +18,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
     const [view, setView] = useState<'login' | 'forgot' | 'success'>('login');
     const [isLoading, setIsLoading] = useState(false);
     const [isFirebaseBlocked, setIsFirebaseBlocked] = useState(false);
+    const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
     useEffect(() => {
         const checkConnectivity = async () => {
@@ -66,7 +67,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
             } else if (error.message) {
                 errorMessage = error.message;
             }
-            alert(`Email login failed: ${errorMessage}`);
+            setErrorMsg(`Email login failed: ${errorMessage}`);
+            setTimeout(() => setErrorMsg(null), 5000);
         } finally {
             setIsLoading(false);
         }
@@ -75,7 +77,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
     const handleForgotPassword = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!email) {
-            alert('Please enter your Gmail account address.');
+            setErrorMsg('Please enter your Gmail account address.');
+            setTimeout(() => setErrorMsg(null), 3000);
             return;
         }
         setIsLoading(true);
@@ -84,7 +87,8 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
             setView('success');
         } catch (error: any) {
             console.error('Password reset failed:', error);
-            alert(`Failed to send reset email: ${error.message || 'Please try again later.'}`);
+            setErrorMsg(`Failed to send reset email: ${error.message || 'Please try again later.'}`);
+            setTimeout(() => setErrorMsg(null), 5000);
         } finally {
             setIsLoading(false);
         }
@@ -97,6 +101,15 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onNavigateToSignUp, onLogi
                 <ThemeToggleButton />
             </div>
             <div className="p-4 w-full flex flex-col items-center justify-center z-10">
+                {errorMsg && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-500 text-xs font-bold w-full max-w-md text-center"
+                    >
+                        {errorMsg}
+                    </motion.div>
+                )}
                 {isFirebaseBlocked && (
                     <motion.div 
                         initial={{ opacity: 0, y: -20 }}

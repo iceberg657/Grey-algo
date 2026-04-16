@@ -10,6 +10,7 @@ interface AnnotatedChartProps {
 export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }) => {
     const chartRef = useRef<HTMLDivElement>(null);
     const [isGenerating, setIsGenerating] = useState(false);
+    const [downloadError, setDownloadError] = useState<string | null>(null);
 
     const handleDownload = async () => {
         if (!chartRef.current) return;
@@ -29,7 +30,8 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
             document.body.removeChild(link);
         } catch (error) {
             console.error("Failed to generate image", error);
-            alert(`Failed to download chart. Error: ${error instanceof Error ? error.message : String(error)}`);
+            setDownloadError(`Failed to download chart. Error: ${error instanceof Error ? error.message : String(error)}`);
+            setTimeout(() => setDownloadError(null), 5000);
         } finally {
             setIsGenerating(false);
         }
@@ -79,14 +81,19 @@ export const AnnotatedChart: React.FC<AnnotatedChartProps> = ({ imageSrc, data }
         <div className="mt-8 flex flex-col items-center w-full animate-fade-in">
             <div className="flex justify-between items-center w-full mb-4">
                 <h3 className="text-lg font-black uppercase text-gray-800 dark:text-white tracking-widest">Tactical View Annotation</h3>
-                <button 
-                    onClick={handleDownload}
-                    disabled={isGenerating}
-                    className="bg-white/10 dark:bg-slate-800/40 backdrop-blur-sm border border-white/20 dark:border-white/10 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50 hover:bg-white/20 dark:hover:bg-slate-700/60 shadow-md"
-                >
-                    {isGenerating ? 'Generating...' : 'Download Chart'}
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                </button>
+                <div className="flex items-center gap-3">
+                    {downloadError && (
+                        <span className="text-red-500 text-[10px] font-bold animate-pulse">{downloadError}</span>
+                    )}
+                    <button 
+                        onClick={handleDownload}
+                        disabled={isGenerating}
+                        className="bg-white/10 dark:bg-slate-800/40 backdrop-blur-sm border border-white/20 dark:border-white/10 text-gray-800 dark:text-white px-4 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-colors disabled:opacity-50 hover:bg-white/20 dark:hover:bg-slate-700/60 shadow-md"
+                    >
+                        {isGenerating ? 'Generating...' : 'Download Chart'}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+                    </button>
+                </div>
             </div>
 
             <div 

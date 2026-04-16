@@ -23,6 +23,8 @@ interface AuthContextType {
     signUpWithEmail: (email: string, password: string) => Promise<void>;
     resetPassword: (email: string) => Promise<void>;
     logout: () => Promise<void>;
+    globalError: string | null;
+    setGlobalError: (error: string | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -33,6 +35,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<Error | null>(null);
+    const [globalError, setGlobalError] = useState<string | null>(null);
 
     if (error) throw error;
 
@@ -52,7 +55,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                         
                         if (data.isRevoked) {
                             await signOut(auth);
-                            alert("Your terminal access has been revoked by central command.");
+                            setGlobalError("Your terminal access has been revoked by central command.");
                             return;
                         }
 
@@ -111,15 +114,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
             console.error('Detailed Google login error:', error);
             // Check for common errors
             if (error.code === 'auth/popup-blocked') {
-                alert('The sign-in popup was blocked by your browser. Please allow popups for this site.');
+                setGlobalError('The sign-in popup was blocked by your browser. Please allow popups for this site.');
             } else if (error.code === 'auth/cancelled-popup-request') {
                 // User closed the popup, no need to alert
             } else if (error.code === 'auth/operation-not-allowed') {
-                alert('Google Sign-In is not enabled in your Firebase project. Please enable it in the Firebase Console under Authentication > Sign-in method.');
+                setGlobalError('Google Sign-In is not enabled in your Firebase project. Please enable it in the Firebase Console under Authentication > Sign-in method.');
             } else if (error.code === 'auth/unauthorized-domain') {
-                alert(`This domain (${window.location.hostname}) is not authorized for Firebase Authentication. Please add it to the "Authorized domains" list in the Firebase Console under Authentication > Settings.`);
+                setGlobalError(`This domain (${window.location.hostname}) is not authorized for Firebase Authentication. Please add it to the "Authorized domains" list in the Firebase Console under Authentication > Settings.`);
             } else {
-                alert(`Google login failed: ${error.message || 'Unknown error'}`);
+                setGlobalError(`Google login failed: ${error.message || 'Unknown error'}`);
             }
             throw error;
         }
@@ -157,8 +160,33 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
 
     return (
-        <AuthContext.Provider value={{ isLoggedIn, loading, user, userMetadata, loginWithGoogle, loginWithEmail, signUpWithEmail, resetPassword, logout }}>
+        <AuthContext.Provider value={{ 
+            isLoggedIn, 
+            loading, 
+            user, 
+            userMetadata, 
+            loginWithGoogle, 
+            loginWithEmail, 
+            signUpWithEmail, 
+            resetPassword, 
+            logout,
+            globalError,
+            setGlobalError
+        }}>
             {children}
+            {globalError && (
+                <div className="fixed bottom-4 left-4 right-4 z-[9999] md:left-auto md:right-4 md:w-96">
+                    <div className="bg-red-600 text-white p-4 rounded-2xl shadow-2xl border border-red-400/30 flex justify-between items-start animate-fade-in">
+                        <div className="flex gap-3">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <p className="text-xs font-bold leading-relaxed">{globalError}</p>
+                        </div>
+                        <button onClick={() => setGlobalError(null)} className="ml-2 opacity-50 hover:opacity-100 transition-opacity">✕</button>
+                    </div>
+                </div>
+            )}
         </AuthContext.Provider>
     );
 };

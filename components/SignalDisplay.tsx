@@ -27,47 +27,60 @@ const getSignalTextClasses = (signal: SignalData['signal']) => {
     }
 };
 
-const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal = false, signalType, valueClassName, subValue, subValueClassName, delay = '0ms' }) => (
-    <div className="opacity-0 animate-flip-3d" style={{ animationDelay: delay }}>
-        <TiltCard>
-            <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-white/90 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-300 dark:border-white/10 hover:border-green-500/30 transition-all transform hover:scale-[1.03] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] ${className} h-full min-h-[90px]`}>
-                <span className="text-[10px] sm:text-xs text-slate-700 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
-                {isSignal ? (
-                    <div className="flex items-center gap-2">
-                        <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'BUY')}`}>
-                            {value}
+const InfoCard: React.FC<InfoCardProps> = ({ label, value, className, isSignal = false, signalType, valueClassName, subValue, subValueClassName, delay = '0ms' }) => {
+    const [copied, setCopied] = useState(false);
+
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (typeof value === 'string' || typeof value === 'number') {
+            navigator.clipboard.writeText(value.toString());
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }
+    };
+
+    return (
+        <div className="opacity-0 animate-flip-3d" style={{ animationDelay: delay }}>
+            <TiltCard>
+                <div className={`flex flex-col items-center justify-center p-3 rounded-lg bg-white/90 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-300 dark:border-white/10 hover:border-green-500/30 transition-all transform hover:scale-[1.03] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] ${className} h-full min-h-[90px]`}>
+                    <span className="text-[10px] sm:text-xs text-slate-700 dark:text-dark-text/70 uppercase tracking-wider text-center font-bold">{label}</span>
+                    {isSignal ? (
+                        <div className="flex items-center gap-2">
+                            <span className={`mt-1 font-black text-2xl sm:text-3xl ${getSignalTextClasses(signalType ?? 'BUY')}`}>
+                                {value}
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="flex items-center gap-2 mt-1">
+                            <span className={`text-base sm:text-lg font-mono font-bold text-center break-all ${valueClassName || 'text-slate-900 dark:text-dark-text'}`}>
+                                {value}
+                            </span>
+                            {typeof value === 'string' || typeof value === 'number' ? (
+                                <button 
+                                    onClick={handleCopy}
+                                    className="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-blue-500 relative"
+                                >
+                                    {copied ? (
+                                        <span className="absolute -top-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[8px] px-1.5 py-0.5 rounded font-bold animate-fade-in">COPIED</span>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                                        </svg>
+                                    )}
+                                </button>
+                            ) : null}
+                        </div>
+                    )}
+                    {subValue && (
+                        <span className={`text-[9px] sm:text-[10px] font-bold uppercase mt-1 text-center ${subValueClassName || 'text-slate-600'}`}>
+                            {subValue}
                         </span>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 mt-1">
-                        <span className={`text-base sm:text-lg font-mono font-bold text-center break-all ${valueClassName || 'text-slate-900 dark:text-dark-text'}`}>
-                            {value}
-                        </span>
-                        {typeof value === 'string' || typeof value === 'number' ? (
-                            <button 
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    navigator.clipboard.writeText(value.toString());
-                                    alert(`${label} copied!`);
-                                }}
-                                className="p-1 hover:bg-gray-200 dark:hover:bg-white/10 rounded transition-colors text-gray-400 hover:text-blue-500"
-                            >
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                                </svg>
-                            </button>
-                        ) : null}
-                    </div>
-                )}
-                {subValue && (
-                    <span className={`text-[9px] sm:text-[10px] font-bold uppercase mt-1 text-center ${subValueClassName || 'text-slate-600'}`}>
-                        {subValue}
-                    </span>
-                )}
-            </div>
-        </TiltCard>
-    </div>
-);
+                    )}
+                </div>
+            </TiltCard>
+        </div>
+    );
+};
 
 const SentimentGauge: React.FC<{ score: number; summary: string }> = ({ score, summary }) => {
     const trend = useMemo(() => {
@@ -160,6 +173,7 @@ const VerificationStepCard: React.FC<{ title: string; step: VerificationStep }> 
 
 export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
+    const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Determine unit and precision for display
@@ -195,7 +209,8 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
     const copyToClipboard = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
-        alert(`${label} copied to clipboard!`);
+        setCopiedLabel(label);
+        setTimeout(() => setCopiedLabel(null), 2000);
     };
 
     const copyFullSignal = () => {
@@ -323,9 +338,12 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 </button>
                 <button
                     onClick={copyFullSignal}
-                    className="p-4 rounded-xl bg-blue-600 text-white shadow-xl hover:bg-blue-500 transition-all hover:scale-110 active:scale-95 border border-blue-400/30"
+                    className={`p-4 rounded-xl shadow-xl transition-all hover:scale-110 active:scale-95 border relative ${copiedLabel === 'Full Signal' ? 'bg-green-600 border-green-400' : 'bg-blue-600 hover:bg-blue-500 border-blue-400/30'} text-white`}
                     aria-label="Copy signal to clipboard"
                 >
+                    {copiedLabel === 'Full Signal' ? (
+                        <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] px-2 py-1 rounded font-black animate-fade-in">COPIED</span>
+                    ) : null}
                     <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
                     </svg>

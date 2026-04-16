@@ -21,6 +21,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     const [isSending, setIsSending] = useState(false);
     const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'strategies' | 'auto_ml'>('overview');
     const [error, setError] = useState<Error | null>(null);
+    const [statusMsg, setStatusMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+    const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     if (error) throw error;
 
@@ -162,10 +164,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             );
 
             await Promise.race([updatePromise, timeoutPromise]);
-            alert(`System setting "${setting}" updated to ${value}.`);
+            setStatusMsg({ type: 'success', text: `System setting "${setting}" updated to ${value}.` });
+            setTimeout(() => setStatusMsg(null), 3000);
         } catch (error: any) {
             console.error('Failed to update system setting:', error);
-            alert(`Failed to update system setting: ${error.message || 'Unknown error'}`);
+            setStatusMsg({ type: 'error', text: `Failed to update system setting: ${error.message || 'Unknown error'}` });
+            setTimeout(() => setStatusMsg(null), 5000);
             handleFirestoreError(error, OperationType.WRITE, path);
         }
     };
@@ -207,32 +211,33 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     console.warn('Push notification failed:', responseData);
                     const errorMsg = responseData.error || 'Unknown error';
                     const details = responseData.details ? `\nDetails: ${responseData.details}` : '';
-                    alert(`Broadcast saved, but push notification failed: ${errorMsg}${details}`);
+                    setStatusMsg({ type: 'error', text: `Broadcast saved, but push notification failed: ${errorMsg}${details}` });
                 } else if (responseData.message === 'No tokens found') {
-                    alert('Broadcast saved, but NO push notifications were sent because no users have granted notification permissions yet.');
+                    setStatusMsg({ type: 'success', text: 'Broadcast saved, but NO push notifications were sent because no users have granted notification permissions yet.' });
                 } else if (responseData.response) {
                     const { successCount, failureCount } = responseData.response;
                     if (failureCount > 0) {
                         const reasons = responseData.failedReasons ? `\nReasons: ${responseData.failedReasons.join(', ')}` : '';
-                        alert(`Broadcast transmitted. Success: ${successCount}, Failed: ${failureCount}.${reasons}\n\n(Dead tokens have been automatically removed from the database)`);
+                        setStatusMsg({ type: 'success', text: `Broadcast transmitted. Success: ${successCount}, Failed: ${failureCount}.${reasons}\n\n(Dead tokens have been automatically removed from the database)` });
                     } else {
-                        alert(`Broadcast transmitted successfully to ${successCount} terminals.`);
+                        setStatusMsg({ type: 'success', text: `Broadcast transmitted successfully to ${successCount} terminals.` });
                     }
                 } else {
-                    alert('Broadcast transmitted to all terminals and push notifications sent.');
+                    setStatusMsg({ type: 'success', text: 'Broadcast transmitted to all terminals and push notifications sent.' });
                 }
             } catch (pError) {
                 console.error('Push notification error:', pError);
-                alert('Broadcast saved, but push notification failed to send.');
+                setStatusMsg({ type: 'error', text: 'Broadcast saved, but push notification failed to send.' });
             }
 
             setBroadcastMsg('');
         } catch (error: any) {
             console.error('Broadcast failed:', error);
-            alert(`Broadcast failed: ${error.message || 'Please check your connection.'}`);
+            setStatusMsg({ type: 'error', text: `Broadcast failed: ${error.message || 'Please check your connection.'}` });
             handleFirestoreError(error, OperationType.CREATE, path);
         } finally {
             setIsSending(false);
+            setTimeout(() => setStatusMsg(null), 5000);
         }
     };
 
@@ -284,10 +289,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     };
 
     const handleDeleteStrategy = async (strategyId: string) => {
-        if (!window.confirm('Are you sure you want to delete this strategy?')) return;
         const path = `global_strategies/${strategyId}`;
         try {
             await deleteDoc(doc(db, 'global_strategies', strategyId));
+            setDeleteConfirmId(null);
         } catch (error) {
             handleFirestoreError(error, OperationType.DELETE, path);
         }
@@ -304,18 +309,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                 const data = await response.json();
                 throw new Error(data.error || 'Failed to activate strategy');
             }
-            alert('Strategy activated successfully! It will be used for the next analysis.');
+            setStatusMsg({ type: 'success', text: 'Strategy activated successfully! It will be used for the next analysis.' });
+            setTimeout(() => setStatusMsg(null), 3000);
         } catch (error) {
             console.error('Activation error:', error);
-            alert(error instanceof Error ? error.message : 'Failed to activate strategy');
+            setStatusMsg({ type: 'error', text: error instanceof Error ? error.message : 'Failed to activate strategy' });
+            setTimeout(() => setStatusMsg(null), 5000);
         }
     };
 
     const handleDeleteAutoMLStrategy = async (strategyId: string) => {
-        if (!window.confirm('Are you sure you want to delete this learned strategy?')) return;
         const path = `auto_ml_strategies/${strategyId}`;
         try {
             await deleteDoc(doc(db, 'auto_ml_strategies', strategyId));
+            setDeleteConfirmId(null);
         } catch (error) {
             handleFirestoreError(error, OperationType.DELETE, path);
         }
@@ -326,6 +333,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
+                {statusMsg && (
+                    <motion.div 
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className={`mb-6 p-4 rounded-2xl border ${statusMsg.type === 'success' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-500' : 'bg-rose-500/10 border-rose-500/30 text-rose-500'} text-sm font-bold flex justify-between items-center`}
+                    >
+                        <span>{statusMsg.text}</span>
+                        <button onClick={() => setStatusMsg(null)} className="opacity-50 hover:opacity-100">✕</button>
+                    </motion.div>
+                )}
                 <header className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
                     <div>
                         <h1 className="text-4xl font-black uppercase tracking-tighter italic text-green-600 dark:text-green-400">
@@ -591,12 +608,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                             </p>
                                         </div>
                                         <div className="flex justify-end">
-                                            <button 
-                                                onClick={() => strat.id && handleDeleteStrategy(strat.id)}
-                                                className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
-                                            >
-                                                Purge Strategy
-                                            </button>
+                                            {deleteConfirmId === strat.id ? (
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => strat.id && handleDeleteStrategy(strat.id)} 
+                                                        className="px-4 py-2 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest animate-pulse"
+                                                    >
+                                                        Confirm Purge
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setDeleteConfirmId(null)} 
+                                                        className="px-4 py-2 bg-slate-200 dark:bg-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => setDeleteConfirmId(strat.id || null)}
+                                                    className="px-4 py-2 bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all"
+                                                >
+                                                    Purge Strategy
+                                                </button>
+                                            )}
                                         </div>
                                     </div>
                                 ))}
@@ -651,12 +685,29 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                             </div>
                                         </div>
                                         <div className="flex justify-between items-center">
-                                            <button 
-                                                onClick={() => handleDeleteAutoMLStrategy(strat.id)}
-                                                className="px-4 py-2 text-red-500 hover:text-red-400 text-[9px] font-black uppercase tracking-widest transition-all"
-                                            >
-                                                Purge
-                                            </button>
+                                            {deleteConfirmId === strat.id ? (
+                                                <div className="flex gap-2">
+                                                    <button 
+                                                        onClick={() => handleDeleteAutoMLStrategy(strat.id)} 
+                                                        className="px-4 py-2 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest animate-pulse"
+                                                    >
+                                                        Confirm Purge
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => setDeleteConfirmId(null)} 
+                                                        className="px-4 py-2 bg-slate-200 dark:bg-slate-700 rounded-xl text-[9px] font-black uppercase tracking-widest"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <button 
+                                                    onClick={() => setDeleteConfirmId(strat.id)}
+                                                    className="px-4 py-2 text-red-500 hover:text-red-400 text-[9px] font-black uppercase tracking-widest transition-all"
+                                                >
+                                                    Purge
+                                                </button>
+                                            )}
                                             {!strat.isActive && (
                                                 <button 
                                                     onClick={() => handleActivateStrategy(strat.id)}
