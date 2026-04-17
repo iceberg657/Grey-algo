@@ -4,16 +4,8 @@ import WebSocket from 'ws';
 const DERIV_APP_ID = 1089; // Default app id for testing or use a specific one if provided
 
 export async function fetchDerivQuote(symbol, clientToken = null) {
-    const token = clientToken || 
-                  process.env.DERIV_API_TOKEN || 
-                  process.env.VITE_DERIV_API_TOKEN || 
-                  process.env.DERIV_TOKEN || 
-                  process.env.VITE_DERIV_TOKEN;
-                  
-    if (!token) {
-        throw new Error('DERIV_API_TOKEN not configured');
-    }
-
+    // Ticks do not require a token!
+    
     // Map common symbols to Deriv format if needed
     const normalized = symbol.toUpperCase().replace('/', '').replace(' ', '').replace(/[^A-Z0-9]/g, '');
     let mappedSymbol = normalized;
@@ -76,8 +68,8 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
         }, 10000);
 
         ws.on('open', () => {
-            // First authorize
-            ws.send(JSON.stringify({ authorize: token }));
+            // Ticks API does not require authorization
+            ws.send(JSON.stringify({ ticks: mappedSymbol }));
         });
 
         ws.on('message', (data) => {
@@ -88,11 +80,6 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
                 clearTimeout(timeout);
                 reject(new Error(response.error.message));
                 return;
-            }
-
-            if (response.msg_type === 'authorize') {
-                // After authorization, request the quote
-                ws.send(JSON.stringify({ ticks: mappedSymbol }));
             }
 
             if (response.msg_type === 'tick') {

@@ -1315,14 +1315,18 @@ USER REQUEST: "${query}"
 **MANDATORY EXECUTION RULES:**
 1. **CONFIDENCE CAP:** The maximum allowable confidence score is 85%. You must strictly end at an 85% confidence score or lower to prevent overfitting. Do NOT return a confidence score higher than 85.
 2. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-3. **EXECUTION & PENDING ORDERS (STRICT):**
+3. **STOP LOSS RULES (TIGHT vs DISTANT):** 
+   - You MUST place a very tight, precise Stop Loss close to the entry based on the strict timeframe execution. 
+   - **Scalping:** Place SL immediately below/above the M1/M5 trigger candle or closest fractal point. It must be very tight. ONLY place a wider, distant stop loss if your confidence score is exactly 85%.
+   - **Day Trading & Swing Trading:** Tighten the stop loss significantly to the nearest active liquidity zone. Only allow wide/distant SL parameter limits if your confidence score is exactly 85%. 
+4. **EXECUTION & PENDING ORDERS (STRICT):**
    - **Market Execution:** Use ONLY if the LIVE MARKET PRICE (${livePrice}) is currently exactly inside your calculated optimal entry zone. Your \`entryRange\` MUST encapsulate the current live price. If the price has ALREADY moved away from your ideal entry zone (e.g., the move already happened), DO NOT issue a Market Execution for past prices. Instead, issue a Pending Order (Limit) for a pullback, or issue NEUTRAL.
    - **Pending Orders:** If proposing Limit/Stop pending orders (Buy Limit, Sell Limit, Buy Stop, Sell Stop), you MUST supply a strict 'expirationTime' string based on this logic:
      - **Scalping (M1/M5):** "Cancel order if not triggered within 10 minutes of signal generation." (3-8 candles window).
      - **Day Trading (M15/H1):** "Expiration: End of New York AM session (11:00 AM ET) or 4 hours from signal." (Kill Zone expiration).
      - **Swing Trading (H4/Daily):** "Set Good-Til-Date (GTD) for 48 hours. Invalidate immediately if a New High/Low is formed before entry."
-4. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use Google Search grounding (internally) or your current knowledge of macroeconomic events/calendars. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 2 hours of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
-5. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+5. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use Google Search grounding (internally) or your current knowledge of macroeconomic events/calendars. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 2 hours of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
+6. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {

@@ -26,6 +26,7 @@ import { generateSniperLiveSignal } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata } from '../types';
 import { Loader } from './Loader';
 import { fetchMarketData } from '../services/twelveDataService';
+import { saveAnalysis } from '../services/historyService';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { 
   doc, 
@@ -302,6 +303,17 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       // 3. Generate signal using Gemini 3.1 Flash Lite with Z-Score constraints
       const result = await generateSniperLiveSignal(currentQuery, style, derivData, zScore);
       
+      // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
+      if (result && result.signal && result.signal !== 'NEUTRAL') {
+          try {
+              // Strip ID and timestamp to let saveAnalysis re-apply it properly for journal
+              const { id, timestamp, ...dataToSave } = result;
+              await saveAnalysis(dataToSave);
+          } catch (e) {
+              console.warn("Failed to log sniper trade to history journal:", e);
+          }
+      }
+
       // Add AI message
       const aiMsgId = (Date.now() + 1).toString();
       const aiMsg: SniperMessage = {
