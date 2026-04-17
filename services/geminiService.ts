@@ -872,8 +872,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const config: any = { 
             tools: [{googleSearch: {}}], 
             temperature: 0.1,
-            maxOutputTokens: 8192,
-            responseMimeType: "application/json"
+            maxOutputTokens: 8192
         };
         
         // Use server-side proxy to bypass regional blocks (VPN-free execution)
@@ -1359,8 +1358,7 @@ JSON Structure:
         const config: any = { 
           tools: [{googleSearch: {}}],
           temperature: 0.1, // Lower temperature for higher precision
-          maxOutputTokens: 2048,
-          responseMimeType: "application/json"
+          maxOutputTokens: 2048
         };
         
         try {
