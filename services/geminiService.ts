@@ -606,7 +606,7 @@ ${(() => {
 
 ⚖️ **ORDER TYPE DETECTION RULES (STRICT RELATIONSHIP):**
 You MUST correctly classify the order type based on the strict relationship between the Current Market Price (CMP) and your suggested Entry Price:
-- **'Market Execution'**: Entry Price is EXACTLY at the Current Market Price.
+- **'Market Execution'**: Entry Price MUST be EXACTLY at the actual Current Market Price. DO NOT propose a Market Execution if the Market Price has already moved past your optimal entry level. If the ideal entry point occurred in the past, you MUST issue a Limit Order instead.
 - **'Buy Limit'**: Entry Price is STRICTLY BELOW the Current Market Price. (Waiting for price to drop to support).
 - **'Sell Limit'**: Entry Price is STRICTLY ABOVE the Current Market Price. (Waiting for price to rise to resistance).
 - **'Buy Stop'**: Entry Price is STRICTLY ABOVE the Current Market Price. (Waiting for price to break out upwards).
@@ -707,13 +707,13 @@ Lot Size: 1–2% risk
   ],
   "marketStory": "A cohesive narrative synthesizing technicals, institutional activity, and fundamentals to explain the current market state and probable next move.",
   
-  "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry],
+  "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry], // CRITICAL: If entryType is "Market Execution", ALL entry points MUST encapsulate the current live market price (e.g., from Twelve Data if available, or visual chart). Do NOT use past levels.
   "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
   "expirationTime": "string if entryType is Limit/Stop based on Expiration Time Logic, or null if Market Execution",
-  "triggerConditions": {
-    "breakoutLevel": number | null, // Exact numeric level for a breakout, or null if not applicable
-    "retestLogic": "string", // Precise logic for retest (e.g., 'Wait for 15m candle close above 4570, then retest of 4568')
-    "entryTriggerCandle": "string" // Specific candle pattern to trigger entry (e.g., 'Bullish Engulfing or Pinbar on 5m')
+  "triggerConditions": { // CRITICAL: If entryType is "Market Execution", triggers must be ALREADY MET (e.g., "Bearish Engulfing confirmed"). You cannot wait for 'retest' or 'candle close' on Market Execution. Use Pending Orders if waiting.
+    "breakoutLevel": number | null, 
+    "retestLogic": "string", 
+    "entryTriggerCandle": "string" 
   },
   "stopLoss": number,
   "takeProfits": [TP1, TP2, TP3],
@@ -1312,10 +1312,12 @@ USER REQUEST: "${query}"
 **MANDATORY EXECUTION RULES:**
 1. **CONFIDENCE CAP:** The maximum allowable confidence score is 85%. You must strictly end at an 85% confidence score or lower to prevent overfitting. Do NOT return a confidence score higher than 85.
 2. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-3. **EXECUTION & PENDING ORDERS:** You can provide 'Market Execution' if price is already in the optimal discount/premium zone. HOWEVER, if proposing Limit/Stop pending orders (Buy Limit, Sell Limit, Buy Stop, Sell Stop), you MUST supply a strict 'expirationTime' string based on this logic:
-   - **Scalping (M1/M5):** "Cancel order if not triggered within 10 minutes of signal generation." (3-8 candles window).
-   - **Day Trading (M15/H1):** "Expiration: End of New York AM session (11:00 AM ET) or 4 hours from signal." (Kill Zone expiration).
-   - **Swing Trading (H4/Daily):** "Set Good-Til-Date (GTD) for 48 hours. Invalidate immediately if a New High/Low is formed before entry."
+3. **EXECUTION & PENDING ORDERS (STRICT):**
+   - **Market Execution:** Use ONLY if the LIVE MARKET PRICE (${livePrice}) is currently exactly inside your calculated optimal entry zone. Your \`entryRange\` MUST encapsulate the current live price. If the price has ALREADY moved away from your ideal entry zone (e.g., the move already happened), DO NOT issue a Market Execution for past prices. Instead, issue a Pending Order (Limit) for a pullback, or issue NEUTRAL.
+   - **Pending Orders:** If proposing Limit/Stop pending orders (Buy Limit, Sell Limit, Buy Stop, Sell Stop), you MUST supply a strict 'expirationTime' string based on this logic:
+     - **Scalping (M1/M5):** "Cancel order if not triggered within 10 minutes of signal generation." (3-8 candles window).
+     - **Day Trading (M15/H1):** "Expiration: End of New York AM session (11:00 AM ET) or 4 hours from signal." (Kill Zone expiration).
+     - **Swing Trading (H4/Daily):** "Set Good-Til-Date (GTD) for 48 hours. Invalidate immediately if a New High/Low is formed before entry."
 4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
@@ -1324,8 +1326,8 @@ JSON Structure:
   "confidence": number (MAX 85),
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
-  "entryRange": {"min": number, "max": number},
-  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop",
+  "entryRange": {"min": number, "max": number}, // CRITICAL: If Market Execution, min/max MUST encapsulate the live price (${livePrice}). If the optimal zone is in the future/past, issue a Limit/Stop.
+  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop", // ONLY use Market Execution if you are executing RIGHT NOW. If waiting for confirmation or pullback, use a Pending Order.
   "expirationTime": "String explaining the exact cancellation/expiration rule based on trading style",
   "stopLoss": number,
   "takeProfits": [number, number],
@@ -1335,7 +1337,7 @@ JSON Structure:
     "Why this prevents SL hunting: [Detailed explanation]"
   ],
   "checklist": ["Liquidity Sweep", "Order Block Tap", "FVG Fill"],
-  "triggerConditions": {
+  "triggerConditions": { // CRITICAL: If 'Market Execution', triggers must be ALREADY MET (e.g., "Bearish Engulfing confirmed"). You cannot wait for 'retest' or 'candle close' on Market Execution. Use Pending Orders if waiting.
     "breakoutLevel": number,
     "retestLogic": string,
     "entryTriggerCandle": string
