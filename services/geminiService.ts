@@ -1273,6 +1273,7 @@ export async function generateSniperLiveSignal(
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
+  const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
   // We strictly use Deriv price + basic market context to avoid noisy indicator requirements.
   // Z-Score is provided as an explicit mathematical validator constraint.
   const zScoreContext = zScore !== undefined && zScore !== null ? `
@@ -1280,7 +1281,8 @@ export async function generateSniperLiveSignal(
   * Only allow a SNIPER (BUY/SELL) entry if Z-Score > 2 (Overbought - Look for Sells) or Z-Score < -2 (Oversold - Look for Buys) AND you identify an SMC "Order Block" in your reasoning. Otherwise, issue NEUTRAL.` : `
 - CURRENT Z-SCORE: N/A (Cannot validate mathematically, rely on pure SMC Structure)`;
 
-  const prompt = `As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
+  const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
+As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
 
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:
@@ -1302,6 +1304,7 @@ style.includes('day trading') ? `
 5. **ORDER BLOCK ANCHORING:** Place Stop Loss strictly behind the anchor Order Block or the high/low of the liquidity sweep.
 6. **PURE PRICE ACTION & VOLUME:** Validate institutional participation by identifying visual Volume Spikes, VWAP alignment (if implied), or On-Balance Volume shifts.
 7. **PREVENT STOP LOSS HUNTING:** Provide detailed reasoning including the current Market Price, prevailing market conditions, and structure to justify your entry zone. 
+8. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use your internal \`googleSearch\` tool to fetch real-time macroeconomic news and sentiment. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 2 hours of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
 
 **CRITICAL DATA (THE ONLY TRUTH):**
 - ASSET: ${assetName}
@@ -1318,7 +1321,8 @@ USER REQUEST: "${query}"
      - **Scalping (M1/M5):** "Cancel order if not triggered within 10 minutes of signal generation." (3-8 candles window).
      - **Day Trading (M15/H1):** "Expiration: End of New York AM session (11:00 AM ET) or 4 hours from signal." (Kill Zone expiration).
      - **Swing Trading (H4/Daily):** "Set Good-Til-Date (GTD) for 48 hours. Invalidate immediately if a New High/Low is formed before entry."
-4. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+4. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use Google Search grounding (internally) or your current knowledge of macroeconomic events/calendars. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 2 hours of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
+5. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
@@ -1349,6 +1353,7 @@ JSON Structure:
       ANALYSIS_MODELS,
       async (modelId) => {
         const config: any = { 
+          tools: [{googleSearch: {}}],
           temperature: 0.1, // Lower temperature for higher precision
           maxOutputTokens: 2048,
           responseMimeType: "application/json"
