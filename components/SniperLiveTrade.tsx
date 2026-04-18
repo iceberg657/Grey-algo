@@ -327,7 +327,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           try {
               // Strip ID and timestamp to let saveAnalysis re-apply it properly for journal
               const { id, timestamp, ...dataToSave } = result;
-              await saveAnalysis(dataToSave);
+              saveAnalysis(dataToSave).catch(e => console.warn("Background log to history failed:", e));
           } catch (e) {
               console.warn("Failed to log sniper trade to history journal:", e);
           }
@@ -347,7 +347,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         const path = `users/${userMetadata.uid}/sniper_messages/${aiMsgId}`;
         try {
           const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', aiMsgId);
-          await setDoc(msgRef, aiMsg);
+          setDoc(msgRef, aiMsg).catch(err => handleFirestoreError(err, OperationType.WRITE, path));
         } catch (err) {
           handleFirestoreError(err, OperationType.WRITE, path);
         }
@@ -369,7 +369,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         const path = `users/${userMetadata.uid}/sniper_messages/${errorMsgId}`;
         try {
           const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', errorMsgId);
-          await setDoc(msgRef, errorMsg);
+          setDoc(msgRef, errorMsg).catch(err => handleFirestoreError(err, OperationType.WRITE, path));
         } catch (err) {
           handleFirestoreError(err, OperationType.WRITE, path);
         }
@@ -889,7 +889,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                   )}
                                 </div>
                                 <div className="space-y-2">
-                                  {msg.signal.reasoning.map((r, i) => {
+                                  {Array.isArray(msg.signal.reasoning) && msg.signal.reasoning.map((r, i) => {
                                     const parts = r.split(':');
                                     const title = parts.length > 1 ? parts[0] : '';
                                     const content = parts.length > 1 ? parts.slice(1).join(':').trim() : r;
@@ -907,6 +907,34 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                     );
                                   })}
                                 </div>
+
+                                {msg.signal.signal === 'NEUTRAL' && msg.signal.comebackTimeMinutes && (
+                                  <div className="mt-4 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] p-6 overflow-hidden relative group">
+                                    <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors" />
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-4 flex items-center gap-2 relative z-10">
+                                      <Timer className="w-3 h-3" /> Sniper Arrival Projection
+                                    </h3>
+                                    <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
+                                       <div className="flex-1">
+                                         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
+                                           "Market velocity currently insufficient for immediate execution. Based on Z-Score convergence and ATR-to-Zone distance, an optimal setup window is projected to open in approximately <strong className="text-amber-600 dark:text-amber-400">{msg.signal.comebackTimeMinutes} minutes</strong>."
+                                         </p>
+                                       </div>
+                                       <div className="bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl p-4 text-center min-w-[140px] border border-amber-500/20">
+                                          <div className="text-[10px] font-black uppercase text-amber-500/70 mb-1">Neural Cooldown</div>
+                                          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 italic tracking-tighter">T-{msg.signal.comebackTimeMinutes} MIN</div>
+                                          <div className="mt-1 h-1 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                            <motion.div 
+                                              initial={{ width: '100%' }}
+                                              animate={{ width: '0%' }}
+                                              transition={{ duration: msg.signal.comebackTimeMinutes * 60, ease: 'linear' }}
+                                              className="h-full bg-amber-500"
+                                            />
+                                          </div>
+                                       </div>
+                                    </div>
+                                  </div>
+                                )}
                               </div>
                             </div>
 
@@ -916,7 +944,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 <Shield className="w-3 h-3" /> Institutional Checklist
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {msg.signal.checklist?.map((item, i) => (
+                                {Array.isArray(msg.signal.checklist) && msg.signal.checklist.map((item, i) => (
                                   <div key={i} className="flex items-center gap-3 text-xs text-slate-500">
                                     <CheckCircle2 className="w-4 h-4 text-emerald-500/50" />
                                     {item}
@@ -924,34 +952,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 ))}
                               </div>
                             </div>
-
-                            {msg.signal.signal === 'NEUTRAL' && msg.signal.comebackTimeMinutes && (
-                              <div className="mt-4 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] p-6 overflow-hidden relative group">
-                                <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors" />
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-4 flex items-center gap-2 relative z-10">
-                                  <Timer className="w-3 h-3" /> Sniper Arrival Projection
-                                </h3>
-                                <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-                                   <div className="flex-1">
-                                     <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
-                                       "Market velocity currently insufficient for immediate execution. Based on Z-Score convergence and ATR-to-Zone distance, an optimal setup window is projected to open in approximately <strong className="text-amber-600 dark:text-amber-400">{msg.signal.comebackTimeMinutes} minutes</strong>."
-                                     </p>
-                                   </div>
-                                   <div className="bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl p-4 text-center min-w-[140px] border border-amber-500/20">
-                                      <div className="text-[10px] font-black uppercase text-amber-500/70 mb-1">Neural Cooldown</div>
-                                      <div className="text-2xl font-black text-amber-600 dark:text-amber-400 italic tracking-tighter">T-{msg.signal.comebackTimeMinutes} MIN</div>
-                                      <div className="mt-1 h-1 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                        <motion.div 
-                                          initial={{ width: '100%' }}
-                                          animate={{ width: '0%' }}
-                                          transition={{ duration: msg.signal.comebackTimeMinutes * 60, ease: 'linear' }}
-                                          className="h-full bg-amber-500"
-                                        />
-                                      </div>
-                                   </div>
-                                </div>
-                              </div>
-                            )}
                           </div>
                         ) : (
                           <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-600 dark:text-slate-400 leading-relaxed">

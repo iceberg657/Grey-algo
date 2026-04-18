@@ -1363,8 +1363,11 @@ USER REQUEST: "${query}"
    - You MUST calculate and suggest a \`formattedLotSize\` based on standard risk management (e.g. 1% risk of a typical $10,000 account, or based on the pip distance to SL).
    - You MUST suggest the \`recommendedPositions\` (e.g. split into 2 or 3 positions for partial takes).
    - You MUST provide the \`positionLotSize\` (e.g. "0.01 per position").
-6. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use Google Search grounding (internally) or your current knowledge of macroeconomic events/calendars. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 5 minutes of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
-7. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+6. **NEUTRAL DYNAMICS & COOLDOWN:**
+   - If you output "NEUTRAL", you MUST calculate a 'comebackTimeMinutes' value. Use Market Velocity to estimate the arrival time. If the market is in low volatility, suggest a longer 60-120 minute cooldown. Otherwise, estimate distance / speed to specify minutes. 
+   - DO NOT issue a NEUTRAL signal without explaining exactly when to re-analyze.
+7. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use Google Search grounding (internally) or your current knowledge of macroeconomic events/calendars. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 5 minutes of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
+8. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
@@ -1380,6 +1383,7 @@ JSON Structure:
   "formattedLotSize": "String (e.g. '0.10')",
   "recommendedPositions": number (e.g. 2),
   "positionLotSize": "String (e.g. '0.05 per position')",
+  "comebackTimeMinutes": number (e.g. 15), // MUST be included for NEUTRAL signals.
   "reasoning": [
     "Market Price vs Structure: [Detailed explanation]",
     "Current Conditions: [Detailed explanation]",
@@ -1519,8 +1523,13 @@ JSON Structure:
       takeProfits: finalTakeProfits,
       reasoning: finalReasoning,
       checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
-      entryType: 'Market Execution',
-      triggerConditions: signal.triggerConditions
+      entryType: signal.entryType || 'Market Execution',
+      expirationTime: signal.expirationTime,
+      triggerConditions: signal.triggerConditions,
+      formattedLotSize: signal.formattedLotSize,
+      recommendedPositions: signal.recommendedPositions,
+      positionLotSize: signal.positionLotSize,
+      comebackTimeMinutes: signal.comebackTimeMinutes
     } as SignalData;
   }, getAnalysisPool());
 }
