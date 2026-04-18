@@ -1235,32 +1235,11 @@ export async function generateSniperLiveSignal(
   query: string,
   style: TradingStyle,
   derivData: any,
-  zScore?: number | null,
-  learnedStrategies: string[] = [],
-  twelveDataQuote?: any
+  learnedStrategies: string[] = []
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-
-  const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
-📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
-Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
-- RSI (14, ${twelveDataQuote.interval}): ${twelveDataQuote.rsi}
-- SMA (20, ${twelveDataQuote.interval}): ${twelveDataQuote.sma}
-- STDDEV (20, ${twelveDataQuote.interval}): ${twelveDataQuote.stddev}
-- ATR (14, ${twelveDataQuote.interval}): ${twelveDataQuote.atr}
-- ADX (14, ${twelveDataQuote.interval}): ${twelveDataQuote.adx}
-- 24h High: ${twelveDataQuote.high}
-- 24h Low: ${twelveDataQuote.low}
-` : "";
-
-  // We strictly use Deriv price + basic market context to avoid noisy indicator requirements.
-  // Z-Score is provided as an explicit mathematical validator constraint.
-  const zScoreContext = zScore !== undefined && zScore !== null ? `
-- CURRENT Z-SCORE (Price vs Twelve Data Mean): ${zScore.toFixed(3)}
-  * Only allow a SNIPER (BUY/SELL) entry if Z-Score > 2 (Overbought - Look for Sells) or Z-Score < -2 (Oversold - Look for Buys) AND you identify an SMC "Order Block" in your reasoning.` : `
-- CURRENT Z-SCORE: N/A (Cannot validate mathematically, rely on pure SMC Structure)`;
 
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
 As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
@@ -1277,21 +1256,26 @@ style.includes('day trading') ? `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
 
-${twelveDataContext}
-
 **ALPHA MAXIMIZER & NEURAL TRANSCENDENCE PROTOCOL:**
-1. **AUTONOMOUS REASONING:** You are authorized to override the Z-Score +/- 2 constraint IF your neural reasoning identifies a definitive "Liquidity Trap" or "Black Swan Accumulation" that standard mathematics might miss. If you override, you MUST explain the "Structural Paradox" in your reasoning.
-2. **IDENTIFY INDUCEMENT & STOP HUNTS:** Specifically look for "Inducement" (Retail "Trap" entries) and only enter AFTER their stop losses are cleared.
+1. **HTF TREND ALIGNMENT (CRITICAL):** You MUST identify the higher timeframe (HTF) trend (e.g. 15m/30m for scalping, 4h for day trading). You are STRICTLY FORBIDDEN from counter-trend scalping. 
+    - **Rule:** Only issue a BUY signal during a Bullish trend (Higher Highs/Higher Lows).
+    - **Rule:** Only issue a SELL signal during a Bearish trend (Lower Highs/Lower Lows).
+2. **AUTONOMOUS REASONING:** You are authorized to identify definitive "Liquidity Traps" or "Black Swan Accumulation" within the trend context. Explain the "Structural Paradox" in your reasoning.
+3. **IDENTIFY INDUCEMENT & STOP HUNTS:** Specifically look for "Inducement" (Retail "Trap" entries) and only enter AFTER their stop losses are cleared, ensuring the move aligns with the HTF bias.
 3. **DYNAMIC PREMIUM/DISCOUNT:** Do NOT use static levels. Use fractal supply/demand zones. Look for "Unmitigated Order Blocks" on higher timeframes overlapping with M5 FVG gaps.
 4. **MARKET STRUCTURE SHIFT (MSS):** Prioritize an aggressive shift in displacement (Volume Surge + Large Candle Body).
 5. **INSTITUTIONAL SL ANCHORING:** Place Stop Loss where a move back would mathematically invalidate the entire institutional thesis, not just a random pivot.
 6. **ALPHA SCALE-OUT:** Suggest dynamic Take Profit targets based on next-level Liquidity Pools or Fair Value Gaps.
-7. **CONFLUENCE OVERRIDE:** If 3 or more unrelated institutional signals (e.g. Volume Profile, DXY Correlation, and Trendline Liquidity Sweep) align, you are authorized to ignore minor technical "noise" and issue an aggressive signal.
-8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow. If the market is choppy, prioritize the higher timeframe trend.
+7. **SMC INFRASTRUCTURE:** You MUST identify:
+    - Order Blocks (OB)
+    - Fair Value Gaps (FVG)
+    - Break of Structure (BOS) / Change of Character (CHoCH)
+    - Liquidity Pools (Equal Highs/Lows)
+8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow.
 
-**CRITICAL DATA (THE ONLY TRUTH):**
+**CRITICAL DATA (SMC BASIS):**
 - ASSET: ${assetName}
-- LIVE MARKET PRICE: ${livePrice}${zScoreContext}
+- LIVE MARKET PRICE: ${livePrice}
 
 USER REQUEST: "${query}"
 
@@ -1327,7 +1311,7 @@ JSON Structure:
     "Institutional Footprint: [Explaining liquidity sweeps and order blocks]",
     "Why this prevents SL hunting: [Logic behind the SL placement and direction choice]"
   ],
-  "checklist": ["Liquidity Sweep", "Order Block Tap", "FVG Fill"],
+  "checklist": ["HTF Trend Alignment", "Liquidity Sweep", "Order Block Tap", "FVG Fill"],
   "triggerConditions": { 
     "breakoutLevel": number,
     "retestLogic": string,
@@ -1420,9 +1404,9 @@ JSON Structure:
 
         // --- FINAL SNIPER CONSTRAINTS ---
         if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
-            const z = zScore || 0;
-            finalSignal = z > 0 ? 'SELL' : 'BUY';
-            finalReasoning.push(`🎯 Sniper Mandate: Decisive bias forced based on global market structure.`);
+            // Revert to price-based logic without Z-score if it fails
+            finalSignal = 'BUY'; // Default to BUY for sniper mandate if all else fails
+            finalReasoning.push(`🎯 Sniper Mandate: Decisive bias forced based on Smart Money accumulation structure.`);
         }
 
         const finalConfidence = Math.min(signal.confidence || 0, 85);

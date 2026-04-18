@@ -289,35 +289,19 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         return;
       }
 
-      // 2. Fetch live price from Deriv API and potentially Twelve Data for Z-Score mean/stddev
-      const [derivData, twelveData] = await Promise.all([
-        fetchLivePrice(asset),
-        fetchMarketData(asset, '15min').catch(() => null)
-      ]);
+      // 2. Fetch live price from Deriv API
+      const derivData = await fetchLivePrice(asset);
       
       if (!derivData) {
         throw new Error(`Failed to fetch live market data for ${asset}. Ensure your Deriv API Token is correct.`);
       }
 
-      // Calculate Z-Score relative to Twelve Data mean
-      let zScore: number | null = null;
-      if (twelveData && !twelveData.error && twelveData.sma && twelveData.stddev && twelveData.sma !== 'N/A' && twelveData.stddev !== 'N/A') {
-          const sma = parseFloat(twelveData.sma);
-          const stddev = parseFloat(twelveData.stddev);
-          if (!isNaN(sma) && !isNaN(stddev) && stddev !== 0) {
-              zScore = (derivData.price - sma) / stddev;
-          }
-      }
-
-      // 3. Generate signal using Gemini 3.1 Flash Lite with Z-Score constraints
-      // Pass twelveData to include institutional metrics (RSI, ADX, etc.) in the AI prompt if available
+      // 3. Generate signal using Gemini 3.1 Flash Lite with Institutional SMC logic
       const result = await generateSniperLiveSignal(
         currentQuery, 
         style, 
         derivData, 
-        zScore,
-        [], // Default learned strategies
-        twelveData
+        [] // Default learned strategies
       );
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
