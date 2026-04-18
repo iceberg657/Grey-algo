@@ -102,10 +102,7 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4, 9)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K9()]);
 export const ANALYSIS_MODELS = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro'
+    'gemini-3.1-flash-lite-preview'
 ];
 
 // 2. CHAT & NEWS (Key 5)
