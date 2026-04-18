@@ -3,12 +3,11 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
 import { db, auth } from '../firebase';
 import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection, where } from 'firebase/firestore';
-import { Trade, SignalData } from '../types';
+import { Trade } from '../types';
 
 const STORAGE_KEY = 'greyalpha_automl_stats';
 const STRATEGIES_KEY = 'greyalpha_learned_strategies';
-const PROTOCOL_KEY = 'greyalpha_neural_protocol';
-const MAX_SESSIONS_PER_DAY = 5; // Increased for global learning
+const MAX_SESSIONS_PER_DAY = 3; // Increased for global learning
 
 interface DailyStats {
     date: string;
@@ -112,22 +111,13 @@ const saveStrategy = (strategy: string) => {
     }
 };
 
-export const getNeuralProtocol = (): string | null => {
-    return localStorage.getItem(PROTOCOL_KEY);
-};
-
-export const performAutoLearning = async (deep: boolean = false): Promise<string | null> => {
-    if (!canLearnMoreToday()) {
-        console.warn("Learning quota reached for today.");
-        // If deep is requested, we might allow it once more or just use the cached result
-        if (!deep) return null;
-    }
+export const performAutoLearning = async (): Promise<string | null> => {
+    if (!canLearnMoreToday()) return null;
 
     try {
-        // 1. Fetch anonymized trade data
+        // 1. Fetch anonymized trade data from ALL users (Global Learning)
         const tradesRef = collectionGroup(db, 'trades');
-        const fetchLimit = deep ? 200 : 50;
-        const q = query(tradesRef, orderBy('timestamp', 'desc'), limit(fetchLimit));
+        const q = query(tradesRef, orderBy('timestamp', 'desc'), limit(50));
         const snapshot = await getDocs(q);
         
         const trades = snapshot.docs.map(doc => {
@@ -135,66 +125,49 @@ export const performAutoLearning = async (deep: boolean = false): Promise<string
             return {
                 asset: data.asset,
                 signal: data.signal,
-                outcome: data.outcome, // Win, Loss, Pending, No Trade
+                outcome: data.outcome,
                 confidence: data.signalData?.confidence,
                 timeframe: data.signalData?.timeframe,
-                rr: data.signalData?.riskRewardRatio,
-                reasoning: data.signalData?.reasoning?.slice(0, 3) 
+                reasoning: data.signalData?.reasoning?.slice(0, 2) // Keep it concise
             };
         });
-
-        const winTrades = trades.filter(t => t.outcome === 'Win');
-        const lossTrades = trades.filter(t => t.outcome === 'Loss');
-        const winRate = trades.length > 0 ? (winTrades.length / (winTrades.length + lossTrades.length)) * 100 : 0;
 
         await initializeApiKey();
 
         return await executeLaneCall<string>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            let systemP = `Analyze these ${trades.length} trades (Win Rate: ${winRate.toFixed(1)}%). 
-            Your goal is to reach a 65% win rate and 75% profitability. 
-            Identify the core commonality in 'Loss' trades (e.g., specific assets, timeframes, or low ATR). 
-            Identify the 'Golden Setup' from the 'Win' trades.`;
-
-            if (deep) {
-                systemP += `\nCreate a NEW 'Master Sniper Protocol' (3-5 concise rules) that acts as a mandatory filter. 
-                Focus on Liquidity Sweeps, FVG Retests, and Session Timing. 
-                Output strictly the rules as a bulleted list.`;
-            } else {
-                systemP += `\nProvide ONE new concise, actionable 'Neural Filter' rule to increase probability. 
+            let prompt = "Discover a new actionable SMC/ICT trading rule or insight based on recent market behavior. Output strictly the rule in one concise sentence.";
+            
+            if (trades.length > 10) {
+                prompt = `Analyze these ${trades.length} recent trades from multiple users: ${JSON.stringify(trades)}. 
+                Identify patterns in 'Win' vs 'Loss' trades. 
+                What specific market conditions or signal parameters lead to higher probability? 
+                What should we filter out? 
+                Provide ONE new concise, actionable trading rule to increase probability and filter out bad trades. 
                 Output strictly the rule in one sentence.`;
             }
-
-            const prompt = `${systemP}\n\nDATASET: ${JSON.stringify(trades)}`;
 
             const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
                 ai.models.generateContent({
                     model: modelId,
                     contents: prompt,
-                    config: { tools: [{ googleSearch: {} }], temperature: 0.3 }, // Lower temp for more deterministic logic
+                    config: { tools: [{ googleSearch: {} }], temperature: 0.7 },
                 })
             );
             
             const strategy = response.text?.trim() || null;
             if (strategy) {
-                if (deep) {
-                    localStorage.setItem(PROTOCOL_KEY, strategy);
-                } else {
-                    saveStrategy(strategy);
-                }
+                saveStrategy(strategy);
                 
-                incrementDailyCount();
-
-                // Save to global strategies
+                // Save to global strategies if it was a data-driven insight
                 if (trades.length > 10) {
                     try {
                         await addDoc(collection(db, 'global_strategies'), {
                             rule: strategy,
                             timestamp: Date.now(),
-                            isProtocol: deep,
-                            winRateAtTime: winRate,
-                            sourceCount: trades.length
+                            sourceCount: trades.length,
+                            confidence: 85
                         });
                     } catch (e) {
                         console.error("Failed to save global strategy:", e);
@@ -204,7 +177,7 @@ export const performAutoLearning = async (deep: boolean = false): Promise<string
             return strategy;
         }, getChatPool);
     } catch (e) { 
-        console.error("Neural Learning Error:", e);
+        console.error("Global Learning Error:", e);
         return null; 
     }
 };

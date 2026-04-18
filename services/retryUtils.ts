@@ -102,10 +102,10 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4, 9)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K9()]);
 export const ANALYSIS_MODELS = [
-    'gemini-3.1-flash-lite-preview', // Priority 1: Requested model
-    'gemini-3-flash-preview',       // Fallback 1: High speed
-    'gemini-2.5-flash',             // Fallback 2: User-verified availability
-    'gemini-2.5-pro'                // Fallback 3: User-verified availability
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite'
 ];
 
 // 2. CHAT & NEWS (Key 5)
@@ -115,7 +115,7 @@ export const CHAT_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
     'gemini-2.5-flash',
-    'gemini-2.5-pro'
+    'gemini-2.5-flash-lite'
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
@@ -124,7 +124,7 @@ export const SUGGESTION_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
     'gemini-2.5-flash',
-    'gemini-2.5-pro'
+    'gemini-2.5-flash-lite'
 ];
 
 // Shared Pools
@@ -134,7 +134,8 @@ export const getSuggestionStructurePool = () => getChatPool(); // Global Market 
 export const LANE_2_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
-    'gemini-2.5-flash'
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite'
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
@@ -183,45 +184,32 @@ export async function executeLaneCall<T>(
     const availableKeys = activePool.filter(k => !isThrottled(k));
     
     // If all keys are throttled, we try them anyway as a last resort, 
-    // but we should prioritize the record of which was throttled longest ago.
+    // but we should prioritize the one that was throttled longest ago.
     const keysToTry = availableKeys.length > 0 ? availableKeys : activePool;
 
-    console.log(`[LaneOrchestrator] Attempting call with pool size: ${keysToTry.length} (Active: ${availableKeys.length})`);
+    console.log(`[LaneOrchestrator] Attempting call with pool size: ${keysToTry.length}`);
 
-    let keyIndex = 0;
     for (const apiKey of keysToTry) {
-        keyIndex++;
         try {
-            console.log(`[LaneOrchestrator] [Key ${keyIndex}/${keysToTry.length}] Attempting with key ...${apiKey.slice(-6)}`);
+            console.log(`[LaneOrchestrator] Using key ending in ...${apiKey.slice(-4)}`);
             return await operationFactory(apiKey);
         } catch (error: any) {
             lastError = error;
             const errorMsg = (error.message || '').toLowerCase();
             
-            // If it's a 429 (Quota), 401 (Unauthorized), or 403 (Forbidden), we SHOULD rotate.
-            const isQuotaError = errorMsg.includes('429') || error.status === 429 || errorMsg.includes('quota');
-            const isInvalidKey = errorMsg.includes('401') || errorMsg.includes('403') || errorMsg.includes('api key') || errorMsg.includes('api_key_invalid') || errorMsg.includes('not valid');
-            
-            if (isQuotaError) {
-                console.warn(`[LaneOrchestrator] Quota hit (Key ${keyIndex}). Throttling for ${COOLDOWN_DURATION/1000}s.`);
+            if (errorMsg.includes('429') || error.status === 429 || errorMsg.includes('quota')) {
+                console.warn(`[LaneOrchestrator] Quota hit for key ending in ...${apiKey.slice(-4)}. Throttling for ${COOLDOWN_DURATION/1000}s.`);
                 cooldownMap.set(apiKey, Date.now() + COOLDOWN_DURATION);
                 continue; 
             }
             
-            if (isInvalidKey) {
-                console.error(`[LaneOrchestrator] INVALID API KEY (Key ${keyIndex}): ...${apiKey.slice(-6)}. Skipping for 5 mins.`);
-                cooldownMap.set(apiKey, Date.now() + (5 * 60 * 1000)); // 5 minute cooldown for truly bad keys
-                continue;
-            }
-            
-            // If it's a 400 (Bad Request) that is NOT about the key, it's likely a logic error or bad prompt - don't rotate
-            if (error.status === 400 || errorMsg.includes('bad request')) {
-                console.error(`[LaneOrchestrator] Fatal 400 Error (Key ${keyIndex}): ${errorMsg.substring(0, 150)}`);
+            // If it's a 400 or other fatal error, don't rotate keys as it's likely a request issue
+            if (error.status === 400 || errorMsg.includes('invalid') || errorMsg.includes('bad request')) {
                 throw error;
             }
             
-            // For other errors (5xx, network), try next key
-            console.warn(`[LaneOrchestrator] Transient error (Key ${keyIndex}): ${errorMsg.substring(0, 50)}. Trying next...`);
+            // For other errors, try next key
+            console.warn(`[LaneOrchestrator] Error with key ...${apiKey.slice(-4)}: ${errorMsg.substring(0, 100)}. Trying next key...`);
             continue;
         }
     }

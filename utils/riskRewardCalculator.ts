@@ -31,7 +31,7 @@ export function calculateTPSL(
   
   const precision = detectPrecision(asset);
   const [risk, reward] = riskRewardRatio.split(':').map(Number);
-  const targetRatio = 3.0; // Enforce strict minimum 1:3 RR for capital preservation
+  const targetRatio = (reward && risk) ? (reward / risk) : 3.0;
   
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
@@ -78,7 +78,7 @@ export function calculateTPSL(
   if (!isSlValid || !isSlCorrectSide) {
       // Create SL based on ATR-like logic or config minimum
       // For funded accounts, we prefer a slightly wider SL with reduced lot size over a tight SL that gets hunted.
-      const bufferMultiplier = isScalping ? 1.0 : 1.5; // Tighter buffer to ensure SL is close to entry
+      const bufferMultiplier = isScalping ? 1.5 : 2.0;
       const buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist : currentSlDist * bufferMultiplier); 
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
@@ -103,12 +103,12 @@ export function calculateTPSL(
       }
   }
 
-  // 4. Calculate Distinct Take Profits based on STRICT 1:3 and 1:4 R:R
+  // 4. Calculate Distinct Take Profits based on R:R
   const takeProfits: [number, number, number] = [0, 0, 0];
   const tpDistances: [number, number, number] = [0, 0, 0];
   
   const rUnit = currentSlDist; 
-  const ratios = [3.0, 4.0, 5.0]; // Exactly 1:3 for TP1 and 1:4 for TP2
+  const ratios = [1.0, targetRatio, targetRatio + 2.0]; 
 
   ratios.forEach((r, idx) => {
       const dist = rUnit * r;

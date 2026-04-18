@@ -32,13 +32,6 @@ async function startServer() {
 
   console.log('[Server] Initializing API routes...');
 
-  const tdKey = process.env.TWELVE_DATA_API_KEY || process.env.VITE_TWELVE_DATA_API_KEY;
-  if (!tdKey) {
-    console.warn('[Server] WARNING: TWELVE_DATA_API_KEY is not set. Market data features will require user-provided keys.');
-  } else {
-    console.log(`[Server] Twelve Data API Key configured: ${tdKey.substring(0, 4)}...${tdKey.substring(tdKey.length - 4)}`);
-  }
-
   // Twelve Data Routes
   app.get('/api/twelveData', twelveDataHandler);
 
