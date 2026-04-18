@@ -141,7 +141,7 @@ export async function generateSniperLiveSignal(
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: modelId,
-              prompt: prompt,
+              contents: [{ parts: [{ text: prompt }] }],
               config: config,
               apiKey: apiKey // Pass the rotated API key from the lane pool
             })

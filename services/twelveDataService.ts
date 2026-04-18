@@ -103,8 +103,14 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         const response = await fetch(url);
         
         if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || errorData.message || `Twelve Data API error: ${response.statusText}`);
+            let errorMsg = `HTTP Error ${response.status}: ${response.statusText}`;
+            try {
+                const errorData = await response.json();
+                errorMsg = errorData.error || errorData.message || errorData.status_message || errorMsg;
+            } catch (e) {
+                // Not JSON, use status text
+            }
+            throw new Error(`Twelve Data API error: ${errorMsg}`);
         }
         
         const data = await response.json();

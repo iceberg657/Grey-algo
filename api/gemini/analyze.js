@@ -21,8 +21,14 @@ export default async function handler(req, res) {
     // Extract root-level properties from config
     const { tools, systemInstruction, ...generationConfig } = config || {};
     
+    // Normalize body: Support both 'contents' (SDK style) and 'prompt' (Simplified style)
+    let finalContents = contents;
+    if (!finalContents && req.body.prompt) {
+      finalContents = [{ parts: [{ text: req.body.prompt }] }];
+    }
+
     const requestBody = {
-      contents,
+      contents: finalContents,
       generationConfig,
     };
     
