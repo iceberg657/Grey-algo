@@ -1301,8 +1301,8 @@ JSON Structure:
   "entryRange": {"min": number, "max": number}, // CRITICAL: min/max MUST encapsulate the live price (${livePrice}).
   "entryType": "Market Execution", 
   "expirationTime": null,
-  "stopLoss": number,
-  "takeProfits": [number, number],
+  "stopLoss": number, // Explicit price level
+  "takeProfits": [number, number], // CRITICAL: MUST provide two explicit price targets
   "formattedLotSize": "String (e.g. '0.10')",
   "recommendedPositions": number (e.g. 2),
   "positionLotSize": "String (e.g. '0.05 per position')",
@@ -1324,9 +1324,9 @@ JSON Structure:
       ANALYSIS_MODELS,
       async (modelId) => {
         const config: any = { 
-          tools: [{googleSearch: {}}],
+          responseMimeType: "application/json",
           temperature: 0,
-          maxOutputTokens: 4096 // Increased from 2048 to prevent truncation
+          maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
         };
         
         let text = '';
