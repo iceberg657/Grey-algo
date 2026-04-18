@@ -869,8 +869,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 const config: any = { 
                     tools: [{googleSearch: {}}], 
                     temperature: 0,
-                    maxOutputTokens: 8192,
-                    responseMimeType: 'application/json'
+                    maxOutputTokens: 8192
                 };
                 
                 let responseText = '';
@@ -1327,8 +1326,7 @@ JSON Structure:
         const config: any = { 
           tools: [{googleSearch: {}}],
           temperature: 0,
-          maxOutputTokens: 2048,
-          responseMimeType: 'application/json' // Force JSON output if supported
+          maxOutputTokens: 2048
         };
         
         let text = '';
