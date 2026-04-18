@@ -310,7 +310,15 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
 
       // 3. Generate signal using Gemini 3.1 Flash Lite with Z-Score constraints
-      const result = await generateSniperLiveSignal(currentQuery, style, derivData, zScore);
+      // Pass twelveData to include institutional metrics (RSI, ADX, etc.) in the AI prompt if available
+      const result = await generateSniperLiveSignal(
+        currentQuery, 
+        style, 
+        derivData, 
+        zScore,
+        [], // Default learned strategies
+        twelveData
+      );
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
       if (result && result.signal && result.signal !== 'NEUTRAL') {

@@ -1236,11 +1236,25 @@ export async function generateSniperLiveSignal(
   style: TradingStyle,
   derivData: any,
   zScore?: number | null,
-  learnedStrategies: string[] = []
+  learnedStrategies: string[] = [],
+  twelveDataQuote?: any
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+
+  const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
+📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
+Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
+- RSI (14, ${twelveDataQuote.interval}): ${twelveDataQuote.rsi}
+- SMA (20, ${twelveDataQuote.interval}): ${twelveDataQuote.sma}
+- STDDEV (20, ${twelveDataQuote.interval}): ${twelveDataQuote.stddev}
+- ATR (14, ${twelveDataQuote.interval}): ${twelveDataQuote.atr}
+- ADX (14, ${twelveDataQuote.interval}): ${twelveDataQuote.adx}
+- 24h High: ${twelveDataQuote.high}
+- 24h Low: ${twelveDataQuote.low}
+` : "";
+
   // We strictly use Deriv price + basic market context to avoid noisy indicator requirements.
   // Z-Score is provided as an explicit mathematical validator constraint.
   const zScoreContext = zScore !== undefined && zScore !== null ? `
@@ -1262,6 +1276,8 @@ style.includes('day trading') ? `
 `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
+
+${twelveDataContext}
 
 **ALPHA MAXIMIZER & NEURAL TRANSCENDENCE PROTOCOL:**
 1. **AUTONOMOUS REASONING:** You are authorized to override the Z-Score +/- 2 constraint IF your neural reasoning identifies a definitive "Liquidity Trap" or "Black Swan Accumulation" that standard mathematics might miss. If you override, you MUST explain the "Structural Paradox" in your reasoning.
@@ -1411,7 +1427,7 @@ JSON Structure:
 
         const finalConfidence = Math.min(signal.confidence || 0, 85);
 
-        return {
+        const sanitizedSignal: SignalData = {
           id: `sniper_${Date.now()}`,
           timestamp: Date.now(),
           asset: signal.asset || assetName,
@@ -1419,14 +1435,17 @@ JSON Structure:
           confidence: finalConfidence,
           timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
           entryPoints: [midEntry],
-          entryRange: finalEntryRange,
+          entryRange: finalEntryRange || null,
           stopLoss: finalSL,
           takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
           reasoning: finalReasoning,
           checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
           entryType: 'Market Execution',
-          triggerConditions: signal.triggerConditions
-        } as SignalData;
+          triggerConditions: signal.triggerConditions || null
+        };
+
+        // Final deep sanitization to remove any remaining undefined fields
+        return JSON.parse(JSON.stringify(sanitizedSignal)) as SignalData;
       }
     );
   }, getAnalysisPool());
