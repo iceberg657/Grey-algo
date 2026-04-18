@@ -863,125 +863,97 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             );
         }
 
-        const response = await runWithModelFallback<GenerateContentResponse>(
+        const response = await runWithModelFallback<any>(
             ANALYSIS_MODELS, 
             async (modelId) => {
-        const config: any = { 
-            tools: [{googleSearch: {}}], 
-            temperature: 0,
-            maxOutputTokens: 8192
-        };
-        
-        // Use server-side proxy to bypass regional blocks (VPN-free execution)
-        try {
-            console.log(`[Gemini] Calling proxy for model ${modelId}...`);
-            const proxyRes = await fetch('/api/gemini/analyze', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    model: modelId,
-                    contents: [{ parts: promptParts }],
-                    config: config,
-                    apiKey: apiKey // Pass the key from the pool if server doesn't have one
-                }),
-            });
+                const config: any = { 
+                    tools: [{googleSearch: {}}], 
+                    temperature: 0,
+                    maxOutputTokens: 8192,
+                    responseMimeType: 'application/json'
+                };
+                
+                let responseText = '';
+                let candidates = [];
+                let promptFeedback = null;
 
-            if (!proxyRes.ok) {
-                let errorMsg = 'Proxy analysis failed';
                 try {
-                    const errorData = await proxyRes.json();
-                    errorMsg = errorData.error?.message || errorData.error || errorMsg;
-                } catch (e) {
-                    const text = await proxyRes.text();
-                    errorMsg = `Proxy error (${proxyRes.status}): ${text.substring(0, 100)}...`;
+                    console.log(`[Gemini] Calling proxy for model ${modelId}...`);
+                    const proxyRes = await fetch('/api/gemini/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: modelId,
+                            contents: [{ parts: promptParts }],
+                            config: config,
+                            apiKey: apiKey
+                        }),
+                    });
+
+                    if (!proxyRes.ok) {
+                        let errorMsg = 'Proxy analysis failed';
+                        try {
+                            const errorData = await proxyRes.json();
+                            errorMsg = errorData.error?.message || errorData.error || errorMsg;
+                        } catch (e) {
+                            const textFallback = await proxyRes.text();
+                            errorMsg = `Proxy error (${proxyRes.status}): ${textFallback.substring(0, 100)}...`;
+                        }
+                        const err: any = new Error(errorMsg);
+                        err.status = proxyRes.status;
+                        throw err;
+                    }
+
+                    const data = await proxyRes.json();
+                    responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    candidates = data.candidates;
+                    promptFeedback = data.promptFeedback;
+                } catch (proxyError: any) {
+                    console.error('[Gemini] Proxy failed:', proxyError);
+                    const errorMsg = (proxyError.message || '').toLowerCase();
+                    
+                    if (
+                        errorMsg.includes('quota') || 
+                        errorMsg.includes('429') || 
+                        errorMsg.includes('400') ||
+                        errorMsg.includes('unexpected token') ||
+                        errorMsg.includes('not valid json') ||
+                        errorMsg.includes('failed to parse')
+                    ) {
+                        throw proxyError;
+                    }
+                    
+                    console.log('[Gemini] Falling back to direct SDK call...');
+                    const fallbackResponse = await ai.models.generateContent({
+                        model: modelId,
+                        contents: [{ parts: promptParts }],
+                        config: config,
+                    });
+                    
+                    responseText = fallbackResponse.text || '';
+                    candidates = fallbackResponse.response?.candidates || [];
+                    promptFeedback = fallbackResponse.response?.promptFeedback;
                 }
-                const err: any = new Error(errorMsg);
-                err.status = proxyRes.status;
-                throw err;
-            }
 
-            const contentType = proxyRes.headers.get('content-type');
-            if (proxyRes.ok && contentType && !contentType.includes('application/json')) {
-                const text = await proxyRes.text();
-                const err: any = new Error(`Proxy returned non-JSON response: ${text.substring(0, 100)}...`);
-                err.status = 500; // Treat as server error
-                throw err;
-            }
+                if (!responseText) {
+                    throw new Error("Empty response from AI - The model returned no content.");
+                }
 
-            const data = await proxyRes.json();
-            const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-            
-            if (!responseText) {
-                throw new Error("Empty response from AI - The model returned no content.");
-            }
+                const data = extractJson(responseText);
+                if (!data || Object.keys(data).length === 0 || !data.signal) {
+                    throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
+                }
 
-            // Wrap in a structure that looks like GenerateContentResponse for the rest of the code
-            return {
-                text: responseText,
-                candidates: data.candidates,
-                promptFeedback: data.promptFeedback
-            } as any;
-        } catch (proxyError: any) {
-            console.error('[Gemini] Proxy failed:', proxyError);
-            const errorMsg = (proxyError.message || '').toLowerCase();
-            
-            // If it's a quota error, invalid argument, or other API-level error, don't fallback to direct SDK call
-            // as it will just fail again with the same error. Throw it to let runWithModelFallback cascade.
-            if (
-                errorMsg.includes('quota') || 
-                errorMsg.includes('429') || 
-                errorMsg.includes('400') ||
-                errorMsg.includes('unexpected token') ||
-                errorMsg.includes('not valid json') ||
-                errorMsg.includes('failed to parse')
-            ) {
-                throw proxyError;
+                return {
+                    data,
+                    candidates,
+                    promptFeedback
+                };
             }
-            
-            console.log('[Gemini] Falling back to direct SDK call...');
-            // Fallback to direct call if proxy fails due to network/CORS (though it might be blocked)
-            const fallbackResponse = await ai.models.generateContent({
-                model: modelId,
-                contents: [{ parts: promptParts }],
-                config: config,
-            });
-            
-            if (!fallbackResponse.text) {
-                throw new Error("Empty response from AI - The model returned no content.");
-            }
-            
-            return fallbackResponse;
-        }
-    }
-);
+        );
 
-        let text = response.text || '';
-
-        text = extractJson(text);
-        
-        if (!text || !text.startsWith('{')) {
-            console.error("Neural alignment failure. Raw response:", response.text);
-            throw new Error("Neural alignment failure - Invalid JSON response structure. The model might have returned non-JSON text or failed to start the JSON block.");
-        }
-        
-        let data;
-        try {
-            // Attempt to fix common truncation issues (missing closing braces)
-            let jsonToParse = text;
-            const openBraces = (jsonToParse.match(/{/g) || []).length;
-            const closeBraces = (jsonToParse.match(/}/g) || []).length;
-            if (openBraces > closeBraces) {
-                console.warn(`Detected truncated JSON (${openBraces} vs ${closeBraces}). Attempting to close braces...`);
-                jsonToParse += '}'.repeat(openBraces - closeBraces);
-            }
-
-            data = JSON.parse(jsonToParse);
-        } catch (e) {
-            console.error("JSON Parse Error. Raw text:", text);
-            throw new Error(`Neural alignment failure - JSON parse error: ${e instanceof Error ? e.message : String(e)}. This often happens if the model output was truncated due to token limits.`);
-        }
+        const data = response.data;
+        const candidates = response.candidates;
 
         // Calculate Confluence Score strictly from Execution Checklist
         let finalConfidence = 0;
@@ -993,7 +965,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         }
 
         // Extract Grounding Metadata (Real Search Results)
-        const groundingChunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+        const groundingChunks = candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         const groundingSources = groundingChunks
             .filter((chunk: any) => chunk.web?.uri && chunk.web?.title)
             .map((chunk: any) => ({
@@ -1349,15 +1321,17 @@ JSON Structure:
 }`;
 
   return await executeLaneCall<SignalData>(async (apiKey) => {
-    const response = await runWithModelFallback<GenerateContentResponse>(
+    return await runWithModelFallback<SignalData>(
       ANALYSIS_MODELS,
       async (modelId) => {
         const config: any = { 
           tools: [{googleSearch: {}}],
-          temperature: 0, // Lower temperature for higher precision
-          maxOutputTokens: 2048
+          temperature: 0,
+          maxOutputTokens: 2048,
+          responseMimeType: 'application/json' // Force JSON output if supported
         };
         
+        let text = '';
         try {
           const proxyRes = await fetch('/api/gemini/analyze', {
             method: 'POST',
@@ -1372,15 +1346,11 @@ JSON Structure:
 
           if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
           const data = await proxyRes.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
           if (!text) {
               const finishReason = data.candidates?.[0]?.finishReason;
               throw new Error(`Empty response from model. Finish reason: ${finishReason || 'Unknown'}`);
           }
-          return {
-            text,
-            candidates: data.candidates
-          } as any;
         } catch (e) {
           // Fallback to direct SDK if proxy fails
           const ai = new GoogleGenAI({ apiKey });
@@ -1389,109 +1359,122 @@ JSON Structure:
             contents: [{ role: 'user', parts: [{ text: prompt }] }],
             config: config
           });
-          if (!result.text) {
+          text = result.text || '';
+          if (!text) {
               throw new Error('Empty response from direct SDK fallback.');
           }
-          return result;
         }
+
+        const signal = extractJson(text);
+        if (!signal || Object.keys(signal).length === 0 || !signal.signal) {
+            throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
+        }
+
+        // --- SNIPER PRECISION LAYER (Inside Fallback) ---
+        const entryRange = signal.entryRange || { min: livePrice * 0.999, max: livePrice * 1.001 };
+        const sl = signal.stopLoss || 0;
+        const midEntry = (entryRange.min + entryRange.max) / 2;
+        const diffPercent = livePrice > 0 ? Math.abs(midEntry - livePrice) / livePrice : 0;
+        
+        let finalSignal = signal.signal;
+        let finalEntryRange = entryRange;
+        let finalSL = sl;
+        let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
+
+        // 1. Price Sanity Check
+        if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+            if (diffPercent > 0.05) {
+                finalSignal = 'NEUTRAL';
+                finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
+            } else {
+                const rangeWidth = entryRange.max - entryRange.min;
+                finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
+                finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
+            }
+        }
+
+        // 2. Sniper SL Tightening (Surgical Precision)
+        if (finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+            const slDistance = Math.abs(midEntry - finalSL);
+            const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
+            if (slPercent > 0.005) {
+                const adjustment = midEntry * 0.002; 
+                finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
+                finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
+            }
+        }
+
+        // --- FINAL SNIPER CONSTRAINTS ---
+        if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
+            const z = zScore || 0;
+            finalSignal = z > 0 ? 'SELL' : 'BUY';
+            finalReasoning.push(`🎯 Sniper Mandate: Decisive bias forced based on global market structure.`);
+        }
+
+        const finalConfidence = Math.min(signal.confidence || 0, 85);
+
+        return {
+          id: `sniper_${Date.now()}`,
+          timestamp: Date.now(),
+          asset: signal.asset || assetName,
+          signal: finalSignal,
+          confidence: finalConfidence,
+          timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
+          entryPoints: [midEntry],
+          entryRange: finalEntryRange,
+          stopLoss: finalSL,
+          takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
+          reasoning: finalReasoning,
+          checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
+          entryType: 'Market Execution',
+          triggerConditions: signal.triggerConditions
+        } as SignalData;
       }
     );
-
-    const signal = extractJson(response.text);
-    if (!signal || Object.keys(signal).length === 0 || !signal.signal) {
-        throw new Error('Failed to parse valid JSON signal from model response.');
-    }
-    
-    // --- SNIPER PRECISION LAYER ---
-    const entryRange = signal.entryRange || { min: livePrice * 0.999, max: livePrice * 1.001 };
-    const sl = signal.stopLoss || 0;
-    const midEntry = (entryRange.min + entryRange.max) / 2;
-    const diffPercent = livePrice > 0 ? Math.abs(midEntry - livePrice) / livePrice : 0;
-    
-    let finalSignal = signal.signal;
-    let finalEntryRange = entryRange;
-    let finalSL = sl;
-    let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
-
-    // 1. Price Sanity Check
-    if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-        if (diffPercent > 0.05) {
-            finalSignal = 'NEUTRAL';
-            finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
-        } else {
-            // Recalibrate range around live price
-            const rangeWidth = entryRange.max - entryRange.min;
-            finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
-            finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
-        }
-    }
-
-    // 2. Sniper SL Tightening (Surgical Precision)
-    // If SL is too wide (e.g. > 0.5% of price), it's definitely not a sniper entry
-    const slDistance = Math.abs(midEntry - finalSL);
-    const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
-    if (slPercent > 0.005) {
-        // Force a tighter SL (0.2% max SL for sniper)
-        const adjustment = midEntry * 0.002; 
-        finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
-        finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
-    }
-
-    // --- FINAL SNIPER CONSTRAINTS (NO NEUTRAL, CAP CONFIDENCE) ---
-    if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
-        // Force a bias if neutralized by post-processing or AI
-        const z = zScore || 0;
-        finalSignal = z > 0 ? 'SELL' : 'BUY';
-        finalReasoning.push(`🎯 Sniper Mandate: Decisive bias forced based on global market structure.`);
-    }
-
-    const finalConfidence = Math.min(signal.confidence || 0, 85);
-
-    // Ensure all required fields exist to prevent UI crashes
-    return {
-      id: `sniper_${Date.now()}`,
-      timestamp: Date.now(),
-      asset: signal.asset || assetName,
-      signal: finalSignal,
-      confidence: finalConfidence,
-      timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
-      entryPoints: [midEntry],
-      entryRange: finalEntryRange,
-      stopLoss: finalSL,
-      takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
-      reasoning: finalReasoning,
-      checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
-      entryType: 'Market Execution',
-      triggerConditions: signal.triggerConditions
-    } as SignalData;
   }, getAnalysisPool());
 }
 
 function extractJson(str: string): any {
+    if (!str) return {};
     try {
         // 1. Try markdown code block
         const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        const rawJson = jsonMatch ? jsonMatch[1].trim() : str.trim();
+        let rawJson = jsonMatch ? jsonMatch[1].trim() : str.trim();
 
-        // 2. Find first { and last }
-        const start = rawJson.indexOf('{');
-        const end = rawJson.lastIndexOf('}');
+        // 2. Find first { and last } to isolate the object
+        const firstOpen = rawJson.indexOf('{');
+        const lastClose = rawJson.lastIndexOf('}');
         
-        let jsonToParse = rawJson;
-        if (start !== -1 && end !== -1 && end > start) {
-            jsonToParse = rawJson.substring(start, end + 1).trim();
-        } else if (start !== -1 && end === -1) {
-            // 3. If it looks like it started but didn't finish (truncated)
-            jsonToParse = rawJson.substring(start).trim();
-            // Attempt to close it
-            if (!jsonToParse.endsWith('}')) {
-                jsonToParse += '}';
+        if (firstOpen !== -1) {
+            if (lastClose !== -1 && lastClose > firstOpen) {
+                rawJson = rawJson.substring(firstOpen, lastClose + 1).trim();
+            } else {
+                // Truncated JSON handling
+                rawJson = rawJson.substring(firstOpen).trim();
+                // Basic truncation repair
+                if (!rawJson.endsWith('}')) {
+                    // Try to close any open quotes/brackets
+                    let prepared = rawJson;
+                    if ((prepared.match(/"/g) || []).length % 2 !== 0) prepared += '"';
+                    if (!prepared.endsWith('}')) prepared += ' }';
+                    rawJson = prepared;
+                }
             }
         }
 
-        return JSON.parse(jsonToParse);
+        // 3. Remove common JSON-breaking elements
+        rawJson = rawJson
+            .replace(/\\n/g, ' ')
+            .replace(/\\r/g, ' ')
+            .replace(/\/\/.*$/gm, '') // Remove single-line comments
+            .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+
+        return JSON.parse(rawJson);
     } catch (e) {
         console.error('Failed to extract JSON from AI response:', e);
+        // Fallback: try to find any signal-like pattern if standard JSON parse fails
+        if (str.includes('BUY')) return { signal: 'BUY', confidence: 50 };
+        if (str.includes('SELL')) return { signal: 'SELL', confidence: 50 };
         return {};
     }
 }
