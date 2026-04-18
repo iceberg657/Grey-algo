@@ -869,7 +869,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 const config: any = { 
                     tools: [{googleSearch: {}}], 
                     temperature: 0,
-                    maxOutputTokens: 8192
+                    maxOutputTokens: 8192 // Ensure enough room for deep reasoning
                 };
                 
                 let responseText = '';
@@ -1342,7 +1342,7 @@ JSON Structure:
         const config: any = { 
           tools: [{googleSearch: {}}],
           temperature: 0,
-          maxOutputTokens: 2048
+          maxOutputTokens: 4096 // Increased from 2048 to prevent truncation
         };
         
         let text = '';
@@ -1453,45 +1453,95 @@ JSON Structure:
 
 function extractJson(str: string): any {
     if (!str) return {};
-    try {
-        // 1. Try markdown code block
-        const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        let rawJson = jsonMatch ? jsonMatch[1].trim() : str.trim();
+    
+    // Helper to deeply repair truncated JSON
+    const repairJson = (jsonStr: string) => {
+        let repaired = jsonStr.trim();
+        
+        // Count structural elements
+        const openBraces = (repaired.match(/{/g) || []).length;
+        const closeBraces = (repaired.match(/}/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length;
+        const closeBrackets = (repaired.match(/\]/g) || []).length;
+        const quoteCount = (repaired.match(/"/g) || []).length;
 
-        // 2. Find first { and last } to isolate the object
-        const firstOpen = rawJson.indexOf('{');
-        const lastClose = rawJson.lastIndexOf('}');
+        // Fix unclosed quotes
+        if (quoteCount % 2 !== 0) {
+            // Check if it ends mid-string or mid-key
+            repaired += '"';
+        }
+
+        // Remove trailing commas before closing braces/brackets
+        repaired = repaired.replace(/,\s*([}\]])/g, '$1');
+
+        // Close unclosed arrays
+        if (openBrackets > closeBrackets) {
+            repaired += ']'.repeat(openBrackets - closeBrackets);
+        }
+
+        // Close unclosed objects
+        if (openBraces > closeBraces) {
+            repaired += '}'.repeat(openBraces - closeBraces);
+        }
+
+        return repaired;
+    };
+
+    try {
+        // 1. Try markdown code block first as it's the cleanest
+        const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        let target = jsonMatch ? jsonMatch[1].trim() : str.trim();
+
+        // 2. Isolate the FIRST and LAST structural braces in case of preceding/succeeding text
+        const firstOpen = target.indexOf('{');
+        const lastClose = target.lastIndexOf('}');
         
         if (firstOpen !== -1) {
             if (lastClose !== -1 && lastClose > firstOpen) {
-                rawJson = rawJson.substring(firstOpen, lastClose + 1).trim();
+                target = target.substring(firstOpen, lastClose + 1).trim();
             } else {
-                // Truncated JSON handling
-                rawJson = rawJson.substring(firstOpen).trim();
-                // Basic truncation repair
-                if (!rawJson.endsWith('}')) {
-                    // Try to close any open quotes/brackets
-                    let prepared = rawJson;
-                    if ((prepared.match(/"/g) || []).length % 2 !== 0) prepared += '"';
-                    if (!prepared.endsWith('}')) prepared += ' }';
-                    rawJson = prepared;
-                }
+                target = target.substring(firstOpen).trim();
             }
         }
 
-        // 3. Remove common JSON-breaking elements
-        rawJson = rawJson
-            .replace(/\\n/g, ' ')
-            .replace(/\\r/g, ' ')
+        // 3. Sanitization: remove comments and line breaks that might break JSON.parse
+        target = target
             .replace(/\/\/.*$/gm, '') // Remove single-line comments
-            .replace(/\/\*[\s\S]*?\*\//g, ''); // Remove multi-line comments
+            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
+            .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
 
-        return JSON.parse(rawJson);
+        try {
+            return JSON.parse(target);
+        } catch (initialError) {
+            // 4. If standard parse fails, attempt deep repair
+            const repaired = repairJson(target);
+            try {
+                return JSON.parse(repaired);
+            } catch (repairError) {
+                console.warn('JSON Repair failed, attempting regex extraction of key fields...');
+                
+                // 5. Final Fallback: Heuristic extraction for critical fields
+                const signalMatch = str.match(/"signal":\s*"(BUY|SELL|NEUTRAL)"/i);
+                const confidenceMatch = str.match(/"confidence":\s*(\d+)/);
+                const assetMatch = str.match(/"asset":\s*"([^"]+)"/);
+                
+                if (signalMatch) {
+                    return {
+                        signal: signalMatch[1].toUpperCase(),
+                        confidence: confidenceMatch ? parseInt(confidenceMatch[1]) : 50,
+                        asset: assetMatch ? assetMatch[1] : 'Asset',
+                        reasoning: ["System Anomaly: JSON structure was corrupted but directional bias was salvaged."],
+                        fallbackTriggered: true
+                    };
+                }
+                throw repairError;
+            }
+        }
     } catch (e) {
-        console.error('Failed to extract JSON from AI response:', e);
-        // Fallback: try to find any signal-like pattern if standard JSON parse fails
-        if (str.includes('BUY')) return { signal: 'BUY', confidence: 50 };
-        if (str.includes('SELL')) return { signal: 'SELL', confidence: 50 };
+        console.error('CRITICAL: Unified JSON Extraction Failure:', e);
+        // Absolute last resort
+        if (str.toUpperCase().includes('BUY')) return { signal: 'BUY', confidence: 45, reasoning: ["Heuristic Fallback: 'BUY' keyword detected in unparsable stream."] };
+        if (str.toUpperCase().includes('SELL')) return { signal: 'SELL', confidence: 45, reasoning: ["Heuristic Fallback: 'SELL' keyword detected in unparsable stream."] };
         return {};
     }
 }
