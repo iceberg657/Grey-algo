@@ -25,6 +25,7 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - You MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
 - If confluence is not 100%, you MUST choose the side with the highest institutional probability and align with the Higher Timeframe (HTF) trend.
 - **IMMEDIATE EXECUTION:** Every setup MUST be for immediate market execution based on the live data provided.
+- **ULTRA-TIGHT LEVELS:** SL and TP MUST be very close to each other. Visible on the current timeframe. TP1 must be hit quickly.
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
@@ -1309,10 +1310,10 @@ USER REQUEST: "${query}"
 
 **MANDATORY EXECUTION RULES:**
 1. **SNIPER CONFIDENCE CAP:** Your confidence score MUST NOT exceed 85%. Even if the setup is perfect, cap your score at 85% to reflect inherent market risk.
-2. **IMMEDIATE EXECUTION ONLY:** Every setup you provide MUST be for **IMMEDIATE MARKET EXECUTION**. You are forbidden from issuing Limit or Stop orders. Your entryRange MUST encapsulate the current LIVE MARKET PRICE (${livePrice}).
-3. **INTELLIGENT STOP LOSS:** 
-   - Use "Structural Invalidation" points. If the trade is a scalp, the SL must be aggressive. If it's a "Sniper Swing", give the trade room to breathe behind the primary liquidity sweep.
-   - **Neural Precision:** In your reasoning, provide deep, institutional-grade logic for your SL placement. Explain why it separates you from retail "noise".
+2. **IMMEDIATE EXECUTION & SURGICAL PRECISION:** Every setup you provide MUST be for **IMMEDIATE MARKET EXECUTION**. Your entryRange MUST encapsulate the current LIVE MARKET PRICE (${livePrice}). SL and TP MUST be extremely tight and visible on the current timeframe. Avoid targets that require massive pips.
+3. **INTELLIGENT & TIGHT STOP LOSS:** 
+   - Use "Structural Invalidation" points. Protect against noise but keep it surgical.
+   - **Neural Precision:** In your reasoning, provide deep, institutional-grade logic for your SL placement. Explain why it separates you from retail "noise" even at this tight distance.
 4. **SOLID REASONING:** Your reasoning MUST be extremely robust. Focus on Institutional footprints, Liquidity Sweeps, and Market Invariants. Explain exactly WHY you chose the direction and WHY the alternative path is less likely.
 5. **POSITION MANAGEMENT & LOT SIZING:**
    - You MUST calculate and suggest a \`formattedLotSize\` based on standard risk management (e.g. 1% risk of a typical $10,000 account, or based on the pip distance to SL).
@@ -1425,15 +1426,15 @@ JSON Structure:
         }
     }
 
-    // 2. Sniper SL Tightening (Institutional Logic)
-    // If SL is too wide (e.g. > 1% of price), it's likely not a sniper entry
+    // 2. Sniper SL Tightening (Surgical Precision)
+    // If SL is too wide (e.g. > 0.5% of price), it's definitely not a sniper entry
     const slDistance = Math.abs(midEntry - finalSL);
     const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
-    if (slPercent > 0.02) {
-        // Force a tighter SL based on ATR or structure if AI provided a "swing" SL for a "scalp"
-        const adjustment = midEntry * 0.005; // 0.5% max SL for sniper
+    if (slPercent > 0.005) {
+        // Force a tighter SL (0.2% max SL for sniper)
+        const adjustment = midEntry * 0.002; 
         finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
-        finalReasoning.push(`🛡️ Stop Loss tightened to Institutional Invalidation Point (0.5% risk zone).`);
+        finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
     }
 
     // --- FINAL SNIPER CONSTRAINTS (NO NEUTRAL, CAP CONFIDENCE) ---

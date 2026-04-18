@@ -55,18 +55,17 @@ export function calculateTPSL(
   
   // Use ATR from Twelve Data if available for a "Volatility Buffer"
   const atr = twelveDataQuote?.atr ? parseFloat(twelveDataQuote.atr) : null;
-  const genericMinDist = baseEntry * 0.0015; 
-  let configMinDist = marketConfig ? marketConfig.minStopLoss : genericMinDist;
+  const genericMinDist = baseEntry * 0.0005; // Tightened from 0.0015
+  let configMinDist = marketConfig ? marketConfig.minStopLoss * 0.5 : genericMinDist;
   
-  // If ATR is available, use it to define a safe minimum distance (1.5x ATR for standard, 1.0x for scalping)
-  // This ensures the SL is not too tight for the current volatility, protecting funded accounts from stop hunts.
+  // If ATR is available, use it to define a safe minimum distance (0.8x ATR for standard, 0.5x for scalping)
   if (atr && !isNaN(atr)) {
-      const atrMultiplier = isScalping ? 1.0 : 1.5;
+      const atrMultiplier = isScalping ? 0.4 : 0.8;
       configMinDist = Math.max(configMinDist, atr * atrMultiplier);
   }
 
   if (isScalping && !atr) {
-      configMinDist = configMinDist * 0.5;
+      configMinDist = configMinDist * 0.3;
   }
   
   let currentSlDist = Math.abs(baseEntry - stopLoss);
@@ -77,8 +76,8 @@ export function calculateTPSL(
 
   if (!isSlValid || !isSlCorrectSide) {
       // Create SL based on ATR-like logic or config minimum
-      // For funded accounts, we prefer a slightly wider SL with reduced lot size over a tight SL that gets hunted.
-      const bufferMultiplier = isScalping ? 1.5 : 2.0;
+      // For funded accounts, we prefer a surgical SL.
+      const bufferMultiplier = isScalping ? 1.2 : 1.5;
       const buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist : currentSlDist * bufferMultiplier); 
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
