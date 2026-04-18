@@ -6,14 +6,17 @@ export default async function handler(req, res) {
   const { model, contents, config, apiKey: clientApiKey } = req.body;
   
   // Prioritize client key (which is rotated by the frontend pool), fallback to server env
-  const apiKey = clientApiKey || process.env.API_KEY_1 || process.env.GEMINI_API_KEY;
+  const apiKey = clientApiKey || process.env.GEMINI_API_KEY || process.env.API_KEY_1;
+  const keySource = clientApiKey ? 'Client Pool' : (process.env.GEMINI_API_KEY ? 'Server ENV (GEMINI_API_KEY)' : (process.env.API_KEY_1 ? 'Server ENV (API_KEY_1)' : 'None'));
   
   if (!apiKey) {
+    console.error(`[GeminiProxy] Request rejected: No API key provided (Source: ${keySource})`);
     return res.status(400).json({ error: 'Gemini API key not configured' });
   }
 
   try {
-    console.log(`[GeminiProxy] Analyzing with model: ${model}...`);
+    const maskedKey = `${apiKey.substring(0, 4)}...${apiKey.substring(apiKey.length - 4)}`;
+    console.log(`[GeminiProxy] Analyzing with model: ${model} | Key Source: ${keySource} | Key: ${maskedKey}`);
     
     // Extract root-level properties from config
     const { tools, systemInstruction, ...generationConfig } = config || {};

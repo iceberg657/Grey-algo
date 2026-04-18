@@ -907,34 +907,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                     );
                                   })}
                                 </div>
-
-                                {msg.signal.signal === 'NEUTRAL' && msg.signal.comebackTimeMinutes && (
-                                  <div className="mt-4 bg-amber-500/5 border border-amber-500/10 rounded-[2rem] p-6 overflow-hidden relative group">
-                                    <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors" />
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-amber-500 mb-4 flex items-center gap-2 relative z-10">
-                                      <Timer className="w-3 h-3" /> Sniper Arrival Projection
-                                    </h3>
-                                    <div className="flex flex-col md:flex-row items-center gap-6 relative z-10">
-                                       <div className="flex-1">
-                                         <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed italic">
-                                           "Market velocity currently insufficient for immediate execution. Based on Z-Score convergence and ATR-to-Zone distance, an optimal setup window is projected to open in approximately <strong className="text-amber-600 dark:text-amber-400">{msg.signal.comebackTimeMinutes} minutes</strong>."
-                                         </p>
-                                       </div>
-                                       <div className="bg-amber-500/10 dark:bg-amber-500/20 rounded-2xl p-4 text-center min-w-[140px] border border-amber-500/20">
-                                          <div className="text-[10px] font-black uppercase text-amber-500/70 mb-1">Neural Cooldown</div>
-                                          <div className="text-2xl font-black text-amber-600 dark:text-amber-400 italic tracking-tighter">T-{msg.signal.comebackTimeMinutes} MIN</div>
-                                          <div className="mt-1 h-1 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
-                                            <motion.div 
-                                              initial={{ width: '100%' }}
-                                              animate={{ width: '0%' }}
-                                              transition={{ duration: msg.signal.comebackTimeMinutes * 60, ease: 'linear' }}
-                                              className="h-full bg-amber-500"
-                                            />
-                                          </div>
-                                       </div>
-                                    </div>
-                                  </div>
-                                )}
                               </div>
                             </div>
 

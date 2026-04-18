@@ -173,7 +173,6 @@ export interface SignalData {
     totalPotentialProfit?: number;
     possiblePips?: number; // New field for estimated pips to target
     winProbability?: number; // Estimated probability of hitting the target
-    comebackTimeMinutes?: number; // Estimated minutes to wait before re-analyzing
     recommendedPositions?: number; // Number of positions to split the trade into
     positionLotSize?: string; // Lot size per position
     neutralConditions?: {
