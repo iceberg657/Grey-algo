@@ -8,9 +8,9 @@ import { MARKET_CONFIGS } from '../utils/marketConfigs';
 import { calculateLotSize } from '../utils/lotSizeCalculator';
 import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
-import { getLearnedStrategies } from './learningService';
+import { getLearnedStrategies, getNeuralProtocol } from './learningService';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, protocol: string | null = null) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -40,8 +40,9 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const learnedContext = strategies.length > 0 
     ? `\n🧠 **NEURAL LEARNING & HISTORICAL LESSONS (CRITICAL):**
 The following rules and historical lessons have been derived from your past performance and global market analysis. 
-You MUST prioritize these lessons to avoid repeating past mistakes and to replicate successful setups.
-${strategies.map(s => `- ${s}`).join('\n')}\n` 
+You MUST prioritize these lessons to avoid repeating past mistakes and to replicate successful setups to reach a 65% win rate.
+${strategies.map(s => `- ${s}`).join('\n')}
+${protocol ? `\n⚠️ MASTER SNIPER PROTOCOL (MANDATORY):\n${protocol}` : ""}\n` 
     : "";
 
   const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
@@ -629,6 +630,19 @@ If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirat
 
 ---
 
+**SNIPER COOLDOWN & COMEBACK TIME (NEURAL DYNAMICS):**
+- You MUST calculate a 'comebackTimeMinutes' value for every analysis, used most critically for NEUTRAL or low-confidence setups.
+- **Calculation Logic (Dynamic Wait):**
+  * Use **Market Velocity**: Calculate time to reach entry zones based on current ATR and Distance. Formula: (Distance_to_Zone / ATR) * Interval_Minutes.
+  * **Tiered Cooldowns:**
+    - **Ready/Approaching (|Z-Score| > 1.5):** Setup is maturing. Suggest 10-15 minutes.
+    - **Trending/High Momentum (|Z-Score| between 1.0 and 1.5):** Closing fast. Suggest 15-30 minutes.
+    - **Consolidating/Mean Reverting (|Z-Score| < 1.0):** Pure noise or waiting for accumulation. Suggest 60-120 minutes.
+    - **Post-Impact/News:** If high-impact news just passed, suggest 60 minutes for market stabilization.
+- **Goal:** Provide a calculated "Market Velocity" estimate so the user knows exactly when the "Sniper" window will likely open next.
+
+---
+
 **CRITICAL INSTRUCTION FOR NEUTRAL SIGNALS:**
 If you output 'signal': 'NEUTRAL', you MUST populate the 'neutralConditions' object with both 'buyConditions' and 'sellConditions', and provide both 'buySetupExample' and 'sellSetupExample'. DO NOT LEAVE THEM EMPTY. Use the following format for conditions:
 - BUY CONDITIONS (only if continuation is confirmed): [List specific triggers like Break of Structure, Close above level, Pullback into FVG]
@@ -719,6 +733,7 @@ Lot Size: 1–2% risk
   "takeProfits": [TP1, TP2, TP3],
   "possiblePips": number, // Estimated pips from Entry to TP3
   "winProbability": number, // Estimated probability (0-100) of hitting TP1
+  "comebackTimeMinutes": number, // Estimated minutes to wait before re-analyzing based on Market Velocity and Z-Score
   "recommendedPositions": number, // Usually 2 or 3 depending on how many TPs you want to target
   "neutralConditions": {
     "buyConditions": ["Condition 1", "Condition 2"], // Array of strings for buy conditions if signal is NEUTRAL
@@ -825,13 +840,15 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }); // Or use a generic format
+        const protocol = getNeuralProtocol();
         const promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n[CURRENT LOCAL TIME: ${new Date().toISOString()}]\n` + AI_TRADING_PLAN(
           request.riskRewardRatio, 
           request.asset || "",
           request.learnedStrategies || [],
           request.tradingStyle,
           request.userSettings,
-          request.twelveDataQuote
+          request.twelveDataQuote,
+          protocol
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -1273,15 +1290,31 @@ export async function generateSniperLiveSignal(
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+
+  // Fetch neural learning data
+  const strategies = await getLearnedStrategies();
+  const protocol = getNeuralProtocol();
+  
+  const learnedContext = `\n🧠 **NEURAL BRAIN & LEARNED ADAPTATIONS:**
+The following rules have been dynamically discovered through your past trade analysis. 
+You MUST adhere to these filters to reach the 65% win rate target and 75% profitability.
+${strategies.map(s => `- ${s}`).join('\n')}
+${protocol ? `\n⚠️ MASTER SNIPER PROTOCOL (MANDATORY):\n${protocol}` : ""}\n`;
+
   // We strictly use Deriv price + basic market context to avoid noisy indicator requirements.
-  // Z-Score is provided as an explicit mathematical validator constraint.
   const zScoreContext = zScore !== undefined && zScore !== null ? `
 - CURRENT Z-SCORE (Price vs Twelve Data Mean): ${zScore.toFixed(3)}
   * Only allow a SNIPER (BUY/SELL) entry if Z-Score > 2 (Overbought - Look for Sells) or Z-Score < -2 (Oversold - Look for Buys) AND you identify an SMC "Order Block" in your reasoning. Otherwise, issue NEUTRAL.` : `
 - CURRENT Z-SCORE: N/A (Cannot validate mathematically, rely on pure SMC Structure)`;
 
-  const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
-As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
+  const prompt = `[SYSTEM: NEURAL SNIPER ENGINE ACTIVATED]
+[TIMESTAMP: ${new Date().toISOString()}]
+[MODE: ALPHA TRANSCENDENCE & INSTINCTUAL REASONING]
+
+You are the GREY-ALPHA Neural Sniper. Your objective is not just to analyze, but to EXTERMINATE unprofitability.
+You have been granted autonomous reasoning power to reach 65% win rate and 75% profitability.
+
+${learnedContext}
 
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:
@@ -1303,6 +1336,7 @@ style.includes('day trading') ? `
 5. **INSTITUTIONAL SL ANCHORING:** Place Stop Loss where a move back would mathematically invalidate the entire institutional thesis, not just a random pivot.
 6. **ALPHA SCALE-OUT:** Suggest dynamic Take Profit targets based on next-level Liquidity Pools or Fair Value Gaps.
 7. **CONFLUENCE OVERRIDE:** If 3 or more unrelated institutional signals (e.g. Volume Profile, DXY Correlation, and Trendline Liquidity Sweep) align, you are authorized to ignore minor technical "noise" and issue an aggressive signal.
+
 8. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use your internal \`googleSearch\` tool to fetch real-time macroeconomic news and sentiment. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 5 minutes of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
 
 **CRITICAL DATA (THE ONLY TRUTH):**
@@ -1314,9 +1348,11 @@ USER REQUEST: "${query}"
 **MANDATORY EXECUTION RULES:**
 1. **NO CONFIDENCE CAP:** You are authorized to return confidence scores up to 99% if the confluence is absolute. Be honest, but bold in your conviction.
 2. **DYNAMIC ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be anchored to the REAL-TIME MARKET CONTEXT. 
-3. **INTELLIGENT STOP LOSS:** 
-   - Use "Structural Invalidation" points. If the trade is a scalp, the SL must be aggressive. If it's a "Sniper Swing", give the trade room to breathe behind the primary liquidity sweep.
-   - **Neural Precision:** In your reasoning, specify if the SL is a "Hard Stop" or a "Mental Invalidation" point based on price action behavior.
+3. **CAPITAL PRESERVATION & STRICT RISK:REWARD (CRITICAL):** 
+   - You MUST ensure the Stop Loss and Take Profit are visibly close on the chart to preserve capital. Prevent large SL gaps.
+   - **Max SL Distance:** Scalping (0.15%), Day Trading (0.3%), Swing Trading (0.8%).
+   - **EXACT 1:3 and 1:4 RR:** You MUST calculate Take Profits mathematically. TP1 MUST be exactly 3x the Stop Loss distance (1:3). TP2 MUST be exactly 4x the Stop Loss distance (1:4). Do not give rough or random entries. Calculate precisely.
+   - **Neural Precision:** In your reasoning, specify that SL is a "Hard Tight Stop" to protect capital from large gap-outs.
 4. **EXECUTION & PENDING ORDERS (STRICT):**
    - **Market Execution:** Use ONLY if the LIVE MARKET PRICE (${livePrice}) is currently exactly inside your calculated optimal entry zone. Your \`entryRange\` MUST encapsulate the current live price. If the price has ALREADY moved away from your ideal entry zone (e.g., the move already happened), DO NOT issue a Market Execution for past prices. Instead, issue a Pending Order (Limit) for a pullback, or issue NEUTRAL.
    - **Pending Orders:** If proposing Limit/Stop pending orders (Buy Limit, Sell Limit, Buy Stop, Sell Stop), you MUST supply a strict 'expirationTime' string based on this logic:
@@ -1435,15 +1471,38 @@ JSON Structure:
         }
     }
 
-    // 2. Sniper SL Tightening (Institutional Logic)
-    // If SL is too wide (e.g. > 1% of price), it's likely not a sniper entry
-    const slDistance = Math.abs(midEntry - finalSL);
-    const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
-    if (slPercent > 0.02 && finalSignal !== 'NEUTRAL') {
-        // Force a tighter SL based on ATR or structure if AI provided a "swing" SL for a "scalp"
-        const adjustment = midEntry * 0.005; // 0.5% max SL for sniper
-        finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
-        finalReasoning.push(`🛡️ Stop Loss tightened to Institutional Invalidation Point (0.5% risk zone).`);
+    // 2. Strict Risk-Reward and Stop Loss Enforcer (Capital Preservation)
+    let finalTakeProfits = Array.isArray(signal.takeProfits) ? [...signal.takeProfits] : [0, 0];
+
+    if (finalSignal !== 'NEUTRAL' && livePrice > 0) {
+        // Define max SL percent based on style to ensure entries are precise
+        let maxSlPercent = 0.003; // 0.3% default
+        if (style.includes('scalp')) maxSlPercent = 0.0015; // 0.15% max for Scalp
+        else if (style.includes('day')) maxSlPercent = 0.003; // 0.3% max for Day
+        else if (style.includes('swing')) maxSlPercent = 0.008; // 0.8% max for Swing
+
+        let currentSlDistance = Math.abs(midEntry - finalSL);
+        let currentSlPercent = currentSlDistance / livePrice;
+
+        // Force tighten SL if it's missing, 0, or too wide to prevent capital blowing out
+        if (finalSL === 0 || currentSlPercent > maxSlPercent) {
+            const adjustment = midEntry * maxSlPercent;
+            finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
+            currentSlDistance = Math.abs(midEntry - finalSL);
+            finalReasoning.push(`🛡️ Neural Risk Check: Stop Loss forcefully tightened to ${maxSlPercent * 100}% max distance to preserve capital and enforce precision entry.`);
+        }
+
+        // Hardcode exactly 1:3 and 1:4 Risk-Reward for Take Profits to ensure they're closely bound
+        const tp1Distance = currentSlDistance * 3;
+        const tp2Distance = currentSlDistance * 4;
+
+        finalTakeProfits[0] = finalSignal === 'BUY' ? midEntry + tp1Distance : midEntry - tp1Distance;
+        finalTakeProfits[1] = finalSignal === 'BUY' ? midEntry + tp2Distance : midEntry - tp2Distance;
+        
+        // Push reasoning unless the system hallucinated the array
+        if (!finalReasoning.some(r => r.includes('Reward Calibrated:'))) {
+            finalReasoning.push(`🎯 Reward Calibrated: TP1 secured at strict 1:3 RR, TP2 at 1:4 RR. No random projections.`);
+        }
     }
 
     // Ensure all required fields exist to prevent UI crashes
@@ -1457,7 +1516,7 @@ JSON Structure:
       entryPoints: [midEntry],
       entryRange: finalEntryRange,
       stopLoss: finalSL,
-      takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
+      takeProfits: finalTakeProfits,
       reasoning: finalReasoning,
       checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
       entryType: 'Market Execution',

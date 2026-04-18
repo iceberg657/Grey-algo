@@ -10,8 +10,13 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
     const normalized = symbol.toUpperCase().replace('/', '').replace(' ', '').replace(/[^A-Z0-9]/g, '');
     let mappedSymbol = normalized;
     
+    // Crypto - Deriv uses 'cry' prefix for these
+    if (normalized === 'BTC' || normalized === 'BTCUSD' || normalized === 'CRYBTCUSD') mappedSymbol = 'cryBTCUSD';
+    else if (normalized === 'ETH' || normalized === 'ETHUSD' || normalized === 'CRYETHUSD') mappedSymbol = 'cryETHUSD';
+    else if (normalized === 'LTC' || normalized === 'LTCUSD' || normalized === 'CRYLTCUSD') mappedSymbol = 'cryLTCUSD';
+    
     // Forex - Deriv requires lowercase 'frx' prefix for forex pairs
-    if (normalized.startsWith('FRX')) {
+    else if (normalized.startsWith('FRX')) {
         mappedSymbol = 'frx' + normalized.substring(3);
     } else if (normalized === 'GOLD' || normalized === 'XAUUSD') {
         mappedSymbol = 'frxXAUUSD';
@@ -22,7 +27,7 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
     else if (normalized === 'USDCAD') mappedSymbol = 'frxUSDCAD';
     else if (normalized === 'USDCHF') mappedSymbol = 'frxUSDCHF';
     else if (normalized === 'NZDUSD') mappedSymbol = 'frxNZDUSD';
-    else if (normalized.length === 6 && !['BOOM', 'CRAS', 'STEP', 'R_10', 'R_25', 'R_50', 'R_75', 'R_100'].some(p => normalized.startsWith(p))) {
+    else if (normalized.length === 6 && !['BOOM', 'CRAS', 'STEP', 'R_10', 'R_25', 'R_50', 'R_75', 'R_100', 'BTCU', 'ETHU', 'LTCU'].some(p => normalized.startsWith(p))) {
         mappedSymbol = 'frx' + normalized;
     }
     

@@ -1,8 +1,9 @@
 
 import React, { useState, useEffect } from 'react';
 import type { SignalData } from '../types';
-import { getHistory, clearHistory } from '../services/historyService';
+import { getHistory, clearHistory, updateTradeOutcome } from '../services/historyService';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import { Trophy, Skull, Activity, Check } from 'lucide-react';
 
 interface HistoryPageProps {
     onSelectAnalysis: (data: SignalData) => void;
@@ -12,28 +13,78 @@ interface HistoryPageProps {
 
 const getSignalClasses = (signal: SignalData['signal']) => {
     switch (signal) {
-        case 'BUY': return 'text-green-300 bg-green-900/40';
-        case 'SELL': return 'text-red-300 bg-red-900/40';
-        default: return 'text-gray-300 bg-gray-900/40';
+        case 'BUY': return 'text-emerald-400 bg-emerald-900/40 border border-emerald-500/20';
+        case 'SELL': return 'text-rose-400 bg-rose-900/40 border border-rose-500/20';
+        default: return 'text-slate-400 bg-slate-900/40 border border-slate-500/20';
     }
 };
 
-const HistoryItem: React.FC<{ data: SignalData; onSelect: (data: SignalData) => void }> = ({ data, onSelect }) => {
+const HistoryItem: React.FC<{ data: SignalData; onOutcomeUpdate: (id: string, outcome: 'Win' | 'Loss') => void }> = ({ data, onOutcomeUpdate }) => {
     return (
         <li 
-            onClick={() => onSelect(data)}
-            className="bg-white/60 dark:bg-slate-800/30 backdrop-blur-sm border border-gray-200 dark:border-white/5 shadow-md p-4 rounded-lg flex justify-between items-center cursor-pointer hover:bg-white/80 dark:hover:bg-slate-700/40 transition-all duration-200"
+            className="group bg-white/60 dark:bg-slate-800/20 backdrop-blur-sm border border-gray-200 dark:border-white/5 shadow-md p-4 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4 transition-all duration-300 hover:shadow-xl hover:bg-white/80 dark:hover:bg-slate-800/40"
         >
-            <div>
-                <p className="font-bold text-gray-900 dark:text-green-400">{data.asset}</p>
-                <p className="text-xs text-gray-600 dark:text-dark-text/70">
-                    {new Date(data.timestamp).toLocaleString()}
-                </p>
+            <div className="flex items-center gap-4 flex-grow">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                    data.signal === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 
+                    data.signal === 'SELL' ? 'bg-rose-500/10 text-rose-500' : 'bg-slate-500/10 text-slate-500'
+                }`}>
+                    {data.signal === 'BUY' ? <Trophy className="w-5 h-5" /> : data.signal === 'SELL' ? <Skull className="w-5 h-5" /> : <Activity className="w-5 h-5" />}
+                </div>
+                <div>
+                    <h4 className="font-black tracking-tight text-gray-900 dark:text-emerald-400">{data.asset}</h4>
+                    <p className="text-[10px] font-bold text-gray-500 dark:text-slate-500 uppercase tracking-widest">
+                        {new Date(data.timestamp).toLocaleString()} • {data.timeframe}
+                    </p>
+                </div>
             </div>
-            <div className="text-right">
-                <span className={`px-3 py-1 text-sm font-bold rounded-full ${getSignalClasses(data.signal)}`}>
-                    {data.signal}
-                </span>
+
+            <div className="flex items-center gap-3 w-full md:w-auto justify-between md:justify-end">
+                <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg ${getSignalClasses(data.signal)}`}>
+                        {data.signal}
+                    </span>
+                    {data.outcome && data.outcome !== 'Pending' && (
+                        <span className={`px-3 py-1 text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center gap-1 ${
+                            data.outcome === 'Win' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'
+                        }`}>
+                            <Check className="w-3 h-3" /> {data.outcome}
+                        </span>
+                    )}
+                </div>
+
+                <div className="flex items-center gap-1">
+                    <button 
+                        onClick={() => onOutcomeUpdate(data.id, 'Win')}
+                        className={`p-2 rounded-xl border transition-all ${
+                            data.outcome === 'Win' 
+                                ? 'bg-emerald-500 border-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                                : 'bg-emerald-500/5 border-emerald-500/10 text-emerald-600 dark:text-emerald-500 hover:bg-emerald-500/20'
+                        }`}
+                        title="Mark as Win"
+                    >
+                        <Trophy className="w-4 h-4" />
+                    </button>
+                    <button 
+                        onClick={() => onOutcomeUpdate(data.id, 'Loss')}
+                        className={`p-2 rounded-xl border transition-all ${
+                            data.outcome === 'Loss' 
+                                ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' 
+                                : 'bg-rose-500/5 border-rose-500/10 text-rose-600 dark:text-rose-500 hover:bg-rose-500/20'
+                        }`}
+                        title="Mark as Loss"
+                    >
+                        <Skull className="w-4 h-4" />
+                    </button>
+                    <div className="w-px h-6 bg-slate-200 dark:bg-slate-700 mx-1" />
+                    <button 
+                        onClick={() => {/* Use existing onSelect */}}
+                        className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:text-emerald-500 transition-colors"
+                        title="View Details"
+                    >
+                        <Activity className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
         </li>
     );
@@ -50,6 +101,15 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
         };
         fetchHistory();
     }, []);
+
+    const handleOutcomeUpdate = async (id: string, outcome: 'Win' | 'Loss') => {
+        try {
+            await updateTradeOutcome(id, outcome);
+            setHistory(prev => prev.map(item => item.id === id ? { ...item, outcome } : item));
+        } catch (e) {
+            console.error("Failed to update trade outcome:", e);
+        }
+    };
 
     const handleClearHistory = async () => {
         await clearHistory();
@@ -132,7 +192,11 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
                         <>
                             <ul className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                                 {history.map(item => (
-                                    <HistoryItem key={item.id} data={item} onSelect={onSelectAnalysis} />
+                                    <HistoryItem 
+                                        key={item.id} 
+                                        data={item} 
+                                        onOutcomeUpdate={handleOutcomeUpdate} 
+                                    />
                                 ))}
                             </ul>
                             <div className="pt-4 border-t border-gray-300 dark:border-green-500/30 flex justify-between items-center">
