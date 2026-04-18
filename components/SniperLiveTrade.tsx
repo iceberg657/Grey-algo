@@ -708,6 +708,30 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 </div>
                               </div>
 
+                              {/* Position Management */}
+                              {msg.signal.signal !== 'NEUTRAL' && (msg.signal.formattedLotSize || msg.signal.recommendedPositions) && (
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+                                  {msg.signal.formattedLotSize && (
+                                    <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-4 rounded-3xl">
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1 leading-none">Total Lot Size</div>
+                                      <div className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">{msg.signal.formattedLotSize}</div>
+                                    </div>
+                                  )}
+                                  {msg.signal.recommendedPositions && (
+                                    <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-4 rounded-3xl">
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1 leading-none">Total Positions</div>
+                                      <div className="text-xl font-black tracking-tighter text-slate-900 dark:text-white">{msg.signal.recommendedPositions}</div>
+                                    </div>
+                                  )}
+                                  {msg.signal.positionLotSize && (
+                                    <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-4 rounded-3xl">
+                                      <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1 leading-none">Size Per Position</div>
+                                      <div className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">{msg.signal.positionLotSize}</div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+
                               {/* Reasoning */}
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between">

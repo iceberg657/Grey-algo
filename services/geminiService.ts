@@ -110,7 +110,7 @@ You have been unprofitable for 7 months. This ends NOW.
 If this is a Funded Account or Prop Firm account, you MUST prioritize capital preservation over aggressive entries.
 1. **Wider Stop Losses:** Do not use extremely tight stop losses. Prop firms are notorious for spread widening and stop hunts. Use a wider SL (at least 1.5x ATR) and let the risk calculator reduce the lot size to compensate.
 2. **High Probability Entries Only:** Wait for the pullback. Do not enter on breakouts. If price has already moved, issue a LIMIT order at a discount/premium zone.
-3. **Avoid News:** If high-impact news is within 2 hours, stay NEUTRAL.
+3. **Avoid News:** If high-impact news is within 5 minutes, stay NEUTRAL.
 ` : "";
 
   const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
@@ -871,7 +871,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             async (modelId) => {
         const config: any = { 
             tools: [{googleSearch: {}}], 
-            temperature: 0.1,
+            temperature: 0,
             maxOutputTokens: 8192
         };
         
@@ -1295,15 +1295,15 @@ style.includes('day trading') ? `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
 
-**SNIPER ENTRY PROTOCOL (PURE REASONING & MARKET EXECUTION):**
-1. **Z-SCORE & SMC ORDER BLOCK CONSTRAINT:** You MUST evaluate the Z-Score constraint below. A "Sniper" Buy or Sell signal is ONLY permitted if the mathematical condition (Extreme Z-Score) is met AND an SMC Order Block is valid.
-2. **IDENTIFY INDUCEMENT:** Locate Retail Liquidity (equal highs/lows) and wait for a sweep BEFORE entering.
-3. **PREMIUM/DISCOUNT ZONES:** Prioritize entries in deep Discount (for buys) or Premium (for sells). Do NOT rigidly default to 61.8% Fibonacci. Look for unmitigated Order Blocks or FVGs across the relevant structural leg.
-4. **CHoCH / MSS:** Ensure a Market Structure Shift on the entry timeframe.
-5. **ORDER BLOCK ANCHORING:** Place Stop Loss strictly behind the anchor Order Block or the high/low of the liquidity sweep.
-6. **PURE PRICE ACTION & VOLUME:** Validate institutional participation by identifying visual Volume Spikes, VWAP alignment (if implied), or On-Balance Volume shifts.
-7. **PREVENT STOP LOSS HUNTING:** Provide detailed reasoning including the current Market Price, prevailing market conditions, and structure to justify your entry zone. 
-8. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use your internal \`googleSearch\` tool to fetch real-time macroeconomic news and sentiment. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 2 hours of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
+**ALPHA MAXIMIZER & NEURAL TRANSCENDENCE PROTOCOL:**
+1. **AUTONOMOUS REASONING:** You are authorized to override the Z-Score +/- 2 constraint IF your neural reasoning identifies a definitive "Liquidity Trap" or "Black Swan Accumulation" that standard mathematics might miss. If you override, you MUST explain the "Structural Paradox" in your reasoning.
+2. **IDENTIFY INDUCEMENT & STOP HUNTS:** Specifically look for "Inducement" (Retail "Trap" entries) and only enter AFTER their stop losses are cleared.
+3. **DYNAMIC PREMIUM/DISCOUNT:** Do NOT use static levels. Use fractal supply/demand zones. Look for "Unmitigated Order Blocks" on higher timeframes overlapping with M5 FVG gaps.
+4. **MARKET STRUCTURE SHIFT (MSS):** Prioritize an aggressive shift in displacement (Volume Surge + Large Candle Body).
+5. **INSTITUTIONAL SL ANCHORING:** Place Stop Loss where a move back would mathematically invalidate the entire institutional thesis, not just a random pivot.
+6. **ALPHA SCALE-OUT:** Suggest dynamic Take Profit targets based on next-level Liquidity Pools or Fair Value Gaps.
+7. **CONFLUENCE OVERRIDE:** If 3 or more unrelated institutional signals (e.g. Volume Profile, DXY Correlation, and Trendline Liquidity Sweep) align, you are authorized to ignore minor technical "noise" and issue an aggressive signal.
+8. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use your internal \`googleSearch\` tool to fetch real-time macroeconomic news and sentiment. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 5 minutes of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
 
 **CRITICAL DATA (THE ONLY TRUTH):**
 - ASSET: ${assetName}
@@ -1312,25 +1312,28 @@ style.includes('day trading') ? `
 USER REQUEST: "${query}"
 
 **MANDATORY EXECUTION RULES:**
-1. **CONFIDENCE CAP:** The maximum allowable confidence score is 85%. You must strictly end at an 85% confidence score or lower to prevent overfitting. Do NOT return a confidence score higher than 85.
-2. **ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be mathematically anchored to the LIVE MARKET PRICE (${livePrice}). 
-3. **STOP LOSS RULES (TIGHT vs DISTANT):** 
-   - You MUST place a very tight, precise Stop Loss close to the entry based on the strict timeframe execution. 
-   - **Scalping:** Place SL immediately below/above the M1/M5 trigger candle or closest fractal point. It must be very tight. ONLY place a wider, distant stop loss if your confidence score is exactly 85%.
-   - **Day Trading & Swing Trading:** Tighten the stop loss significantly to the nearest active liquidity zone. Only allow wide/distant SL parameter limits if your confidence score is exactly 85%. 
+1. **NO CONFIDENCE CAP:** You are authorized to return confidence scores up to 99% if the confluence is absolute. Be honest, but bold in your conviction.
+2. **DYNAMIC ANCHORING:** Your Entry, Stop Loss, and Take Profits MUST be anchored to the REAL-TIME MARKET CONTEXT. 
+3. **INTELLIGENT STOP LOSS:** 
+   - Use "Structural Invalidation" points. If the trade is a scalp, the SL must be aggressive. If it's a "Sniper Swing", give the trade room to breathe behind the primary liquidity sweep.
+   - **Neural Precision:** In your reasoning, specify if the SL is a "Hard Stop" or a "Mental Invalidation" point based on price action behavior.
 4. **EXECUTION & PENDING ORDERS (STRICT):**
    - **Market Execution:** Use ONLY if the LIVE MARKET PRICE (${livePrice}) is currently exactly inside your calculated optimal entry zone. Your \`entryRange\` MUST encapsulate the current live price. If the price has ALREADY moved away from your ideal entry zone (e.g., the move already happened), DO NOT issue a Market Execution for past prices. Instead, issue a Pending Order (Limit) for a pullback, or issue NEUTRAL.
    - **Pending Orders:** If proposing Limit/Stop pending orders (Buy Limit, Sell Limit, Buy Stop, Sell Stop), you MUST supply a strict 'expirationTime' string based on this logic:
      - **Scalping (M1/M5):** "Cancel order if not triggered within 10 minutes of signal generation." (3-8 candles window).
      - **Day Trading (M15/H1):** "Expiration: End of New York AM session (11:00 AM ET) or 4 hours from signal." (Kill Zone expiration).
      - **Swing Trading (H4/Daily):** "Set Good-Til-Date (GTD) for 48 hours. Invalidate immediately if a New High/Low is formed before entry."
-5. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use Google Search grounding (internally) or your current knowledge of macroeconomic events/calendars. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 2 hours of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
-6. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+5. **POSITION MANAGEMENT & LOT SIZING:**
+   - You MUST calculate and suggest a \`formattedLotSize\` based on standard risk management (e.g. 1% risk of a typical $10,000 account, or based on the pip distance to SL).
+   - You MUST suggest the \`recommendedPositions\` (e.g. split into 2 or 3 positions for partial takes).
+   - You MUST provide the \`positionLotSize\` (e.g. "0.01 per position").
+6. **FUNDAMENTAL EVENT BLOCKER (NEWS FILTER):** Before issuing ANY setup, use Google Search grounding (internally) or your current knowledge of macroeconomic events/calendars. If there is a high-impact news event (CPI, NFP, FOMC, Rate Decisions, etc.) within 5 minutes of the current time, you MUST issue a NEUTRAL signal to prevent being stopped out by extreme volatility.
+7. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
   "signal": "BUY" | "SELL" | "NEUTRAL",
-  "confidence": number (MAX 85),
+  "confidence": number (MAX 99),
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
   "entryRange": {"min": number, "max": number}, // CRITICAL: If Market Execution, min/max MUST encapsulate the live price (${livePrice}). If the optimal zone is in the future/past, issue a Limit/Stop.
@@ -1338,6 +1341,9 @@ JSON Structure:
   "expirationTime": "String explaining the exact cancellation/expiration rule based on trading style",
   "stopLoss": number,
   "takeProfits": [number, number],
+  "formattedLotSize": "String (e.g. '0.10')",
+  "recommendedPositions": number (e.g. 2),
+  "positionLotSize": "String (e.g. '0.05 per position')",
   "reasoning": [
     "Market Price vs Structure: [Detailed explanation]",
     "Current Conditions: [Detailed explanation]",
@@ -1357,7 +1363,7 @@ JSON Structure:
       async (modelId) => {
         const config: any = { 
           tools: [{googleSearch: {}}],
-          temperature: 0.1, // Lower temperature for higher precision
+          temperature: 0, // Lower temperature for higher precision
           maxOutputTokens: 2048
         };
         
@@ -1417,7 +1423,7 @@ JSON Structure:
     let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
 
     // 1. Price Sanity Check
-    if (diffPercent > 0.01 && livePrice > 0) {
+    if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
         if (diffPercent > 0.05) {
             finalSignal = 'NEUTRAL';
             finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
