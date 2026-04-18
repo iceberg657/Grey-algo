@@ -119,7 +119,7 @@ async function startServer() {
       }`;
 
       const response = await automlAi.models.generateContent({
-        model: "gemini-1.5-flash",
+        model: "gemini-3.1-flash-lite-preview",
         contents: prompt,
         config: { responseMimeType: "application/json" }
       });

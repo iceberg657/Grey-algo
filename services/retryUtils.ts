@@ -102,25 +102,29 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Keys 1, 2, 3, 4, 9)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K9()]);
 export const ANALYSIS_MODELS = [
-    'gemini-3.1-flash-lite-preview'
+    'gemini-3.1-flash-lite-preview', // Priority 1: Requested model
+    'gemini-3-flash-preview',       // Fallback 1: High speed
+    'gemini-2.5-flash',             // Fallback 2: User-verified availability
+    'gemini-2.5-pro'                // Fallback 3: User-verified availability
 ];
 
 // 2. CHAT & NEWS (Key 5)
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
 export const getChatPool = () => getUniqueKeys([K.K5(), K.K1()]); // Fallback to K1 if K5 missing
 export const CHAT_MODELS = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro'
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
+    'gemini-2.5-pro'
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
 export const getSuggestionPool = () => getUniqueKeys([K.K6(), K.K2()]); // Fallback to K2 if K6 missing
 export const SUGGESTION_MODELS = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-pro'
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
+    'gemini-2.5-pro'
 ];
 
 // Shared Pools
@@ -128,9 +132,9 @@ export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
 export const getSuggestionStructurePool = () => getChatPool(); // Global Market uses Chat Pool (K5) to save other keys
 
 export const LANE_2_MODELS = [
-    'gemini-2.0-flash',
-    'gemini-1.5-flash',
-    'gemini-1.5-pro'
+    'gemini-3.1-flash-lite-preview',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash'
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
