@@ -26,13 +26,18 @@ export default async function handler(req, res) {
     if (tools) requestBody.tools = tools;
     if (systemInstruction) requestBody.systemInstruction = systemInstruction;
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 34000);
+
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
 
     if (!response.ok) {
       let errorData;

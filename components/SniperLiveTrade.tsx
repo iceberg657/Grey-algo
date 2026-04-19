@@ -216,16 +216,25 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || '';
       }
 
+      console.log(`[SniperLiveTrade] Fetching live price for ${symbol}...`);
       const url = `/api/derivData?symbol=${symbol}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`;
       
-      const response = await fetch(url);
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second strict timeout
+
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+      
       const data = await response.json();
       if (data.error) throw new Error(data.error);
+      
+      console.log(`[SniperLiveTrade] Successfully fetched price:`, data);
       setLivePrice(data);
       return data;
     } catch (err: any) {
       console.error('Deriv Price Fetch Error:', err);
-      throw new Error(`Deriv API Error: ${err.message}`);
+      const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout');
+      throw new Error(isTimeout ? `Deriv API Timeout: Failed to fetch live data for ${asset} within 15s.` : `Deriv API Error: ${err.message}`);
     } finally {
       setIsFetchingPrice(false);
     }
@@ -264,7 +273,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     try {
       // 1. Extract asset from query
       const assetMatch = currentQuery.match(/(gold|eurusd|gbpusd|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{0,4}|crash\s?\d{0,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
-      const asset = assetMatch ? assetMatch[0].toUpperCase() : null;
+      const asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
 
       if (!asset) {
         const aiMsgId = (Date.now() + 1).toString();

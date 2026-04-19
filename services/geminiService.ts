@@ -1331,6 +1331,9 @@ JSON Structure:
         
         let text = '';
         try {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout limit
+
           const proxyRes = await fetch('/api/gemini/analyze', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -1340,7 +1343,9 @@ JSON Structure:
               config: config,
               apiKey: apiKey
             }),
+            signal: controller.signal
           });
+          clearTimeout(timeoutId);
 
           if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
           const data = await proxyRes.json();
