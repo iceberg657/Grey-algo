@@ -59,7 +59,7 @@ interface SniperLiveTradeProps {
 
 export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata, isLocked }) => {
   const [query, setQuery] = useState('');
-  const [style, setStyle] = useState<TradingStyle>('scalping(1 to 15mins)');
+  const [style, setStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [messages, setMessages] = useState<SniperMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
