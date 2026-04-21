@@ -60,12 +60,12 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
                 // If we have a local key, call Twelve Data directly from the client in parallel
                 // This maintains the same confluence as the backend proxy
                 const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
-                    fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`),
-                    fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
-                    fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
-                    fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`),
-                    fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`),
-                    fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`)
+                    fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`, { cache: 'no-store' }),
+                    fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
+                    fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
+                    fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
+                    fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
+                    fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' })
                 ]);
 
                 if (quoteRes.ok) {
@@ -100,7 +100,7 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
 
         // Fallback to backend proxy
         const url = `/api/twelveData?action=quote&symbol=${encodeURIComponent(symbol)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
-        const response = await fetch(url);
+        const response = await fetch(url, { cache: 'no-store' });
         
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));

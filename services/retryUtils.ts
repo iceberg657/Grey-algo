@@ -16,17 +16,17 @@ export async function initializeApiKey() {
     if (initializationPromise) return initializationPromise;
 
     initializationPromise = (async () => {
-        // 1. Check for Vite environment variables (Client-side build/Vercel)
+        // 1. Check for Vite environment variables (Client-side build/Vercel)                
         const envKeys = {
-            k1: import.meta.env.VITE_API_KEY_1 || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY,
-            k2: import.meta.env.VITE_API_KEY_2,
-            k3: import.meta.env.VITE_API_KEY_3,
-            k4: import.meta.env.VITE_API_KEY_4,
-            k5: import.meta.env.VITE_API_KEY_5,
-            k6: import.meta.env.VITE_API_KEY_6,
-            k7: import.meta.env.VITE_API_KEY_7,
-            k8: import.meta.env.VITE_API_KEY_8,
-            k9: import.meta.env.VITE_API_KEY_9,
+            k1: (typeof window !== 'undefined') ? (import.meta.env.VITE_API_KEY_1 || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY) : undefined,
+            k2: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_2 : undefined,
+            k3: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_3 : undefined,
+            k4: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_4 : undefined,
+            k5: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_5 : undefined,
+            k6: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_6 : undefined,
+            k7: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_7 : undefined,
+            k8: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_8 : undefined,
+            k9: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_9 : undefined,
         };
 
         if (envKeys.k1) {

@@ -73,12 +73,12 @@ export function validateTrade(
     const entryPrice = signal.entryPoints[0];
     const slDistance = Math.abs(entryPrice - signal.stopLoss);
     
-    if (slDistance < marketConfig.minStopLoss) {
-      return {
-        isValid: false,
-        reason: `Stop loss too tight`
-      };
-    }
+    // if (slDistance < marketConfig.minStopLoss) {
+    //   return {
+    //     isValid: false,
+    //     reason: `Stop loss too tight`
+    //   };
+    // }
   }
   
   if (signal.confidence < 60) {

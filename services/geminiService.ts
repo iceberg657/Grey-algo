@@ -1235,11 +1235,26 @@ export async function generateSniperLiveSignal(
   query: string,
   style: TradingStyle,
   derivData: any,
-  learnedStrategies: string[] = []
+  learnedStrategies: string[] = [],
+  quantData?: any
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+
+  const quantContext = quantData ? `
+**ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
+- Trend Bias: ${quantData.trend}
+- EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
+- Current RSI (Momentum): ${quantData.rsi}
+- Last Structural Swing High: ${quantData.lastSwingHigh}
+- Last Structural Swing Low: ${quantData.lastSwingLow}
+- **Break of Structure (BOS):** ${quantData.bos ? 'YES (Confirmed Close outside structure)' : 'NO'}
+- **Change of Character (CHoCH):** ${quantData.choch ? 'YES (Confirmed Close outside structure)' : 'NO'}
+- **Liquidity Sweep:** ${quantData.liquiditySweep ? 'YES (Wicked below/above and closed back inside)' : 'NO'}
+
+*Instructions:* Base your execution exclusively on these mathematical truths combined with the live bid/ask quote. Do not hallucinate structure that conflicts with this math.
+` : '';
 
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
 As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
@@ -1255,6 +1270,7 @@ style.includes('day trading') ? `
 `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
+${quantContext}
 
 **ALPHA MAXIMIZER & NEURAL TRANSCENDENCE PROTOCOL:**
 1. **HTF TREND ALIGNMENT (CRITICAL):** You MUST identify the higher timeframe (HTF) trend (e.g. 15m/30m for scalping, 4h for day trading). You are STRICTLY FORBIDDEN from counter-trend scalping. 
@@ -1396,16 +1412,16 @@ JSON Structure:
             }
         }
 
-        // 2. Sniper SL Tightening (Surgical Precision)
-        if (finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-            const slDistance = Math.abs(midEntry - finalSL);
-            const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
-            if (slPercent > 0.005) {
-                const adjustment = midEntry * 0.002; 
-                finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
-                finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
-            }
-        }
+        // // 2. Sniper SL Tightening (Surgical Precision)
+        // if (finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+        //     const slDistance = Math.abs(midEntry - finalSL);
+        //     const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
+        //     if (slPercent > 0.005) {
+        //         const adjustment = midEntry * 0.002; 
+        //         finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
+        //         finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
+        //     }
+        // }
 
         // --- FINAL SNIPER CONSTRAINTS ---
         if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {

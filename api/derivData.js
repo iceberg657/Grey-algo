@@ -3,11 +3,9 @@ import WebSocket from 'ws';
 
 const DERIV_APP_ID = 1089; // Default app id for testing or use a specific one if provided
 
-export async function fetchDerivQuote(symbol, clientToken = null) {
-    // Ticks do not require a token!
-    
+export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory = false, granularity = 60) {
     // Map common symbols to Deriv format if needed
-    const normalized = symbol.toUpperCase().replace('/', '').replace(' ', '').replace(/[^A-Z0-9]/g, '');
+    const normalized = symbol.toUpperCase().replace('/', '').replace(' ', '').replace(/[^A-Z0-9_]/g, '');
     let mappedSymbol = normalized;
     
     // Crypto - Deriv uses 'cry' prefix for these
@@ -64,6 +62,16 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
     else if (normalized === 'RANGE100') mappedSymbol = 'RB_100';
     else if (normalized === 'RANGE200') mappedSymbol = 'RB_200';
 
+    // Global Indices
+    else if (normalized === 'US30' || normalized === 'OTCDJI') mappedSymbol = 'OTC_DJI';
+    else if (normalized === 'US100' || normalized === 'NDX') mappedSymbol = 'OTC_NDX';
+    else if (normalized === 'US500' || normalized === 'SP500') mappedSymbol = 'OTC_SPC';
+    else if (normalized === 'UK100' || normalized === 'FTSE') mappedSymbol = 'OTC_FTSE';
+    else if (normalized === 'GERMANY40' || normalized === 'DAX' || normalized === 'OTCGDAXI') mappedSymbol = 'OTC_GDAXI';
+    else if (normalized === 'FRANCE40' || normalized === 'CAC' || normalized === 'OTCFCHI') mappedSymbol = 'OTC_FCHI';
+    else if (normalized === 'JAPAN225' || normalized === 'N225') mappedSymbol = 'OTC_N225';
+    else if (normalized === 'AUSTRALIA200' || normalized === 'AS51') mappedSymbol = 'OTC_AS51';
+
     return new Promise((resolve, reject) => {
         const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
 
@@ -74,7 +82,18 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
 
         ws.on('open', () => {
             // Ticks API does not require authorization
-            ws.send(JSON.stringify({ ticks: mappedSymbol }));
+            if (fetchHistory) {
+                ws.send(JSON.stringify({ 
+                    ticks_history: mappedSymbol,
+                    adjust_start_time: 1,
+                    count: 250, // Get enough candles for EMA200
+                    end: 'latest',
+                    style: 'candles',
+                    granularity: parseInt(granularity) || 60
+                }));
+            } else {
+                ws.send(JSON.stringify({ ticks: mappedSymbol }));
+            }
         });
 
         ws.on('message', (data) => {
@@ -87,7 +106,7 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
                 return;
             }
 
-            if (response.msg_type === 'tick') {
+            if (response.msg_type === 'tick' && !fetchHistory) {
                 const tick = response.tick;
                 ws.close();
                 clearTimeout(timeout);
@@ -97,6 +116,13 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
                     bid: tick.bid,
                     ask: tick.ask,
                     epoch: tick.epoch
+                });
+            } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles') {
+                ws.close();
+                clearTimeout(timeout);
+                resolve({
+                    symbol: mappedSymbol,
+                    candles: response.candles || []
                 });
             }
         });
@@ -110,13 +136,15 @@ export async function fetchDerivQuote(symbol, clientToken = null) {
 }
 
 export default async (req, res) => {
-    const { symbol, token } = req.query;
+    const { symbol, token, history, granularity } = req.query;
     if (!symbol) {
         return res.status(400).json({ error: 'Missing symbol' });
     }
 
     try {
-        const data = await fetchDerivQuote(symbol, token);
+        const fetchHistory = history === 'true';
+        const data = await fetchDerivQuote(symbol, token, fetchHistory, granularity);
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.status(200).json(data);
     } catch (error) {
         console.error('[DerivData] Error:', error.message);

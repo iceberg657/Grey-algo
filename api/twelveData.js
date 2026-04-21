@@ -102,6 +102,7 @@ export async function quoteHandler(req, res) {
             return res.status(400).json(quoteData);
         }
 
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.json({
             ...quoteData,
             rsi: rsiData?.values?.[0]?.rsi || 'N/A',

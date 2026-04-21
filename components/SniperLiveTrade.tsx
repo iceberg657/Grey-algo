@@ -28,6 +28,7 @@ import { Loader } from './Loader';
 import { fetchMarketData } from '../services/twelveDataService';
 import { saveAnalysis } from '../services/historyService';
 import { db, handleFirestoreError, OperationType } from '../firebase';
+import { analyzeSMC } from '../utils/quantEngine';
 import { 
   doc, 
   updateDoc, 
@@ -142,7 +143,17 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     if (normalized === 'ETH' || normalized === 'ETHUSD' || normalized === 'CRYETHUSD') return 'cryETHUSD';
     if (normalized === 'LTC' || normalized === 'LTCUSD' || normalized === 'CRYLTCUSD') return 'cryLTCUSD';
 
-    // 1. Forex
+    // 1. Global Indices
+    if (normalized === 'US30' || normalized === 'DOWJONES' || normalized === 'OTCUS30' || normalized === 'OTCDJI') return 'OTC_DJI';
+    if (normalized === 'US100' || normalized === 'NASDAQ' || normalized === 'NDX' || normalized === 'OTCNDX') return 'OTC_NDX';
+    if (normalized === 'US500' || normalized === 'SP500' || normalized === 'SPC' || normalized === 'OTCSPC') return 'OTC_SPC';
+    if (normalized === 'UK100' || normalized === 'FTSE' || normalized === 'OTCFTSE') return 'OTC_FTSE';
+    if (normalized === 'GERMANY40' || normalized === 'DAX' || normalized === 'OTCDAX' || normalized === 'OTCGDAXI') return 'OTC_GDAXI';
+    if (normalized === 'FRANCE40' || normalized === 'CAC' || normalized === 'OTCCAC' || normalized === 'OTCFCHI') return 'OTC_FCHI';
+    if (normalized === 'JAPAN225' || normalized === 'NIKKEI' || normalized === 'N225' || normalized === 'OTCN225') return 'OTC_N225';
+    if (normalized === 'AUSTRALIA200' || normalized === 'AS51' || normalized === 'OTCAS51') return 'OTC_AS51';
+
+    // 2. Forex
     if (normalized.includes('GOLD') || normalized.includes('XAUUSD')) return 'frxXAUUSD';
     if (normalized.includes('EURUSD')) return 'frxEURUSD';
     if (normalized.includes('GBPUSD')) return 'frxGBPUSD';
@@ -216,19 +227,30 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || '';
       }
 
-      console.log(`[SniperLiveTrade] Fetching live price for ${symbol}...`);
-      const url = `/api/derivData?symbol=${symbol}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`;
+      const isDayTrading = style.includes('day');
+      const granularity = isDayTrading ? 14400 : 900; // 4 Hours for Day Trading, 15 Minutes for Scalping
+
+      console.log(`[SniperLiveTrade] Fetching live price & OHLC history for ${symbol}...`);
+      const url = `/api/derivData?symbol=${symbol}&history=true&granularity=${granularity}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`;
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second strict timeout
 
-      const response = await fetch(url, { signal: controller.signal });
+      const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
       clearTimeout(timeoutId);
       
       const data = await response.json();
       if (data.error) throw new Error(data.error);
       
-      console.log(`[SniperLiveTrade] Successfully fetched price:`, data);
+      console.log(`[SniperLiveTrade] Successfully fetched market data for ${symbol}`);
+      // Parse out live price from the last candle
+      const lastCandle = data.candles && data.candles.length > 0 ? data.candles[data.candles.length - 1] : null;
+      if (lastCandle) {
+          data.price = lastCandle.close;
+          data.bid = lastCandle.close;
+          data.ask = lastCandle.close;
+      }
+      
       setLivePrice(data);
       return data;
     } catch (err: any) {
@@ -272,7 +294,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
     try {
       // 1. Extract asset from query
-      const assetMatch = currentQuery.match(/(gold|eurusd|gbpusd|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{0,4}|crash\s?\d{0,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
+      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|eurusd|gbpusd|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{0,4}|crash\s?\d{0,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
       const asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
 
       if (!asset) {
@@ -306,11 +328,15 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
 
       // 3. Generate signal using Gemini 3.1 Flash Lite with Institutional SMC logic
+      const quantData = derivData.candles ? analyzeSMC(derivData.candles) : null;
+      console.log(`[SniperLiveTrade] SMC Quant Engine Results:`, quantData);
+
       const result = await generateSniperLiveSignal(
         currentQuery, 
         style, 
         derivData, 
-        [] // Default learned strategies
+        [], // Default learned strategies
+        quantData
       );
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
@@ -385,6 +411,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   ];
 
   const SUPPORTED_ASSETS = [
+    { category: 'Global Indices', items: ['US 30 (OTC_DJI)', 'US 100 (OTC_NDX)', 'US 500 (OTC_SPC)', 'UK 100 (OTC_FTSE)', 'Germany 40 (OTC_GDAXI)', 'France 40 (OTC_FCHI)', 'Japan 225 (OTC_N225)', 'Australia 200 (OTC_AS51)'] },
     { category: 'Forex', items: ['EURUSD', 'GBPUSD', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'XAUUSD (Gold)'] },
     { category: 'Volatility Indices', items: ['V10', 'V25', 'V50', 'V75', 'V100', 'V10 (1s)', 'V25 (1s)', 'V50 (1s)', 'V75 (1s)', 'V100 (1s)'] },
     { category: 'Boom/Crash', items: ['Boom 1000/500/300', 'Boom 900/600/150/50', 'Crash 1000/500/300', 'Crash 900/600/150/50'] },
