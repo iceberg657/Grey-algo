@@ -866,18 +866,28 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                                 
                                 <div className="contact-details">
                                     <div className="contact-item">
-                                        <i className="fas fa-phone-alt"></i>
+                                        <i className="fas fa-phone-alt mt-1"></i>
                                         <div>
-                                            <h4>Phone</h4>
-                                            <p>+234 812 379 2862</p>
+                                            <h4>Phone / WhatsApp</h4>
+                                            <div className="flex gap-4 mt-2">
+                                                <a href="tel:+2348123792862" className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors font-medium">
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                                                    Call
+                                                </a>
+                                                <span className="text-slate-300 dark:text-slate-700">|</span>
+                                                <a href="https://wa.me/2348123792862" target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400 hover:text-green-500 dark:hover:text-green-400 transition-colors font-medium">
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a12.8 12.8 0 0 0-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z"/></svg>
+                                                    WhatsApp
+                                                </a>
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="contact-item">
+                                    <div className="contact-item cursor-pointer" onClick={() => window.location.href = "mailto:ma8138498@gmail.com"}>
                                         <i className="fas fa-envelope"></i>
                                         <div>
                                             <h4>Email</h4>
-                                            <p>ma8138498@gmail.com</p>
+                                            <p className="hover:text-blue-500 transition-colors">ma8138498@gmail.com</p>
                                         </div>
                                     </div>
                                     
@@ -896,30 +906,136 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                             
                             <div className="contact-form">
                                 <h3>Send a Message</h3>
-                                <form id="contactForm" onSubmit={(e) => e.preventDefault()}>
+                                <form id="contactForm" onSubmit={(e) => {
+                                    e.preventDefault();
+                                    const form = e.target as HTMLFormElement;
+                                    const name = (form.elements.namedItem('name') as HTMLInputElement).value;
+                                    const email = (form.elements.namedItem('email') as HTMLInputElement).value;
+                                    const subject = (form.elements.namedItem('subject') as HTMLInputElement).value;
+                                    const message = (form.elements.namedItem('message') as HTMLTextAreaElement).value;
+                                    const mailtoLink = `mailto:ma8138498@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(`Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`)}`;
+                                    window.location.href = mailtoLink;
+                                }}>
                                     <div className="form-group">
                                         <label htmlFor="name">Name</label>
-                                        <input type="text" id="name" required />
+                                        <input type="text" id="name" name="name" required />
                                     </div>
                                     
                                     <div className="form-group">
                                         <label htmlFor="email">Email</label>
-                                        <input type="email" id="email" required />
+                                        <input type="email" id="email" name="email" required />
                                     </div>
                                     
                                     <div className="form-group">
                                         <label htmlFor="subject">Subject</label>
-                                        <input type="text" id="subject" required />
+                                        <input type="text" id="subject" name="subject" required />
                                     </div>
                                     
                                     <div className="form-group">
                                         <label htmlFor="message">Message</label>
-                                        <textarea id="message" required></textarea>
+                                        <textarea id="message" name="message" required></textarea>
                                     </div>
                                     
                                     <button type="submit" className="cta-button">Send Message</button>
                                 </form>
                             </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Partners / Built On Section */}
+                <section className="py-24 relative z-10 overflow-hidden">
+                    <div className="landing-container relative z-10 max-w-6xl mx-auto px-4">
+                        <div className="text-center mb-16">
+                            <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white uppercase tracking-wider relative inline-block drop-shadow-md">
+                                Built on robust, institutional-grade infrastructure and data providers.
+                            </h2>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
+                            
+                            {/* Google */}
+                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/5 to-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                        <img src="https://www.vectorlogo.zone/logos/google/google-icon.svg" alt="Google Logo" className="w-full h-full object-contain" />
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Google</h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2 drop-shadow-sm">Firebase Auth & Infrastructure</p>
+                                </div>
+                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                        Powers authentication, real-time database, notifications and admin infrastructure
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Deriv */}
+                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-red-500/0 via-red-500/5 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                        <svg viewBox="0 0 200 200" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg" fill="#FF444F">
+                                            <path d="M125.7,28.8 L152.0,24.5 L129.5,175.5 L91.2,175.5 C55.3,175.5 35.8,151.7 35.8,118.4 C35.8,79.5 61.1,70.5 89.8,70.5 L106.8,70.5 L125.7,28.8 Z M103.5,91.8 L84.2,91.8 C64.1,91.8 59.2,104.2 59.2,119.5 C59.2,138.8 68.2,154.2 86.8,154.2 L95.2,154.2 L103.5,91.8 Z" />
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Deriv</h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-2 drop-shadow-sm">Live Price Feed & Trade Data</p>
+                                </div>
+                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                        Provides live WebSocket price feeds and OHLC data for the Sniper Page engine
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Twelve Data */}
+                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/5 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                        <svg viewBox="0 0 100 100" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg rounded-sm overflow-hidden">
+                                            <rect width="100" height="100" fill="#2563eb" />
+                                            <text x="50" y="74" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="76" fill="white" textAnchor="middle" letterSpacing="-4">12</text>
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Twelve Data</h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#2563eb] dark:text-[#60a5fa] mb-2 drop-shadow-sm">Market Scanner & Validation</p>
+                                </div>
+                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                        Validates hourly market momentum for the dashboard asset scanner
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Gemini AI */}
+                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-purple-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                        <svg viewBox="0 0 24 24" className="w-16 h-16 drop-shadow-lg" fill="none">
+                                            <defs>
+                                                <linearGradient id="gemini-grad-logo" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" stopColor="#4285F4"/>
+                                                    <stop offset="50%" stopColor="#9B72CB"/>
+                                                    <stop offset="100%" stopColor="#D96570"/>
+                                                </linearGradient>
+                                            </defs>
+                                            <path d="M11.968 24C12.443 17.514 17.514 12.443 24 11.968C17.514 11.494 12.443 6.422 11.968 0C11.494 6.422 6.422 11.494 0 11.968C6.422 12.443 11.494 17.514 11.968 24Z" fill="url(#gemini-grad-logo)"/>
+                                        </svg>
+                                    </div>
+                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Gemini AI</h3>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#9B72CB] mb-2 drop-shadow-sm">Neural Analysis Engine</p>
+                                </div>
+                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                        The neural analysis engine powering all trade signals, chatbot and market reasoning
+                                    </p>
+                                </div>
+                            </div>
+                            
                         </div>
                     </div>
                 </section>
@@ -968,7 +1084,7 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                         </div>
                         
                         <div className="copyright flex flex-col items-center">
-                            <p className="text-sm opacity-50">&copy; 2025 GreyAlpha. All rights reserved.</p>
+                            <p className="text-sm opacity-50">&copy; 2026 GreyAlpha. All rights reserved.</p>
                         </div>
                     </div>
                 </footer>

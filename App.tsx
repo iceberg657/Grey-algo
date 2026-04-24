@@ -1,6 +1,7 @@
 
 import React, { useState, useCallback, useEffect, type ErrorInfo, type ReactNode, Component } from 'react';
 import { TradeHistory } from './components/TradeHistory';
+import { TradeJournal } from './components/TradeJournal';
 import { LoginPage } from './components/LoginPage';
 import { SignUpPage } from './components/SignUpPage';
 import { HomePage } from './components/HomePage';
@@ -528,7 +529,7 @@ const App: React.FC = () => {
                                 Back
                             </button>
                             <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-green-400">
-                                Trade Journal
+                                Trade Journal & Neural Lessons
                             </h1>
                             <div className="flex items-center space-x-2">
                                 <button
@@ -540,7 +541,14 @@ const App: React.FC = () => {
                                 </button>
                             </div>
                         </header>
-                        <TradeHistory />
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="lg:col-span-2">
+                                <TradeHistory />
+                            </div>
+                            <div className="lg:col-span-1">
+                                <TradeJournal />
+                            </div>
+                        </div>
                     </div>
                 </div>
             );

@@ -16,6 +16,9 @@ export interface SMCSignals {
     ema50: number | null;
     ema200: number | null;
     rsi: number | null;
+    equilibrium: number | null;
+    isPremium: boolean;
+    isDiscount: boolean;
 }
 
 // EMA Calculation
@@ -112,7 +115,8 @@ export function analyzeSMC(candles: OHLC[]): SMCSignals {
             trend: 'RANGING',
             bos: false, choch: false, liquiditySweep: false,
             lastSwingHigh: null, lastSwingLow: null,
-            ema50: null, ema200: null, rsi: null
+            ema50: null, ema200: null, rsi: null,
+            equilibrium: null, isPremium: false, isDiscount: false
         };
     }
 
@@ -175,6 +179,21 @@ export function analyzeSMC(candles: OHLC[]): SMCSignals {
         }
     }
 
+    // Premium / Discount Zones
+    let equilibrium = null;
+    let isPremium = false;
+    let isDiscount = false;
+
+    if (lastSwingHigh !== null && lastSwingLow !== null) {
+        equilibrium = (lastSwingHigh + lastSwingLow) / 2;
+        const currentPrice = lastCandle.close;
+        if (currentPrice > equilibrium) {
+            isPremium = true;
+        } else if (currentPrice < equilibrium) {
+            isDiscount = true;
+        }
+    }
+
     return {
         trend,
         bos,
@@ -184,6 +203,9 @@ export function analyzeSMC(candles: OHLC[]): SMCSignals {
         lastSwingLow,
         ema50: ema50 ? Number(ema50.toFixed(5)) : null,
         ema200: ema200 ? Number(ema200.toFixed(5)) : null,
-        rsi: currentRsi ? Number(currentRsi.toFixed(2)) : null
+        rsi: currentRsi ? Number(currentRsi.toFixed(2)) : null,
+        equilibrium: equilibrium ? Number(equilibrium.toFixed(5)) : null,
+        isPremium,
+        isDiscount
     };
 }

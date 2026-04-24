@@ -29,8 +29,9 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
-- **FORCE DIRECTION (DECISIVE BIAS):** If the market shows a clear trend bias (UP or DOWN), do NOT default to NEUTRAL.
-- **BIAS OVER NEUTRALITY:** If your confidence score is between 41% and 60%, do NOT sit on the fence. Check the trend bias:
+- **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
+- **FORCE DIRECTION (DECISIVE BIAS):** Look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
+- **BIAS OVER NEUTRALITY:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
     - If Trend is UP -> Issue 'WEAK BULLISH' (labeled as BUY).
     - If Trend is DOWN -> Issue 'WEAK BEARISH' (labeled as SELL).
 - **DOMINANT SIGNAL OVERRIDE:** If a 'BOS' or 'CHoCH' exists in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.\n`;
@@ -229,18 +230,17 @@ You MUST analyze the market through the lens of Institutional Order Flow:
 2. **Liquidity Engineering:** Look for "Inducement" (IDM) and "Liquidity Sweeps" (BSL/SSL). Institutions NEED liquidity to fill large orders.
 3. **Market Structure Shift (MSS):** Look for a decisive break of structure with **Displacement** (large, energetic candles).
 4. **Order Blocks & Breakers:** Distinguish between a standard Order Block (OB) and a **Breaker Block** (a failed OB that now acts as support/resistance).
-5. **Mitigation:** Check if the zone has already been "mitigated" (touched). Fresh zones have higher probability.
+5. **Mitigation & Zones:** Check if the zone has already been "mitigated" (touched). Fresh zones have higher probability. **CRITICAL: Apply Premium and Discount zones**. Always map the dealing range (Swing High to Swing Low) to find equilibrium. You MUST Buy in Discount (<50%) and Sell in Premium (>50%) for high probability entries.
 
 📊 **QUANTITATIVE & STATISTICAL ARBITRAGE LAYER:**
 Use the Twelve Data "Mathematical Truth" to perform statistical analysis:
 1. **Mean Reversion (SMA/STDDEV):** If price is > 2 Standard Deviations from the 20-period SMA, look for a mean reversion setup.
 2. **Volatility Arbitrage (ATR):** If ATR is expanding, expect trend continuation. If ATR is contracting, expect a breakout or reversal.
-3. **SMT Divergence (Smart Money Tool):** Mentally check for divergence between correlated assets (e.g., if EURUSD makes a lower low but GBPUSD makes a higher low, this is BULLISH SMT Divergence).
-4. **Relative Strength:** Compare the asset's performance against its index (e.g., AAPL vs QQQ) to find alpha.
+3. **Equilibrium Validation:** Evaluate if the asset has returned to the Equilibrium (50% mark) of the recent structural leg.
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL. You are FORBIDDEN from being NEUTRAL.
-   - **BIAS OVER NEUTRALITY:** You MUST prioritize a directional signal (BUY/SELL). Use your neural processing to find the path of least resistance for the institutions.
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL. You are EXACTLY FORBIDDEN from being NEUTRAL, regardless of trading mode (Aggressive or Sniper).
+   - **BIAS OVER NEUTRALITY:** You MUST prioritize a directional signal (BUY/SELL). Use your neural processing to find the path of least resistance for the institutions. Let the mathematical logic force a direction.
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
