@@ -1,11 +1,9 @@
 <svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
   <g transform="translate(128, 128) scale(0.5)">
-    <!-- Outer Ring -->
-    <path d="M448 256C448 362.035 362.035 448 256 448C149.965 448 64 362.035 64 256C64 149.965 149.965 64 256 64C362.035 64 448 149.965 448 256Z" stroke="black" stroke-width="24" stroke-linecap="round" opacity="0.3"/>
     <!-- Main Alpha Symbol Arches -->
-    <path d="M160 384C160 384 192 256 256 256C320 256 352 384 352 384" stroke="black" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
-    <path d="M256 256C256 256 320 128 384 128C448 128 480 256 480 256" stroke="black" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M160 384C160 384 192 256 256 256C320 256 352 384 352 384" stroke="black" stroke-width="60" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M256 256C256 256 320 128 384 128C448 128 480 256 480 256" stroke="black" stroke-width="60" stroke-linecap="round" stroke-linejoin="round"/>
     <!-- Center Core -->
-    <circle cx="256" cy="256" r="50" fill="black"/>
+    <circle cx="256" cy="256" r="60" fill="black"/>
   </g>
 </svg>
