@@ -270,7 +270,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             </div>
                         </div>
 
-                        <div className="pt-2">
+                        <div className="pt-2 space-y-3">
                             <button
                                 type="submit"
                                 className={`w-full py-3 rounded-xl font-bold text-white transition-all flex items-center justify-center ${saved ? 'bg-green-500' : 'bg-blue-600 hover:bg-blue-500 active:scale-95'}`}
@@ -283,6 +283,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         Saved!
                                     </>
                                 ) : 'Save Configuration'}
+                            </button>
+                            
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    const keys = Object.keys(localStorage);
+                                    keys.forEach(key => {
+                                        if (key.startsWith('greyalpha_onboarding_')) {
+                                            localStorage.removeItem(key);
+                                        }
+                                    });
+                                    window.location.reload();
+                                }}
+                                className="w-full py-3 rounded-xl font-bold text-gray-500 dark:text-slate-400 border border-gray-200 dark:border-slate-700 hover:bg-gray-100 dark:hover:bg-slate-800 transition-all flex items-center justify-center"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Re-run Welcome Tutorial
                             </button>
                         </div>
                     </form>

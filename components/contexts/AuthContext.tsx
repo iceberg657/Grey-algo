@@ -43,6 +43,12 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         let unsubscribeMeta: (() => void) | undefined;
 
         const unsubscribeAuth = onAuthStateChanged(auth, async (currentUser) => {
+            // Clear previous listener if it exists
+            if (unsubscribeMeta) {
+                unsubscribeMeta();
+                unsubscribeMeta = undefined;
+            }
+
             setUser(currentUser);
             setIsLoggedIn(!!currentUser);
             
@@ -61,7 +67,11 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
                         // Ensure admin role is set if email matches
                         if (currentUser.email === 'ma8138498@gmail.com' && data.role !== 'admin') {
-                            await updateDoc(userRef, { role: 'admin' });
+                            try {
+                                await updateDoc(userRef, { role: 'admin' });
+                            } catch (e) {
+                                console.error("Failed to auto-upgrade to admin:", e);
+                            }
                         }
                         
                         setUserMetadata(data);
@@ -78,11 +88,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             },
                             createdAt: Date.now()
                         };
-                        await setDoc(userRef, initialMeta);
-                        setUserMetadata(initialMeta);
+                        try {
+                            await setDoc(userRef, initialMeta);
+                            setUserMetadata(initialMeta);
+                        } catch (e) {
+                            console.error("Failed to create user metadata:", e);
+                            handleFirestoreError(e, OperationType.CREATE, `users/${currentUser.uid}`);
+                        }
                     }
                     setLoading(false);
                 }, (err) => {
+                    // Ignore permission-denied errors if the user is signing out
+                    if (err.code === 'permission-denied' && !auth.currentUser) {
+                        console.log("Permission denied error ignored during sign-out");
+                        return;
+                    }
+                    
                     setLoading(false);
                     try {
                         handleFirestoreError(err, OperationType.GET, `users/${currentUser.uid}`);

@@ -41,6 +41,7 @@ import { db, handleFirestoreError, OperationType } from './firebase';
 import type { AdminSettings } from './types';
 import { requestNotificationPermission, onMessageListener } from './services/notificationService';
 import { SplashScreen } from './components/SplashScreen';
+import { OnboardingFlow } from './components/OnboardingFlow';
 
 type AuthPage = 'login' | 'signup';
 type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper';
@@ -122,6 +123,21 @@ const App: React.FC = () => {
     const [isTransitioning, setIsTransitioning] = useState<boolean>(false);
     const [systemSettings, setSystemSettings] = useState<AdminSettings | null>(null);
     const [showSplash, setShowSplash] = useState<boolean>(true);
+    const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+
+    useEffect(() => {
+        if (!loading && isLoggedIn) {
+            const hasSeenOnboarding = localStorage.getItem(`greyalpha_onboarding_${userMetadata?.uid || 'guest'}`);
+            if (!hasSeenOnboarding) {
+                setShowOnboarding(true);
+            }
+        }
+    }, [isLoggedIn, loading, userMetadata?.uid]);
+
+    const handleOnboardingComplete = () => {
+        localStorage.setItem(`greyalpha_onboarding_${userMetadata?.uid || 'guest'}`, 'true');
+        setShowOnboarding(false);
+    };
 
     useEffect(() => {
         const path = 'admin_settings/system';
@@ -602,6 +618,15 @@ const App: React.FC = () => {
         <ErrorBoundary>
             {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
             
+            <AnimatePresence>
+                {showOnboarding && isLoggedIn && (
+                    <OnboardingFlow 
+                        onComplete={handleOnboardingComplete} 
+                        userName={userMetadata?.displayName || userMetadata?.email?.split('@')[0]}
+                    />
+                )}
+            </AnimatePresence>
+
             {/* Connectivity Banner */}
             <AnimatePresence>
                 {!isFirebaseConnected && (
