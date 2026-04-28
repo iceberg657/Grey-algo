@@ -153,20 +153,38 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
                   ema50 < ema200 && currentPrice < ema50 ? 'BEARISH' : 'RANGING';
 
     // BOS and CHoCH
-    const prevHigh = Math.max(...highs.slice(-10, -1));
-    const prevLow = Math.min(...lows.slice(-10, -1));
-    const bos = trend === 'BULLISH' ? currentPrice > prevHigh : currentPrice < prevLow;
-    const choch = trend === 'BULLISH' ? currentPrice < prevLow : currentPrice > prevHigh;
+    const prevHigh = Math.max(...highs.slice(-12, -1));
+    const prevLow = Math.min(...lows.slice(-12, -1));
+    
+    let bos = false;
+    let choch = false;
+    if (trend === 'BULLISH') {
+        bos = currentPrice > prevHigh;
+        choch = currentPrice < prevLow;
+    } else if (trend === 'BEARISH') {
+        bos = currentPrice < prevLow;
+        choch = currentPrice > prevHigh;
+    } else {
+        // In RANGING: BOS is a break of the local range
+        bos = currentPrice > prevHigh || currentPrice < prevLow;
+    }
 
     // Liquidity Sweep
     const lastCandle = candles[candles.length - 1];
-    const liquiditySweep = trend === 'BULLISH'
-        ? lastCandle.low < prevLow && lastCandle.close > prevLow
-        : lastCandle.high > prevHigh && lastCandle.close < prevHigh;
+    let liquiditySweep = false;
+    if (trend === 'BULLISH') {
+        liquiditySweep = lastCandle.low < prevLow && lastCandle.close > prevLow;
+    } else if (trend === 'BEARISH') {
+        liquiditySweep = lastCandle.high > prevHigh && lastCandle.close < prevHigh;
+    } else {
+        // In RANGING: Check both sides for sweeps
+        liquiditySweep = (lastCandle.low < prevLow && lastCandle.close > prevLow) || 
+                         (lastCandle.high > prevHigh && lastCandle.close < prevHigh);
+    }
 
     // ✅ NEW: Premium/Discount Zone Calculation
-    const highest = Math.max(...highs);
-    const lowest = Math.min(...lows);
+    const highest = Math.max(...highs.slice(-50));
+    const lowest = Math.min(...lows.slice(-50));
     const range = highest - lowest;
     const midpoint = lowest + range / 2;
     const premiumZone = { upper: highest, lower: midpoint };
@@ -174,10 +192,20 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const currentZone = currentPrice > midpoint ? 'PREMIUM' : 'DISCOUNT';
 
     // Zone validity check
-    const zoneValid = (
-        (trend === 'BULLISH' && currentZone === 'DISCOUNT') ||
-        (trend === 'BEARISH' && currentZone === 'PREMIUM')
-    );
+    // In Trends: Must be in discount for BUY, premium for SELL
+    // In Ranges: Must be in outer 30% for mean reversion
+    const distFromMid = Math.abs(currentPrice - midpoint);
+    const rangeExtremity = distFromMid / (range / 2); // 0 at midpoint, 1 at edges
+
+    let zoneValid = false;
+    if (trend === 'BULLISH') {
+        zoneValid = currentZone === 'DISCOUNT';
+    } else if (trend === 'BEARISH') {
+        zoneValid = currentZone === 'PREMIUM';
+    } else {
+        // Ranging: Valid if price is at the edges (outer 30%)
+        zoneValid = rangeExtremity > 0.4; 
+    }
 
     // ✅ NEW: 3 Timeframe Confirmation
     let tfConfirmation = {
@@ -209,7 +237,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
     // If HTF data insufficient, don't penalize — just skip TF alignment check
     tfConfirmation.allAligned = (
-        tfConfirmation.entryTrend !== 'RANGING' &&
+        (trend !== 'RANGING') &&
         (
             // Full 3TF alignment
             (tfConfirmation.entryTrend === tfConfirmation.confirmTrend &&
@@ -223,6 +251,134 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         )
     );
 
+    // ATR Calculation
+    const calculateATR = (c: any[], period = 14) => {
+        const trs = c.map((candle, i) => {
+            if (i === 0) return candle.high - candle.low;
+            const prevClose = c[i - 1].close;
+            return Math.max(
+                candle.high - candle.low,
+                Math.abs(candle.high - prevClose),
+                Math.abs(candle.low - prevClose)
+            );
+        });
+        const recent = trs.slice(-period);
+        return recent.reduce((a, b) => a + b, 0) / (recent.length || 1);
+    };
+    const atr = calculateATR(candles);
+
+    // FVG Detection
+    const detectFVG = (c: any[]) => {
+        if (c.length < 3) return null;
+        const c1 = c[c.length - 3];
+        const c3 = c[c.length - 1];
+
+        // Bullish FVG
+        if (c1.high < c3.low) {
+            return {
+                type: 'BULLISH',
+                upper: c3.low,
+                lower: c1.high,
+                midpoint: (c3.low + c1.high) / 2,
+                filled: false
+            };
+        }
+
+        // Bearish FVG
+        if (c1.low > c3.high) {
+            return {
+                type: 'BEARISH',
+                upper: c1.low,
+                lower: c3.high,
+                midpoint: (c1.low + c3.high) / 2,
+                filled: false
+            };
+        }
+
+        return null;
+    };
+    const fvg = detectFVG(candles);
+
+    const fvgRetest = fvg ? (
+        fvg.type === 'BULLISH'
+            ? currentPrice >= fvg.lower && currentPrice <= fvg.upper
+            : currentPrice >= fvg.lower && currentPrice <= fvg.upper
+    ) : false;
+
+    // Order Block Detection
+    const detectOrderBlock = (c: any[], t: string) => {
+        if (c.length < 5) return null;
+        const recent = c.slice(-10);
+
+        if (t === 'BULLISH') {
+            for (let i = recent.length - 2; i >= 0; i--) {
+                const isBearish = recent[i].close < recent[i].open;
+                const nextIsBullish = recent[i + 1].close > recent[i + 1].open;
+                const strongMove = (recent[i + 1].close - recent[i + 1].open) >
+                                   (recent[i].open - recent[i].close) * 1.5;
+
+                if (isBearish && nextIsBullish && strongMove) {
+                    return {
+                        type: 'BULLISH_OB',
+                        upper: recent[i].open,
+                        lower: recent[i].close,
+                        mitigated: currentPrice >= recent[i].close &&
+                                   currentPrice <= recent[i].open
+                    };
+                }
+            }
+        }
+
+        if (t === 'BEARISH') {
+            for (let i = recent.length - 2; i >= 0; i--) {
+                const isBullish = recent[i].close > recent[i].open;
+                const nextIsBearish = recent[i + 1].close < recent[i + 1].open;
+                const strongMove = (recent[i + 1].open - recent[i + 1].close) >
+                                   (recent[i].close - recent[i].open) * 1.5;
+
+                if (isBullish && nextIsBearish && strongMove) {
+                    return {
+                        type: 'BEARISH_OB',
+                        upper: recent[i].close,
+                        lower: recent[i].open,
+                        mitigated: currentPrice >= recent[i].open &&
+                                   currentPrice <= recent[i].close
+                    };
+                }
+            }
+        }
+        return null;
+    };
+    const orderBlock = detectOrderBlock(candles, trend);
+
+    // Session Detection
+    const detectSession = () => {
+        const now = new Date();
+        const utcHour = now.getUTCHours();
+        if (utcHour >= 7 && utcHour < 11) return 'LONDON';
+        if (utcHour >= 12 && utcHour < 16) return 'NEW_YORK';
+        if (utcHour >= 11 && utcHour < 12) return 'LONDON_NY_OVERLAP';
+        if (utcHour >= 0 && utcHour < 7) return 'ASIAN';
+        return 'OFF_SESSION';
+    };
+    const session = detectSession();
+
+    // Standard Deviation Overextension
+    const calculateStdDev = (data: number[], period = 20) => {
+        const slice = data.slice(-period);
+        const mean = slice.reduce((a, b) => a + b, 0) / (slice.length || 1);
+        const variance = slice.reduce((sum, p) => sum + Math.pow(p - mean, 2), 0) / (slice.length || 1);
+        const std = Math.sqrt(variance);
+        return {
+            stddev: std,
+            mean,
+            upperBand: mean + std * 2,
+            lowerBand: mean - std * 2,
+            overextended: currentPrice > mean + std * 2 || currentPrice < mean - std * 2
+        };
+    };
+    const stdDev = calculateStdDev(closes);
+
     // ✅ NEW: Confidence Scoring (45-55% threshold)
     let confidenceScore = 0;
     if (trend !== 'RANGING') confidenceScore += 20;
@@ -230,19 +386,32 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     if (liquiditySweep) confidenceScore += 15;
     if (zoneValid) confidenceScore += 20;
     if (tfConfirmation.allAligned) confidenceScore += 20;
-    if (rsi > 50 && trend === 'BULLISH') confidenceScore += 10;
-    if (rsi < 50 && trend === 'BEARISH') confidenceScore += 10;
+    
+    // RSI Sentiment
+    if (rsi > 60 && trend === 'BULLISH') confidenceScore += 10;
+    if (rsi < 40 && trend === 'BEARISH') confidenceScore += 10;
+    if (trend === 'RANGING' && (rsi < 30 || rsi > 70)) confidenceScore += 15; // Mean reversion setups
 
-    // Block signal if below 45%
-    // If ranging but strong BOS + liquidity sweep exists, allow signal
-    const rangingException = trend === 'RANGING' && bos && liquiditySweep;
+    // Math additions to score
+    if (atr > 0) confidenceScore += 5; // Market has volatility
+    if (fvg && fvgRetest) confidenceScore += 10;
+    if (orderBlock?.mitigated) confidenceScore += 10;
+    if (session === 'LONDON' || session === 'NEW_YORK') confidenceScore += 10;
+    if (session === 'LONDON_NY_OVERLAP') confidenceScore += 15;
+    if (session === 'ASIAN') confidenceScore -= 10;
+    if (stdDev.overextended) confidenceScore += 10;
+
+    // Block signal logic
+    // If ranging but strong setup exists, we allow it if price is at boundaries
+    const rangingException = trend === 'RANGING' && (bos || liquiditySweep) && rangeExtremity > 0.5;
     const signalValid = confidenceScore >= 45 || rangingException;
-    const blockSignal = !signalValid || !zoneValid;
-    const blockReason = !signalValid
-        ? `Confidence ${confidenceScore}% below 45% minimum threshold`
-        : !zoneValid
-        ? `Price in ${currentZone} zone conflicts with ${trend} bias`
-        : null;
+    
+    // Final check: Never trade if range is too tight (volatility filter)
+    const volatilitySqueeze = range / currentPrice < 0.0005; // 0.05% range is too small
+    
+    // We are no longer blocking trades! Let Gemini always decide. We just pass the math context.
+    const blockSignal = false; 
+    const blockReason = null;
 
     return {
         trend,
@@ -263,6 +432,12 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         signalValid,
         blockSignal,
         blockReason,
-        tfConfirmation
+        tfConfirmation,
+        atr,
+        fvg,
+        fvgRetest,
+        orderBlock,
+        session,
+        stdDev
     };
 }

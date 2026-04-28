@@ -377,31 +377,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         : null;
       console.log(`[SniperLiveTrade] SMC Quant Engine Results:`, quantData);
 
-      // Block invalid setups before wasting Gemini call
-      if (quantData?.blockSignal) {
-          const aiMsgId = (Date.now() + 1).toString();
-          const aiMsg: SniperMessage = {
-              id: aiMsgId,
-              type: 'ai',
-              content: `⚠️ NO TRADE: ${quantData.blockReason}. Confidence: ${quantData.confidenceScore}%. Wait for better alignment.`,
-              timestamp: Date.now()
-          };
-          
-          if (userMetadata?.uid) {
-            const path = `users/${userMetadata.uid}/sniper_messages/${aiMsgId}`;
-            try {
-              const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', aiMsgId);
-              await setDoc(msgRef, aiMsg);
-            } catch (err) {
-              handleFirestoreError(err, OperationType.WRITE, path);
-            }
-          } else {
-            setMessages(prev => [...prev, aiMsg]);
-          }
-          setIsAnalyzing(false);
-          return;
-      }
-
       const result = await generateSniperLiveSignal(
         currentQuery, 
         style, 

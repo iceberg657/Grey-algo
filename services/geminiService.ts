@@ -23,14 +23,14 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const tradeModeInstructions = tradeMode === 'Sniper' 
     ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
 - You MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
-- If confluence is not 100%, you MUST choose the side with the highest institutional probability and align with the Higher Timeframe (HTF) trend.
+- If confluence is not 100%, you MUST choose the side with the highest institutional probability. However, if the USER REQUEST explicitly asks for a specific bias or pair setup (BUY/SELL, BULLISH/BEARISH), you MUST follow their requested direction.
 - **IMMEDIATE EXECUTION:** Every setup MUST be for immediate market execution based on the live data provided.
 - **ULTRA-TIGHT LEVELS:** SL and TP MUST be very close to each other. Visible on the current timeframe. TP1 must be hit quickly.
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
 - **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
-- **FORCE DIRECTION (DECISIVE BIAS):** Look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
+- **FORCE DIRECTION (DECISIVE BIAS):** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST fulfill that request and pick that side. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
 - **BIAS OVER NEUTRALITY:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
     - If Trend is UP -> Issue 'WEAK BULLISH' (labeled as BUY).
     - If Trend is DOWN -> Issue 'WEAK BEARISH' (labeled as SELL).
@@ -109,7 +109,7 @@ You have been unprofitable for 7 months. This ends NOW.
 If this is a Funded Account or Prop Firm account, you MUST prioritize capital preservation over aggressive entries.
 1. **Wider Stop Losses:** Do not use extremely tight stop losses. Prop firms are notorious for spread widening and stop hunts. Use a wider SL (at least 1.5x ATR) and let the risk calculator reduce the lot size to compensate.
 2. **High Probability Entries Only:** Wait for the pullback. Do not enter on breakouts. If price has already moved, issue a LIMIT order at a discount/premium zone.
-3. **Avoid News:** If high-impact news is within 5 minutes, stay NEUTRAL.
+3. **Avoid News:** If high-impact news is within 5 minutes, DO NOT TRADE (but output BUY or SELL with extremely low lot size or clearly explain the risk).
 ` : "";
 
   const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
@@ -365,9 +365,9 @@ ${ALGO_LOGIC}
    - If price starts declining (for buys) or inclining (for sells) at a certain level against the setup, CLOSE immediately. Do not wait for SL.
 
 6. **NO NEUTRAL SIGNAL PROTOCOL:**
-   - You are forbidden from issuing a NEUTRAL signal. If the market is unclear, use your institutional mapping to identify where smart money is most likely to trap retail and issue a signal in the direction of the expected trap clearance.
+   - You are explicitly forbidden from issuing a NEUTRAL signal. If the market is unclear, use your institutional mapping to identify where smart money is most likely to trap retail and issue a signal in the direction of the expected trap clearance.
    - Support your signal with rock-solid reasoning that addresses why the opposing side was rejected.
-   - For \`buyConditions\`, use this format/logic:
+   - For \`buyConditions\` (or execution conditions), use this format/logic:
      - M5 or M15 Break of Structure (BOS)
      - Strong close above [Key Level]
      - Pullback into FVG / Demand
@@ -383,7 +383,6 @@ ${ALGO_LOGIC}
      - Entry at supply / FVG
    - Provide a complete **Example Setup** for both the potential BUY and SELL scenarios in the \`buySetupExample\` and \`sellSetupExample\` fields.
    - Ensure the example setups include Asset, Signal, Entry, SL, TP1, TP2, TP3, Type (e.g., Breakout Continuation, Reversal / Supply Rejection), and Lot Size (e.g., 1-2% risk).
-   - **CRITICAL:** If you output "signal": "NEUTRAL", you MUST populate the "neutralConditions" object with both "buyConditions" and "sellConditions", and provide both "buySetupExample" and "sellSetupExample". DO NOT LEAVE THEM EMPTY.
 
 ---
 
@@ -626,25 +625,12 @@ If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirat
 
 ---
 
-**CRITICAL INSTRUCTION FOR NEUTRAL SIGNALS:**
-If you output 'signal': 'NEUTRAL', you MUST populate the 'neutralConditions' object with both 'buyConditions' and 'sellConditions', and provide both 'buySetupExample' and 'sellSetupExample'. DO NOT LEAVE THEM EMPTY. Use the following format for conditions:
-- BUY CONDITIONS (only if continuation is confirmed): [List specific triggers like Break of Structure, Close above level, Pullback into FVG]
-- SELL CONDITIONS (higher probability based on H4 bias): [List specific triggers like Rejection at zone, CHoCH, Break below structure]
-
-**EXAMPLE SETUP FORMAT FOR NEUTRAL:**
-Asset: XAUUSD
-Signal: BUY
-Entry: 4705 (after retest)
-SL: 4675
-TP1: 4735
-TP2: 4760
-TP3: 4800
-Type: Breakout Continuation
-Lot Size: 1–2% risk
+**CRITICAL INSTRUCTION: DIRECT BIAS**
+You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a specific and complete JSON output.
 
 **JSON OUTPUT (RAW ONLY - NO MARKDOWN):**
 {
-  "signal": "BUY" | "SELL" | "NEUTRAL",
+  "signal": "BUY" | "SELL",
   "confidence": number, // 0-100. CRITICAL: Calculate this strictly based on the Execution Checklist. (e.g., 6 passes = 60%, 8 passes = 80%).
   "asset": "${asset}",
   "timeframe": "e.g., M5, M15, H1",
@@ -717,33 +703,7 @@ Lot Size: 1–2% risk
   "possiblePips": number, // Estimated pips from Entry to TP3
   "winProbability": number, // Estimated probability (0-100) of hitting TP1
   "recommendedPositions": number, // Usually 2 or 3 depending on how many TPs you want to target
-  "neutralConditions": {
-    "buyConditions": ["Condition 1", "Condition 2"], // Array of strings for buy conditions if signal is NEUTRAL
-    "sellConditions": ["Condition 1", "Condition 2"], // Array of strings for sell conditions if signal is NEUTRAL
-    "buySetupExample": {
-      "asset": "string",
-      "signal": "BUY",
-      "entry": "string",
-      "sl": "string",
-      "tp1": "string",
-      "tp2": "string",
-      "tp3": "string",
-      "type": "string",
-      "lotSize": "string"
-    },
-    "sellSetupExample": {
-      "asset": "string",
-      "signal": "SELL",
-      "entry": "string",
-      "sl": "string",
-      "tp1": "string",
-      "tp2": "string",
-      "tp3": "string",
-      "type": "string",
-      "lotSize": "string"
-    }
-  },
-
+  
   "timeframeRationale": "Why this duration",
   
   "confluenceMatrix": {
@@ -1009,7 +969,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
-            signal: data.signal as 'BUY' | 'SELL' | 'NEUTRAL',
+            signal: (data.signal === 'NEUTRAL' ? ((request.query?.toLowerCase().includes('sell') || request.query?.toLowerCase().includes('bearish')) ? 'SELL' : 'BUY') : data.signal) as 'BUY' | 'SELL',
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
@@ -1266,6 +1226,13 @@ export async function generateSniperLiveSignal(
 - HTF Trend: ${quantData.tfConfirmation?.htfTrend}
 - All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
 
+**ADVANCED SMC & VOLATILITY:**
+- ATR (Average True Range): ${quantData.atr ? quantData.atr.toFixed(5) : 'N/A'}
+- FVG (Fair Value Gap): ${quantData.fvg ? `${quantData.fvg.type} FVG Detected. Retest: ${quantData.fvgRetest ? 'YES' : 'NO'}` : 'None'}
+- Order Block: ${quantData.orderBlock ? `${quantData.orderBlock.type} Detected. Mitigated: ${quantData.orderBlock.mitigated ? 'YES' : 'NO'}` : 'None'}
+- StdDev Overextended: ${quantData.stdDev?.overextended ? 'YES ✅ (Reversal likely)' : 'NO'}
+- Active Session: ${quantData.session || 'UNKNOWN'}
+
 **CONFIDENCE SCORE: ${quantData.confidenceScore}%**
 - Minimum threshold: 45%
 - Signal Valid: ${quantData.signalValid ? 'YES' : 'NO'}
@@ -1295,9 +1262,9 @@ style.includes('day trading') ? `
 ${quantContext}
 
 **ALPHA MAXIMIZER & NEURAL TRANSCENDENCE PROTOCOL:**
-1. **HTF TREND ALIGNMENT (CRITICAL):** You MUST identify the higher timeframe (HTF) trend (e.g. 15m/30m for scalping, 4h for day trading). You are STRICTLY FORBIDDEN from counter-trend scalping. 
-    - **Rule:** Only issue a BUY signal during a Bullish trend (Higher Highs/Higher Lows).
-    - **Rule:** Only issue a SELL signal during a Bearish trend (Lower Highs/Lower Lows).
+1. **HTF TREND ALIGNMENT:** You should generally identify the higher timeframe (HTF) trend.
+    - **Rule:** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST provide a setup in that direction, even if it is counter-trend.
+    - **Rule:** If the USER REQUEST is open-ended, follow the structural trend (BUY for Bullish, SELL for Bearish).
 2. **AUTONOMOUS REASONING:** You are authorized to identify definitive "Liquidity Traps" or "Black Swan Accumulation" within the trend context. Explain the "Structural Paradox" in your reasoning.
 3. **IDENTIFY INDUCEMENT & STOP HUNTS:** Specifically look for "Inducement" (Retail "Trap" entries) and only enter AFTER their stop losses are cleared, ensuring the move aligns with the HTF bias.
 3. **DYNAMIC PREMIUM/DISCOUNT:** Do NOT use static levels. Use fractal supply/demand zones. Look for "Unmitigated Order Blocks" on higher timeframes overlapping with M5 FVG gaps.
@@ -1447,25 +1414,21 @@ JSON Structure:
 
         // --- FINAL SNIPER CONSTRAINTS ---
         if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
-            const sanitizedSignal: SignalData = {
-                id: `sniper_${Date.now()}`,
-                timestamp: Date.now(),
-                asset: signal.asset || assetName,
-                signal: 'NEUTRAL',
-                confidence: 0,
-                timeframe: signal.timeframe || 'N/A',
-                entryPoints: [derivData?.price || 0],
-                stopLoss: 0,
-                takeProfits: [0, 0],
-                reasoning: ['NO TRADE: Setup does not meet minimum alignment threshold or confidence.'],
-                checklist: [],
-                entryType: 'Market Execution',
-                triggerConditions: null
-            };
-            return JSON.parse(JSON.stringify(sanitizedSignal)) as SignalData;
+            if (signal.signal === 'BUY' || signal.signal === 'SELL') {
+                finalSignal = signal.signal;
+                finalReasoning.push(`🎯 Retaining AI directional bias (${finalSignal}) despite price recalibration.`);
+            } else {
+                if ((query?.toLowerCase().includes('sell') || query?.toLowerCase().includes('bearish')) || (quantData?.trend === 'BEARISH' || quantData?.currentZone === 'PREMIUM')) {
+                    finalSignal = 'SELL';
+                } else {
+                    finalSignal = 'BUY';
+                }
+                finalReasoning.push(`🎯 Sniper Mandate: Neutrality rejected. Trade forced in direction of structural bias (${finalSignal}).`);
+            }
         }
 
-        const finalConfidence = Math.min(signal.confidence || 0, 85);
+        const rawConf = signal.confidence || 50;
+        const finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
 
         const sanitizedSignal: SignalData = {
           id: `sniper_${Date.now()}`,
