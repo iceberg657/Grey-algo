@@ -109,103 +109,160 @@ export function findSwings(candles: OHLC[], leftBars = 3, rightBars = 3) {
 }
 
 // Master SMC Analysis
-export function analyzeSMC(candles: OHLC[]): SMCSignals {
-    if (!candles || candles.length < 200) {
-        return {
-            trend: 'RANGING',
-            bos: false, choch: false, liquiditySweep: false,
-            lastSwingHigh: null, lastSwingLow: null,
-            ema50: null, ema200: null, rsi: null,
-            equilibrium: null, isPremium: false, isDiscount: false
-        };
-    }
+export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: any[]) {
+    if (!candles || candles.length < 50) return null;
 
     const closes = candles.map(c => c.close);
-    
-    // Indicators
-    const ema50Arr = calculateEMA(closes, 50);
-    const ema200Arr = calculateEMA(closes, 200);
-    const rsiArr = calculateRSI(closes, 14);
+    const highs = candles.map(c => c.high);
+    const lows = candles.map(c => c.low);
 
-    const ema50 = ema50Arr.length > 0 ? ema50Arr[ema50Arr.length - 1] : null;
-    const ema200 = ema200Arr.length > 0 ? ema200Arr[ema200Arr.length - 1] : null;
-    const currentRsi = rsiArr.length > 0 ? rsiArr[rsiArr.length - 1] : null;
-    
-    const lastCandle = candles[candles.length - 1]; // Could be live/open candle
-    const closedCandle = candles[candles.length - 2]; // Most recently closed candle
+    // EMA Calculation
+    const calculateEMA = (data: number[], period: number) => {
+        const k = 2 / (period + 1);
+        let ema = data[0];
+        for (let i = 1; i < data.length; i++) {
+            ema = data[i] * k + ema * (1 - k);
+        }
+        return ema;
+    };
 
-    // Trend Definition
-    let trend: 'BULLISH' | 'BEARISH' | 'RANGING' = 'RANGING';
-    if (ema50 !== null && ema200 !== null) {
-        if (ema50 > ema200 && closedCandle.close > ema50) trend = 'BULLISH';
-        else if (ema50 < ema200 && closedCandle.close < ema50) trend = 'BEARISH';
+    const ema50 = calculateEMA(closes, 50);
+    const ema200 = calculateEMA(closes, 200);
+
+    // RSI Calculation
+    const calculateRSI = (data: number[], period = 14) => {
+        let gains = 0, losses = 0;
+        for (let i = 1; i <= period; i++) {
+            const diff = data[i] - data[i - 1];
+            if (diff > 0) gains += diff;
+            else losses -= diff;
+        }
+        const rs = gains / (losses || 1);
+        return 100 - 100 / (1 + rs);
+    };
+
+    const rsi = calculateRSI(closes);
+
+    // Swing Highs and Lows
+    const lastSwingHigh = Math.max(...highs.slice(-20));
+    const lastSwingLow = Math.min(...lows.slice(-20));
+    const currentPrice = closes[closes.length - 1];
+
+    // Trend
+    const trend = ema50 > ema200 && currentPrice > ema50 ? 'BULLISH' :
+                  ema50 < ema200 && currentPrice < ema50 ? 'BEARISH' : 'RANGING';
+
+    // BOS and CHoCH
+    const prevHigh = Math.max(...highs.slice(-10, -1));
+    const prevLow = Math.min(...lows.slice(-10, -1));
+    const bos = trend === 'BULLISH' ? currentPrice > prevHigh : currentPrice < prevLow;
+    const choch = trend === 'BULLISH' ? currentPrice < prevLow : currentPrice > prevHigh;
+
+    // Liquidity Sweep
+    const lastCandle = candles[candles.length - 1];
+    const liquiditySweep = trend === 'BULLISH'
+        ? lastCandle.low < prevLow && lastCandle.close > prevLow
+        : lastCandle.high > prevHigh && lastCandle.close < prevHigh;
+
+    // ✅ NEW: Premium/Discount Zone Calculation
+    const highest = Math.max(...highs);
+    const lowest = Math.min(...lows);
+    const range = highest - lowest;
+    const midpoint = lowest + range / 2;
+    const premiumZone = { upper: highest, lower: midpoint };
+    const discountZone = { upper: midpoint, lower: lowest };
+    const currentZone = currentPrice > midpoint ? 'PREMIUM' : 'DISCOUNT';
+
+    // Zone validity check
+    const zoneValid = (
+        (trend === 'BULLISH' && currentZone === 'DISCOUNT') ||
+        (trend === 'BEARISH' && currentZone === 'PREMIUM')
+    );
+
+    // ✅ NEW: 3 Timeframe Confirmation
+    let tfConfirmation = {
+        entryTrend: trend,
+        confirmTrend: 'UNKNOWN',
+        htfTrend: 'UNKNOWN',
+        allAligned: false
+    };
+
+    if (confirmCandles && confirmCandles.length >= 50) {
+        const confirmCloses = confirmCandles.map((c: any) => c.close);
+        const confirmEma50 = calculateEMA(confirmCloses, 50);
+        const confirmEma200 = calculateEMA(confirmCloses, 200);
+        const confirmPrice = confirmCloses[confirmCloses.length - 1];
+        tfConfirmation.confirmTrend = confirmEma50 > confirmEma200 && confirmPrice > confirmEma50
+            ? 'BULLISH' : confirmEma50 < confirmEma200 && confirmPrice < confirmEma50
+            ? 'BEARISH' : 'RANGING';
     }
 
-    // Swings
-    const { swingHighs, swingLows } = findSwings(candles, 3, 3);
-    const lastSwingHigh = swingHighs.length > 0 ? swingHighs[swingHighs.length - 1].price : null;
-    const lastSwingLow = swingLows.length > 0 ? swingLows[swingLows.length - 1].price : null;
-
-    let bos = false;
-    let choch = false;
-    let liquiditySweep = false;
-
-    // SMC Logic using strict CLOSE for BOS/CHoCH and WICK for Sweeps
-    if (trend === 'BULLISH') {
-        // BOS: Close above last swing high
-        if (lastSwingHigh !== null && closedCandle.close > lastSwingHigh) {
-            bos = true;
-        }
-        // CHoCH: Close below last swing low
-        if (lastSwingLow !== null && closedCandle.close < lastSwingLow) {
-            choch = true;
-        }
-        // Sweep: Wick drops below swing low but specifically closes ABOVE it
-        if (lastSwingLow !== null && lastCandle.low < lastSwingLow && lastCandle.close > lastSwingLow) {
-            liquiditySweep = true;
-        }
-    } else if (trend === 'BEARISH') {
-        // BOS: Close below last swing low
-        if (lastSwingLow !== null && closedCandle.close < lastSwingLow) {
-            bos = true;
-        }
-        // CHoCH: Close above last swing high
-        if (lastSwingHigh !== null && closedCandle.close > lastSwingHigh) {
-            choch = true;
-        }
-        // Sweep: Wick spikes above swing high but specifically closes BELOW it
-        if (lastSwingHigh !== null && lastCandle.high > lastSwingHigh && lastCandle.close < lastSwingHigh) {
-            liquiditySweep = true;
-        }
+    if (htfCandles && htfCandles.length >= 50) {
+        const htfCloses = htfCandles.map((c: any) => c.close);
+        const htfEma50 = calculateEMA(htfCloses, 50);
+        const htfEma200 = calculateEMA(htfCloses, 200);
+        const htfPrice = htfCloses[htfCloses.length - 1];
+        tfConfirmation.htfTrend = htfEma50 > htfEma200 && htfPrice > htfEma50
+            ? 'BULLISH' : htfEma50 < htfEma200 && htfPrice < htfEma50
+            ? 'BEARISH' : 'RANGING';
     }
 
-    // Premium / Discount Zones
-    let equilibrium = null;
-    let isPremium = false;
-    let isDiscount = false;
+    // If HTF data insufficient, don't penalize — just skip TF alignment check
+    tfConfirmation.allAligned = (
+        tfConfirmation.entryTrend !== 'RANGING' &&
+        (
+            // Full 3TF alignment
+            (tfConfirmation.entryTrend === tfConfirmation.confirmTrend &&
+             tfConfirmation.confirmTrend === tfConfirmation.htfTrend) ||
+            // Partial — only entry + confirm available
+            (tfConfirmation.htfTrend === 'UNKNOWN' &&
+             tfConfirmation.entryTrend === tfConfirmation.confirmTrend) ||
+            // Only entry TF available
+            (tfConfirmation.confirmTrend === 'UNKNOWN' &&
+             tfConfirmation.htfTrend === 'UNKNOWN')
+        )
+    );
 
-    if (lastSwingHigh !== null && lastSwingLow !== null) {
-        equilibrium = (lastSwingHigh + lastSwingLow) / 2;
-        const currentPrice = lastCandle.close;
-        if (currentPrice > equilibrium) {
-            isPremium = true;
-        } else if (currentPrice < equilibrium) {
-            isDiscount = true;
-        }
-    }
+    // ✅ NEW: Confidence Scoring (45-55% threshold)
+    let confidenceScore = 0;
+    if (trend !== 'RANGING') confidenceScore += 20;
+    if (bos) confidenceScore += 15;
+    if (liquiditySweep) confidenceScore += 15;
+    if (zoneValid) confidenceScore += 20;
+    if (tfConfirmation.allAligned) confidenceScore += 20;
+    if (rsi > 50 && trend === 'BULLISH') confidenceScore += 10;
+    if (rsi < 50 && trend === 'BEARISH') confidenceScore += 10;
+
+    // Block signal if below 45%
+    // If ranging but strong BOS + liquidity sweep exists, allow signal
+    const rangingException = trend === 'RANGING' && bos && liquiditySweep;
+    const signalValid = confidenceScore >= 45 || rangingException;
+    const blockSignal = !signalValid || !zoneValid;
+    const blockReason = !signalValid
+        ? `Confidence ${confidenceScore}% below 45% minimum threshold`
+        : !zoneValid
+        ? `Price in ${currentZone} zone conflicts with ${trend} bias`
+        : null;
 
     return {
         trend,
+        ema50,
+        ema200,
+        rsi,
+        lastSwingHigh,
+        lastSwingLow,
         bos,
         choch,
         liquiditySweep,
-        lastSwingHigh,
-        lastSwingLow,
-        ema50: ema50 ? Number(ema50.toFixed(5)) : null,
-        ema200: ema200 ? Number(ema200.toFixed(5)) : null,
-        rsi: currentRsi ? Number(currentRsi.toFixed(2)) : null,
-        equilibrium: equilibrium ? Number(equilibrium.toFixed(5)) : null,
-        isPremium,
-        isDiscount
+        // New additions
+        premiumZone,
+        discountZone,
+        currentZone,
+        zoneValid,
+        confidenceScore,
+        signalValid,
+        blockSignal,
+        blockReason,
+        tfConfirmation
     };
 }

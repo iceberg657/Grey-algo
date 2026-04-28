@@ -1246,14 +1246,36 @@ export async function generateSniperLiveSignal(
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
 - EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
-- Current RSI (Momentum): ${quantData.rsi}
-- Last Structural Swing High: ${quantData.lastSwingHigh}
-- Last Structural Swing Low: ${quantData.lastSwingLow}
-- **Break of Structure (BOS):** ${quantData.bos ? 'YES (Confirmed Close outside structure)' : 'NO'}
-- **Change of Character (CHoCH):** ${quantData.choch ? 'YES (Confirmed Close outside structure)' : 'NO'}
-- **Liquidity Sweep:** ${quantData.liquiditySweep ? 'YES (Wicked below/above and closed back inside)' : 'NO'}
+- Current RSI: ${quantData.rsi}
+- Last Swing High: ${quantData.lastSwingHigh}
+- Last Swing Low: ${quantData.lastSwingLow}
+- BOS: ${quantData.bos ? 'YES' : 'NO'}
+- CHoCH: ${quantData.choch ? 'YES' : 'NO'}
+- Liquidity Sweep: ${quantData.liquiditySweep ? 'YES' : 'NO'}
 
-*Instructions:* Base your execution exclusively on these mathematical truths combined with the live bid/ask quote. Do not hallucinate structure that conflicts with this math.
+**PREMIUM/DISCOUNT ZONE (MATHEMATICAL TRUTH):**
+- Current Zone: ${quantData.currentZone}
+- Zone Valid for Signal: ${quantData.zoneValid ? 'YES' : 'NO'}
+- Premium Zone: ${quantData.premiumZone?.lower} - ${quantData.premiumZone?.upper}
+- Discount Zone: ${quantData.discountZone?.lower} - ${quantData.discountZone?.upper}
+- Midpoint (Equilibrium): ${quantData.discountZone?.upper}
+
+**3 TIMEFRAME CONFIRMATION:**
+- Entry TF Trend: ${quantData.tfConfirmation?.entryTrend}
+- Confirmation TF Trend: ${quantData.tfConfirmation?.confirmTrend}
+- HTF Trend: ${quantData.tfConfirmation?.htfTrend}
+- All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
+
+**CONFIDENCE SCORE: ${quantData.confidenceScore}%**
+- Minimum threshold: 45%
+- Signal Valid: ${quantData.signalValid ? 'YES' : 'NO'}
+
+*CRITICAL INSTRUCTIONS:*
+- You MUST align your signal with the mathematical zone data above.
+- If Current Zone is DISCOUNT → ONLY issue BUY signals.
+- If Current Zone is PREMIUM → ONLY issue SELL signals.
+- If All Timeframes are NOT Aligned → increase caution in reasoning.
+- NEVER contradict the zone validity shown above.
 ` : '';
 
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
@@ -1425,9 +1447,22 @@ JSON Structure:
 
         // --- FINAL SNIPER CONSTRAINTS ---
         if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
-            // Revert to price-based logic without Z-score if it fails
-            finalSignal = 'BUY'; // Default to BUY for sniper mandate if all else fails
-            finalReasoning.push(`🎯 Sniper Mandate: Decisive bias forced based on Smart Money accumulation structure.`);
+            const sanitizedSignal: SignalData = {
+                id: `sniper_${Date.now()}`,
+                timestamp: Date.now(),
+                asset: signal.asset || assetName,
+                signal: 'NEUTRAL',
+                confidence: 0,
+                timeframe: signal.timeframe || 'N/A',
+                entryPoints: [derivData?.price || 0],
+                stopLoss: 0,
+                takeProfits: [0, 0],
+                reasoning: ['NO TRADE: Setup does not meet minimum alignment threshold or confidence.'],
+                checklist: [],
+                entryType: 'Market Execution',
+                triggerConditions: null
+            };
+            return JSON.parse(JSON.stringify(sanitizedSignal)) as SignalData;
         }
 
         const finalConfidence = Math.min(signal.confidence || 0, 85);

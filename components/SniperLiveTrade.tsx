@@ -228,32 +228,71 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || '';
       }
 
-      const isDayTrading = style.includes('day');
-      const granularity = isDayTrading ? 14400 : 900; // 4 Hours for Day Trading, 15 Minutes for Scalping
+      // Define 3 timeframes based on trading style
+      const getTimeframes = (style: string) => {
+        if (style.includes('scalping')) {
+            return { entry: 300, confirm: 900, htf: 3600 };
+        } else if (style.includes('day')) {
+            return { entry: 900, confirm: 3600, htf: 14400 };
+        } else {
+            return { entry: 3600, confirm: 14400, htf: 86400 };
+        }
+      };
 
-      console.log(`[SniperLiveTrade] Fetching live price & OHLC history for ${symbol}...`);
-      const url = `/api/derivData?symbol=${symbol}&history=true&granularity=${granularity}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`;
-      
+      const timeframes = getTimeframes(style);
+
+      console.log(`[SniperLiveTrade] Fetching 3 timeframes for ${symbol}...`);
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second strict timeout
+      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout for 3 fetches
 
-      const response = await fetch(url, { signal: controller.signal, cache: 'no-store' });
-      clearTimeout(timeoutId);
+      // Fetch all 3 timeframes simultaneously
+      const [entryRes, confirmRes, htfRes] = await Promise.all([
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
+      ]);
       
-      const data = await response.json();
-      if (data.error) throw new Error(data.error);
+      clearTimeout(timeoutId);
+
+      const [entryData, confirmData, htfData] = await Promise.all([
+          entryRes.json(),
+          confirmRes.json(),
+          htfRes.json()
+      ]);
+
+      if (entryData.error) throw new Error(entryData.error);
       
       console.log(`[SniperLiveTrade] Successfully fetched market data for ${symbol}`);
       // Parse out live price from the last candle
-      const lastCandle = data.candles && data.candles.length > 0 ? data.candles[data.candles.length - 1] : null;
+      const lastCandle = entryData.candles && entryData.candles.length > 0 ? entryData.candles[entryData.candles.length - 1] : null;
       if (lastCandle) {
-          data.price = lastCandle.close;
-          data.bid = lastCandle.close;
-          data.ask = lastCandle.close;
+          entryData.price = lastCandle.close;
+          entryData.bid = lastCandle.close;
+          entryData.ask = lastCandle.close;
       }
       
-      setLivePrice(data);
-      return data;
+      // Attach all 3 timeframes to the data
+      const combinedData = {
+          ...entryData,
+          multiTimeframe: {
+              entry: {
+                  granularity: timeframes.entry,
+                  candles: entryData.candles || []
+              },
+              confirm: {
+                  granularity: timeframes.confirm,
+                  candles: confirmData.candles || []
+              },
+              htf: {
+                  granularity: timeframes.htf,
+                  candles: htfData.candles || []
+              }
+          }
+      };
+
+      setLivePrice(combinedData);
+      return combinedData;
     } catch (err: any) {
       console.error('Deriv Price Fetch Error:', err);
       const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout');
@@ -329,8 +368,39 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
 
       // 3. Generate signal using Gemini 3.1 Flash Lite with Institutional SMC logic
-      const quantData = derivData.candles ? analyzeSMC(derivData.candles) : null;
+      const quantData = derivData.candles
+        ? analyzeSMC(
+            derivData.candles,
+            derivData.multiTimeframe?.confirm?.candles,
+            derivData.multiTimeframe?.htf?.candles
+          )
+        : null;
       console.log(`[SniperLiveTrade] SMC Quant Engine Results:`, quantData);
+
+      // Block invalid setups before wasting Gemini call
+      if (quantData?.blockSignal) {
+          const aiMsgId = (Date.now() + 1).toString();
+          const aiMsg: SniperMessage = {
+              id: aiMsgId,
+              type: 'ai',
+              content: `⚠️ NO TRADE: ${quantData.blockReason}. Confidence: ${quantData.confidenceScore}%. Wait for better alignment.`,
+              timestamp: Date.now()
+          };
+          
+          if (userMetadata?.uid) {
+            const path = `users/${userMetadata.uid}/sniper_messages/${aiMsgId}`;
+            try {
+              const msgRef = doc(db, 'users', userMetadata.uid, 'sniper_messages', aiMsgId);
+              await setDoc(msgRef, aiMsg);
+            } catch (err) {
+              handleFirestoreError(err, OperationType.WRITE, path);
+            }
+          } else {
+            setMessages(prev => [...prev, aiMsg]);
+          }
+          setIsAnalyzing(false);
+          return;
+      }
 
       const result = await generateSniperLiveSignal(
         currentQuery, 
