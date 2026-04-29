@@ -26,7 +26,7 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - If confluence is not 100%, you MUST choose the side with the highest institutional probability. However, if the USER REQUEST explicitly asks for a specific bias or pair setup (BUY/SELL, BULLISH/BEARISH), you MUST follow their requested direction.
 - **IMMEDIATE EXECUTION:** Every setup MUST be for immediate market execution based on the live data provided.
 - **ULTRA-TIGHT LEVELS:** SL and TP MUST be very close to each other. Visible on the current timeframe. TP1 must be hit quickly.
-- Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1 RR.`
+- Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1.5 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
 - **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
@@ -293,10 +293,10 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
      * **Entry Zone:** Provide a distributed entry price range rather than a single pip, allowing scaling in or catching pullbacks.
      * **Invalidation Point (Stop Loss):** A hard price level where the trade thesis is completely invalidated. This is non-negotiable.
      * **Take Profits (High-Probability Guaranteed Rules - CONSERVATIVE):** 
-      - **TP1 (1:1 RR - MANDATORY):** TP1 MUST be set at exactly 1:1 Risk-to-Reward ratio relative to the Stop Loss. This is non-negotiable and designed to guarantee immediate profit security.
+      - **TP1 (1:1.5 RR - MANDATORY):** TP1 MUST be set at exactly 1:1.5 Risk-to-Reward ratio relative to the Stop Loss. This is non-negotiable and designed to guarantee immediate profit security.
       - **Nearest Internal Liquidity (CONSERVATIVE):** TP1 MUST target the *closest* internal liquidity point (e.g., nearest 15m FVG, order block, or minor swing high/low) that is *before* the main structural target. Do not reach for distant targets for TP1.
       - **ATR-Based Limits (CONSERVATIVE):** TP1 MUST be placed within 0.5x to 0.8x of the current Average True Range (ATR) to ensure it is achievable within a single, normal market move, avoiding reliance on high-volatility spikes.
-      - **TP2/TP3 (Runners):** Only after TP1 is hit and SL is moved to Breakeven (BE) should you target further structural liquidity points for TP2 and TP3.
+      - **TP2/TP3 (Runners):** Only after TP1 is hit and SL is moved to Breakeven (BE) should you target further structural liquidity points for TP2 (1:2.5 or 1:3 RR) and TP3.
     * **Risk-Free Protocol:** You MUST instruct the user to move Stop Loss to Breakeven (BE) immediately after TP1 is hit and close 50%-80% of the position.
      * **10-Point Reasoning:** A detailed breakdown of exactly why the trade is valid, including the technical case, the lot size calculation, and how it aligns with specific profit targets and drawdown limits.
    - **In short:** Combine institutional-grade technical analysis with strict, mathematical risk management tailored to exact account size and goals.
@@ -554,7 +554,7 @@ ${(() => {
 - **Strict Rule:** ONLY trade with the M15/H1 Trend.
 - **Philosophy:** "No Loss". Only issue a clear, high-probability signal.
 - **Invalidation:** Immediate exit if M1 structure shifts against entry or price stalls. Do not wait for SL.
-- **SL/TP Logic:** Very tight SL (5-10 pips), quick TP (1:1.5 - 1:2 RR). Focus on immediate momentum.`;
+- **SL/TP Logic:** Very tight SL (5-10 pips), quick TP (1:1.5 - 1:3 RR). Focus on immediate momentum.`;
         case 'scalping(15 to 30mins)':
             return `- **Timeframes:** M5, M15.
 - **Objective:** SESSION MOMENTUM. In and out within 45 minutes max.
@@ -619,8 +619,8 @@ If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirat
 ---
 
 **TP Calculation Formula (MUST BE DISTINCT):**
-- **TP1:** EXACTLY 1R (1:1 Risk-to-Reward). This is the guaranteed secure profit target.
-- **TP2:** Target Ratio (${rrRatio}).
+- **TP1:** EXACTLY 1.5R (1:1.5 Risk-to-Reward). This is the guaranteed secure profit target.
+- **TP2:** Target Ratio (1:2.5 or 1:3 RR, or ${rrRatio} if specified).
 - **TP3:** Opposing Liquidity Pool or Runner Target.
 
 ---

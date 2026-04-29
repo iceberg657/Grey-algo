@@ -3,7 +3,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
 import type { MomentumAsset } from '../types';
 
-const CACHE_KEY = 'greyquant_asset_suggestions';
+const CACHE_KEY = 'greyquant_asset_suggestions_v3';
 const CACHE_DURATION = 60 * 60 * 1000; // 1-hour refresh cycle
 
 const ALLOWED_ASSETS = `
@@ -30,19 +30,14 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         - **BULLISH:** Identify pairs showing strong upward momentum or high-volume buying pressure.
         - **BEARISH:** Identify pairs showing strong downward momentum or high-volume selling pressure.
         - Provide a concise, one-sentence reason for each selection.
+        - Analyze and determine the trend specifically on the 1-hour (trend1Hr) and 4-hour (trend4Hr) timeframes.
 
         **JSON OUTPUT FORMAT:**
         {
           "bullish": [
-            { "symbol": "string", "momentum": "Bullish", "reason": "string" },
-            { "symbol": "string", "momentum": "Bullish", "reason": "string" },
-            { "symbol": "string", "momentum": "Bullish", "reason": "string" },
             { "symbol": "string", "momentum": "Bullish", "reason": "string" }
           ],
           "bearish": [
-            { "symbol": "string", "momentum": "Bearish", "reason": "string" },
-            { "symbol": "string", "momentum": "Bearish", "reason": "string" },
-            { "symbol": "string", "momentum": "Bearish", "reason": "string" },
             { "symbol": "string", "momentum": "Bearish", "reason": "string" }
           ]
         }
@@ -68,6 +63,46 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
     }, getSuggestionPool);
 }
 
+async function enrichWithDerivTrends(assets: MomentumAsset[], token: string): Promise<MomentumAsset[]> {
+    const enriched = await Promise.all(assets.map(async (asset) => {
+        try {
+            const symbol = asset.symbol;
+            let baseUrl = `/api/derivData?symbol=${symbol}&history=true`;
+            let tokenStr = token ? `&token=${encodeURIComponent(token)}` : '';
+            
+            const res1h = await fetch(`${baseUrl}&granularity=3600${tokenStr}`);
+            let data1h = await res1h.json();
+            
+            const getTrend = (data: any) => {
+                if (!data || !data.candles || data.candles.length < 5) return undefined;
+                const closePrices = data.candles.slice(-5).map((c: any) => c.close);
+                const first = closePrices[0];
+                const last = closePrices[closePrices.length - 1];
+                if (last > first) return 'Bullish';
+                if (last < first) return 'Bearish';
+                return 'Neutral';
+            };
+            
+            const trend1HrDeriv = getTrend(data1h);
+            const trend4HrDeriv = asset.momentum; // Ensure 4Hr trend always matches momentum as requested
+            
+            return {
+                ...asset,
+                trend1Hr: trend1HrDeriv || asset.trend1Hr || 'Neutral',
+                trend4Hr: trend4HrDeriv,
+            };
+        } catch (e) {
+            console.warn(`Failed to enrich ${asset.symbol} via Deriv:`, e);
+            return {
+                ...asset,
+                trend1Hr: asset.trend1Hr || 'Neutral',
+                trend4Hr: asset.momentum
+            };
+        }
+    }));
+    return enriched;
+}
+
 export async function getOrRefreshSuggestions(force: boolean = false) {
     const now = Date.now();
     let cachedData: any = null;
@@ -85,10 +120,10 @@ export async function getOrRefreshSuggestions(force: boolean = false) {
     // 2. Check if cache is valid
     const isValid = cachedData && 
                     (now - cachedData.timestamp < CACHE_DURATION) && 
- 
                     cachedData.data && 
                     Array.isArray(cachedData.data.bullish) && 
-                    Array.isArray(cachedData.data.bearish);
+                    Array.isArray(cachedData.data.bearish) &&
+                    (cachedData.data.bullish.length === 0 || cachedData.data.bullish[0].trend1Hr !== undefined);
 
     if (!force && isValid) {
         return { bullish: cachedData.data.bullish || [], bearish: cachedData.data.bearish || [], nextUpdate: cachedData.timestamp + CACHE_DURATION };
@@ -98,13 +133,25 @@ export async function getOrRefreshSuggestions(force: boolean = false) {
     try {
         const { bullish, bearish } = await fetchAssetSuggestions();
         
-        if (bullish.length > 0 || bearish.length > 0) {
+        // Grab token to enrich
+        let token = '';
+        const userSettingsRaw = localStorage.getItem('greyquant_user_settings');
+        if (userSettingsRaw) {
+            try {
+                token = JSON.parse(userSettingsRaw).derivApiToken || '';
+            } catch (e) {}
+        }
+        
+        const enrichedBullish = await enrichWithDerivTrends(bullish, token);
+        const enrichedBearish = await enrichWithDerivTrends(bearish, token);
+
+        if (enrichedBullish.length > 0 || enrichedBearish.length > 0) {
             // SUCCESS: Update Cache
             localStorage.setItem(CACHE_KEY, JSON.stringify({
                 timestamp: now,
-                data: { bullish, bearish }
+                data: { bullish: enrichedBullish, bearish: enrichedBearish }
             }));
-            return { bullish, bearish, nextUpdate: now + CACHE_DURATION };
+            return { bullish: enrichedBullish, bearish: enrichedBearish, nextUpdate: now + CACHE_DURATION };
         }
     } catch (error) {
         console.error("Queue sync failure, falling back to cache:", error);

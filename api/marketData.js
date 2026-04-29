@@ -2,13 +2,9 @@
 import WebSocket from 'ws';
 
 const DERIV_APP_ID = 1089;
-const DERIV_TOKEN = process.env.DERIV_API_TOKEN || 
-                    process.env.VITE_DERIV_API_TOKEN || 
-                    process.env.DERIV_TOKEN || 
-                    process.env.VITE_DERIV_TOKEN;
 
 let marketDataCache = { timestamp: null, data: [] };
-const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+const CACHE_DURATION = 15 * 60 * 1000; // 15 mins
 
 const SYMBOLS_MAP = {
     'EUR/USD': 'frxEURUSD',
@@ -21,7 +17,7 @@ const SYMBOLS_MAP = {
     'NDX': 'otcNDX'
 };
 
-async function fetchSymbolData(symbol, derivSymbol) {
+async function fetchSymbolData(symbol, derivSymbol, token) {
     return new Promise((resolve) => {
         const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
         const timeout = setTimeout(() => {
@@ -30,8 +26,8 @@ async function fetchSymbolData(symbol, derivSymbol) {
         }, 5000);
 
         ws.on('open', () => {
-            if (DERIV_TOKEN) {
-                ws.send(JSON.stringify({ authorize: DERIV_TOKEN }));
+            if (token) {
+                ws.send(JSON.stringify({ authorize: token }));
             } else {
                 // Try without auth for public ticks_history if possible, 
                 // but Deriv usually requires auth for many symbols
@@ -90,8 +86,8 @@ async function fetchSymbolData(symbol, derivSymbol) {
     });
 }
 
-export async function fetchFromDeriv() {
-    if (!DERIV_TOKEN) {
+export async function fetchFromDeriv(token) {
+    if (!token) {
         console.warn('[MarketData] Deriv Token missing, cannot fetch ticker data.');
         return marketDataCache.data;
     }
@@ -99,7 +95,7 @@ export async function fetchFromDeriv() {
     console.log('[MarketData] Fetching ticker data from Deriv...');
     const results = [];
     for (const [displaySymbol, derivSymbol] of Object.entries(SYMBOLS_MAP)) {
-        const data = await fetchSymbolData(displaySymbol, derivSymbol);
+        const data = await fetchSymbolData(displaySymbol, derivSymbol, token);
         if (data) results.push(data);
     }
 
@@ -112,8 +108,9 @@ export async function fetchFromDeriv() {
 
 export default async (req, res) => {
     const isStale = !marketDataCache.timestamp || (Date.now() - marketDataCache.timestamp > CACHE_DURATION);
+    const token = req.query?.token || process.env.DERIV_API_TOKEN || process.env.VITE_DERIV_API_TOKEN || process.env.DERIV_TOKEN || process.env.VITE_DERIV_TOKEN;
     if (isStale) {
-        const data = await fetchFromDeriv();
+        const data = await fetchFromDeriv(token);
         res.status(200).json(data || []);
     } else {
         res.status(200).json(marketDataCache.data);

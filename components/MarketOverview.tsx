@@ -423,6 +423,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                                                 <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-600 dark:text-green-300`}>{asset.momentum}</span>
                                             </div>
                                             <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                            <div className="flex gap-2 mt-auto">
+                                                {asset.trend1Hr && (
+                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend1Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend1Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>1H: {asset.trend1Hr}</span>
+                                                )}
+                                                {asset.trend4Hr && (
+                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend4Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend4Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>4H: {asset.trend4Hr}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -441,6 +449,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
                                                 <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-600 dark:text-red-300`}>{asset.momentum}</span>
                                             </div>
                                             <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                            <div className="flex gap-2 mt-auto">
+                                                {asset.trend1Hr && (
+                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend1Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend1Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>1H: {asset.trend1Hr}</span>
+                                                )}
+                                                {asset.trend4Hr && (
+                                                    <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend4Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend4Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>4H: {asset.trend4Hr}</span>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>

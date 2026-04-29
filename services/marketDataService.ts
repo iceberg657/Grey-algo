@@ -29,26 +29,18 @@ const simulateFluctuations = (data: MarketDataItem[]): MarketDataItem[] => {
 
 let lastFetchTime = 0;
 let cachedData: MarketDataItem[] = [];
-const DEBOUNCE_TIME = 30000; // 30 seconds between actual API calls
-
-export const getMarketData = async (): Promise<MarketDataItem[]> => {
-    const now = Date.now();
-    
-    // Only call API if cache is old
-    if (now - lastFetchTime > DEBOUNCE_TIME) {
-        try {
-            const response = await fetch('/api/marketData');
-            if (response.ok) {
-                cachedData = await response.json();
-                lastFetchTime = now;
-                return cachedData;
-            }
-        } catch (error) {
-            console.warn("Market Data API throttled, using cached/fallback.");
+// Removed local DEBOUNCE_TIME limitation to properly respect MarketTicker's interval
+export const getMarketData = async (token?: string): Promise<MarketDataItem[]> => {
+    try {
+        const response = await fetch(`/api/marketData${token ? `?token=${encodeURIComponent(token)}` : ''}`);
+        if (response.ok) {
+            cachedData = await response.json();
+            return cachedData;
         }
+    } catch (error) {
+        console.warn("Market Data API throttled, using cached/fallback.");
     }
 
-    // Return simulation of existing data to keep UI "moving"
     if (cachedData.length > 0) return simulateFluctuations(cachedData);
 
     return simulateFluctuations(Object.entries(FALLBACK_DATA).map(([symbol, d]) => ({ symbol, ...d })));

@@ -259,6 +259,8 @@ export interface MomentumAsset {
     symbol: string;
     momentum: 'Bullish' | 'Bearish';
     reason: string;
+    trend1Hr?: 'Bullish' | 'Bearish' | 'Neutral';
+    trend4Hr?: 'Bullish' | 'Bearish' | 'Neutral';
 }
 
 export interface AssetSuggestion {

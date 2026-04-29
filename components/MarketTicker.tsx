@@ -32,13 +32,20 @@ export const MarketTicker: React.FC<{ onAssetClick?: (s: string) => void }> = ({
 
     useEffect(() => {
         const fetchData = async () => {
-            const marketData = await getMarketData();
+            const stored = localStorage.getItem('greyquant_user_settings');
+            let token = '';
+            if (stored) {
+                try {
+                    const parsed = JSON.parse(stored);
+                    token = parsed.derivApiToken || '';
+                } catch (e) {}
+            }
+            const marketData = await getMarketData(token);
             if (marketData.length > 0) setData(marketData);
         };
 
         fetchData();
-        // Reduced polling significantly to save quota
-        const intervalId = setInterval(fetchData, 20000); 
+        const intervalId = setInterval(fetchData, 15 * 60 * 1000); 
         return () => clearInterval(intervalId);
     }, []);
 
