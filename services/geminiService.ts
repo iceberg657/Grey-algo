@@ -10,7 +10,7 @@ import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -19,6 +19,32 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
     : MARKET_CONFIGS['EURUSD'];
 
   const tradeMode = userSettings?.tradeMode || 'Aggressive';
+
+  // PROTOCOL ZERO: TREND ALIGNMENT (PRE-PROMPT INJECTION)
+  const trendAlignmentMandate = globalTrend ? `
+🚨 **PROTOCOL ZERO: HTF TREND ALIGNMENT (ABSOLUTE MANDATE)**
+You are strictly FORBIDDEN from trading against the Global HTF Bias provided below. Align or Decline.
+- **Global Bias Symbol:** ${globalTrend.symbol}
+- **Global Bias Momentum:** ${globalTrend.momentum}
+- **HTF Trends:** 1H: ${globalTrend.trend1Hr} | 4H: ${globalTrend.trend4Hr}
+- **Context:** ${globalTrend.reason}
+
+**HARD CONSTRAINTS:**
+1. If Global Momentum is **BULLISH**, you should ONLY look for BUY setups. If the image shows a SELL setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bullish Trend".
+2. If Global Momentum is **BEARISH**, you should ONLY look for SELL setups. If the image shows a BUY setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bearish Trend".
+3. Counter-trend setups are strictly for educational breakdown ONLY and MUST result in a NEUTRAL signal for actual trading.
+4. You are FORBIDDEN from being NEUTRAL for any reason OTHER than extreme trend misalignment or high-impact news.
+` : "";
+
+  const globalTrendContext = globalTrend ? `
+🌍 **GLOBAL MARKET CONTEXT (HTF BIAS):**
+Use this higher timeframe data to anchor your decision. You MUST NOT trade against this global trend unless a clear reversal structure (CHoCH + Displacement) is visible.
+- Symbol: ${globalTrend.symbol}
+- Momentum: ${globalTrend.momentum}
+- 1-Hour Trend: ${globalTrend.trend1Hr}
+- 4-Hour Trend: ${globalTrend.trend4Hr}
+- Context Reason: ${globalTrend.reason}
+` : "";
   
   const institutionalMath = `
 **INSTITUTIONAL ANALYSIS & MATHEMATICAL THEORIES (REQUIRED):**
@@ -230,6 +256,8 @@ You are **Oracle**, the apex-level trading AI engine and elite Trading Coach. Yo
 - Act as a mentor who wants the user to become a consistently profitable institutional-grade trader.
 
 ${learnedContext}
+${trendAlignmentMandate}
+${globalTrendContext}
 ${twelveDataContext}
 ${accountInfo}
 ${tradeModeInstructions}
@@ -252,8 +280,9 @@ Use the Twelve Data "Mathematical Truth" to perform statistical analysis:
 3. **Equilibrium Validation:** Evaluate if the asset has returned to the Equilibrium (50% mark) of the recent structural leg.
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL. You are EXACTLY FORBIDDEN from being NEUTRAL, regardless of trading mode (Aggressive or Sniper).
-   - **BIAS OVER NEUTRALITY:** You MUST prioritize a directional signal (BUY/SELL). Use your neural processing to find the path of least resistance for the institutions. Let the mathematical logic force a direction.
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL in almost all cases. 
+   - **EXCEPTION:** You are ONLY permitted to issue a **NEUTRAL** signal if the local price action is directly contradicting the **Protocol Zero: HTF Trend Alignment**. 
+   - In all other cases, you MUST prioritize a directional signal (BUY/SELL).
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
@@ -340,8 +369,8 @@ ${ALGO_LOGIC}
    - **STRICT PROHIBITION:** Do NOT perform Day Trading on the 1-minute (M1) timeframe. M1 is strictly reserved for scalping.
    - If Structural Bias == Bearish AND Market Trend == Bearish -> **SELL SIGNAL**.
    - If Structural Bias == Bullish AND Market Trend == Bullish -> **BUY SIGNAL**.
-   - If Structural Bias == Bullish AND Market Trend == Bearish -> Wait for a **retrace entry for a BEARISH setup**.
-   - If Structural Bias == Bearish AND Market Trend == Bullish -> Wait for a **retrace entry for a BULLISH setup**.
+   - If Structural Bias == Bullish AND Market Trend == Bearish -> Wait for a **retrace finish for a BUY setup**.
+   - If Structural Bias == Bearish AND Market Trend == Bullish -> Wait for a **retrace finish for a SELL setup**.
 
 2. **VOLATILITY & ATR CHECK:**
    - Watch out for market volatility to prevent entering trades in choppy regions.
@@ -757,23 +786,23 @@ You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a 
   },
   "verificationProtocol": {
     "newsAndSessionCheck": { "passed": boolean, "reasoning": string },
-    "higherTimeframeCheck": { "passed": boolean, "reasoning": string },
+    "higherTimeframeCheck": { "passed": boolean, "reasoning": "How this aligns with Global Trend [${globalTrend?.momentum || 'N/A'}]" },
     "liquiditySweepCheck": { "passed": boolean, "reasoning": string },
     "riskRewardCheck": { "passed": boolean, "reasoning": string }
   },
 
   "reasoning": [
-    "1. Technical Case: [Your reasoning here]",
+    "1. HTF Trend Alignment: [Explain how this trade respects the Global HTF Bias]",
     "2. Technical Case: [Your reasoning here]",
     "3. Technical Case: [Your reasoning here]",
-    "4. Momentum & Volume: [Your reasoning here]",
-    "5. Dynamic S/R: [Your reasoning here]",
-    "6. Risk Management: [Your reasoning here]",
-    "7. Drawdown Protection: [Your reasoning here]",
-    "8. Profit Targets: [Your reasoning here]",
-    "9. Invalidation: [Your reasoning here]",
+    "4. Technical Case: [Your reasoning here]",
+    "5. Momentum & Volume: [Your reasoning here]",
+    "6. Dynamic S/R: [Your reasoning here]",
+    "7. Risk Management: [Your reasoning here]",
+    "8. Drawdown Protection: [Your reasoning here]",
+    "9. Profit Targets: [Your reasoning here]",
     "10. Overall Confluence: [Your reasoning here]"
-  ], // CRITICAL: This array MUST contain EXACTLY 10 strings. Do not add or remove any points.
+  ], 
   
   "invalidationScenario": "Structural break of HL/LH",
   "counterArgumentRejection": "Detailed explanation of why the opposing scenario was rejected",
@@ -801,7 +830,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
           request.learnedStrategies || [],
           request.tradingStyle,
           request.userSettings,
-          request.twelveDataQuote
+          request.twelveDataQuote,
+          request.globalTrend
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -1158,26 +1188,6 @@ export async function generateTradingSignal(
     // 2. Get comprehensive AI analysis
     const rawSignal = await callGeminiDirectly(updatedRequest);
     
-    // --- FINAL NO NEUTRAL CONSTRAINT ---
-    if (rawSignal.signal === 'NEUTRAL' || (rawSignal.signal as string) === 'No Trade' || (rawSignal.signal as string) === 'HOLD') {
-        const query = request.query?.toLowerCase() || '';
-        if (query.includes('sell') || query.includes('bearish')) {
-            rawSignal.signal = 'SELL';
-        } else if (query.includes('buy') || query.includes('bullish')) {
-            rawSignal.signal = 'BUY';
-        } else {
-            // If no specific query bias, check if there's any trend context or default to BUY
-            const trend = rawSignal.technicalAnalysis?.trend?.toLowerCase() || '';
-            if (trend.includes('bear') || trend.includes('down')) {
-                 rawSignal.signal = 'SELL';
-            } else {
-                 rawSignal.signal = 'BUY';
-            }
-        }
-        if (!rawSignal.reasoning) rawSignal.reasoning = [];
-        rawSignal.reasoning.unshift(`🎯 System Override: Neutrality is explicitly forbidden. Trade forced in direction of structural bias (${rawSignal.signal}).`);
-    }
-    
     // Log the trade automatically
     try {
         const tradeId = await logTrade(rawSignal as SignalData);
@@ -1318,82 +1328,33 @@ export async function generateSniperLiveSignal(
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 
   const quantContext = quantData ? `
-**QUANTITATIVE ENGINE RESULTS — PRE-CALCULATED MATHEMATICAL FACTS:**
-You are NOT analyzing the market. You are AUDITING pre-calculated math.
-Your ONLY job: confirm the setup makes institutional sense and output execution.
+**ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
+- Trend Bias: ${quantData.trend}
+- EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
+- Current RSI: ${quantData.rsi}
+- Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
+- BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
 
-═══════════════════════════════════════
-HTF STRUCTURE
-═══════════════════════════════════════
-HTF Trend:        ${quantData.tfConfirmation?.htfTrend}
-BOS Confirmed:    ${quantData.htfBOS?.confirmed ? 'YES — ' + quantData.htfBOS.type : 'NO'}
-Institutional:    ${quantData.htfBOS?.isInstitutional ? '✅ YES (' + quantData.htfBOS.displacement.toFixed(1) + 'x ATR + Volume)' : '❌ NO — retail BOS'}
-Range High:       ${quantData.htfRange?.rangeHigh}
-Range Low:        ${quantData.htfRange?.rangeLow}
-Equilibrium:      ${quantData.htfRange?.equilibrium}
+**INSTITUTIONAL DISPLACEMENT & FLOW:**
+- Displacement (Thick Candle/1.5x ATR): ${quantData.displacement ? `YES ✅ (${quantData.displacementDirection})` : 'NO ❌'}
+- Current Price in Optimal Trade Entry (OTE): ${quantData.isInOTE ? 'YES ✅' : 'NO ❌'}
+- OTE Bullish Deep: ${quantData.ote?.bullish?.deep} | OTE Bearish Deep: ${quantData.ote?.bearish?.deep}
+- Mathematical Strict SL: ${quantData.mathematicalSL || 'N/A'} (Based on ATR + Disp. Noise filter)
 
-═══════════════════════════════════════
-ZONE ANALYSIS
-═══════════════════════════════════════
-Current Price:    ${quantData.currentPrice}
-Current Zone:     ${quantData.currentZone}
-Zone Valid:       ${quantData.zoneValid ? 'YES ✅' : 'NO ❌'}
-Premium Zone:     ${quantData.htfRange?.premiumZone?.lower} - ${quantData.htfRange?.premiumZone?.upper}
-Discount Zone:    ${quantData.htfRange?.discountZone?.lower} - ${quantData.htfRange?.discountZone?.upper}
+**PREMIUM/DISCOUNT ZONE (MATHEMATICAL TRUTH):**
+- Current Zone: ${quantData.currentZone}
+- Zone Valid for Signal: ${quantData.zoneValid ? 'YES' : 'NO'}
 
-═══════════════════════════════════════
-OTE (OPTIMAL TRADE ENTRY)
-═══════════════════════════════════════
-OTE 62%:          ${quantData.ote?.ote62}
-OTE 70.5%:        ${quantData.ote?.ote705} ← SWEET SPOT
-OTE 79%:          ${quantData.ote?.ote79}
-Price In OTE:     ${quantData.ote?.priceInOTE ? 'YES ✅ INSTITUTIONAL ENTRY ZONE' : 'NO — wait for pullback'}
+**3 TIMEFRAME CONFIRMATION:**
+- Entry TF Trend: ${quantData.tfConfirmation?.entryTrend} | HTF Trend: ${quantData.tfConfirmation?.htfTrend}
+- All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
 
-═══════════════════════════════════════
-ORDER BLOCK
-═══════════════════════════════════════
-Buy OB:           ${quantData.htfRange?.extremeBuyOB ? quantData.htfRange.extremeBuyOB.bottom + ' - ' + quantData.htfRange.extremeBuyOB.top : 'NONE'}
-Sell OB:          ${quantData.htfRange?.extremeSellOB ? quantData.htfRange.extremeSellOB.bottom + ' - ' + quantData.htfRange.extremeSellOB.top : 'NONE'}
-OTE + OB:         ${quantData.oteOBConfluence?.classA ? '🏆 CLASS A CONFLUENCE' : 'No confluence'}
+**ENGINE MANDATED SIGNAL:** ${quantData.explicitSignal}
 
-═══════════════════════════════════════
-LTF EXECUTION
-═══════════════════════════════════════
-LTF BOS:          ${quantData.ltfBOS ? quantData.ltfBOS.type : 'NONE'}
-Institutional:    ${quantData.ltfBOS?.isInstitutional ? '✅ YES (' + quantData.ltfBOS.displacement.toFixed(1) + 'x ATR)' : '❌ NOT YET'}
-FVG:              ${quantData.fvg ? quantData.fvg.type + ' at ' + quantData.fvg.lower + ' - ' + quantData.fvg.upper : 'NONE'}
-
-═══════════════════════════════════════
-EXECUTION LEVELS (PRE-CALCULATED)
-═══════════════════════════════════════
-Signal:           ${quantData.institutionalSignal?.signal}
-Quality:          ${quantData.institutionalSignal?.quality}
-Entry:            ${quantData.institutionalSignal?.entry}
-Stop Loss:        ${quantData.institutionalSignal?.stopLoss} (${quantData.institutionalSignal?.slBasis})
-TP1 (1:2 RR):     ${quantData.institutionalSignal?.tp1}
-TP2 (EQ):         ${quantData.institutionalSignal?.tp2}
-TP3 (Extreme):    ${quantData.institutionalSignal?.tp3}
-RR Valid:         ${quantData.rrCheck?.valid ? 'YES — ' + quantData.rrCheck.ratio + ':1' : 'NO — ' + quantData.rrCheck?.reason}
-
-═══════════════════════════════════════
-KILLZONE & CONFIDENCE
-═══════════════════════════════════════
-Session:          ${quantData.killzone?.label}
-Killzone Active:  ${quantData.killzone?.active ? 'YES ✅' : 'NO ⚠️'}
-Signal Strength:  ${quantData.signalStrength} (${quantData.normalizedScore}%)
-ATR:              ${quantData.atr?.toFixed(5)}
-RSI:              ${quantData.rsi?.toFixed(1)}
-StdDev:           ${quantData.stdDev?.overextended ? 'OVEREXTENDED — high reversal probability' : 'Normal range'}
-
-═══════════════════════════════════════
-YOUR INSTRUCTIONS
-═══════════════════════════════════════
-FORCED SIGNAL:    ${quantData.institutionalSignal?.signal}
-FORCED LEVELS:    Use EXACTLY the pre-calculated SL and TPs above
-DO NOT:           Override levels, choose Neutral, or guess zones
-YOUR ROLE:        Explain WHY this is institutional using the data above
-                  Confirm the setup in professional SMC language
-                  Add reasoning about killzone, displacement and OTE
+*CRITICAL INSTRUCTIONS:*
+- **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
+- **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
+- You MUST use the **Mathematical Strict SL** provided above (${quantData.mathematicalSL}) or something very close to it. It already accounts for the Displacement wick and ATR noise.
 ` : '';
 
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]

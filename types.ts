@@ -47,6 +47,13 @@ export interface UserSettings extends Partial<AccountSettings> {
     derivApiToken?: string;
 }
 
+export interface GlobalTrendInfo {
+    momentum: 'Bullish' | 'Bearish';
+    reason: string;
+    trend1Hr: 'Bullish' | 'Bearish' | 'Neutral';
+    trend4Hr: 'Bullish' | 'Bearish' | 'Neutral';
+}
+
 export interface AnalysisRequest {
     images: {
         higher?: ImagePart;
@@ -59,6 +66,7 @@ export interface AnalysisRequest {
     isMultiDimensional: boolean;
 
     globalContext?: string;
+    globalTrend?: GlobalTrendInfo;
     learnedStrategies?: string[];
     userSettings?: UserSettings;
     twelveDataQuote?: any;

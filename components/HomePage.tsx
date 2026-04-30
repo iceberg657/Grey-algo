@@ -229,6 +229,26 @@ export const HomePage: React.FC<HomePageProps> = ({
 
             const learnedStrategies = await getLearnedStrategies();
             
+            // Find global trend for the asset if it exists in suggestions
+            let globalTrend = undefined;
+            const searchSymbol = requestData.asset?.toUpperCase();
+            if (searchSymbol) {
+                const combined = [...bullishSuggestions, ...bearishSuggestions];
+                const match = combined.find(a => 
+                    a.symbol.toUpperCase() === searchSymbol || 
+                    a.symbol.toUpperCase().includes(searchSymbol) ||
+                    searchSymbol.includes(a.symbol.toUpperCase().replace('FX:', ''))
+                );
+                if (match) {
+                    globalTrend = {
+                        momentum: match.momentum,
+                        reason: match.reason,
+                        trend1Hr: match.trend1Hr || 'Neutral',
+                        trend4Hr: match.trend4Hr || 'Neutral'
+                    };
+                }
+            }
+            
             // Fetch live market data for confluence
             let marketData = null;
             if (requestData.asset) {
@@ -260,7 +280,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                 ...requestData,
                 userSettings,
                 learnedStrategies,
-                twelveDataQuote: marketData
+                twelveDataQuote: marketData,
+                globalTrend
             };
 
             const data = await generateTradingSignal(fullRequest);
