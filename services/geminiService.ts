@@ -20,6 +20,18 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 
   const tradeMode = userSettings?.tradeMode || 'Aggressive';
   
+  const institutionalMath = `
+**INSTITUTIONAL ANALYSIS & MATHEMATICAL THEORIES (REQUIRED):**
+- **Displacement Filter:** You MUST calculate or estimate Displacement. An institutional move is proven if a structural break candle is > 1.5x the Average True Range (ATR).
+- **Optimal Trade Entry (OTE):** You MUST wait for the "Return to Impulse". Identify the swing range and calculate the OTE:
+  - OTE Start: 0.62 retracement
+  - OTE Mid (Sweet Spot): 0.705 retracement
+  - OTE Deep: 0.79 retracement
+- **Stop Loss System (Hard Floor):** Your SL MUST be strictly mathematical. Set it below the OTE Deep level, or below the Lowest Wick of the Displacement candle minus a volatility buffer (e.g., 0.5x ATR). Institutions rarely let price trade back below the root of displacement.
+- **Take Profit System:** TP1 targets the first liquidity pool (1:1.5 to 1:2 RR). TP2 targets the main external liquidity sweep.
+- **Time-Based Liquidity (Killzones):** Focus trades during London (07:00-10:00 UTC) and NY (12:00-15:00 UTC). Outside these hours, moves are often retail noise.
+`;
+
   const tradeModeInstructions = tradeMode === 'Sniper' 
     ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
 - You MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
@@ -29,7 +41,7 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1.5 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
-- **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
+- **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL or "No Trade" signal.
 - **FORCE DIRECTION (DECISIVE BIAS):** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST fulfill that request and pick that side. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
 - **BIAS OVER NEUTRALITY:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
     - If Trend is UP -> Issue 'WEAK BULLISH' (labeled as BUY).
@@ -221,6 +233,7 @@ ${learnedContext}
 ${twelveDataContext}
 ${accountInfo}
 ${tradeModeInstructions}
+${institutionalMath}
 
 ---
 
@@ -1145,6 +1158,26 @@ export async function generateTradingSignal(
     // 2. Get comprehensive AI analysis
     const rawSignal = await callGeminiDirectly(updatedRequest);
     
+    // --- FINAL NO NEUTRAL CONSTRAINT ---
+    if (rawSignal.signal === 'NEUTRAL' || (rawSignal.signal as string) === 'No Trade' || (rawSignal.signal as string) === 'HOLD') {
+        const query = request.query?.toLowerCase() || '';
+        if (query.includes('sell') || query.includes('bearish')) {
+            rawSignal.signal = 'SELL';
+        } else if (query.includes('buy') || query.includes('bullish')) {
+            rawSignal.signal = 'BUY';
+        } else {
+            // If no specific query bias, check if there's any trend context or default to BUY
+            const trend = rawSignal.technicalAnalysis?.trend?.toLowerCase() || '';
+            if (trend.includes('bear') || trend.includes('down')) {
+                 rawSignal.signal = 'SELL';
+            } else {
+                 rawSignal.signal = 'BUY';
+            }
+        }
+        if (!rawSignal.reasoning) rawSignal.reasoning = [];
+        rawSignal.reasoning.unshift(`🎯 System Override: Neutrality is explicitly forbidden. Trade forced in direction of structural bias (${rawSignal.signal}).`);
+    }
+    
     // Log the trade automatically
     try {
         const tradeId = await logTrade(rawSignal as SignalData);
@@ -1187,6 +1220,87 @@ export async function generateTradingSignal(
     return completeSetup;
 }
 
+export function calculateRRLevels(
+    signal: 'BUY' | 'SELL',
+    entry: number,
+    stopLoss: number
+) {
+    const risk = Math.abs(entry - stopLoss);
+    if (risk === 0) return null;
+
+    if (signal === 'BUY') {
+        return {
+            risk,
+            riskPips: risk,
+            tp1: parseFloat((entry + risk * 1.5).toFixed(5)),
+            tp2: parseFloat((entry + risk * 2.0).toFixed(5)),
+            tp3: parseFloat((entry + risk * 3.0).toFixed(5)),
+            rrRatios: { tp1: '1:1.5', tp2: '1:2', tp3: '1:3' },
+            breakeven: entry,
+            partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
+        };
+    } else {
+        return {
+            risk,
+            riskPips: risk,
+            tp1: parseFloat((entry - risk * 1.5).toFixed(5)),
+            tp2: parseFloat((entry - risk * 2.0).toFixed(5)),
+            tp3: parseFloat((entry - risk * 3.0).toFixed(5)),
+            rrRatios: { tp1: '1:1.5', tp2: '1:2', tp3: '1:3' },
+            breakeven: entry,
+            partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
+        };
+    }
+}
+
+export function validateSL(
+    signal: 'BUY' | 'SELL',
+    entry: number,
+    sl: number,
+    atr: number
+) {
+    const slDistance = Math.abs(entry - sl);
+    const minSL = atr * 1.5;
+
+    if (slDistance < minSL) {
+        console.warn(`[SL] Too tight (${slDistance}) — expanding to 1.5x ATR (${minSL})`);
+        return signal === 'BUY'
+            ? parseFloat((entry - minSL).toFixed(5))
+            : parseFloat((entry + minSL).toFixed(5));
+    }
+    return sl;
+}
+
+export function calculateLotSize(
+    accountBalance: number,
+    riskPercent: number,
+    entry: number,
+    stopLoss: number,
+    pipValue: number = 10,        // Standard forex pip value
+    contractSize: number = 100000  // Standard lot
+) {
+    // Risk amount in dollars
+    const riskAmount = accountBalance * (riskPercent / 100);
+
+    // SL distance in price units
+    const slDistance = Math.abs(entry - stopLoss);
+
+    // Convert to pips (for forex 4 decimal, multiply by 10000)
+    const slPips = slDistance * 10000;
+
+    // Lot size formula
+    // For safety against division by zero
+    if (slPips === 0) return { lotSize: 0, riskAmount, slPips: 0, riskPercent };
+    const lotSize = riskAmount / (slPips * pipValue);
+
+    return {
+        lotSize: parseFloat(lotSize.toFixed(2)),
+        riskAmount,
+        slPips: parseFloat(slPips.toFixed(1)),
+        riskPercent
+    };
+}
+
 /**
  * Generates a high-precision trade setup using Gemini 3.1 Flash Lite and live Deriv data.
  * Focused on Market Execution and Institutional logic.
@@ -1196,57 +1310,97 @@ export async function generateSniperLiveSignal(
   style: TradingStyle,
   derivData: any,
   learnedStrategies: string[] = [],
-  quantData?: any
+  quantData?: any,
+  userSettings?: UserSettings
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 
   const quantContext = quantData ? `
-**ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
-- Trend Bias: ${quantData.trend}
-- EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
-- Current RSI: ${quantData.rsi}
-- Last Swing High: ${quantData.lastSwingHigh}
-- Last Swing Low: ${quantData.lastSwingLow}
-- BOS: ${quantData.bos ? 'YES' : 'NO'}
-- CHoCH: ${quantData.choch ? 'YES' : 'NO'}
-- Liquidity Sweep: ${quantData.liquiditySweep ? 'YES' : 'NO'}
+**QUANTITATIVE ENGINE RESULTS — PRE-CALCULATED MATHEMATICAL FACTS:**
+You are NOT analyzing the market. You are AUDITING pre-calculated math.
+Your ONLY job: confirm the setup makes institutional sense and output execution.
 
-**PREMIUM/DISCOUNT ZONE (MATHEMATICAL TRUTH):**
-- Current Zone: ${quantData.currentZone}
-- Zone Valid for Signal: ${quantData.zoneValid ? 'YES' : 'NO'}
-- Premium Zone: ${quantData.premiumZone?.lower} - ${quantData.premiumZone?.upper}
-- Discount Zone: ${quantData.discountZone?.lower} - ${quantData.discountZone?.upper}
-- Midpoint (Equilibrium): ${quantData.discountZone?.upper}
+═══════════════════════════════════════
+HTF STRUCTURE
+═══════════════════════════════════════
+HTF Trend:        ${quantData.tfConfirmation?.htfTrend}
+BOS Confirmed:    ${quantData.htfBOS?.confirmed ? 'YES — ' + quantData.htfBOS.type : 'NO'}
+Institutional:    ${quantData.htfBOS?.isInstitutional ? '✅ YES (' + quantData.htfBOS.displacement.toFixed(1) + 'x ATR + Volume)' : '❌ NO — retail BOS'}
+Range High:       ${quantData.htfRange?.rangeHigh}
+Range Low:        ${quantData.htfRange?.rangeLow}
+Equilibrium:      ${quantData.htfRange?.equilibrium}
 
-**3 TIMEFRAME CONFIRMATION:**
-- Entry TF Trend: ${quantData.tfConfirmation?.entryTrend}
-- Confirmation TF Trend: ${quantData.tfConfirmation?.confirmTrend}
-- HTF Trend: ${quantData.tfConfirmation?.htfTrend}
-- All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
+═══════════════════════════════════════
+ZONE ANALYSIS
+═══════════════════════════════════════
+Current Price:    ${quantData.currentPrice}
+Current Zone:     ${quantData.currentZone}
+Zone Valid:       ${quantData.zoneValid ? 'YES ✅' : 'NO ❌'}
+Premium Zone:     ${quantData.htfRange?.premiumZone?.lower} - ${quantData.htfRange?.premiumZone?.upper}
+Discount Zone:    ${quantData.htfRange?.discountZone?.lower} - ${quantData.htfRange?.discountZone?.upper}
 
-**ADVANCED SMC & VOLATILITY:**
-- ATR (Average True Range): ${quantData.atr ? quantData.atr.toFixed(5) : 'N/A'}
-- FVG (Fair Value Gap): ${quantData.fvg ? `${quantData.fvg.type} FVG Detected. Retest: ${quantData.fvgRetest ? 'YES' : 'NO'}` : 'None'}
-- Order Block: ${quantData.orderBlock ? `${quantData.orderBlock.type} Detected. Mitigated: ${quantData.orderBlock.mitigated ? 'YES' : 'NO'}` : 'None'}
-- StdDev Overextended: ${quantData.stdDev?.overextended ? 'YES ✅ (Reversal likely)' : 'NO'}
-- Active Session: ${quantData.session || 'UNKNOWN'}
+═══════════════════════════════════════
+OTE (OPTIMAL TRADE ENTRY)
+═══════════════════════════════════════
+OTE 62%:          ${quantData.ote?.ote62}
+OTE 70.5%:        ${quantData.ote?.ote705} ← SWEET SPOT
+OTE 79%:          ${quantData.ote?.ote79}
+Price In OTE:     ${quantData.ote?.priceInOTE ? 'YES ✅ INSTITUTIONAL ENTRY ZONE' : 'NO — wait for pullback'}
 
-**CONFIDENCE SCORE: ${quantData.confidenceScore}%**
-- Minimum threshold: 45%
-- Signal Valid: ${quantData.signalValid ? 'YES' : 'NO'}
+═══════════════════════════════════════
+ORDER BLOCK
+═══════════════════════════════════════
+Buy OB:           ${quantData.htfRange?.extremeBuyOB ? quantData.htfRange.extremeBuyOB.bottom + ' - ' + quantData.htfRange.extremeBuyOB.top : 'NONE'}
+Sell OB:          ${quantData.htfRange?.extremeSellOB ? quantData.htfRange.extremeSellOB.bottom + ' - ' + quantData.htfRange.extremeSellOB.top : 'NONE'}
+OTE + OB:         ${quantData.oteOBConfluence?.classA ? '🏆 CLASS A CONFLUENCE' : 'No confluence'}
 
-*CRITICAL INSTRUCTIONS:*
-- You MUST align your signal with the mathematical zone data above.
-- If Current Zone is DISCOUNT → ONLY issue BUY signals.
-- If Current Zone is PREMIUM → ONLY issue SELL signals.
-- If All Timeframes are NOT Aligned → increase caution in reasoning.
-- NEVER contradict the zone validity shown above.
+═══════════════════════════════════════
+LTF EXECUTION
+═══════════════════════════════════════
+LTF BOS:          ${quantData.ltfBOS ? quantData.ltfBOS.type : 'NONE'}
+Institutional:    ${quantData.ltfBOS?.isInstitutional ? '✅ YES (' + quantData.ltfBOS.displacement.toFixed(1) + 'x ATR)' : '❌ NOT YET'}
+FVG:              ${quantData.fvg ? quantData.fvg.type + ' at ' + quantData.fvg.lower + ' - ' + quantData.fvg.upper : 'NONE'}
+
+═══════════════════════════════════════
+EXECUTION LEVELS (PRE-CALCULATED)
+═══════════════════════════════════════
+Signal:           ${quantData.institutionalSignal?.signal}
+Quality:          ${quantData.institutionalSignal?.quality}
+Entry:            ${quantData.institutionalSignal?.entry}
+Stop Loss:        ${quantData.institutionalSignal?.stopLoss} (${quantData.institutionalSignal?.slBasis})
+TP1 (1:2 RR):     ${quantData.institutionalSignal?.tp1}
+TP2 (EQ):         ${quantData.institutionalSignal?.tp2}
+TP3 (Extreme):    ${quantData.institutionalSignal?.tp3}
+RR Valid:         ${quantData.rrCheck?.valid ? 'YES — ' + quantData.rrCheck.ratio + ':1' : 'NO — ' + quantData.rrCheck?.reason}
+
+═══════════════════════════════════════
+KILLZONE & CONFIDENCE
+═══════════════════════════════════════
+Session:          ${quantData.killzone?.label}
+Killzone Active:  ${quantData.killzone?.active ? 'YES ✅' : 'NO ⚠️'}
+Signal Strength:  ${quantData.signalStrength} (${quantData.normalizedScore}%)
+ATR:              ${quantData.atr?.toFixed(5)}
+RSI:              ${quantData.rsi?.toFixed(1)}
+StdDev:           ${quantData.stdDev?.overextended ? 'OVEREXTENDED — high reversal probability' : 'Normal range'}
+
+═══════════════════════════════════════
+YOUR INSTRUCTIONS
+═══════════════════════════════════════
+FORCED SIGNAL:    ${quantData.institutionalSignal?.signal}
+FORCED LEVELS:    Use EXACTLY the pre-calculated SL and TPs above
+DO NOT:           Override levels, choose Neutral, or guess zones
+YOUR ROLE:        Explain WHY this is institutional using the data above
+                  Confirm the setup in professional SMC language
+                  Add reasoning about killzone, displacement and OTE
 ` : '';
 
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
-As an elite Institutional Trading AI (Sniper Mode), generate a high-precision trade setup purely using Price Action, Market Structure, and Volume dynamics.
+System Role: You are a High-Frequency Institutional Execution Bot.
+
+Data:
+${quantContext}
 
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:
@@ -1259,7 +1413,6 @@ style.includes('day trading') ? `
 `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
-${quantContext}
 
 **ALPHA MAXIMIZER & NEURAL TRANSCENDENCE PROTOCOL:**
 1. **HTF TREND ALIGNMENT:** You should generally identify the higher timeframe (HTF) trend.
@@ -1430,6 +1583,54 @@ JSON Structure:
         const rawConf = signal.confidence || 50;
         const finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
 
+        // SL Validation against ATR if quantData is present
+        if (quantData?.atr) {
+            finalSL = validateSL(finalSignal as 'BUY'|'SELL', midEntry, finalSL, quantData.atr);
+            finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
+        }
+
+        // Apply mathematical RR overrides
+        let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0,0,0];
+        const rrLevels = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL);
+        let finalPositionProtocol: string | undefined = undefined;
+
+        if (rrLevels) {
+            finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
+            finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2x, 3x risk distances.`);
+            finalPositionProtocol = `
+**POSITION MANAGEMENT PROTOCOL:**
+- Entry: ${midEntry}
+- Stop Loss: ${finalSL} (Risk: ${rrLevels.risk.toFixed(5)})
+- TP1 (1:1.5 RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
+- TP2 (1:2.0 RR): ${rrLevels.tp2} → Close 30%
+- TP3 (1:3.0 RR): ${rrLevels.tp3} → Close remaining 20%
+- Breakeven Level: ${rrLevels.breakeven}
+
+RULE: Once TP1 is hit you CANNOT lose on this trade.
+Move SL to entry immediately after TP1.
+`;
+        } else {
+            // Validate TPs are on correct side of entry just in case
+            const tpsValid = finalSignal === 'BUY'
+                ? finalTPs.every(tp => tp > midEntry)
+                : finalTPs.every(tp => tp < midEntry);
+
+            if (!tpsValid) {
+                console.warn('[RR] TP validation failed — recalculating');
+                const recalculated = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL);
+                if (recalculated) {
+                    finalTPs[0] = recalculated.tp1 || finalTPs[0] || 0;
+                    finalTPs[1] = recalculated.tp2 || finalTPs[1] || 0;
+                    finalTPs[2] = recalculated.tp3 || finalTPs[2] || 0;
+                }
+            }
+        }
+
+        // Calculate Lot Size based on User Settings
+        const accountBalance = userSettings?.accountBalance || 10000;
+        const riskPercent = userSettings?.riskPerTrade || 1;
+        const lotInfo = calculateLotSize(accountBalance, riskPercent, midEntry, finalSL);
+
         const sanitizedSignal: SignalData = {
           id: `sniper_${Date.now()}`,
           timestamp: Date.now(),
@@ -1440,7 +1641,13 @@ JSON Structure:
           entryPoints: [midEntry],
           entryRange: finalEntryRange || null,
           stopLoss: finalSL,
-          takeProfits: Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0],
+          takeProfits: finalTPs,
+          rrLevels: rrLevels || undefined,
+          positionProtocol: finalPositionProtocol || undefined,
+          formattedLotSize: lotInfo.lotSize > 0 ? lotInfo.lotSize.toString() : signal.formattedLotSize,
+          riskAmount: lotInfo.riskAmount,
+          positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
+          recommendedPositions: signal.recommendedPositions,
           reasoning: finalReasoning,
           checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
           entryType: 'Market Execution',

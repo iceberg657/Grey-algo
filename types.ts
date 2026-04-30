@@ -151,6 +151,17 @@ export interface SignalData {
     };
     stopLoss: number;
     takeProfits: number[];
+    rrLevels?: {
+        risk: number;
+        riskPips: number;
+        tp1: number;
+        tp2: number;
+        tp3: number;
+        rrRatios: { tp1: string; tp2: string; tp3: string };
+        breakeven: number;
+        partialClose: string;
+    };
+    positionProtocol?: string;
     reasoning: string[];
     checklist?: string[];
     invalidationScenario?: string;

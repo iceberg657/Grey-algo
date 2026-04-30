@@ -23,7 +23,7 @@ import {
   Bot
 } from 'lucide-react';
 import { generateSniperLiveSignal } from '../services/geminiService';
-import { TradingStyle, SignalData, UserMetadata } from '../types';
+import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
 import { fetchMarketData } from '../services/twelveDataService';
 import { saveAnalysis } from '../services/historyService';
@@ -69,6 +69,18 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('greyquant_user_settings');
+        if (stored) {
+            try {
+                setUserSettings(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse user settings", e);
+            }
+        }
+    }, []);
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -246,11 +258,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout for 3 fetches
 
-      // Fetch all 3 timeframes simultaneously
+      // Fetch all 3 timeframes simultaneously with 1000 candles history
       const [entryRes, confirmRes, htfRes] = await Promise.all([
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
       ]);
       
       clearTimeout(timeoutId);
@@ -382,7 +394,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         style, 
         derivData, 
         [], // Default learned strategies
-        quantData
+        quantData,
+        userSettings
       );
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
@@ -791,6 +804,60 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                   <div className="text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{msg.signal.takeProfits[1]}</div>
                                 </div>
                               </div>
+
+                              {/* RR Levels */}
+                              {msg.signal.rrLevels && (
+                                  <div className="mt-4 mb-8 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">
+                                          Risk/Reward Breakdown
+                                      </h3>
+                                      <div className="grid grid-cols-3 gap-3">
+                                          {/* TP1 */}
+                                          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
+                                              <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
+                                                  TP1 • 1:1.5
+                                              </div>
+                                              <div className="text-sm font-black text-emerald-500">
+                                                  {msg.signal.takeProfits[0]}
+                                              </div>
+                                              <div className="text-[9px] text-slate-500 mt-1">
+                                                  Close 50%
+                                              </div>
+                                          </div>
+
+                                          {/* TP2 */}
+                                          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
+                                              <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
+                                                  TP2 • 1:2
+                                              </div>
+                                              <div className="text-sm font-black text-emerald-500">
+                                                  {msg.signal.takeProfits[1]}
+                                              </div>
+                                              <div className="text-[9px] text-slate-500 mt-1">
+                                                  Close 30%
+                                              </div>
+                                          </div>
+
+                                          {/* TP3 */}
+                                          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
+                                              <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
+                                                  TP3 • 1:3
+                                              </div>
+                                              <div className="text-sm font-black text-emerald-500">
+                                                  {msg.signal.takeProfits[2] || 'N/A'}
+                                              </div>
+                                              <div className="text-[9px] text-slate-500 mt-1">
+                                                  Close 20%
+                                              </div>
+                                          </div>
+                                      </div>
+
+                                      {/* Breakeven Alert */}
+                                      <div className="mt-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-3 py-2 text-[10px] font-bold text-amber-500/80 text-center uppercase tracking-widest">
+                                          ⚡ Move SL to {msg.signal.entryPoints?.[0]} after TP1 hits
+                                      </div>
+                                  </div>
+                              )}
 
                               {/* Position Management */}
                               {msg.signal.signal !== 'NEUTRAL' && (msg.signal.formattedLotSize || msg.signal.recommendedPositions) && (

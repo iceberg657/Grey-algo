@@ -8,7 +8,7 @@ import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { NeuralBackground } from './NeuralBackground';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
-import type { UserMetadata } from '../types';
+import type { UserMetadata, UserSettings } from '../types';
 
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
@@ -216,6 +216,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [currentModelName, setCurrentModelName] = useState<string>('');
     const [retrySeconds, setRetrySeconds] = useState<number>(0);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('greyquant_user_settings');
+        if (stored) {
+            try {
+                setUserSettings(JSON.parse(stored));
+            } catch (e) {
+                console.error("Failed to parse user settings", e);
+            }
+        }
+    }, []);
 
     useEffect(() => {
         const init = async () => {
@@ -369,7 +381,37 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                 const imageParts = await Promise.all(files.map(f => fileToImagePart(f)));
                 imageParts.forEach(p => messageParts.push({ inlineData: { data: p.data, mimeType: p.mimeType } }));
             }
-            messageParts.push({ text: text });
+            
+            // Check for potential asset symbol in text and if we have a TwelveData key
+            let extraContext = '';
+            let key = ''; 
+            try { 
+                const stored = localStorage.getItem('greyquant_user_settings');
+                if (stored) {
+                    const settings = JSON.parse(stored);
+                    key = settings.twelveDataApiKey || '';
+                }
+            } catch(e) {}
+            
+            if (key) {
+                // Regex matches sequences like AAPL, BTC/USD, EURUSD
+                const potentialAssets = text.match(/\b([A-Z]{3}\/?[A-Z]{3}|[A-Z]{1,5})\b/gi);
+                if (potentialAssets && potentialAssets.length > 0) {
+                    for (const asset of potentialAssets) {
+                        try {
+                            const res = await fetch(`/api/twelveData?symbol=${asset}&interval=1h&apikey=${key}`);
+                            const data = await res.json();
+                            if (data && !data.error && data.close) {
+                                extraContext += `\n[System Data: Real-time TwelveData for ${asset}: Price=${data.close}, High=${data.high}, Low=${data.low}, Open=${data.open}, RSI=${data.rsi}, ATR=${data.atr}]`;
+                            }
+                        } catch(e) {
+                            console.error("Failed to fetch twelve data for", asset, e);
+                        }
+                    }
+                }
+            }
+
+            messageParts.push({ text: text + extraContext });
 
             const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
             setCurrentModelName(getCurrentModelName());

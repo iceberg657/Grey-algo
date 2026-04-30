@@ -3,7 +3,7 @@ import WebSocket from 'ws';
 
 const DERIV_APP_ID = 1089; // Default app id for testing or use a specific one if provided
 
-export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory = false, granularity = 60) {
+export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory = false, granularity = 60, count = 1000) {
     // Map common symbols to Deriv format if needed
     const normalized = symbol.toUpperCase().replace('/', '').replace(' ', '').replace(/[^A-Z0-9_]/g, '');
     let mappedSymbol = normalized;
@@ -86,7 +86,7 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
                 ws.send(JSON.stringify({ 
                     ticks_history: mappedSymbol,
                     adjust_start_time: 1,
-                    count: 250, // Get enough candles for EMA200
+                    count: parseInt(count) || 1000, // Get requested candles for deep history
                     end: 'latest',
                     style: 'candles',
                     granularity: parseInt(granularity) || 60
@@ -136,14 +136,14 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
 }
 
 export default async (req, res) => {
-    const { symbol, token, history, granularity } = req.query;
+    const { symbol, token, history, granularity, count } = req.query;
     if (!symbol) {
         return res.status(400).json({ error: 'Missing symbol' });
     }
 
     try {
         const fetchHistory = history === 'true';
-        const data = await fetchDerivQuote(symbol, token, fetchHistory, granularity);
+        const data = await fetchDerivQuote(symbol, token, fetchHistory, granularity, count);
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.status(200).json(data);
     } catch (error) {
