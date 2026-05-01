@@ -191,6 +191,22 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
 
     const { unit, precision, scalar } = getUnitAndPrecision(data.asset);
     
+    // Defensive rounding for display
+    const displayPrecision = data.asset.includes('BTC') || data.asset.includes('NAS') || data.asset.includes('SPX') || data.asset.includes('DOW') || data.asset.includes('XAU') ? 2 : precision === 1 ? 3 : 5;
+    
+    const formatPrice = (p: number | string) => {
+        const val = typeof p === 'string' ? parseFloat(p) : p;
+        if (isNaN(val)) return p;
+        // Logic for common assets
+        const asset = data.asset.toUpperCase();
+        if (asset.includes('BTC') || asset.includes('NAS') || asset.includes('SPX') || asset.includes('DJI') || asset.includes('US30') || asset.includes('XAU') || asset.includes('GOLD')) {
+            return val.toFixed(2);
+        }
+        if (asset.includes('JPY')) return val.toFixed(3);
+        if (asset.length === 6 || asset.startsWith('FRX')) return val.toFixed(5);
+        return val.toFixed(displayPrecision);
+    };
+    
     // Determine Recommended Entry Index based on entryType
     const recommendedEntryIndex = data.entryType === 'Market Execution' ? 1 : 0; 
     
@@ -370,7 +386,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 />
                  <InfoCard label="Confluence Score" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
                  {data.signal !== 'NEUTRAL' && (
-                    <InfoCard label="Hard Stop" value={data.stopLoss} valueClassName="text-red-500 font-black" delay="300ms" />
+                    <InfoCard label="Hard Stop" value={formatPrice(data.stopLoss)} valueClassName="text-red-500 font-black" delay="300ms" />
                  )}
                  {data.signal === 'NEUTRAL' && (
                     <InfoCard label="Status" value="WAITING" valueClassName="text-yellow-500 font-black" subValue="No Confluence" delay="300ms" />
@@ -395,7 +411,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                                     Recommended
                                                 </div>
                                             )}
-                                            <span className={`font-mono text-xl font-black block ${isRecommended ? 'text-green-400' : 'text-gray-800 dark:text-white'}`}>{ep}</span>
+                                            <span className={`font-mono text-xl font-black block ${isRecommended ? 'text-green-400' : 'text-gray-800 dark:text-white'}`}>{formatPrice(ep)}</span>
                                             <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">
                                                 {data.signal === 'NEUTRAL' ? 'LEVEL' : 'ENTRY'}
                                             </span>
@@ -427,7 +443,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                 <div className="flex flex-wrap justify-center items-center gap-4">
                                     {data.takeProfits.slice(0, 2).map((tp, i) => (
                                         <div key={i} className="text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
-                                            <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{tp}</span>
+                                            <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{formatPrice(tp)}</span>
                                             <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">TARGET 0{i + 1}</span>
                                         </div>
                                     ))}

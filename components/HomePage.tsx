@@ -231,16 +231,20 @@ export const HomePage: React.FC<HomePageProps> = ({
             
             // Find global trend for the asset if it exists in suggestions
             let globalTrend = undefined;
-            const searchSymbol = requestData.asset?.toUpperCase();
-            if (searchSymbol) {
+            const rawAsset = requestData.asset?.toUpperCase() || "";
+            const cleanAsset = rawAsset.replace(/^FRX|^FX:|^CRY:|^INDEX:|^OTC_/, '').replace('/', '');
+            
+            if (cleanAsset) {
                 const combined = [...bullishSuggestions, ...bearishSuggestions];
-                const match = combined.find(a => 
-                    a.symbol.toUpperCase() === searchSymbol || 
-                    a.symbol.toUpperCase().includes(searchSymbol) ||
-                    searchSymbol.includes(a.symbol.toUpperCase().replace('FX:', ''))
-                );
+                const match = combined.find(a => {
+                    const suggSymbol = a.symbol.toUpperCase().replace(/^FX:|^CRY:|^INDEX:/, '').replace('/', '');
+                    return suggSymbol === cleanAsset || 
+                           cleanAsset.includes(suggSymbol) || 
+                           suggSymbol.includes(cleanAsset);
+                });
                 if (match) {
                     globalTrend = {
+                        symbol: match.symbol,
                         momentum: match.momentum,
                         reason: match.reason,
                         trend1Hr: match.trend1Hr || 'Neutral',

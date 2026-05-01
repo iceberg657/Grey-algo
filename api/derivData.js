@@ -13,6 +13,13 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
     else if (normalized === 'ETH' || normalized === 'ETHUSD' || normalized === 'CRYETHUSD') mappedSymbol = 'cryETHUSD';
     else if (normalized === 'LTC' || normalized === 'LTCUSD' || normalized === 'CRYLTCUSD') mappedSymbol = 'cryLTCUSD';
     
+    // Global Indices (Move above general prefixes to catch specific index symbols first)
+    else if (normalized === 'US30' || normalized === 'OTCDJI' || normalized.includes('DJI') || normalized.includes('DOW')) mappedSymbol = 'OTC_DJI';
+    else if (normalized === 'US100' || normalized === 'NDX' || normalized.includes('NAS100') || normalized.includes('USTEC')) mappedSymbol = 'OTC_NDX';
+    else if (normalized === 'US500' || normalized === 'SP500' || normalized.includes('SPX500')) mappedSymbol = 'OTC_SPC';
+    else if (normalized === 'UK100' || normalized === 'FTSE' || normalized.includes('FTSE100')) mappedSymbol = 'OTC_FTSE';
+    else if (normalized === 'GERMANY40' || normalized === 'DAX' || normalized === 'OTCGDAXI' || normalized.includes('DAX')) mappedSymbol = 'OTC_GDAXI';
+    
     // Forex - Deriv requires lowercase 'frx' prefix for forex pairs
     else if (normalized.startsWith('FRX')) {
         mappedSymbol = 'frx' + normalized.substring(3);
@@ -62,12 +69,6 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
     else if (normalized === 'RANGE100') mappedSymbol = 'RB_100';
     else if (normalized === 'RANGE200') mappedSymbol = 'RB_200';
 
-    // Global Indices
-    else if (normalized === 'US30' || normalized === 'OTCDJI') mappedSymbol = 'OTC_DJI';
-    else if (normalized === 'US100' || normalized === 'NDX') mappedSymbol = 'OTC_NDX';
-    else if (normalized === 'US500' || normalized === 'SP500') mappedSymbol = 'OTC_SPC';
-    else if (normalized === 'UK100' || normalized === 'FTSE') mappedSymbol = 'OTC_FTSE';
-    else if (normalized === 'GERMANY40' || normalized === 'DAX' || normalized === 'OTCGDAXI') mappedSymbol = 'OTC_GDAXI';
     else if (normalized === 'FRANCE40' || normalized === 'CAC' || normalized === 'OTCFCHI') mappedSymbol = 'OTC_FCHI';
     else if (normalized === 'JAPAN225' || normalized === 'N225') mappedSymbol = 'OTC_N225';
     else if (normalized === 'AUSTRALIA200' || normalized === 'AS51') mappedSymbol = 'OTC_AS51';
