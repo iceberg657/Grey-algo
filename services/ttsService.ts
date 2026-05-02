@@ -51,7 +51,7 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
             // Wrapped in runWithRetry to handle strict 3 RPM limits on specific model/key pair
             return await runWithRetry(async () => {
                 return await ai.models.generateContent({
-                  model: "gemini-2.5-flash-preview-tts",
+                  model: "gemini-2.0-flash",
                   contents: [{ parts: [{ text }] }],
                   config: {
                     responseModalities: [Modality.AUDIO],

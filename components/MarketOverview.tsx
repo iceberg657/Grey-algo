@@ -17,7 +17,9 @@ interface MarketOverviewProps {
     analysisCount: number;
     onResetCount: () => void;
     onAssetSelect?: (asset: string) => void;
-
+    bullishSuggestions: MomentumAsset[];
+    bearishSuggestions: MomentumAsset[];
+    onSuggestionsUpdate: (bullish: MomentumAsset[], bearish: MomentumAsset[]) => void;
 }
 
 const MAJORS_POOL = ['FX:EURUSD', 'FX:GBPUSD', 'FX:USDJPY', 'FX:USDCHF', 'FX:AUDUSD', 'FX:USDCAD', 'FX:NZDUSD'];
@@ -170,7 +172,14 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
     );
 };
 
-export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, onResetCount, onAssetSelect }) => {
+export const MarketOverview: React.FC<MarketOverviewProps> = ({ 
+    analysisCount, 
+    onResetCount, 
+    onAssetSelect,
+    bullishSuggestions,
+    bearishSuggestions,
+    onSuggestionsUpdate
+}) => {
     const { theme } = useTheme();
     
     // --- Shared Timer Logic ---
@@ -178,8 +187,6 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
     const [timerStatus, setTimerStatus] = useState<TimerState>('COUNTDOWN');
     
     // --- Assets Logic ---
-    const [bullishSuggestions, setBullishSuggestions] = useState<MomentumAsset[]>([]);
-    const [bearishSuggestions, setBearishSuggestions] = useState<MomentumAsset[]>([]);
     const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
 
     useEffect(() => {
@@ -190,11 +197,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
             const message = JSON.parse(event.data);
             if (message.type === 'MARKET_DATA_UPDATE') {
                 console.log('Received market data update:', message.data);
-                // Assuming message.data has { bullish: MomentumAsset[], bearish: MomentumAsset[] }
-                // or similar structure. Based on getOrRefreshSuggestions, it should be compatible.
-                // Let's assume it returns an object with bullish and bearish arrays.
-                if (message.data.bullish) setBullishSuggestions(message.data.bullish);
-                if (message.data.bearish) setBearishSuggestions(message.data.bearish);
+                if (message.data.bullish && message.data.bearish) {
+                    onSuggestionsUpdate(message.data.bullish, message.data.bearish);
+                }
             }
         };
 
@@ -245,8 +250,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({ analysisCount, o
         setIsUpdatingSuggestions(true);
         try {
             const { bullish, bearish } = await getOrRefreshSuggestions(force);
-            setBullishSuggestions(bullish || []);
-            setBearishSuggestions(bearish || []);
+            onSuggestionsUpdate(bullish || [], bearish || []);
         } catch (e) {
             console.error("Neural Queue Sync Failure:", e);
         } finally {

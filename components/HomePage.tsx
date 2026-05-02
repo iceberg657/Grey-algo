@@ -86,7 +86,26 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
     const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
-
+    const [bullishSuggestions, setBullishSuggestions] = useState<MomentumAsset[]>(() => {
+        const cached = localStorage.getItem('greyquant_asset_suggestions_v3');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                return parsed.data?.bullish || [];
+            } catch (e) { return []; }
+        }
+        return [];
+    });
+    const [bearishSuggestions, setBearishSuggestions] = useState<MomentumAsset[]>(() => {
+        const cached = localStorage.getItem('greyquant_asset_suggestions_v3');
+        if (cached) {
+            try {
+                const parsed = JSON.parse(cached);
+                return parsed.data?.bearish || [];
+            } catch (e) { return []; }
+        }
+        return [];
+    });
     if (criticalError) throw criticalError;
 
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
@@ -303,7 +322,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         } finally {
             setIsLoading(false);
         }
-    }, [onAnalysisComplete, userMetadata]);
+    }, [onAnalysisComplete, userMetadata, bullishSuggestions, bearishSuggestions]);
     
     const iconClasses = "h-5 w-5 group-hover:rotate-12 transition-transform";
     const isAdmin = userMetadata?.role === 'admin';
@@ -534,7 +553,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                             analysisCount={analysisCount} 
                             onResetCount={handleResetAnalysisCount} 
                             onAssetSelect={onAssetSelect}
-
+                            bullishSuggestions={bullishSuggestions}
+                            bearishSuggestions={bearishSuggestions}
+                            onSuggestionsUpdate={(bull, bear) => {
+                                setBullishSuggestions(bull);
+                                setBearishSuggestions(bear);
+                            }}
                        />
                    </div>
 

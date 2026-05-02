@@ -74,11 +74,35 @@ export function calculateTPSL(
   const isSlValid = stopLoss > 0 && currentSlDist >= configMinDist;
   const isSlCorrectSide = signal === 'BUY' ? stopLoss < baseEntry : stopLoss > baseEntry;
 
-  if (!isSlValid || !isSlCorrectSide) {
+  // 2.5 ENFORCE MAXIMUM SL DISTANCE (Surgical Cap)
+  // For Scalping, we cap at ~5x minStopLoss. For Day Trading, ~10x.
+  let maxSlDist = configMinDist * 15; // Default safe cap
+  if (isScalping) {
+      maxSlDist = configMinDist * 6; // Tight cap for scalping
+  } else if (tradingStyle?.toLowerCase().includes('day trading')) {
+      maxSlDist = configMinDist * 10;
+  }
+  
+  // Asset-specific overrides for Max SL
+  if (asset.toUpperCase().includes('XAU') || asset.toUpperCase().includes('GOLD')) {
+      maxSlDist = isScalping ? 4.0 : 8.0; // Gold max $4-8 stop for day/scalp
+  } else if (asset.toUpperCase().includes('BTC')) {
+      maxSlDist = isScalping ? 500 : 1500;
+  }
+
+  const isSlTooFar = currentSlDist > maxSlDist;
+
+  if (!isSlValid || !isSlCorrectSide || isSlTooFar) {
       // Create SL based on ATR-like logic or config minimum
       // For funded accounts, we prefer a surgical SL.
       const bufferMultiplier = isScalping ? 1.2 : 1.5;
-      const buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist : currentSlDist * bufferMultiplier); 
+      let buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist : currentSlDist * bufferMultiplier); 
+      
+      // If it was too far, we force it to the maxSlDist or a fraction of it
+      if (isSlTooFar) {
+          buffer = maxSlDist;
+      }
+      
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
   }

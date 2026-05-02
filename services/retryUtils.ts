@@ -18,7 +18,7 @@ export async function initializeApiKey() {
     initializationPromise = (async () => {
         // 1. Check for Vite environment variables (Client-side build/Vercel)                
         const envKeys = {
-            k1: (typeof window !== 'undefined') ? (import.meta.env.VITE_API_KEY_1 || import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY) : undefined,
+            k1: (typeof window !== 'undefined') ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY_1 || import.meta.env.VITE_API_KEY) : undefined,
             k2: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_2 : undefined,
             k3: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_3 : undefined,
             k4: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_4 : undefined,
@@ -29,9 +29,14 @@ export async function initializeApiKey() {
             k9: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_9 : undefined,
         };
 
-        if (envKeys.k1) {
-            API_KEY = envKeys.k1;
-            Object.assign(KEYS, envKeys);
+        const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
+
+        if (isValid(envKeys.k1)) {
+            API_KEY = envKeys.k1?.trim();
+            // Assign all valid env keys to KEYS
+            Object.entries(envKeys).forEach(([key, val]) => {
+                if (isValid(val)) (KEYS as any)[key] = (val as string).trim();
+            });
             if (API_KEY) return;
         }
 
@@ -40,36 +45,36 @@ export async function initializeApiKey() {
             const response = await fetch('/api/config');
             if (response.ok) {
                 const config = await response.json();
-                API_KEY = config.apiKey;
+                if (isValid(config.apiKey)) {
+                    API_KEY = config.apiKey.trim();
+                }
                 if (config.keys) {
-                    KEYS.k1 = config.keys.k1 || API_KEY;
-                    KEYS.k2 = config.keys.k2;
-                    KEYS.k3 = config.keys.k3;
-                    KEYS.k4 = config.keys.k4;
-                    KEYS.k5 = config.keys.k5;
-                    KEYS.k6 = config.keys.k6;
-                    KEYS.k7 = config.keys.k7;
-                    KEYS.k8 = config.keys.k8;
-                    KEYS.k9 = config.keys.k9;
+                    Object.entries(config.keys).forEach(([key, val]) => {
+                        if (isValid(val)) (KEYS as any)[key] = (val as string).trim();
+                    });
                 }
             }
         } catch (error) {
             console.warn('Failed to fetch API key from server, checking process.env...');
         }
 
-        // 3. Last resort: check process.env
+        // 3. Last resort: check process.env (for browser-side environments with polyfills)
         try {
             if (!API_KEY && typeof process !== 'undefined' && process.env) {
-                API_KEY = (process.env as any).GEMINI_API_KEY || (process.env as any).API_KEY_1 || (process.env as any).API_KEY;
-                KEYS.k1 = (process.env as any).API_KEY_1 || API_KEY;
-                KEYS.k2 = (process.env as any).API_KEY_2;
-                KEYS.k3 = (process.env as any).API_KEY_3;
-                KEYS.k4 = (process.env as any).API_KEY_4;
-                KEYS.k5 = (process.env as any).API_KEY_5;
-                KEYS.k6 = (process.env as any).API_KEY_6;
-                KEYS.k7 = (process.env as any).API_KEY_7;
-                KEYS.k8 = (process.env as any).API_KEY_8;
-                KEYS.k9 = (process.env as any).API_KEY_9;
+                const pEnv = process.env as any;
+                const bestKey = pEnv.GEMINI_API_KEY || pEnv.API_KEY_1 || pEnv.API_KEY;
+                if (isValid(bestKey)) {
+                    API_KEY = bestKey.trim();
+                    KEYS.k1 = isValid(pEnv.API_KEY_1) ? pEnv.API_KEY_1.trim() : API_KEY;
+                    if (isValid(pEnv.API_KEY_2)) KEYS.k2 = pEnv.API_KEY_2.trim();
+                    if (isValid(pEnv.API_KEY_3)) KEYS.k3 = pEnv.API_KEY_3.trim();
+                    if (isValid(pEnv.API_KEY_4)) KEYS.k4 = pEnv.API_KEY_4.trim();
+                    if (isValid(pEnv.API_KEY_5)) KEYS.k5 = pEnv.API_KEY_5.trim();
+                    if (isValid(pEnv.API_KEY_6)) KEYS.k6 = pEnv.API_KEY_6.trim();
+                    if (isValid(pEnv.API_KEY_7)) KEYS.k7 = pEnv.API_KEY_7.trim();
+                    if (isValid(pEnv.API_KEY_8)) KEYS.k8 = pEnv.API_KEY_8.trim();
+                    if (isValid(pEnv.API_KEY_9)) KEYS.k9 = pEnv.API_KEY_9.trim();
+                }
             }
         } catch (e) {}
 
@@ -104,8 +109,10 @@ export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4
 export const ANALYSIS_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
+    'gemini-3.1-pro',
     'gemini-2.5-flash',
-    'gemini-2.5-flash-lite'
+    'gemini-2.5-pro',
+    'gemini-2.0-flash'
 ];
 
 // 2. CHAT & NEWS (Key 5)
@@ -114,8 +121,10 @@ export const getChatPool = () => getUniqueKeys([K.K5(), K.K1()]); // Fallback to
 export const CHAT_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
+    'gemini-3.1-pro',
     'gemini-2.5-flash',
-    'gemini-2.5-flash-lite'
+    'gemini-2.5-pro',
+    'gemini-2.0-flash'
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
@@ -123,8 +132,10 @@ export const getSuggestionPool = () => getUniqueKeys([K.K6(), K.K2()]); // Fallb
 export const SUGGESTION_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
+    'gemini-3.1-pro',
     'gemini-2.5-flash',
-    'gemini-2.5-flash-lite'
+    'gemini-2.5-pro',
+    'gemini-2.0-flash'
 ];
 
 // Shared Pools
@@ -134,8 +145,10 @@ export const getSuggestionStructurePool = () => getChatPool(); // Global Market 
 export const LANE_2_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
+    'gemini-3.1-pro',
     'gemini-2.5-flash',
-    'gemini-2.5-flash-lite'
+    'gemini-2.5-pro',
+    'gemini-2.0-flash'
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
@@ -203,9 +216,12 @@ export async function executeLaneCall<T>(
                 continue; 
             }
             
-            // If it's a 400 or other fatal error, don't rotate keys as it's likely a request issue
-            if (error.status === 400 || errorMsg.includes('invalid') || errorMsg.includes('bad request')) {
-                throw error;
+            // If it's a 400 Bad Request, checking if it's actually an "invalid key" error
+            // If it is, we should throttle this key and MOVE TO NEXT.
+            if (error.status === 400 || errorMsg.includes('invalid') || errorMsg.includes('bad request') || errorMsg.includes('key')) {
+                console.warn(`[LaneOrchestrator] Potential invalid key/request for ...${apiKey.slice(-4)}. Throttling and rotating.`);
+                cooldownMap.set(apiKey, Date.now() + 86400000); // 24h cooldown for likely dead keys
+                continue;
             }
             
             // For other errors, try next key

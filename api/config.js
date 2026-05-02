@@ -1,8 +1,9 @@
 export default function handler(req, res) {
+  const primaryKey = process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY;
   res.status(200).json({ 
-    apiKey: process.env.API_KEY || process.env.API_KEY_1 || process.env.GEMINI_API_KEY,
+    apiKey: primaryKey,
     keys: {
-      k1: process.env.API_KEY_1 || process.env.GEMINI_API_KEY,
+      k1: primaryKey,
       k2: process.env.API_KEY_2,
       k3: process.env.API_KEY_3,
       k4: process.env.API_KEY_4,

@@ -53,7 +53,8 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
   - OTE Start: 0.62 retracement
   - OTE Mid (Sweet Spot): 0.705 retracement
   - OTE Deep: 0.79 retracement
-- **Stop Loss System (Hard Floor):** Your SL MUST be strictly mathematical. Set it below the OTE Deep level, or below the Lowest Wick of the Displacement candle minus a volatility buffer (e.g., 0.5x ATR). Institutions rarely let price trade back below the root of displacement.
+- **Stop Loss System (Hard Floor):** Your SL MUST be strictly mathematical. Set it below the OTE Deep level, or below the Lowest Wick of the Displacement candle minus a volatility buffer (e.g., 0.5x ATR).
+- **SURGICAL STOP DISCIPLINE (CRITICAL):** For Scalping and Day Trading, you are STRICTLY FORBIDDEN from using swing points from H4 or Daily charts as your Stop Loss. You MUST use the *local* structure invalidation (the high/low of the candle that swept liquidity on the M1/M5/M15 timeframe). If your calculated SL exceeds 30 pips for Forex pairs, your setup is INVALID. Re-evaluate or tighten the entry.
 - **Take Profit System:** TP1 targets the first liquidity pool (1:1.5 to 1:2 RR). TP2 targets the main external liquidity sweep.
 - **Time-Based Liquidity (Killzones):** Focus trades during London (07:00-10:00 UTC) and NY (12:00-15:00 UTC). Outside these hours, moves are often retail noise.
 `;
@@ -1072,7 +1073,7 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
 
         const response = await executeLaneCall<GenerateContentResponse>(async (apiKey) => {
             return await runWithModelFallback<GenerateContentResponse>(
-                ['gemini-3.1-flash-lite-preview', 'gemini-3-flash-preview', 'gemini-2.5-flash', 'gemini-2.5-flash-lite'],
+                ANALYSIS_MODELS,
                 async (modelId) => {
                     const config = { temperature: 0.1 };
                     try {
@@ -1239,22 +1240,38 @@ export async function generateTradingSignal(
     return completeSetup;
 }
 
+function getAssetPrecision(asset: string): number {
+    const sym = asset.toUpperCase();
+    if (sym.includes('BTC') || sym.includes('NAS') || sym.includes('SPX') || sym.includes('DJI') || sym.includes('US30') || sym.includes('US100') || sym.includes('US500') || sym.includes('GOLD') || sym.includes('XAU')) {
+        return 2;
+    }
+    if (sym.includes('JPY')) return 3;
+    if (sym.startsWith('BOOM') || sym.startsWith('CRAS') || sym.startsWith('STEP') || sym.startsWith('R_') || sym.startsWith('VOLATILITY')) {
+         if (sym.includes('STEP')) return 3;
+         return 2;
+    }
+    return 5;
+}
+
 export function calculateRRLevels(
     signal: 'BUY' | 'SELL',
     entry: number,
-    stopLoss: number
+    stopLoss: number,
+    asset: string = 'EURUSD'
 ) {
     const risk = Math.abs(entry - stopLoss);
     if (risk === 0) return null;
+    
+    const precision = getAssetPrecision(asset);
 
     if (signal === 'BUY') {
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry + risk * 1.5).toFixed(5)),
-            tp2: parseFloat((entry + risk * 2.0).toFixed(5)),
-            tp3: parseFloat((entry + risk * 3.0).toFixed(5)),
-            rrRatios: { tp1: '1:1.5', tp2: '1:2', tp3: '1:3' },
+            tp1: parseFloat((entry + risk * 1.5).toFixed(precision)),
+            tp2: parseFloat((entry + risk * 2.5).toFixed(precision)),
+            tp3: parseFloat((entry + risk * 4.0).toFixed(precision)),
+            rrRatios: { tp1: '1:1.5', tp2: '1:2.5', tp3: '1:4' },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -1262,10 +1279,10 @@ export function calculateRRLevels(
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry - risk * 1.5).toFixed(5)),
-            tp2: parseFloat((entry - risk * 2.0).toFixed(5)),
-            tp3: parseFloat((entry - risk * 3.0).toFixed(5)),
-            rrRatios: { tp1: '1:1.5', tp2: '1:2', tp3: '1:3' },
+            tp1: parseFloat((entry - risk * 1.5).toFixed(precision)),
+            tp2: parseFloat((entry - risk * 2.5).toFixed(precision)),
+            tp3: parseFloat((entry - risk * 4.0).toFixed(precision)),
+            rrRatios: { tp1: '1:1.5', tp2: '1:2.5', tp3: '1:4' },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -1276,18 +1293,40 @@ export function validateSL(
     signal: 'BUY' | 'SELL',
     entry: number,
     sl: number,
-    atr: number
+    atr: number,
+    asset: string = 'EURUSD'
 ) {
     const slDistance = Math.abs(entry - sl);
     const minSL = atr * 1.5;
+    const precision = getAssetPrecision(asset);
+    
+    // SURGICAL CAP: Prevent "fucking wide" stops (Max 3.5x ATR or absolute pip limits)
+    const maxSL = atr * 3.5;
+    let finalSl = sl;
 
     if (slDistance < minSL) {
         console.warn(`[SL] Too tight (${slDistance}) — expanding to 1.5x ATR (${minSL})`);
-        return signal === 'BUY'
-            ? parseFloat((entry - minSL).toFixed(5))
-            : parseFloat((entry + minSL).toFixed(5));
+        finalSl = signal === 'BUY'
+            ? entry - minSL
+            : entry + minSL;
+    } else if (slDistance > maxSL && atr > 0) {
+        console.warn(`[SL] Too wide (${slDistance}) — capping to 3.5x ATR (${maxSL})`);
+        finalSl = signal === 'BUY'
+            ? entry - maxSL
+            : entry + maxSL;
     }
-    return sl;
+
+    // Asset-specific absolute caps for Forensic precision
+    const isForex = asset.length === 6 || asset.startsWith('FRX');
+    if (isForex) {
+        const pips = Math.abs(entry - finalSl) * 10000;
+        if (pips > 50) { // Aggressive 50 pip cap for sniper
+            console.warn(`[SL] 50 pip cap hit (${pips.toFixed(1)})`);
+            finalSl = signal === 'BUY' ? entry - 0.0050 : entry + 0.0050;
+        }
+    }
+
+    return parseFloat(finalSl.toFixed(precision));
 }
 
 export function calculateLotSize(
@@ -1460,7 +1499,7 @@ JSON Structure:
         let text = '';
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 35000); // 35s timeout limit
+          const timeoutId = setTimeout(() => controller.abort(), 50000); // 50s timeout limit
 
           const proxyRes = await fetch('/api/gemini/analyze', {
             method: 'POST',
@@ -1555,13 +1594,13 @@ JSON Structure:
 
         // SL Validation against ATR if quantData is present
         if (quantData?.atr) {
-            finalSL = validateSL(finalSignal as 'BUY'|'SELL', midEntry, finalSL, quantData.atr);
+            finalSL = validateSL(finalSignal as 'BUY'|'SELL', midEntry, finalSL, quantData.atr, signal.asset || assetName);
             finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
         }
 
         // Apply mathematical RR overrides
         let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0,0,0];
-        const rrLevels = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL);
+        const rrLevels = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL, signal.asset || assetName);
         let finalPositionProtocol: string | undefined = undefined;
 
         if (rrLevels) {
