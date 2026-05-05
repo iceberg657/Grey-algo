@@ -8,9 +8,10 @@ import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface MarketIntelligenceProps {
     onBack: () => void;
+    onOpenSettings?: () => void;
 }
 
-export const MarketIntelligence: React.FC<MarketIntelligenceProps> = ({ onBack }) => {
+export const MarketIntelligence: React.FC<MarketIntelligenceProps> = ({ onBack, onOpenSettings }) => {
     const [reports, setReports] = useState<IntelligenceReport[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -131,7 +132,12 @@ export const MarketIntelligence: React.FC<MarketIntelligenceProps> = ({ onBack }
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                         <p className="text-red-400 font-bold mb-4">{error}</p>
-                        <button onClick={loadIntelligence} className="px-6 py-2 bg-red-600 rounded-xl text-xs font-black uppercase tracking-widest text-white">Retry Connection</button>
+                        <div className="flex flex-col sm:flex-row justify-center gap-3">
+                            <button onClick={loadIntelligence} className="px-6 py-2 bg-red-600 rounded-xl text-xs font-black uppercase tracking-widest text-white">Retry Connection</button>
+                            {onOpenSettings && (
+                                <button onClick={onOpenSettings} className="px-6 py-2 bg-slate-800 border border-slate-600 rounded-xl text-xs font-black uppercase tracking-widest text-white">Switch API Key</button>
+                            )}
+                        </div>
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

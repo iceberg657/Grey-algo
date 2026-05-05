@@ -19,7 +19,6 @@ import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
-import { MarketIntelligence } from './components/MarketIntelligence';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
@@ -43,9 +42,10 @@ import type { AdminSettings } from './types';
 import { requestNotificationPermission, onMessageListener } from './services/notificationService';
 import { SplashScreen } from './components/SplashScreen';
 import { OnboardingFlow } from './components/OnboardingFlow';
+import { SettingsModal } from './components/SettingsModal';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper' | 'intelligence';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -125,6 +125,7 @@ const App: React.FC = () => {
     const [systemSettings, setSystemSettings] = useState<AdminSettings | null>(null);
     const [showSplash, setShowSplash] = useState<boolean>(true);
     const [showOnboarding, setShowOnboarding] = useState<boolean>(false);
+    const [showSettings, setShowSettings] = useState<boolean>(false);
 
     useEffect(() => {
         if (!loading && isLoggedIn) {
@@ -349,10 +350,6 @@ const App: React.FC = () => {
         navigateTo('sniper');
     };
 
-    const handleNavigateToIntelligence = () => {
-        navigateTo('intelligence');
-    };
-
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         navigateTo(previousView); 
@@ -499,16 +496,11 @@ const App: React.FC = () => {
                     onNavigateToAdmin={handleNavigateToAdmin}
                     onNavigateToAutoTrade={handleNavigateToAutoTrade}
                     onNavigateToSniper={handleNavigateToSniper}
-                    onNavigateToIntelligence={handleNavigateToIntelligence}
+                    onOpenSettings={() => setShowSettings(true)}
                     onAssetSelect={handleAssetSelect}
                     userMetadata={userMetadata}
                     systemSettings={systemSettings}
                 />
-            );
-            break;
-        case 'intelligence':
-            content = (
-                <MarketIntelligence onBack={handleNavigateToHome} />
             );
             break;
         case 'chat':
@@ -635,6 +627,19 @@ const App: React.FC = () => {
                         onComplete={handleOnboardingComplete} 
                         userName={userMetadata?.displayName || userMetadata?.email?.split('@')[0]}
                     />
+                )}
+            </AnimatePresence>
+
+            <AnimatePresence>
+                {showSettings && (
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.9 }}
+                        className="fixed inset-0 z-[110]"
+                    >
+                        <SettingsModal onClose={() => setShowSettings(false)} />
+                    </motion.div>
                 )}
             </AnimatePresence>
 

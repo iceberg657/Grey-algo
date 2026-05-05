@@ -45,6 +45,8 @@ export interface UserSettings extends Partial<AccountSettings> {
     tradeMode?: 'Aggressive' | 'Sniper';
     twelveDataApiKey?: string;
     derivApiToken?: string;
+    geminiApiKey?: string;
+    useStrictKeyMode?: boolean;
 }
 
 export interface GlobalTrendInfo {

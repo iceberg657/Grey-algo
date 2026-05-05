@@ -267,6 +267,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     />
                                     <p className="text-[10px] text-blue-400 mt-1">Required for fetching live Forex/Gold prices in Sniper Live Trade.</p>
                                 </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Custom Gemini API Key (Neural Lane Override)</label>
+                                    <input
+                                        type="password"
+                                        value={settings.geminiApiKey || ''}
+                                        onChange={(e) => handleChange('geminiApiKey', e.target.value)}
+                                        className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
+                                        placeholder="Enter your Gemini Pro API Key"
+                                    />
+                                    <p className="text-[10px] text-blue-400 mt-1">If set, this key will be prioritized for AI analysis and Intelligence.</p>
+                                </div>
+                                <div className="flex items-center justify-between p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-blue-500/20">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-blue-200">Strict Key Mode</label>
+                                        <p className="text-[10px] text-gray-500 dark:text-slate-400">Ignore neural pools and only use the key above.</p>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => handleChange('useStrictKeyMode', settings.useStrictKeyMode ? 0 : 1)}
+                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.useStrictKeyMode ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+                                    >
+                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.useStrictKeyMode ? 'left-6' : 'left-1'}`}></div>
+                                    </button>
+                                </div>
                             </div>
                         </div>
 

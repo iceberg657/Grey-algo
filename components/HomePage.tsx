@@ -30,7 +30,7 @@ interface HomePageProps {
     onNavigateToAdmin: () => void;
     onNavigateToAutoTrade: () => void;
     onNavigateToSniper: () => void;
-    onNavigateToIntelligence: () => void;
+    onOpenSettings?: () => void;
     onAssetSelect?: (asset: string) => void;
     userMetadata: UserMetadata | null;
     systemSettings: any | null;
@@ -79,7 +79,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     onNavigateToAdmin, 
     onNavigateToAutoTrade,
     onNavigateToSniper,
-    onNavigateToIntelligence,
+    onOpenSettings,
     onAssetSelect,
     userMetadata,
     systemSettings
@@ -113,7 +113,6 @@ export const HomePage: React.FC<HomePageProps> = ({
 
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
-    const [showSettings, setShowSettings] = useState<boolean>(false);
     const [isTwelveDataConfigured, setIsTwelveDataConfigured] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -233,6 +232,10 @@ export const HomePage: React.FC<HomePageProps> = ({
         setError(null);
     };
 
+    const handleOpenSettings = () => {
+        if (onOpenSettings) onOpenSettings();
+    };
+
     const handleGenerateSignal = useCallback(async (requestData: Omit<AnalysisRequest, 'userSettings' | 'globalContext' | 'learnedStrategies'>, primaryImageFile: File) => {
         setIsLoading(true);
         setError(null);
@@ -338,14 +341,6 @@ export const HomePage: React.FC<HomePageProps> = ({
             isLocked: systemSettings?.chatLocked && !isAdmin,
             className: "liquid-glass",
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
-        },
-        {
-            onClick: onNavigateToIntelligence,
-            label: 'Intelligence',
-            ariaLabel: 'Open Market Intelligence Dashboard',
-            highlight: true,
-            className: "liquid-glass-accent",
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
         },
         {
             onClick: onNavigateToAutoTrade,
@@ -474,16 +469,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                         <CheatSheet onClose={() => setShowCheatSheet(false)} />
                     </motion.div>
                 )}
-                {showSettings && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="fixed inset-0 z-[110]"
-                    >
-                        <SettingsModal onClose={() => setShowSettings(false)} />
-                    </motion.div>
-                )}
             </AnimatePresence>
 
             <motion.div 
@@ -496,7 +481,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                       <div className="absolute top-0 right-0 flex items-center gap-2">
                         {isTwelveDataConfigured !== null && (
                             <button 
-                                onClick={() => setShowSettings(true)}
+                                onClick={handleOpenSettings}
                                 className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${isTwelveDataConfigured ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 animate-pulse'}`} 
                                 title={isTwelveDataConfigured ? "Twelve Data API Connected" : "Twelve Data API Key Missing - Click to Fix"}
                             >
@@ -506,7 +491,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                         )}
                         <ThemeToggleButton />
                     </div>
-                    <button onClick={() => setShowSettings(true)} className="block mx-auto cursor-pointer group focus:outline-none focus:ring-2 focus:ring-green-400/50 rounded-2xl p-2" title="Open Settings">
+                    <button onClick={handleOpenSettings} className="block mx-auto cursor-pointer group focus:outline-none focus:ring-2 focus:ring-green-400/50 rounded-2xl p-2" title="Open Settings">
                         <svg className="h-16 w-16 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                             <defs>
                                 <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">

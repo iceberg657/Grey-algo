@@ -1,34 +1,54 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { executeLaneCall, getAnalysisPool, runWithModelFallback, ANALYSIS_MODELS } from './retryUtils';
+import { getMarketData } from './marketDataService';
 import type { IntelligenceReport } from '../types';
 
-const ALLOWED_ASSETS = `
-1. MAJOR FX: EURUSD, USDJPY, GBPUSD, USDCHF, AUDUSD
-2. MINOR FX: EURGBP, GBPJPY, AUDJPY, EURCHF
-3. INDICES: US100 (Nasdaq), US30 (Dow Jones), US500 (S&P 500), UK100 (FTSE 100)
-4. CRYPTO: BTCUSD, ETHUSD
-5. COMMODITIES: XAUUSD (Gold), WTI (Oil)
-`;
+const TARGET_ASSETS = ['XAU/USD', 'BTC/USD', 'EUR/USD', 'GBP/USD', 'USD/JPY', 'AUD/USD', 'ETH/USD', 'US100'];
 
 export async function fetchMarketIntelligence(): Promise<IntelligenceReport[]> {
+    // Stage 1: Fast Price Retrieval (The Backbone)
+    let freshMarketData = "";
+    try {
+        const storedSettings = localStorage.getItem('greyquant_user_settings');
+        const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
+        const derivToken = userSettings?.derivApiToken;
+        
+        const marketItems = await getMarketData(derivToken);
+        const filtered = marketItems.filter(item => {
+            const sym = item.symbol.replace('/', '').toUpperCase();
+            return TARGET_ASSETS.some(t => t.replace('/', '').toUpperCase() === sym);
+        });
+
+        freshMarketData = filtered.map(item => 
+            `[${item.symbol}] PRICE: ${item.price} (${item.changePercent}%)`
+        ).join("\n");
+        
+        console.log("[IntelligenceService] Injected Fresh Market Data from Neural Backbone.");
+    } catch (e) {
+        console.warn("[IntelligenceService] Failed to pre-fetch market data, AI will use search fallback.");
+    }
+
     return await executeLaneCall<IntelligenceReport[]>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
-        **TASK:** You are an Apex Quantitative Intelligence Engine. Perform a deep, multi-timeframe analysis of the global financial markets.
-        **ALLOWED ASSETS:** ${ALLOWED_ASSETS}
+        **TASK:** You are an Apex Quantitative Intelligence Engine. Perform a high-speed, multi-timeframe analysis of 8 high-impact assets.
+        
+        **FRESH MARKET DATA (PRE-SCANNED):**
+        ${freshMarketData || "No pre-scanned data available. Use your search tools for current prices."}
 
         **INSTRUCTIONS:**
-        1. Select 8 high-impact assets from the list (prioritize Gold, BTC, and Major FX pairs).
-        2. For each asset, use Google Search to fetch real-time price action (1H/4H), market structure, and upcoming news.
-        3. **QUANT ENGINE ANALYSIS:** 
-           - Identify Trend Direction (1H + 4H).
-           - Identify POI Zones (Supply/Demand, Order Blocks).
-           - Assess News Risk Level (Low/Medium/High).
-           - Grade the Setup Quality (0-100) based on institutional confluence (Liquidity sweep, BOS, Displacement).
-        4. **DECISIVE ACTION:** Determine if the asset is "Ready to trade" or "Wait".
-        5. Compile everything into a comprehensive Intelligence Report.
+        1. Fully analyze the 8 assets provided above (or select Gold, BTC, and Major FX pairs if none provided).
+        2. Use Google Search ONLY to fetch real-time market structure (Supply/Demand zones), institutional order blocks, and upcoming news. Do NOT spend time searching for prices if they are provided in the "FRESH MARKET DATA" section above.
+        3. **QUANT ANALYSIS:** 
+           - Trend Direction (1H + 4H).
+           - POI Zones (Supply/Demand, Order Blocks).
+           - Institutional Confluence (Liquidity sweeps, Displacement).
+           - News Risk.
+           - Setup Quality (0-100).
+        4. Decide: "Ready to trade" or "Wait".
+        5. Be extremely decisive and concise.
 
         **JSON OUTPUT FORMAT (ARRAY OF OBJECTS):**
         [{
@@ -68,8 +88,11 @@ export async function fetchMarketIntelligence(): Promise<IntelligenceReport[]> {
                     const data = await proxyRes.json();
                     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
                     if (text) return { text } as any;
+                } else if (proxyRes.status === 429) {
+                    throw new Error("429: Quota exhausted on proxy lane.");
                 }
-            } catch (e) {
+            } catch (e: any) {
+                if (e.message?.includes('429')) throw e;
                 console.warn(`[IntelligenceService] Proxy failed for ${modelId}, falling back to direct SDK...`);
             }
 

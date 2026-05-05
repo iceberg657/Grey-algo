@@ -4,6 +4,7 @@
  */
 
 let API_KEY: string | null = null;
+let USE_STRICT_MODE = false;
 const KEYS: Record<string, string | null> = {
     k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null, k8: null, k9: null
 };
@@ -16,6 +17,25 @@ export async function initializeApiKey() {
     if (initializationPromise) return initializationPromise;
 
     initializationPromise = (async () => {
+        // 0. Check for custom user setting key from LocalStorage
+        if (typeof window !== 'undefined') {
+            try {
+                const stored = localStorage.getItem('greyquant_user_settings');
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed.geminiApiKey && parsed.geminiApiKey.trim().length > 10) {
+                        const customKey = parsed.geminiApiKey.trim();
+                        API_KEY = customKey;
+                        KEYS.k1 = customKey;
+                        USE_STRICT_MODE = !!parsed.useStrictKeyMode;
+                        console.log(`[LaneOrchestrator] Using CUSTOM user override API key (Strict: ${USE_STRICT_MODE}).`);
+                    }
+                }
+            } catch (e) {
+                console.warn("[LaneOrchestrator] Failed to parse user settings for custom key.");
+            }
+        }
+
         // 1. Check for Vite environment variables (Client-side build/Vercel)                
         const envKeys = {
             k1: (typeof window !== 'undefined') ? (import.meta.env.VITE_GEMINI_API_KEY || import.meta.env.VITE_API_KEY_1 || import.meta.env.VITE_API_KEY) : undefined,
@@ -105,20 +125,17 @@ const getUniqueKeys = (keys: string[]) => {
     return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));
 };
 
-// 1. CHART ANALYSIS (Keys 1, 2, 3, 4, 9)
-export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K9()]);
+// 1. CHART ANALYSIS (Strictly Prioritize Key 2)
+export const getAnalysisPool = () => getUniqueKeys([K.K2(), K.K1()]); 
 export const ANALYSIS_MODELS = [
-    'gemini-3.1-flash-lite-preview',
-    'gemini-3-flash-preview',
-    'gemini-3.1-pro',
-    'gemini-2.5-flash',
-    'gemini-2.5-pro',
-    'gemini-2.0-flash'
+    'gemini-2.0-flash', // Faster model
+    'gemini-1.5-flash',
+    'gemini-3.1-flash-lite-preview'
 ];
 
 // 2. CHAT & NEWS (Key 5)
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
-export const getChatPool = () => getUniqueKeys([K.K5(), K.K1()]); // Fallback to K1 if K5 missing
+export const getChatPool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Prioritize K2, then K5, then K1
 export const CHAT_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
@@ -129,7 +146,7 @@ export const CHAT_MODELS = [
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
-export const getSuggestionPool = () => getUniqueKeys([K.K6(), K.K2()]); // Fallback to K2 if K6 missing
+export const getSuggestionPool = () => getUniqueKeys([K.K2(), K.K6()]); // Prioritize K2
 export const SUGGESTION_MODELS = [
     'gemini-3.1-flash-lite-preview',
     'gemini-3-flash-preview',
@@ -141,15 +158,11 @@ export const SUGGESTION_MODELS = [
 
 // Shared Pools
 export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
-export const getSuggestionStructurePool = () => getChatPool(); // Global Market uses Chat Pool (K5) to save other keys
+export const getSuggestionStructurePool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Global Market now prioritizes Key 2
 
 export const LANE_2_MODELS = [
-    'gemini-3.1-flash-lite-preview',
-    'gemini-3-flash-preview',
-    'gemini-3.1-pro',
-    'gemini-2.5-flash',
-    'gemini-2.5-pro',
-    'gemini-2.0-flash'
+    'gemini-2.0-flash', 
+    'gemini-1.5-flash'
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
@@ -184,15 +197,37 @@ export function resetNeuralLanes() {
  */
 export async function executeLaneCall<T>(
     operationFactory: (apiKey: string) => Promise<T>,
-    pool: string[] | (() => string[])
+    pool?: string[] | (() => string[])
 ): Promise<T> {
     await initializeApiKey();
-    const resolvedPool = typeof pool === 'function' ? pool() : (pool || []);
+    const resolvedPool = typeof pool === 'function' ? pool() : (pool || getAnalysisPool());
     
     // Deduplicate and filter pool
     const uniquePool = Array.from(new Set((resolvedPool || []).filter(k => !!k && k.length > 5)));
-    const activePool = uniquePool.length > 0 ? uniquePool : [K.P()];
     
+    // Fallback if resolved pool is empty
+    const activePool = uniquePool.length > 0 ? uniquePool : [K.K2(), K.K1(), K.P()];
+    
+    // STRICT MODE OVERRIDE
+    if (USE_STRICT_MODE && API_KEY) {
+        if (!isThrottled(API_KEY)) {
+            try {
+                console.log(`[LaneOrchestrator] STRICT MODE ACTIVE. Using primary custom key.`);
+                return await operationFactory(API_KEY);
+            } catch (error: any) {
+                const errorMsg = (error.message || '').toLowerCase();
+                const isQuota = errorMsg.includes('429') || error.status === 429 || errorMsg.includes('quota') || (typeof error === 'string' && error.includes('429'));
+                
+                if (isQuota) {
+                    console.warn(`[LaneOrchestrator] Custom Strict Key EXHAUSTED. Temporarily falling back to pool...`);
+                    cooldownMap.set(API_KEY, Date.now() + 60000); // 1 min penalty
+                } else {
+                    throw error;
+                }
+            }
+        }
+    }
+
     let lastError: any = null;
 
     const availableKeys = activePool.filter(k => !isThrottled(k));
@@ -209,9 +244,14 @@ export async function executeLaneCall<T>(
             return await operationFactory(apiKey);
         } catch (error: any) {
             lastError = error;
-            const errorMsg = (error.message || '').toLowerCase();
+            const errorMsg = String(error.message || error || '').toLowerCase();
+            const isQuota = errorMsg.includes('429') || 
+                           error.status === 429 || 
+                           errorMsg.includes('quota') || 
+                           errorMsg.includes('resource_exhausted') ||
+                           errorMsg.includes('limit reached');
             
-            if (errorMsg.includes('429') || error.status === 429 || errorMsg.includes('quota')) {
+            if (isQuota) {
                 console.warn(`[LaneOrchestrator] Quota hit for key ending in ...${apiKey.slice(-4)}. Throttling for ${COOLDOWN_DURATION/1000}s.`);
                 cooldownMap.set(apiKey, Date.now() + COOLDOWN_DURATION);
                 continue; 
@@ -235,7 +275,7 @@ export async function executeLaneCall<T>(
 
 export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?: string[]): Promise<T> {
     await initializeApiKey(); // Ensure API key is initialized
-    const activePool = pool || [K.P(), ...getAnalysisPool()];
+    const activePool = pool || getAnalysisPool();
     return executeLaneCall(op, activePool);
 }
 
@@ -294,16 +334,20 @@ export async function runWithModelFallback<T>(
                 return await runWithRetry(() => operationFactory(model), 1, 1000, onRetry);
             } catch (error: any) {
                 lastError = error;
-                const errorMsg = (error.message || '').toLowerCase();
+                const errorMsg = String(error.message || error || '').toLowerCase();
+                const isQuota = errorMsg.includes('429') || 
+                               error.status === 429 || 
+                               errorMsg.includes('quota') || 
+                               errorMsg.includes('resource_exhausted') ||
+                               errorMsg.includes('limit reached') ||
+                               errorMsg.includes('finish_reason: length');
                 
                 // If it's a 429 (Quota), 400 (Invalid Argument/Model Limit), OR a persistent 5xx/Network error
                 if (
-                    errorMsg.includes('429') || 
-                    error.status === 429 ||
+                    isQuota || 
                     error.status === 400 ||
                     error.status === 404 ||
                     (error.status && error.status >= 500) ||
-                    errorMsg.includes('quota') ||
                     errorMsg.includes('invalid') ||
                     errorMsg.includes('unsupported') ||
                     errorMsg.includes('not found') ||
@@ -314,7 +358,6 @@ export async function runWithModelFallback<T>(
                     errorMsg.includes('rpc failed') ||
                     errorMsg.includes('fetch failed') ||
                     errorMsg.includes('max tokens') ||
-                    errorMsg.includes('finish_reason: length') ||
                     errorMsg.includes('unexpected token') ||
                     errorMsg.includes('not valid json') ||
                     errorMsg.includes('non-json') ||
