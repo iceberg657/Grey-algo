@@ -18,13 +18,30 @@ export const MarketIntelligence: React.FC<MarketIntelligenceProps> = ({ onBack }
     const loadIntelligence = async () => {
         setIsLoading(true);
         setError(null);
+        
+        // Timeout after 120 seconds
+        const timeout = setTimeout(() => {
+            if (isLoading) {
+                setError("Market scan is taking longer than usual. Please check your internet or try again.");
+                setIsLoading(false);
+            }
+        }, 120000);
+
         try {
             const data = await fetchMarketIntelligence();
             setReports(data);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            setError("Failed to fetch global market intelligence. Retrying in neutral lane...");
+            const msg = err.message || "";
+            if (msg.includes("429") || msg.includes("quota")) {
+                setError("System limit reached. Please wait a few minutes or switch API keys.");
+            } else if (msg.includes("timeout") || msg.includes("abort")) {
+                setError("Connection timed out. Market data is currently heavy.");
+            } else {
+                setError("Failed to fetch global market intelligence. Our Neural Lanes might be congested.");
+            }
         } finally {
+            clearTimeout(timeout);
             setIsLoading(false);
         }
     };

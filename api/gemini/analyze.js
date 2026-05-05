@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     if (systemInstruction) requestBody.systemInstruction = systemInstruction;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 50000);
+    const timeoutId = setTimeout(() => controller.abort(), 90000);
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',

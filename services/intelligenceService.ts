@@ -20,8 +20,8 @@ export async function fetchMarketIntelligence(): Promise<IntelligenceReport[]> {
         **ALLOWED ASSETS:** ${ALLOWED_ASSETS}
 
         **INSTRUCTIONS:**
-        1. Select the top 15 most relevant/active assets from the list.
-        2. For each asset, use Google Search to fetch real-time price action (1H/4H), market structure, and upcoming high-impact news.
+        1. Select 8 high-impact assets from the list (prioritize Gold, BTC, and Major FX pairs).
+        2. For each asset, use Google Search to fetch real-time price action (1H/4H), market structure, and upcoming news.
         3. **QUANT ENGINE ANALYSIS:** 
            - Identify Trend Direction (1H + 4H).
            - Identify POI Zones (Supply/Demand, Order Blocks).
@@ -48,15 +48,47 @@ export async function fetchMarketIntelligence(): Promise<IntelligenceReport[]> {
         **CRITICAL:** Return ONLY the raw JSON array.
         `;
 
-        const response = await runWithModelFallback<GenerateContentResponse>(ANALYSIS_MODELS, (modelId) => 
-            ai.models.generateContent({ 
+        const config = { tools: [{googleSearch: {}}], temperature: 0.1, responseMimeType: "application/json" };
+
+        const response = await runWithModelFallback<GenerateContentResponse>(ANALYSIS_MODELS, async (modelId) => {
+            try {
+                // Try proxy first to avoid regional blocks
+                const proxyRes = await fetch('/api/gemini/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: modelId,
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        config,
+                        apiKey
+                    })
+                });
+
+                if (proxyRes.ok) {
+                    const data = await proxyRes.json();
+                    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    if (text) return { text } as any;
+                }
+            } catch (e) {
+                console.warn(`[IntelligenceService] Proxy failed for ${modelId}, falling back to direct SDK...`);
+            }
+
+            // Fallback to direct SDK
+            return await ai.models.generateContent({ 
                 model: modelId,
                 contents: prompt,
-                config: { tools: [{googleSearch: {}}], temperature: 0.1, responseMimeType: "application/json" },
-            })
-        );
+                config,
+            });
+        });
 
         let text = response.text || '[]';
+        // Clean markdown if present
+        if (text.includes('```json')) {
+            text = text.split('```json')[1].split('```')[0].trim();
+        } else if (text.includes('```')) {
+            text = text.split('```')[1].split('```')[0].trim();
+        }
+        
         return JSON.parse(text);
     }, getAnalysisPool);
 }
