@@ -256,6 +256,15 @@ You are **Oracle**, the apex-level trading AI engine and elite Trading Coach. Yo
 - Use professional trading terminology but explain it if it's complex.
 - Act as a mentor who wants the user to become a consistently profitable institutional-grade trader.
 
+**NEURAL AGENT COMMAND CENTER (MULTI-AGENT SYNTHESIS):**
+You MUST frame your final 'marketStory' and 'summary' as a collaborative consensus from your specialized agents:
+1. **Structure Architect:** Responsible for HTF/LTF bias and structural integrity (BOS/CHoCH).
+2. **Liquidity Scout:** Responsible for identifying stop-hunts and engineered liquidity pools.
+3. **Risk Mitigation:** Responsible for FVG identification and Pip-risk evaluation.
+4. **Execution Quant:** Responsible for the final decisive entry trigger and confluence scoring.
+
+In your 'marketStory', use headers or tags (e.g., [STRUCTURE], [LIQUIDITY]) to denote which agent is speaking for that specific part of the analysis.
+
 ${learnedContext}
 ${trendAlignmentMandate}
 ${globalTrendContext}
@@ -800,6 +809,11 @@ You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a 
     "liquiditySweepCheck": { "passed": boolean, "reasoning": string },
     "riskRewardCheck": { "passed": boolean, "reasoning": string }
   },
+  "neuralFilter": {
+    "passed": boolean,
+    "confidenceBoost": number, // Amount to add/subtract from confidence (-20 to +20)
+    "reasoning": "Explain how this trade setup aligns with or violates the NEURAL LEARNING & HISTORICAL LESSONS"
+  },
 
   "reasoning": [
     "1. HTF Trend Alignment: [Explain how this trade respects the Global HTF Bias]",
@@ -1026,7 +1040,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
-            triggerConditions: data.triggerConditions,
+            triggerConditions: data.triggerConditions || { breakoutLevel: 0, retestLogic: "N/A", entryTriggerCandle: "N/A" },
             stopLoss: data.stopLoss || 0,
             takeProfits: data.takeProfits || [0, 0, 0],
             possiblePips: data.possiblePips || 0,
@@ -1197,6 +1211,11 @@ export async function generateTradingSignal(
     
     // 2. Get comprehensive AI analysis
     const rawSignal = await callGeminiDirectly(updatedRequest);
+
+    // Apply Neural Filter Boost
+    if (rawSignal.neuralFilter && rawSignal.neuralFilter.confidenceBoost) {
+        rawSignal.confidence = Math.max(0, Math.min(100, rawSignal.confidence + rawSignal.neuralFilter.confidenceBoost));
+    }
     
     // Log the trade automatically
     try {
@@ -1478,6 +1497,11 @@ JSON Structure:
     "Institutional Footprint: [Explaining liquidity sweeps and order blocks]",
     "Why this prevents SL hunting: [Logic behind the SL placement and direction choice]"
   ],
+  "neuralFilter": {
+    "passed": boolean,
+    "confidenceBoost": number, // Amount to add/subtract from confidence (-20 to +20)
+    "reasoning": "Explain how this trade setup aligns with or violates the NEURAL LEARNING & HISTORICAL LESSONS"
+  },
   "checklist": ["HTF Trend Alignment", "Liquidity Sweep", "Order Block Tap", "FVG Fill"],
   "triggerConditions": { 
     "breakoutLevel": number,
@@ -1590,7 +1614,10 @@ JSON Structure:
         }
 
         const rawConf = signal.confidence || 50;
-        const finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
+        let finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
+        if (signal.neuralFilter && signal.neuralFilter.confidenceBoost) {
+            finalConfidence = Math.max(0, Math.min(100, finalConfidence + signal.neuralFilter.confidenceBoost));
+        }
 
         // SL Validation against ATR if quantData is present
         if (quantData?.atr) {
@@ -1659,8 +1686,11 @@ Move SL to entry immediately after TP1.
           recommendedPositions: signal.recommendedPositions,
           reasoning: finalReasoning,
           checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
+          neuralFilter: signal.neuralFilter,
           entryType: 'Market Execution',
-          triggerConditions: signal.triggerConditions || null
+          triggerConditions: signal.triggerConditions || undefined,
+          contractSize: 100000,
+          pipValue: 10
         };
 
         // Final deep sanitization to remove any remaining undefined fields

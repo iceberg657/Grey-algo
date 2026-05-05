@@ -1,5 +1,6 @@
 
 import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import type { AnalysisRequest, ImagePart, TradingStyle } from '../types';
 import { RISK_REWARD_RATIOS, TRADING_STYLES } from '../constants';
 
@@ -323,35 +324,55 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
             </div>
 
-            <div className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-3' : ''}`}>
-                {isMultiDimensional && (
-                    <ImageUploader 
-                        id="higher" 
-                        title="Strategic View" 
-                        subtitle="H4 / H1 Timeframe"
-                        onFileChange={(file) => handleFileChange('higher', file)}
-                        required={isMultiDimensional}
-                    />
-                )}
-                
-                <ImageUploader 
-                    id="primary" 
-                    title="Tactical View" 
-                    subtitle="M15 Timeframe"
-                    onFileChange={(file) => handleFileChange('primary', file)}
-                    required
-                />
+            <motion.div layout className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-3' : ''}`}>
+                <AnimatePresence mode="popLayout">
+                    {isMultiDimensional && (
+                        <motion.div
+                            key="higher"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <ImageUploader 
+                                id="higher" 
+                                title="Strategic View" 
+                                subtitle="H4 / H1 Timeframe"
+                                onFileChange={(file) => handleFileChange('higher', file)}
+                                required={isMultiDimensional}
+                            />
+                        </motion.div>
+                    )}
+                    
+                    <motion.div layout key="primary">
+                        <ImageUploader 
+                            id="primary" 
+                            title="Tactical View" 
+                            subtitle="M15 Timeframe"
+                            onFileChange={(file) => handleFileChange('primary', file)}
+                            required
+                        />
+                    </motion.div>
 
-                {isMultiDimensional && (
-                    <ImageUploader 
-                        id="execution" 
-                        title="Execution View" 
-                        subtitle="M5 / M1 Timeframe"
-                        onFileChange={(file) => handleFileChange('execution', file)}
-                        required={isMultiDimensional}
-                    />
-                )}
-            </div>
+                    {isMultiDimensional && (
+                        <motion.div
+                            key="execution"
+                            initial={{ opacity: 0, scale: 0.9 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.9 }}
+                            transition={{ duration: 0.3 }}
+                        >
+                            <ImageUploader 
+                                id="execution" 
+                                title="Execution View" 
+                                subtitle="M5 / M1 Timeframe"
+                                onFileChange={(file) => handleFileChange('execution', file)}
+                                required={isMultiDimensional}
+                            />
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+            </motion.div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
                  <div>

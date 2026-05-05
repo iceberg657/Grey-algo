@@ -6,6 +6,7 @@ import { AnnotatedChart } from './AnnotatedChart';
 import type { SignalData } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { updateTradeOutcome } from '../services/historyService';
+import { generateLessonFromTradeLog } from '../services/learningService';
 
 interface AnalysisPageProps {
     data: SignalData;
@@ -24,6 +25,9 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
         try {
             await updateTradeOutcome(data.id, newOutcome);
             setOutcome(newOutcome);
+            
+            // Record neural lesson
+            generateLessonFromTradeLog().catch(err => console.error("Failed to generate neural lesson", err));
         } catch (e) {
             console.error("Failed to update outcome:", e);
         } finally {

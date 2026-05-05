@@ -2,6 +2,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
+import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { Loader } from './Loader';
 import { ErrorMessage } from './ErrorMessage';
 import { generateTradingSignal } from '../services/geminiService';
@@ -29,6 +30,7 @@ interface HomePageProps {
     onNavigateToAdmin: () => void;
     onNavigateToAutoTrade: () => void;
     onNavigateToSniper: () => void;
+    onNavigateToIntelligence: () => void;
     onAssetSelect?: (asset: string) => void;
     userMetadata: UserMetadata | null;
     systemSettings: any | null;
@@ -44,9 +46,9 @@ const NavButton: React.FC<{
     isLocked?: boolean;
 }> = ({ onClick, 'aria-label': ariaLabel, icon, label, index, highlight, isLocked }) => (
     <motion.button
-        initial={{ opacity: 0, rotateY: -90 }}
-        animate={{ opacity: 1, rotateY: 0 }}
-        transition={{ delay: 0.1 + index * 0.05, duration: 0.5 }}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: index * 0.03, duration: 0.3 }}
         onClick={onClick}
         aria-label={ariaLabel}
         className={`group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl transition-all duration-300 border backdrop-blur-md hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] relative ${
@@ -77,6 +79,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     onNavigateToAdmin, 
     onNavigateToAutoTrade,
     onNavigateToSniper,
+    onNavigateToIntelligence,
     onAssetSelect,
     userMetadata,
     systemSettings
@@ -337,6 +340,14 @@ export const HomePage: React.FC<HomePageProps> = ({
             icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
         },
         {
+            onClick: onNavigateToIntelligence,
+            label: 'Intelligence',
+            ariaLabel: 'Open Market Intelligence Dashboard',
+            highlight: true,
+            className: "liquid-glass-accent",
+            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+        },
+        {
             onClick: onNavigateToAutoTrade,
             label: 'Auto Trade',
             ariaLabel: 'Open Auto Trade Terminal',
@@ -435,9 +446,9 @@ export const HomePage: React.FC<HomePageProps> = ({
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-slate-950/60 backdrop-blur-md flex items-center justify-center z-[100]"
+                        className="fixed inset-0 z-[100]"
                     >
-                        <Loader />
+                        <AgentAnalysisLoader />
                     </motion.div>
                 )}
             </AnimatePresence>

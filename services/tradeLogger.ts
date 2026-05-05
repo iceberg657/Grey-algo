@@ -2,6 +2,7 @@ import { db } from '../firebase';
 import { collection, addDoc, doc, updateDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { Trade, SignalData } from '../types';
 import { auth } from '../firebase';
+import { sanitizeForFirestore } from '../utils/firestoreUtils';
 
 export const logTrade = async (signalData: SignalData, outcome: Trade['outcome'] = 'Pending', notes: string = ''): Promise<string | null> => {
     const user = auth.currentUser;
@@ -20,8 +21,10 @@ export const logTrade = async (signalData: SignalData, outcome: Trade['outcome']
         signalData
     };
 
+    const sanitizedTrade = sanitizeForFirestore(trade);
+
     const tradesRef = collection(db, 'users', user.uid, 'trades');
-    const docRef = await addDoc(tradesRef, trade);
+    const docRef = await addDoc(tradesRef, sanitizedTrade);
     return docRef.id;
 };
 

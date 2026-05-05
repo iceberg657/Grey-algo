@@ -37,6 +37,7 @@ export async function initializeApiKey() {
             Object.entries(envKeys).forEach(([key, val]) => {
                 if (isValid(val)) (KEYS as any)[key] = (val as string).trim();
             });
+            if (!KEYS.k1 && API_KEY) KEYS.k1 = API_KEY;
             if (API_KEY) return;
         }
 

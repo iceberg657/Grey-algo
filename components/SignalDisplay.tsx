@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { updateTradeOutcome } from '../services/historyService';
+import { generateLessonFromTradeLog } from '../services/learningService';
 import { TiltCard } from './TiltCard';
 import { motion } from 'motion/react';
 
@@ -326,6 +327,9 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
             await updateTradeOutcome(data.id, localOutcome as any, localNotes);
             setSaveSuccess(true);
             setTimeout(() => setSaveSuccess(false), 3000);
+            
+            // Record a neural lesson asynchronously
+            generateLessonFromTradeLog().catch(err => console.error("Failed to generate neural lesson", err));
         } catch (error) {
             console.error('Failed to save post-mortem:', error);
         } finally {
@@ -793,6 +797,26 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                         <p className="text-sm text-slate-900 dark:text-gray-300 leading-relaxed font-medium italic">
                             "{data.marketStory}"
+                        </p>
+                    </div>
+                </Section>
+            )}
+
+            {/* NEURAL AI VALIDATION SECTION */}
+            {data.neuralFilter && (
+                <Section title="Neural AI Validation" delay="1055ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>}>
+                    <div className={`backdrop-blur-xl rounded-2xl border p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden ${data.neuralFilter.passed ? 'bg-indigo-500/10 border-indigo-500/30 dark:bg-indigo-500/20' : 'bg-red-500/10 border-red-500/30 dark:bg-red-500/20'}`}>
+                        <div className={`absolute top-0 left-0 w-1 h-full ${data.neuralFilter.passed ? 'bg-indigo-500' : 'bg-red-500'}`}></div>
+                        <div className="flex items-center justify-between mb-4">
+                            <span className={`text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border ${data.neuralFilter.passed ? 'bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border-indigo-500/30' : 'bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30'}`}>
+                                {data.neuralFilter.passed ? '✅ PASSED NEURAL HISTORY CHECK' : '❌ FAILED NEURAL HISTORY CHECK'}
+                            </span>
+                            <span className={`font-mono text-sm font-bold ${data.neuralFilter.confidenceBoost > 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                {data.neuralFilter.confidenceBoost > 0 ? '+' : ''}{data.neuralFilter.confidenceBoost}% Confidence Edge
+                            </span>
+                        </div>
+                        <p className={`text-sm leading-relaxed font-medium ${data.neuralFilter.passed ? 'text-indigo-900/80 dark:text-indigo-200' : 'text-red-900/80 dark:text-red-200'}`}>
+                            {data.neuralFilter.reasoning}
                         </p>
                     </div>
                 </Section>

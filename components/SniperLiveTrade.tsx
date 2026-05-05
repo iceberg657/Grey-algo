@@ -27,6 +27,7 @@ import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
 import { fetchMarketData } from '../services/twelveDataService';
 import { saveAnalysis } from '../services/historyService';
+import { generateLessonFromTradeLog } from '../services/learningService';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { analyzeSMC } from '../utils/quantEngine';
 import { 
@@ -42,6 +43,7 @@ import {
   writeBatch,
   setDoc
 } from 'firebase/firestore';
+import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
 interface SniperMessage {
@@ -404,6 +406,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               // Strip ID and timestamp to let saveAnalysis re-apply it properly for journal
               const { id, timestamp, ...dataToSave } = result;
               await saveAnalysis(dataToSave);
+              
+              // Record a neural lesson from the recent trade log asynchronously
+              generateLessonFromTradeLog().catch(err => console.error("Failed to generate neural lesson", err));
           } catch (e) {
               console.warn("Failed to log sniper trade to history journal:", e);
           }
@@ -950,20 +955,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex flex-col items-start gap-4"
+                  className="flex flex-col items-start gap-4 mb-4"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-800 flex-shrink-0">
-                      <Bot className="w-4 h-4 text-emerald-500" />
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Neural Network Active</span>
-                  </div>
-                  <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 px-8 py-6 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-4">
-                    <Loader />
-                    <span className="text-xs font-medium text-emerald-500 animate-pulse">
-                      {isFetchingPrice ? 'Fetching Live Deriv Quotes...' : 'Neural Network Processing...'}
-                    </span>
-                  </div>
+                  <AgentAnalysisLoader inline={true} />
                 </motion.div>
               )}
 

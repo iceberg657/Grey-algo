@@ -5,14 +5,16 @@ export default async function handler(req, res) {
 
   const { model, contents, config, apiKey: clientApiKey } = req.body;
   
+  const isValid = (k) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
+
   // Prioritize client key (rotated by frontend), fallback to standard GEMINI_API_KEY, then others
-  const apiKey = (clientApiKey && clientApiKey.length > 5) 
-    ? clientApiKey 
-    : (process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY);
+  const apiKey = (isValid(clientApiKey)) 
+    ? clientApiKey.trim() 
+    : (process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY)?.trim();
   
   if (!apiKey || apiKey.length < 5) {
-    console.error('[GeminiProxy] No valid API key found');
-    return res.status(400).json({ error: 'Gemini API key not configured or invalid' });
+    console.error('[GeminiProxy] No valid API key found. Checked client key and environment variables.');
+    return res.status(400).json({ error: 'Gemini API key not configured or invalid. Please check your .env file or Settings.' });
   }
 
   try {

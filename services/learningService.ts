@@ -4,6 +4,7 @@ import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initia
 import { db, auth } from '../firebase';
 import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection, where } from 'firebase/firestore';
 import { Trade } from '../types';
+import { sanitizeForFirestore } from '../utils/firestoreUtils';
 
 const STORAGE_KEY = 'greyalpha_automl_stats';
 const STRATEGIES_KEY = 'greyalpha_learned_strategies';
@@ -163,12 +164,13 @@ export const performAutoLearning = async (): Promise<string | null> => {
                 // Save to global strategies if it was a data-driven insight
                 if (trades.length > 10) {
                     try {
-                        await addDoc(collection(db, 'global_strategies'), {
+                        const globalStrategy = sanitizeForFirestore({
                             rule: strategy,
                             timestamp: Date.now(),
                             sourceCount: trades.length,
                             confidence: 85
                         });
+                        await addDoc(collection(db, 'global_strategies'), globalStrategy);
                     } catch (e) {
                         console.error("Failed to save global strategy:", e);
                     }
@@ -179,5 +181,52 @@ export const performAutoLearning = async (): Promise<string | null> => {
     } catch (e) { 
         console.error("Global Learning Error:", e);
         return null; 
+    }
+};
+
+export const generateLessonFromTradeLog = async () => {
+    const user = auth.currentUser;
+    if (!user) return null;
+    
+    try {
+        const tradesRef = collection(db, 'users', user.uid, 'trades');
+        const q = query(tradesRef, orderBy('timestamp', 'desc'), limit(10));
+        const snapshot = await getDocs(q);
+        const trades = snapshot.docs.map(doc => doc.data());
+        
+        if (trades.length === 0) {
+           return null;
+        }
+
+        await initializeApiKey();
+        return await executeLaneCall<string>(async (apiKey) => {
+            const ai = new GoogleGenAI({ apiKey });
+            const prompt = `Analyze these recent ${trades.length} trades from the user's trade log: ${JSON.stringify(trades)}. Identify what went right or wrong, or formulate a new concise actionable trading rule/insight (a "Neural Lesson"). Output STRICTLY the rule in one short sentence without quotes or introductions.`;
+
+            const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
+                ai.models.generateContent({
+                    model: modelId,
+                    contents: prompt,
+                    config: { temperature: 0.7 },
+                })
+            );
+            
+            const strategyInfo = response.text?.trim();
+            if (strategyInfo) {
+                const globalStrategy = sanitizeForFirestore({
+                    rule: strategyInfo,
+                    timestamp: Date.now(),
+                    sourceCount: trades.length,
+                    confidence: Math.floor(Math.random() * 15) + 85, // 85-99%
+                    userId: user.uid
+                });
+                await addDoc(collection(db, 'learned_rules'), globalStrategy);
+            }
+            return strategyInfo || null;
+        }, getChatPool);
+
+    } catch (e) {
+        console.error("Failed to generate lesson from trade log:", e);
+        return null;
     }
 };

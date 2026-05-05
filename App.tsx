@@ -19,6 +19,7 @@ import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
+import { MarketIntelligence } from './components/MarketIntelligence';
 import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
 import { NeuralBackground } from './components/NeuralBackground';
@@ -44,7 +45,7 @@ import { SplashScreen } from './components/SplashScreen';
 import { OnboardingFlow } from './components/OnboardingFlow';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper' | 'intelligence';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -348,6 +349,10 @@ const App: React.FC = () => {
         navigateTo('sniper');
     };
 
+    const handleNavigateToIntelligence = () => {
+        navigateTo('intelligence');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         navigateTo(previousView); 
@@ -494,10 +499,16 @@ const App: React.FC = () => {
                     onNavigateToAdmin={handleNavigateToAdmin}
                     onNavigateToAutoTrade={handleNavigateToAutoTrade}
                     onNavigateToSniper={handleNavigateToSniper}
+                    onNavigateToIntelligence={handleNavigateToIntelligence}
                     onAssetSelect={handleAssetSelect}
                     userMetadata={userMetadata}
                     systemSettings={systemSettings}
                 />
+            );
+            break;
+        case 'intelligence':
+            content = (
+                <MarketIntelligence onBack={handleNavigateToHome} />
             );
             break;
         case 'chat':
@@ -655,10 +666,10 @@ const App: React.FC = () => {
                 <AnimatePresence mode="wait">
                     <motion.div
                         key={appView}
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.3 }}
+                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
                     >
                         {content}
                     </motion.div>

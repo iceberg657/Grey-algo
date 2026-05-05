@@ -2,6 +2,7 @@
 import type { SignalData, Trade } from '../types';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { sanitizeForFirestore } from '../utils/firestoreUtils';
 
 const HISTORY_KEY = 'analysisHistory';
 
@@ -55,7 +56,7 @@ export const saveAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>): 
         const path = `users/${auth.currentUser.uid}/trades`;
         try {
             const tradesRef = collection(db, 'users', auth.currentUser.uid, 'trades');
-            const docRef = await addDoc(tradesRef, {
+            const tradeData = sanitizeForFirestore({
                 uid: auth.currentUser.uid,
                 asset: data.asset,
                 signal: data.signal,
@@ -63,6 +64,7 @@ export const saveAnalysis = async (data: Omit<SignalData, 'id' | 'timestamp'>): 
                 outcome: 'Pending',
                 signalData: data
             });
+            const docRef = await addDoc(tradesRef, tradeData);
             newEntry.id = docRef.id;
         } catch (e) {
             handleFirestoreError(e, OperationType.CREATE, path);

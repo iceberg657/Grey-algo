@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Trade } from '../types';
 import { getTradeHistory, updateTradeOutcome } from '../services/tradeLogger';
+import { generateLessonFromTradeLog } from '../services/learningService';
 
 export const TradeHistory: React.FC = () => {
     const [trades, setTrades] = useState<Trade[]>([]);
@@ -27,6 +28,9 @@ export const TradeHistory: React.FC = () => {
             const tradeNotes = notes[tradeId] || '';
             await updateTradeOutcome(tradeId, outcome, tradeNotes);
             setTrades(prev => prev.map(t => t.id === tradeId ? { ...t, outcome, notes: tradeNotes } : t));
+            
+            // Record a neural lesson from the recent trade log asynchronously
+            generateLessonFromTradeLog().catch(err => console.error("Failed to generate neural lesson", err));
         } catch (error) {
             console.error('Failed to update outcome:', error);
         }

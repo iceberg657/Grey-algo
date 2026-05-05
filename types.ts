@@ -267,7 +267,13 @@ export interface SignalData {
         atr?: number;
         adx?: number;
     };
+    neuralFilter?: {
+        passed: boolean;
+        confidenceBoost: number;
+        reasoning: string;
+    };
     verificationProtocol?: VerificationProtocol;
+
     institutionalDrivers?: InstitutionalDriver[];
     fundamentalDrivers?: FundamentalDriver[];
     marketStory?: string;
@@ -307,6 +313,25 @@ export interface GlobalMarketAnalysis {
     timestamp: number;
     sectors: GlobalMarketSector[];
     globalSummary: string;
+}
+
+export interface IntelligenceReport {
+    asset: string;
+    trend: {
+        h1: 'Bullish' | 'Bearish' | 'Neutral';
+        h4: 'Bullish' | 'Bearish' | 'Neutral';
+    };
+    poiZones: DemandSupplyZone[];
+    newsRisk: 'Low' | 'Medium' | 'High';
+    setupQuality: number; // 0-100
+    action: 'Ready to trade' | 'Wait';
+    summary: string;
+    timestamp: number;
+    metrics?: {
+        rsi?: number;
+        adx?: number;
+        atr?: number;
+    };
 }
 
 export interface NewsArticle {
