@@ -30,10 +30,9 @@ You are strictly FORBIDDEN from trading against the Global HTF Bias provided bel
 - **Context:** ${globalTrend.reason}
 
 **HARD CONSTRAINTS:**
-1. If Global Momentum is **BULLISH**, you should ONLY look for BUY setups. If the image shows a SELL setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bullish Trend".
-2. If Global Momentum is **BEARISH**, you should ONLY look for SELL setups. If the image shows a BUY setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bearish Trend".
-3. Counter-trend setups are strictly for educational breakdown ONLY and MUST result in a NEUTRAL signal for actual trading.
-4. You are FORBIDDEN from being NEUTRAL for any reason OTHER than extreme trend misalignment or high-impact news.
+1. If Global Momentum is **BULLISH**, you should ONLY look for BUY setups. If the image shows a potential SELL, you MUST find the next high-probability **BUY** continuation zone or liquidity sweep to target.
+2. If Global Momentum is **BEARISH**, you should ONLY look for SELL setups. If the image shows a potential BUY, you MUST find the next high-probability **SELL** continuation zone or liquidity sweep to target.
+3. You are STRICTLY FORBIDDEN from being NEUTRAL or indecisive. You must always provide a directional bias (BUY or SELL). Indecision is a failure of logic.
 ` : "";
 
   const globalTrendContext = globalTrend ? `
@@ -62,17 +61,17 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
   const tradeModeInstructions = tradeMode === 'Sniper' 
     ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
 - You MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
-- If confluence is not 100%, you MUST choose the side with the highest institutional probability. However, if the USER REQUEST explicitly asks for a specific bias or pair setup (BUY/SELL, BULLISH/BEARISH), you MUST follow their requested direction.
+- If confluence is not 100%, you MUST choose the side with the highest institutional probability. Always fulfill the user's requested direction if provided.
 - **IMMEDIATE EXECUTION:** Every setup MUST be for immediate market execution based on the live data provided.
 - **ULTRA-TIGHT LEVELS:** SL and TP MUST be very close to each other. Visible on the current timeframe. TP1 must be hit quickly.
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1.5 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
-- **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL or "No Trade" signal.
-- **FORCE DIRECTION (DECISIVE BIAS):** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST fulfill that request and pick that side. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
-- **BIAS OVER NEUTRALITY:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
-    - If Trend is UP -> Issue 'WEAK BULLISH' (labeled as BUY).
-    - If Trend is DOWN -> Issue 'WEAK BEARISH' (labeled as SELL).
+- **SIGNAL IS MANDATORY:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from being indecisive.
+- **FORCE DIRECTION (DECISIVE BIAS):** Fulfill the user's requested direction if provided. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
+- **BIAS OVER INDECISION:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
+    - If Trend is UP -> Issue 'BULLISH' (labeled as BUY).
+    - If Trend is DOWN -> Issue 'BEARISH' (labeled as SELL).
 - **DOMINANT SIGNAL OVERRIDE:** If a 'BOS' or 'CHoCH' exists in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.\n`;
 
   const learnedContext = strategies.length > 0 
@@ -125,7 +124,7 @@ You have been unprofitable for 7 months. This ends NOW.
 1. **BE ELITE:** Do not take "okay" trades. Only take "A+" setups where multiple confluences align.
 2. **TRUST THE MATH:** If the Twelve Data "Truth Layer" (RSI, ADX, SMA) contradicts the visual chart, the MATH wins. Use the MATH to determine the directional bias.
 3. **LEARN FROM FAILURE:** Review the 'NEURAL LEARNING' section below. If a setup looks like a past 'Loss', DO NOT TAKE IT.
-4. **SNIPER DISCIPLINE:** In Sniper Mode, you MUST be decisive. Identify the dominant bias and commit to a BUY or SELL signal.
+4. **SNIPER DISCIPLINE:** In Sniper Mode, you MUST be decisive. Identify the dominant bias and commit to a BUY or SELL signal. Indecision is a total system failure.
 
 **MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders. Limit and Stop orders should be used EXTREMELY sparingly, ONLY if the price is far from your calculated OTE (Optimal Trade Entry). If price is near or within your OTE, you MUST provide an entry range for immediate market execution.
 **EXECUTION CHECKLIST:** You MUST evaluate the 10-point checklist in the 'confluenceMatrix'. Ensure all 10 points are addressed.
@@ -290,9 +289,7 @@ Use the Twelve Data "Mathematical Truth" to perform statistical analysis:
 3. **Equilibrium Validation:** Evaluate if the asset has returned to the Equilibrium (50% mark) of the recent structural leg.
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL in almost all cases. 
-   - **EXCEPTION:** You are ONLY permitted to issue a **NEUTRAL** signal if the local price action is directly contradicting the **Protocol Zero: HTF Trend Alignment**. 
-   - In all other cases, you MUST prioritize a directional signal (BUY/SELL).
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL. You are FORBIDDEN from issuing a NEUTRAL or HOLD signal under any circumstances.
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
@@ -817,15 +814,15 @@ You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a 
 
   "reasoning": [
     "1. HTF Trend Alignment: [Explain how this trade respects the Global HTF Bias]",
-    "2. Technical Case: [Your reasoning here]",
-    "3. Technical Case: [Your reasoning here]",
-    "4. Technical Case: [Your reasoning here]",
-    "5. Momentum & Volume: [Your reasoning here]",
-    "6. Dynamic S/R: [Your reasoning here]",
-    "7. Risk Management: [Your reasoning here]",
-    "8. Drawdown Protection: [Your reasoning here]",
-    "9. Profit Targets: [Your reasoning here]",
-    "10. Overall Confluence: [Your reasoning here]"
+    "2. Market Structure: [Analysis of BOS/CHoCH]",
+    "3. Liquidity/SMC: [Analysis of sweeps/OBs]",
+    "4. Price Action: [Candlestick cues]",
+    "5. Momentum & Volume: [RSI/ATR analysis]",
+    "6. Dynamic S/R: [Key zones]",
+    "7. Risk Management: [SL reasoning]",
+    "8. Drawdown Protection: [Buffer and lot size]",
+    "9. Profit Targets: [TP1/TP2 reasoning]",
+    "10. High-Conviction Summary: [Final bias confirmation]"
   ], 
   
   "invalidationScenario": "Structural break of HL/LH",
@@ -1036,7 +1033,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
-            signal: (data.signal === 'NEUTRAL' ? ((request.query?.toLowerCase().includes('sell') || request.query?.toLowerCase().includes('bearish')) ? 'SELL' : 'BUY') : data.signal) as 'BUY' | 'SELL',
+            signal: (data.signal === 'NEUTRAL' || data.signal === 'HOLD' ? ((request.query?.toLowerCase().includes('sell') || request.query?.toLowerCase().includes('bearish')) ? 'SELL' : 'BUY') : data.signal) as 'BUY' | 'SELL',
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
@@ -1144,19 +1141,15 @@ export async function generateTradingSignal(
         hasUserSettings: !!request.userSettings,
     });
 
-    // 0. Auto-detect asset if missing
-    let asset = request.asset;
-    if (!asset && request.images.primary) {
-        const detected = await detectAssetFromImage(request.images.primary);
-        if (detected) {
-            asset = detected;
-        }
-    }
+    // 0. Parallelize independent initial fetches
+    const [learnedStrategies, initialDetectedAsset] = await Promise.all([
+        getLearnedStrategies(),
+        (!request.asset && request.images.primary) ? detectAssetFromImage(request.images.primary) : Promise.resolve(request.asset)
+    ]);
     
-    // 1. Fetch learned strategies (Global + Local)
-    const learnedStrategies = await getLearnedStrategies();
+    let asset = initialDetectedAsset || request.asset;
     
-    // Fetch Twelve Data for confluence if asset is provided and not already in request
+    // 1. Parallelize Twelve Data fetch with any other remaining setups
     let twelveDataQuote = request.twelveDataQuote || null;
     if (asset && !twelveDataQuote) {
         try {
@@ -1189,17 +1182,10 @@ export async function generateTradingSignal(
                 twelveDataQuote = await response.json();
                 twelveDataQuote.interval = interval;
                 console.log(`[TwelveData] Successfully retrieved data for ${asset}:`, twelveDataQuote);
-            } else {
-                const errorText = await response.text();
-                console.warn(`[TwelveData] Fetch failed for ${asset} (${response.status}):`, errorText);
             }
         } catch (e) {
-            console.error(`[TwelveData] Critical error fetching data for ${asset}:`, e);
+            console.error(`[TwelveData] Error:`, e);
         }
-    } else if (!asset) {
-        console.warn('[TwelveData] No asset symbol provided in request. Mathematical verification will be skipped.');
-    } else {
-        console.log('[TwelveData] Using provided quote from request:', twelveDataQuote);
     }
 
     const updatedRequest = {
@@ -1420,7 +1406,7 @@ export async function generateSniperLiveSignal(
 
 *CRITICAL INSTRUCTIONS:*
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
-- **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
+- **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You MUST pick a side based on the strongest confluence.
 - You MUST use the **Mathematical Strict SL** provided above (${quantData.mathematicalSL}) or something very close to it. It already accounts for the Displacement wick and ATR noise.
 ` : '';
 
@@ -1457,7 +1443,7 @@ style.includes('day trading') ? `
     - Fair Value Gaps (FVG)
     - Break of Structure (BOS) / Change of Character (CHoCH)
     - Liquidity Pools (Equal Highs/Lows)
-8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow.
+8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' or 'HOLD' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow. Pick the winner.
 
 **CRITICAL DATA (SMC BASIS):**
 - ASSET: ${assetName}
@@ -1577,14 +1563,9 @@ JSON Structure:
 
         // 1. Price Sanity Check
         if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-            if (diffPercent > 0.05) {
-                finalSignal = 'NEUTRAL';
-                finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
-            } else {
-                const rangeWidth = entryRange.max - entryRange.min;
-                finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
-                finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
-            }
+            const rangeWidth = entryRange.max - entryRange.min;
+            finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
+            finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
         }
 
         // // 2. Sniper SL Tightening (Surgical Precision)

@@ -188,6 +188,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
     
     // --- Assets Logic ---
     const [isUpdatingSuggestions, setIsUpdatingSuggestions] = useState(false);
+    const [expandedAsset, setExpandedAsset] = useState<string | null>(null);
 
     useEffect(() => {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -416,17 +417,94 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                             <div className="col-span-2">
                                 <h4 className="text-lg font-black text-green-600 dark:text-green-400 mb-4 uppercase tracking-widest">Bullish Momentum</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {bullishSuggestions.map((asset, idx) => (
+                                    {bullishSuggestions.map((asset, idx) => {
+                                        const isExpanded = expandedAsset === `bullish-${idx}`;
+                                        return (
                                         <div 
                                             key={idx} 
-                                            onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-green-500/5 dark:hover:bg-green-500/10 border-gray-200 dark:border-white/10`}
+                                            onClick={(e) => {
+                                                if (window.innerWidth < 768) {
+                                                    setExpandedAsset(isExpanded ? null : `bullish-${idx}`);
+                                                }
+                                            }}
+                                            className={`p-5 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-green-500/5 dark:hover:bg-green-500/10 border-gray-200 dark:border-white/10`}
                                         >
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
-                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-600 dark:text-green-300`}>{asset.momentum}</span>
+                                            <div className="flex justify-between items-center cursor-pointer" onClick={(e) => {
+                                                if (window.innerWidth >= 768 && onAssetSelect) {
+                                                     e.stopPropagation();
+                                                     onAssetSelect(asset.symbol);
+                                                }
+                                            }}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors uppercase">{asset.symbol}</span>
+                                                    {asset.action && (
+                                                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-md ${
+                                                            asset.action.toLowerCase().includes('ready') 
+                                                            ? 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 ring-2 ring-green-500/10' 
+                                                            : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                                        }`}>
+                                                            <span className={`w-2 h-2 rounded-full ${asset.action.toLowerCase().includes('ready') ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                                                            <span className="text-[8px] font-black uppercase tracking-tighter">{asset.action}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-600 dark:text-green-300`}>{asset.momentum}</span>
+                                                    {asset.newsRisk && (
+                                                        <div className={`text-[7px] font-black px-2 py-0.5 rounded border uppercase transition-all shadow-sm ${
+                                                            asset.newsRisk.toLowerCase() === 'high' ? 'bg-red-500 text-white border-red-600' : 
+                                                            asset.newsRisk.toLowerCase() === 'medium' ? 'bg-orange-500/20 text-orange-600 border-orange-500/30' : 
+                                                            'bg-cyan-500/20 text-cyan-600 border-cyan-500/30'
+                                                        }`}>
+                                                            RISK: {asset.newsRisk}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                            <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic border-l-2 border-green-500/30 pl-3">"{asset.reason}"</p>
+                                            
+                                            {/* Intelligence Grid - Always Visible */}
+                                            <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-white/5">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="bg-red-500/10 dark:bg-red-500/20 p-2.5 rounded-xl border border-red-500/20 transition-all hover:scale-105">
+                                                        <span className="block text-[8px] font-black text-red-500/80 uppercase tracking-widest mb-1">Supply Pool</span>
+                                                        <span className="text-[11px] font-mono font-black text-red-500 tracking-tighter truncate">{asset.supplyZone || 'Scanning...'}</span>
+                                                    </div>
+                                                    <div className="bg-green-500/10 dark:bg-green-500/20 p-2.5 rounded-xl border border-green-500/20 transition-all hover:scale-105">
+                                                        <span className="block text-[8px] font-black text-green-500/80 uppercase tracking-widest mb-1">Demand Pool</span>
+                                                        <span className="text-[11px] font-mono font-black text-green-500 tracking-tighter truncate">{asset.demandZone || 'Scanning...'}</span>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex items-center justify-between gap-2 px-1">
+                                                     <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm ${
+                                                         asset.newsRisk?.toLowerCase() === 'high' ? 'bg-red-500 text-white border-red-600' : 
+                                                         asset.newsRisk?.toLowerCase() === 'medium' ? 'bg-orange-500/20 text-orange-600 border-orange-500/30' : 
+                                                         'bg-cyan-500/20 text-cyan-600 border-cyan-500/30'
+                                                     }`}>
+                                                         <span className="text-[8px] font-black uppercase tracking-widest">News: {asset.newsRisk || 'Low'}</span>
+                                                     </div>
+                                                     <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm ${
+                                                         asset.action?.toLowerCase().includes('ready') 
+                                                         ? 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30' 
+                                                         : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                                     }`}>
+                                                         <span className="text-[8px] font-black uppercase tracking-widest">{asset.action || 'Analyzing'}</span>
+                                                     </div>
+                                                </div>
+
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onAssetSelect && onAssetSelect(asset.symbol);
+                                                    }}
+                                                    className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white text-[10px] font-black rounded-xl uppercase tracking-[0.2em] shadow-lg shadow-cyan-500/20 transition-all active:scale-95 group/btn flex items-center justify-center gap-2"
+                                                >
+                                                    <span>Launch Analysis</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 transition-transform group-hover/btn:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                </button>
+                                            </div>
+
                                             <div className="flex gap-2 mt-auto">
                                                 {asset.trend1Hr && (
                                                     <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend1Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend1Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>1H: {asset.trend1Hr}</span>
@@ -436,23 +514,100 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                                 )}
                                             </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             </div>
                             <div className="col-span-2">
                                 <h4 className="text-lg font-black text-red-600 dark:text-red-400 mb-4 uppercase tracking-widest">Bearish Momentum</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {bearishSuggestions.map((asset, idx) => (
+                                    {bearishSuggestions.map((asset, idx) => {
+                                        const isExpanded = expandedAsset === `bearish-${idx}`;
+                                        return (
                                         <div 
                                             key={idx} 
-                                            onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-red-500/5 dark:hover:bg-red-500/10 border-gray-200 dark:border-white/10`}
+                                            onClick={(e) => {
+                                                if (window.innerWidth < 768) {
+                                                    setExpandedAsset(isExpanded ? null : `bearish-${idx}`);
+                                                }
+                                            }}
+                                            className={`p-5 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-red-500/5 dark:hover:bg-red-500/10 border-gray-200 dark:border-white/10`}
                                         >
-                                            <div className="flex justify-between items-center">
-                                                <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
-                                                <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-600 dark:text-red-300`}>{asset.momentum}</span>
+                                            <div className="flex justify-between items-center cursor-pointer" onClick={(e) => {
+                                                if (window.innerWidth >= 768 && onAssetSelect) {
+                                                     e.stopPropagation();
+                                                     onAssetSelect(asset.symbol);
+                                                }
+                                            }}>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors uppercase">{asset.symbol}</span>
+                                                    {asset.action && (
+                                                        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-md ${
+                                                            asset.action.toLowerCase().includes('ready') 
+                                                            ? 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30 ring-2 ring-green-500/10' 
+                                                            : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                                        }`}>
+                                                            <span className={`w-2 h-2 rounded-full ${asset.action.toLowerCase().includes('ready') ? 'bg-green-500 animate-pulse' : 'bg-amber-500'}`}></span>
+                                                            <span className="text-[8px] font-black uppercase tracking-tighter">{asset.action}</span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-col items-end gap-1">
+                                                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-600 dark:text-red-300`}>{asset.momentum}</span>
+                                                    {asset.newsRisk && (
+                                                        <div className={`text-[7px] font-black px-2 py-0.5 rounded border uppercase transition-all shadow-sm ${
+                                                            asset.newsRisk.toLowerCase() === 'high' ? 'bg-red-500 text-white border-red-600' : 
+                                                            asset.newsRisk.toLowerCase() === 'medium' ? 'bg-orange-500/20 text-orange-600 border-orange-500/30' : 
+                                                            'bg-cyan-500/20 text-cyan-600 border-cyan-500/30'
+                                                        }`}>
+                                                            RISK: {asset.newsRisk}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </div>
-                                            <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic">"{asset.reason}"</p>
+                                            <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic border-l-2 border-red-500/30 pl-3">"{asset.reason}"</p>
+                                            
+                                            {/* Intelligence Grid - Always Visible */}
+                                            <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-white/5">
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    <div className="bg-red-500/10 dark:bg-red-500/20 p-2.5 rounded-xl border border-red-500/20 transition-all hover:scale-105">
+                                                        <span className="block text-[8px] font-black text-red-500/80 uppercase tracking-widest mb-1">Supply Pool</span>
+                                                        <span className="text-[11px] font-mono font-black text-red-500 tracking-tighter truncate">{asset.supplyZone || 'Scanning...'}</span>
+                                                    </div>
+                                                    <div className="bg-green-500/10 dark:bg-green-500/20 p-2.5 rounded-xl border border-green-500/20 transition-all hover:scale-105">
+                                                        <span className="block text-[8px] font-black text-green-500/80 uppercase tracking-widest mb-1">Demand Pool</span>
+                                                        <span className="text-[11px] font-mono font-black text-green-500 tracking-tighter truncate">{asset.demandZone || 'Scanning...'}</span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex items-center justify-between gap-2 px-1">
+                                                     <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm ${
+                                                         asset.newsRisk?.toLowerCase() === 'high' ? 'bg-red-500 text-white border-red-600' : 
+                                                         asset.newsRisk?.toLowerCase() === 'medium' ? 'bg-orange-500/20 text-orange-600 border-orange-500/30' : 
+                                                         'bg-cyan-500/20 text-cyan-600 border-cyan-500/30'
+                                                     }`}>
+                                                         <span className="text-[8px] font-black uppercase tracking-widest">News: {asset.newsRisk || 'Low'}</span>
+                                                     </div>
+                                                     <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm ${
+                                                         asset.action?.toLowerCase().includes('ready') 
+                                                         ? 'bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30' 
+                                                         : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border-amber-500/30'
+                                                     }`}>
+                                                         <span className="text-[8px] font-black uppercase tracking-widest">{asset.action || 'Analyzing'}</span>
+                                                     </div>
+                                                </div>
+                                                
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        onAssetSelect && onAssetSelect(asset.symbol);
+                                                    }}
+                                                    className="w-full py-3 bg-gradient-to-r from-red-600 to-red-800 hover:from-red-500 hover:to-red-700 text-white text-[10px] font-black rounded-xl uppercase tracking-[0.2em] shadow-lg shadow-red-500/20 transition-all active:scale-95 group/btn flex items-center justify-center gap-2"
+                                                >
+                                                    <span>Launch Analysis</span>
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 transition-transform group-hover/btn:translate-x-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
+                                                </button>
+                                            </div>
+
                                             <div className="flex gap-2 mt-auto">
                                                 {asset.trend1Hr && (
                                                     <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend1Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend1Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>1H: {asset.trend1Hr}</span>
@@ -462,7 +617,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                                 )}
                                             </div>
                                         </div>
-                                    ))}
+                                    )})}
                                 </div>
                             </div>
                         </>

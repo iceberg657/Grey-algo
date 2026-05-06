@@ -3,7 +3,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
 import type { MomentumAsset } from '../types';
 
-const CACHE_KEY = 'greyquant_asset_suggestions_v3';
+const CACHE_KEY = 'greyquant_asset_suggestions_v4';
 const CACHE_DURATION = 60 * 60 * 1000; // 1-hour refresh cycle
 
 const ALLOWED_ASSETS = `
@@ -19,26 +19,42 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
-        **TASK:** You are a specialized Market Scanner. Identify the top 4 bullish and top 4 bearish currency pairs from the allowed list that are being most actively traded at the start of the current trading day.
+        **TASK:** You are an Elite Institutional Market Analyst. Identify the top 4 bullish and top 4 bearish high-liquidity assets from the allowed pool that present the strongest trading setups right now.
 
         **ALLOWED ASSET POOL:**
         ${ALLOWED_ASSETS}
 
-        **CRITERIA:**
-        - Use Google Search to analyze the most recent price action and volume (last 1-4 hours).
-        - Focus on assets with the highest trading volume and activity at the start of the day.
-        - **BULLISH:** Identify pairs showing strong upward momentum or high-volume buying pressure.
-        - **BEARISH:** Identify pairs showing strong downward momentum or high-volume selling pressure.
-        - Provide a concise, one-sentence reason for each selection.
-        - Analyze and determine the trend specifically on the 1-hour (trend1Hr) and 4-hour (trend4Hr) timeframes.
+        **ANALYSIS REQUIREMENTS (DO NOT OMIT ANY):**
+        1. **MOMENTUM:** Identify pairs with clear directional bias (Bullish/Bearish).
+        2. **INSTITUTIONAL ZONES:** Pinpoint the exact Supply and Demand zones based on recent order blocks or liquidity sweeps.
+        3. **NEWS RISK:** Evaluate high-impact news (NFP, CPI, FOMC) within the next 24 hours. Rate as "Low", "Medium", or "High".
+        4. **DECISIVE ACTION:** Be extremely blunt. Decide if the setup is "Ready to trade" (Action ready) or "Wait" (Consolidation/No confluence).
+        5. **TIME TRENDS:** Confirm price structure on 1H and 4H timeframes.
+        6. **REASONING:** Provide a sharp, data-driven one-sentence quantitative insight.
 
-        **JSON OUTPUT FORMAT:**
+        **MANDATORY JSON OUTPUT FORMAT:**
         {
           "bullish": [
-            { "symbol": "string", "momentum": "Bullish", "reason": "string" }
+            { 
+              "symbol": "string", 
+              "momentum": "Bullish", 
+              "reason": "Institutional liquidity sweep completed, targeting next supply zone.", 
+              "action": "Ready to trade", 
+              "supplyZone": "1.0850 - 1.0865", 
+              "demandZone": "1.0780 - 1.0795",
+              "newsRisk": "Low"
+            }
           ],
           "bearish": [
-            { "symbol": "string", "momentum": "Bearish", "reason": "string" }
+            { 
+              "symbol": "string", 
+              "momentum": "Bearish", 
+              "reason": "Failing to break key resistance, double top pattern forming on 4H.", 
+              "action": "Wait", 
+              "supplyZone": "2450 - 2462", 
+              "demandZone": "2380 - 2395",
+              "newsRisk": "Medium"
+            }
           ]
         }
         `;
