@@ -17,7 +17,7 @@ import marketDataHandler from './api/marketData.js';
 import configHandler from './api/config.js';
 import analyzeHandler from './api/gemini/analyze.js';
 import derivHandler from './api/derivData.js';
-import twelveDataHandler from './api/market-data-proxy.js';
+import twelveDataHandler from './api/twelveData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
@@ -32,10 +32,8 @@ async function startServer() {
 
   console.log('[Server] Initializing API routes...');
 
-  // Market Data Proxy (Stealth endpoints to bypass adblockers/filters)
+  // Twelve Data Routes
   app.get('/api/twelveData', twelveDataHandler);
-  app.get('/api/marketFetcher', twelveDataHandler);
-  app.get('/api/quantum-stream', twelveDataHandler);
 
   // MetaApiService initialization removed for testing
   // function getMetaApiService(): MetaApiService {

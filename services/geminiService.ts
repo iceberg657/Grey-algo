@@ -10,7 +10,7 @@ import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, marketData?: any, globalTrend?: any) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any) => {
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -30,9 +30,10 @@ You are strictly FORBIDDEN from trading against the Global HTF Bias provided bel
 - **Context:** ${globalTrend.reason}
 
 **HARD CONSTRAINTS:**
-1. If Global Momentum is **BULLISH**, you should ONLY look for BUY setups. If the image shows a potential SELL, you MUST find the next high-probability **BUY** continuation zone or liquidity sweep to target.
-2. If Global Momentum is **BEARISH**, you should ONLY look for SELL setups. If the image shows a potential BUY, you MUST find the next high-probability **SELL** continuation zone or liquidity sweep to target.
-3. You are STRICTLY FORBIDDEN from being NEUTRAL or indecisive. You must always provide a directional bias (BUY or SELL). Indecision is a failure of logic.
+1. If Global Momentum is **BULLISH**, you should ONLY look for BUY setups. If the image shows a SELL setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bullish Trend".
+2. If Global Momentum is **BEARISH**, you should ONLY look for SELL setups. If the image shows a BUY setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bearish Trend".
+3. Counter-trend setups are strictly for educational breakdown ONLY and MUST result in a NEUTRAL signal for actual trading.
+4. You are FORBIDDEN from being NEUTRAL for any reason OTHER than extreme trend misalignment or high-impact news.
 ` : "";
 
   const globalTrendContext = globalTrend ? `
@@ -61,17 +62,17 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
   const tradeModeInstructions = tradeMode === 'Sniper' 
     ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
 - You MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
-- If confluence is not 100%, you MUST choose the side with the highest institutional probability. Always fulfill the user's requested direction if provided.
+- If confluence is not 100%, you MUST choose the side with the highest institutional probability. However, if the USER REQUEST explicitly asks for a specific bias or pair setup (BUY/SELL, BULLISH/BEARISH), you MUST follow their requested direction.
 - **IMMEDIATE EXECUTION:** Every setup MUST be for immediate market execution based on the live data provided.
 - **ULTRA-TIGHT LEVELS:** SL and TP MUST be very close to each other. Visible on the current timeframe. TP1 must be hit quickly.
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1.5 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
-- **SIGNAL IS MANDATORY:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from being indecisive.
-- **FORCE DIRECTION (DECISIVE BIAS):** Fulfill the user's requested direction if provided. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
-- **BIAS OVER INDECISION:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
-    - If Trend is UP -> Issue 'BULLISH' (labeled as BUY).
-    - If Trend is DOWN -> Issue 'BEARISH' (labeled as SELL).
+- **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL or "No Trade" signal.
+- **FORCE DIRECTION (DECISIVE BIAS):** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST fulfill that request and pick that side. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
+- **BIAS OVER NEUTRALITY:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
+    - If Trend is UP -> Issue 'WEAK BULLISH' (labeled as BUY).
+    - If Trend is DOWN -> Issue 'WEAK BEARISH' (labeled as SELL).
 - **DOMINANT SIGNAL OVERRIDE:** If a 'BOS' or 'CHoCH' exists in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.\n`;
 
   const learnedContext = strategies.length > 0 
@@ -81,21 +82,21 @@ You MUST prioritize these lessons to avoid repeating past mistakes and to replic
 ${strategies.map(s => `- ${s}`).join('\n')}\n` 
     : "";
 
-  const marketDataContext = marketData && !marketData.error ? `
-📡 **MARKET DATA FEED (RAW MATHEMATICAL TRUTH):**
-Use this real-time data from ${marketData.dataSource || 'Twelve Data'} as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
-- Symbol: ${marketData.symbol}
-- Current Price: ${marketData.close}
-- 24h High: ${marketData.high || 'N/A'}
-- 24h Low: ${marketData.low || 'N/A'}
-- Open: ${marketData.open || 'N/A'}
-- Volume: ${marketData.volume || 'N/A'}
-- % Change: ${marketData.percent_change}%
-${marketData.rsi ? `- RSI (14, ${marketData.interval}): ${marketData.rsi}` : ''}
-${marketData.sma ? `- SMA (20, ${marketData.interval}): ${marketData.sma}` : ''}
-${marketData.stddev ? `- STDDEV (20, ${marketData.interval}): ${marketData.stddev}` : ''}
-${marketData.atr ? `- ATR (14, ${marketData.interval}): ${marketData.atr}` : ''}
-${marketData.adx ? `- ADX (14, ${marketData.interval}): ${marketData.adx}` : ''}
+  const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
+📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
+Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
+- Symbol: ${twelveDataQuote.symbol}
+- Current Price: ${twelveDataQuote.close}
+- 24h High: ${twelveDataQuote.high}
+- 24h Low: ${twelveDataQuote.low}
+- Open: ${twelveDataQuote.open}
+- Volume: ${twelveDataQuote.volume}
+- % Change: ${twelveDataQuote.percent_change}%
+- RSI (14, ${twelveDataQuote.interval}): ${twelveDataQuote.rsi}
+- SMA (20, ${twelveDataQuote.interval}): ${twelveDataQuote.sma}
+- STDDEV (20, ${twelveDataQuote.interval}): ${twelveDataQuote.stddev}
+- ATR (14, ${twelveDataQuote.interval}): ${twelveDataQuote.atr}
+- ADX (14, ${twelveDataQuote.interval}): ${twelveDataQuote.adx}
 
 **90% PROFITABILITY MANDATE (THE 7-MONTH CURSE BREAKER):**
 You have been unprofitable for 7 months. This ends NOW. Your goal is 90% accuracy.
@@ -104,33 +105,34 @@ You have been unprofitable for 7 months. This ends NOW. Your goal is 90% accurac
     - **LIQUIDITY SWEEP:** A clear sweep of BSL or SSL (Equal Highs/Lows) MUST have occurred.
     - **INDUCEMENT:** You MUST identify the 'Inducement' (IDM) level that was taken before the entry.
     - **MSS/CHoCH:** A clear Market Structure Shift with Displacement MUST be visible on the entry timeframe.
-    - **MATH CONFLUENCE:** If available, RSI, ADX, and SMA MUST support the bias. If ADX < 20, choose the dominant higher timeframe direction.
+    - **MATH CONFLUENCE:** RSI, ADX, and SMA MUST support the bias. If ADX < 20, choose the dominant higher timeframe direction.
 2. **SINGLE CHART PRECISION:** When analyzing a single chart, you MUST use the 'visiblePriceRange' (High/Low on the Y-axis) to calibrate your technical levels. 
     - **MODERATE & PRECISE SL:** Your Stop Loss MUST be placed behind the *most recent* structural invalidation point (e.g., the high/low of the candle that swept liquidity or the start of the displacement move). 
-    - **VOLATILITY BUFFER:** If Market Data ATR is available, ensure your SL is at least 1.5x ATR away from entry to avoid noise. 
+    - **VOLATILITY BUFFER:** If Twelve Data ATR is available, ensure your SL is at least 1.5x ATR away from entry to avoid noise. 
     - **PRECISION TP:** TP1 MUST target the first logical friction point (e.g., the nearest FVG or minor swing). TP2 MUST target the main structural liquidity.
 3. **DEVIL'S ADVOCATE CHECK:** Before outputting a BUY or SELL, you MUST try to find 3 reasons why the trade will FAIL. If you find even one valid reason (e.g., "News in 15 mins", "HTF resistance nearby", "Low volume session"), you MUST adjust your entry or SL to be more conservative but still provide a directional bias.
 4. **SESSION FILTER:** Prioritize London (07:00-11:00 UTC) and New York (12:00-16:00 UTC) sessions. Outside these hours, your confidence threshold for a signal is 95%.
 
-**CONFLUENCE RULE:** You MUST compare the "Current Price" from Market Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
-${marketData.rsi || marketData.adx ? `**TECHNICAL CONFLUENCE (THE TRUTH LAYER):** Use the RSI, SMA, STDDEV, ATR, and ADX values to verify momentum, trend, and volatility. 
+**CONFLUENCE RULE:** You MUST compare the "Current Price" from Twelve Data with your visual estimation from the chart. If the visual chart shows a price that is significantly different from the "Current Price", you MUST prioritize the "Current Price" as the truth.
+**TECHNICAL CONFLUENCE (THE TRUTH LAYER):** Use the RSI, SMA, STDDEV, ATR, and ADX values to verify momentum, trend, and volatility. 
 - **TREND STRENGTH (ADX):** If ADX < 25, the market is ranging/choppy. You MUST be extremely cautious and prefer the higher timeframe direction unless a perfect SMC Liquidity Sweep is visible.
 - **MOMENTUM (RSI):** If the chart looks bullish but RSI is overbought (>70) or price is below SMA, you MUST be more cautious.
 - **VOLATILITY (STDDEV):** Use STDDEV to identify "Extreme Overextensions" (Price > SMA + 2*STDDEV or Price < SMA - 2*STDDEV). These are high-probability reversal zones.
-- **RISK MANAGEMENT (ATR):** Use ATR to ensure your Stop Loss is not too tight for the current volatility. A Stop Loss smaller than 1.5 * ATR is likely to be hit by noise.` : ''}
+- **RISK MANAGEMENT (ATR):** Use ATR to ensure your Stop Loss is not too tight for the current volatility. A Stop Loss smaller than 1.5 * ATR is likely to be hit by noise.
 
 **PROFITABILITY DIRECTIVE (2026 CURSE BREAKER):**
 You have been unprofitable for 7 months. This ends NOW. 
 1. **BE ELITE:** Do not take "okay" trades. Only take "A+" setups where multiple confluences align.
-2. **TRUST THE MATH:** If the Market Data "Truth Layer" contradicts the visual chart, the MATH wins. Use the MATH to determine the directional bias.
+2. **TRUST THE MATH:** If the Twelve Data "Truth Layer" (RSI, ADX, SMA) contradicts the visual chart, the MATH wins. Use the MATH to determine the directional bias.
 3. **LEARN FROM FAILURE:** Review the 'NEURAL LEARNING' section below. If a setup looks like a past 'Loss', DO NOT TAKE IT.
-4. **SNIPER DISCIPLINE:** In Sniper Mode, you MUST be decisive. Identify the dominant bias and commit to a BUY or SELL signal. Indecision is a total system failure.
+4. **SNIPER DISCIPLINE:** In Sniper Mode, you MUST be decisive. Identify the dominant bias and commit to a BUY or SELL signal.
 
-**MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Market Data, you should strongly prefer **'Market Execution'** for your orders. Limit and Stop orders should be used EXTREMELY sparingly.
-` : `📡 **MARKET DATA FEED (CRITICAL FAILURE):** No real-time data available for this asset. This is a HUGE PROBLEM for the 90% Profitability Mandate.
+**MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders. Limit and Stop orders should be used EXTREMELY sparingly, ONLY if the price is far from your calculated OTE (Optimal Trade Entry). If price is near or within your OTE, you MUST provide an entry range for immediate market execution.
+**EXECUTION CHECKLIST:** You MUST evaluate the 10-point checklist in the 'confluenceMatrix'. Ensure all 10 points are addressed.
+` : `📡 **TWELVE DATA API (CRITICAL FAILURE):** No real-time data available for this asset. This is a HUGE PROBLEM for the 90% Profitability Mandate.
 - You MUST be extremely conservative. 
-- Without Market Data, your confidence score MUST NOT exceed 70%.
-- Flag the missing Market Data in your reasoning as a high-risk factor.
+- Without Twelve Data, your confidence score MUST NOT exceed 70%.
+- Flag the missing Twelve Data in your reasoning as a high-risk factor.
 `;
 
   const accountInfo = userSettings ? `
@@ -266,7 +268,7 @@ In your 'marketStory', use headers or tags (e.g., [STRUCTURE], [LIQUIDITY]) to d
 ${learnedContext}
 ${trendAlignmentMandate}
 ${globalTrendContext}
-${marketDataContext}
+${twelveDataContext}
 ${accountInfo}
 ${tradeModeInstructions}
 ${institutionalMath}
@@ -282,13 +284,15 @@ You MUST analyze the market through the lens of Institutional Order Flow:
 5. **Mitigation & Zones:** Check if the zone has already been "mitigated" (touched). Fresh zones have higher probability. **CRITICAL: Apply Premium and Discount zones**. Always map the dealing range (Swing High to Swing Low) to find equilibrium. You MUST Buy in Discount (<50%) and Sell in Premium (>50%) for high probability entries.
 
 📊 **QUANTITATIVE & STATISTICAL ARBITRAGE LAYER:**
-Use the Market Data "Mathematical Truth" to perform statistical analysis:
+Use the Twelve Data "Mathematical Truth" to perform statistical analysis:
 1. **Mean Reversion (SMA/STDDEV):** If price is > 2 Standard Deviations from the 20-period SMA, look for a mean reversion setup.
 2. **Volatility Arbitrage (ATR):** If ATR is expanding, expect trend continuation. If ATR is contracting, expect a breakout or reversal.
 3. **Equilibrium Validation:** Evaluate if the asset has returned to the Equilibrium (50% mark) of the recent structural leg.
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL. You are FORBIDDEN from issuing a NEUTRAL or HOLD signal under any circumstances.
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL in almost all cases. 
+   - **EXCEPTION:** You are ONLY permitted to issue a **NEUTRAL** signal if the local price action is directly contradicting the **Protocol Zero: HTF Trend Alignment**. 
+   - In all other cases, you MUST prioritize a directional signal (BUY/SELL).
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
@@ -322,7 +326,7 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
 
 3. **PRE-TRADE MANDATORY FILTERS (MANDATORY):**
     - You MUST perform these checks before issuing any trade signal. If any condition fails, you MUST issue a "HOLD" signal.
-    - **Raw API Data Confluence (MANDATORY):** If Market Data is available, you MUST verify that the current price is within your expected entry zone. If the visual chart looks like a BUY but the Raw API Data shows price is already at a major resistance or has moved too far, you MUST adjust your signal.
+    - **Raw API Data Confluence (MANDATORY):** If Twelve Data is available, you MUST verify that the current price is within your expected entry zone. If the visual chart looks like a BUY but the Raw API Data shows price is already at a major resistance or has moved too far, you MUST adjust your signal.
     - **News Filter:** Check for high-impact news (CPI, NFP, FOMC, GDP). If news is within 1 hour, DO NOT trade.
     - **Volatility Filter (ATR):** If ATR is < 30% or > 200% of the 14-period average, DO NOT trade.
     - **Correlation Filter:** If you are already tracking or trading a correlated pair (e.g., EURUSD and GBPUSD, or EURUSD and Gold) in the same direction, DO NOT trade.
@@ -369,11 +373,11 @@ You MUST round all price levels (entryPoints, stopLoss, takeProfits) according t
 Estimate OHLC for the last 20 candles and execute the mental model:
 ${ALGO_LOGIC}
 
-  // 3. SNIPER EXECUTION PROTOCOL (TIME-BOUND < 40s):
-  // 1. Phase 1 (10s - Chart Analysis): Indicator & Price Action Fusion.
-  // 2. Phase 2 (10s - Market Data Verification): Mathematical Truth.
-  // 3. Phase 3 (10s - Search Grounding): Fundamental Context.
-  // 4. Phase 4 (10s - Top-Down Review & Setup): HTF, Momentum, Liquidity, and Entry Triggers.
+**STRICT EXECUTION PROTOCOL (TIME-BOUND < 40s):**
+1. **Phase 1 (10s - Chart Analysis):** Indicator & Price Action Fusion. Extract last 20 candles (OHLC), analyze structure, RSI, OBV, and 50/200 EMAs.
+2. **Phase 2 (10s - Twelve Data Verification):** Mathematical Truth. Compare visual chart levels with Twelve Data (RSI, SMA, ADX, ATR). **CRITICAL:** If Twelve Data is missing, you MUST flag this as a major risk.
+3. **Phase 3 (10s - Search Grounding):** Fundamental Context. Use googleSearch for real-time news/sentiment.
+4. **Phase 4 (10s - Top-Down Review & Setup):** HTF, Momentum, Liquidity, and Entry Triggers. Calculate risk, lot size, and formulate final setup.
 5. Include the result in the JSON output under key "confluenceMatrix".
 
 ---
@@ -568,7 +572,7 @@ If all align, the trade is significantly stronger. Do not issue a signal if thes
 ---
 
 📊 **SCORING MATRIX (Mental Calculation):**
-1.  **Raw API Data Confluence (40% Weight):** Use Market Data to verify the "Mathematical Truth" of the price action.
+1.  **Raw API Data Confluence (40% Weight):** Use Twelve Data to verify the "Mathematical Truth" of the price action.
 2.  **Chart Analysis (60% Weight):**
     *   **Market Structure (30pts):** Clear HH/HL or LH/LL alignment.
     *   **Liquidity Event (25pts):** Has a clear sweep occurred?
@@ -747,7 +751,7 @@ You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a 
   ],
   "marketStory": "A cohesive narrative synthesizing technicals, institutional activity, and fundamentals to explain the current market state and probable next move.",
   
-  "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry], // CRITICAL: If entryType is "Market Execution", ALL entry points MUST encapsulate the current live market price (e.g., from Market Data if available, or visual chart). Do NOT use past levels.
+  "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry], // CRITICAL: If entryType is "Market Execution", ALL entry points MUST encapsulate the current live market price (e.g., from Twelve Data if available, or visual chart). Do NOT use past levels.
   "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
   "expirationTime": "string if entryType is Limit/Stop based on Expiration Time Logic, or null if Market Execution",
   "triggerConditions": { // CRITICAL: If entryType is "Market Execution", triggers must be ALREADY MET (e.g., "Bearish Engulfing confirmed"). You cannot wait for 'retest' or 'candle close' on Market Execution. Use Pending Orders if waiting.
@@ -796,7 +800,7 @@ You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a 
       "7. Premium/Discount Zone: [Pass/Fail]",
       "8. Economic News Cleared: [Pass/Fail]",
       "9. Risk:Reward Acceptable: [Pass/Fail]",
-      "10. Market Data Confluence: [Pass/Fail]"
+      "10. Twelve Data Confluence: [Pass/Fail]"
     ]
   },
   "verificationProtocol": {
@@ -813,15 +817,15 @@ You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a 
 
   "reasoning": [
     "1. HTF Trend Alignment: [Explain how this trade respects the Global HTF Bias]",
-    "2. Market Structure: [Analysis of BOS/CHoCH]",
-    "3. Liquidity/SMC: [Analysis of sweeps/OBs]",
-    "4. Price Action: [Candlestick cues]",
-    "5. Momentum & Volume: [RSI/ATR analysis]",
-    "6. Dynamic S/R: [Key zones]",
-    "7. Risk Management: [SL reasoning]",
-    "8. Drawdown Protection: [Buffer and lot size]",
-    "9. Profit Targets: [TP1/TP2 reasoning]",
-    "10. High-Conviction Summary: [Final bias confirmation]"
+    "2. Technical Case: [Your reasoning here]",
+    "3. Technical Case: [Your reasoning here]",
+    "4. Technical Case: [Your reasoning here]",
+    "5. Momentum & Volume: [Your reasoning here]",
+    "6. Dynamic S/R: [Your reasoning here]",
+    "7. Risk Management: [Your reasoning here]",
+    "8. Drawdown Protection: [Your reasoning here]",
+    "9. Profit Targets: [Your reasoning here]",
+    "10. Overall Confluence: [Your reasoning here]"
   ], 
   
   "invalidationScenario": "Structural break of HL/LH",
@@ -1029,38 +1033,10 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             safeReasoning.push(`Point ${safeReasoning.length + 1}: Additional confluence factor pending verification.`);
         }
 
-        // DEFENSIVE SIGNAL OVERRIDE: Ensure we NEVER return NEUTRAL or HOLD
-        let finalSignal: 'BUY' | 'SELL' = 'BUY'; // Default fallback
-        const rawS = String(data.signal || '').toUpperCase();
-        
-        if (rawS === 'BUY' || rawS === 'BULLISH' || rawS === 'CALL' || rawS === 'UP') {
-            finalSignal = 'BUY';
-        } else if (rawS === 'SELL' || rawS === 'BEARISH' || rawS === 'PUT' || rawS === 'DOWN') {
-            finalSignal = 'SELL';
-        } else {
-            // Force based on query, global trend, or price action
-            const query = (request.query || '').toLowerCase();
-            const globalBias = request.globalTrend?.momentum?.toUpperCase();
-            
-            if (query.includes('sell') || query.includes('bearish') || query.includes('put')) {
-                finalSignal = 'SELL';
-            } else if (query.includes('buy') || query.includes('bullish') || query.includes('call')) {
-                finalSignal = 'BUY';
-            } else if (globalBias === 'BEARISH' || globalBias === 'SELL') {
-                finalSignal = 'SELL';
-            } else if (globalBias === 'BULLISH' || globalBias === 'BUY') {
-                finalSignal = 'BUY';
-            } else {
-                // Last resort: Bullish bias for equities, bearish for volatility? 
-                // Let's just default to BUY as a positive bias fallback
-                finalSignal = 'BUY';
-            }
-        }
-
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
-            signal: finalSignal,
+            signal: (data.signal === 'NEUTRAL' ? ((request.query?.toLowerCase().includes('sell') || request.query?.toLowerCase().includes('bearish')) ? 'SELL' : 'BUY') : data.signal) as 'BUY' | 'SELL',
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
@@ -1168,19 +1144,23 @@ export async function generateTradingSignal(
         hasUserSettings: !!request.userSettings,
     });
 
-    // 0. Parallelize independent initial fetches
-    const [learnedStrategies, initialDetectedAsset] = await Promise.all([
-        getLearnedStrategies(),
-        (!request.asset && request.images.primary) ? detectAssetFromImage(request.images.primary) : Promise.resolve(request.asset)
-    ]);
+    // 0. Auto-detect asset if missing
+    let asset = request.asset;
+    if (!asset && request.images.primary) {
+        const detected = await detectAssetFromImage(request.images.primary);
+        if (detected) {
+            asset = detected;
+        }
+    }
     
-    let asset = initialDetectedAsset || request.asset;
+    // 1. Fetch learned strategies (Global + Local)
+    const learnedStrategies = await getLearnedStrategies();
     
-    // 1. Parallelize Market Data fetch with any other remaining setups
-    let marketData = request.twelveDataQuote || null;
-    if (asset && !marketData) {
+    // Fetch Twelve Data for confluence if asset is provided and not already in request
+    let twelveDataQuote = request.twelveDataQuote || null;
+    if (asset && !twelveDataQuote) {
         try {
-            // Map TradingStyle to Interval
+            // Map TradingStyle to Twelve Data Interval
             let interval = '15min';
             const style = request.tradingStyle;
             if (style.includes('1 to 15mins')) interval = '1min';
@@ -1189,40 +1169,44 @@ export async function generateTradingSignal(
             else if (style.includes('2 to 4hrs')) interval = '1h';
             else if (style.includes('swing')) interval = '1day';
 
-            console.log(`[MarketData] Initiating fetch for ${asset} at ${interval}...`);
+            console.log(`[TwelveData] Initiating fetch for ${asset} at ${interval}...`);
             
-            // Check for local keys
-            let localTwelveKey = '';
-            let localDerivToken = '';
+            // Check for local key in localStorage
+            let localKey = '';
             try {
                 const stored = localStorage.getItem('greyquant_user_settings');
                 if (stored) {
                     const settings = JSON.parse(stored);
-                    localTwelveKey = settings.twelveDataApiKey || '';
-                    localDerivToken = settings.derivApiToken || '';
+                    localKey = settings.twelveDataApiKey || '';
                 }
             } catch (e) {
-                console.warn('Failed to read local settings for market data fetch:', e);
+                console.warn('Failed to read local Twelve Data key:', e);
             }
 
-            // Use the unified marketFetcher which handles fallback to Deriv server-side
-            const url = `/api/marketFetcher?action=quote&symbol=${encodeURIComponent(asset)}&interval=${interval}${localTwelveKey ? `&apikey=${localTwelveKey}` : ''}${localDerivToken ? `&derivToken=${localDerivToken}` : ''}`;
+            const url = `/api/twelveData?action=quote&symbol=${encodeURIComponent(asset)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
             const response = await fetch(url);
             if (response.ok) {
-                marketData = await response.json();
-                marketData.interval = interval;
-                console.log(`[MarketData] Successfully retrieved data for ${asset} from ${marketData.dataSource || 'Twelve Data'}:`, marketData);
+                twelveDataQuote = await response.json();
+                twelveDataQuote.interval = interval;
+                console.log(`[TwelveData] Successfully retrieved data for ${asset}:`, twelveDataQuote);
+            } else {
+                const errorText = await response.text();
+                console.warn(`[TwelveData] Fetch failed for ${asset} (${response.status}):`, errorText);
             }
         } catch (e) {
-            console.error(`[MarketData] Error:`, e);
+            console.error(`[TwelveData] Critical error fetching data for ${asset}:`, e);
         }
+    } else if (!asset) {
+        console.warn('[TwelveData] No asset symbol provided in request. Mathematical verification will be skipped.');
+    } else {
+        console.log('[TwelveData] Using provided quote from request:', twelveDataQuote);
     }
 
     const updatedRequest = {
         ...request,
         asset,
         learnedStrategies: [...(request.learnedStrategies || []), ...learnedStrategies],
-        twelveDataQuote: marketData
+        twelveDataQuote
     };
     
     // 2. Get comprehensive AI analysis
@@ -1436,7 +1420,7 @@ export async function generateSniperLiveSignal(
 
 *CRITICAL INSTRUCTIONS:*
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
-- **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You MUST pick a side based on the strongest confluence.
+- **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
 - You MUST use the **Mathematical Strict SL** provided above (${quantData.mathematicalSL}) or something very close to it. It already accounts for the Displacement wick and ATR noise.
 ` : '';
 
@@ -1473,7 +1457,7 @@ style.includes('day trading') ? `
     - Fair Value Gaps (FVG)
     - Break of Structure (BOS) / Change of Character (CHoCH)
     - Liquidity Pools (Equal Highs/Lows)
-8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' or 'HOLD' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow. Pick the winner.
+8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow.
 
 **CRITICAL DATA (SMC BASIS):**
 - ASSET: ${assetName}
@@ -1593,9 +1577,14 @@ JSON Structure:
 
         // 1. Price Sanity Check
         if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-            const rangeWidth = entryRange.max - entryRange.min;
-            finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
-            finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
+            if (diffPercent > 0.05) {
+                finalSignal = 'NEUTRAL';
+                finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
+            } else {
+                const rangeWidth = entryRange.max - entryRange.min;
+                finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
+                finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
+            }
         }
 
         // // 2. Sniper SL Tightening (Surgical Precision)

@@ -3,7 +3,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
 import type { MomentumAsset } from '../types';
 
-const CACHE_KEY = 'greyquant_asset_suggestions_v5';
+const CACHE_KEY = 'greyquant_asset_suggestions_v3';
 const CACHE_DURATION = 60 * 60 * 1000; // 1-hour refresh cycle
 
 const ALLOWED_ASSETS = `
@@ -15,57 +15,41 @@ const ALLOWED_ASSETS = `
 `;
 
 export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[], bearish: MomentumAsset[] }> {
-    // 1. Pre-fetch real-time prices for the allowed pool to avoid hallucinations
-    const allowedSymbols = "EURUSD,USDJPY,GBPUSD,USDCHF,AUDUSD,EURGBP,GBPJPY,AUDJPY,EURCHF,SPX500,US30,NAS100,US2000,BTCUSD,ETHUSD";
-    const prices: Record<string, string> = {};
-    try {
-        const res = await fetch(`/api/market-data-proxy?symbol=${allowedSymbols}&interval=4h`);
-        if (res.ok) {
-            const data = await res.json();
-            Object.keys(data).forEach(s => {
-                if (data[s]?.close) prices[s] = data[s].close;
-            });
-        }
-    } catch (e) {
-        console.warn("[SuggestionService] Pre-fetch failed, model will use internal knowledge.", e);
-    }
-
     return await executeLaneCall<{ bullish: MomentumAsset[], bearish: MomentumAsset[] }>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        const priceContext = Object.keys(prices).length > 0 
-            ? `\n**CURRENT MARKET PRICES (TRUTH LAYER):**\n${Object.entries(prices).map(([s, p]) => `${s}: ${p}`).join(', ')}\n`
-            : "";
-
         const prompt = `
-        **TASK:** You are an Elite Institutional Market Analyst. Identify the top 4 bullish and top 4 bearish high-liquidity assets from the allowed pool that present the strongest trading setups right now.
-        **IMPORTANT:** You MUST analyze the market specifically on the **4-Hour (H4) Timeframe**. All supply and demand zones MUST be derived from H4 structure and relative to the current prices provided below.
-        ${priceContext}
+        **TASK:** You are a specialized Market Scanner. Identify the top 4 bullish and top 4 bearish currency pairs from the allowed list that are being most actively traded at the start of the current trading day.
+
         **ALLOWED ASSET POOL:**
         ${ALLOWED_ASSETS}
 
-        **ANALYSIS REQUIREMENTS:**
-        1. **MOMENTUM:** Bullish or Bearish only.
-        2. **H4 INSTITUTIONAL ZONES:** Supply/Demand ranges based on 4-Hour order blocks and liquidity pools.
-        3. **DECISIVE ACTION:** "Ready to trade" or "Wait (Wait for sweep)".
-        4. **REASONING:** One-sentence quant insight from H4 perspective.
-        5. **PRICE PROXIMITY:** Ensure suggested demand/supply zones are reasonably close to the current price (within 1-3% for FX, 3-5% for Indices/Crypto). Do NOT provide distant levels from months ago.
+        **CRITERIA:**
+        - Use Google Search to analyze the most recent price action and volume (last 1-4 hours).
+        - Focus on assets with the highest trading volume and activity at the start of the day.
+        - **BULLISH:** Identify pairs showing strong upward momentum or high-volume buying pressure.
+        - **BEARISH:** Identify pairs showing strong downward momentum or high-volume selling pressure.
+        - Provide a concise, one-sentence reason for each selection.
+        - Analyze and determine the trend specifically on the 1-hour (trend1Hr) and 4-hour (trend4Hr) timeframes.
 
-        **MANDATORY JSON OUTPUT FORMAT:**
+        **JSON OUTPUT FORMAT:**
         {
-          "bullish": [{ "symbol": "string", "momentum": "Bullish", "reason": "string", "action": "string", "supplyZone": "string", "demandZone": "string", "newsRisk": "Low/Medium/High" }],
-          "bearish": [{ "symbol": "string", "momentum": "Bearish", "reason": "string", "action": "string", "supplyZone": "string", "demandZone": "string", "newsRisk": "Low/Medium/High" }]
+          "bullish": [
+            { "symbol": "string", "momentum": "Bullish", "reason": "string" }
+          ],
+          "bearish": [
+            { "symbol": "string", "momentum": "Bearish", "reason": "string" }
+          ]
         }
         `;
 
-        const response = await runWithModelFallback<any>(SUGGESTION_MODELS, async (modelId) => {
-            const res = await ai.models.generateContent({
+        const response = await runWithModelFallback<GenerateContentResponse>(SUGGESTION_MODELS, (modelId) => 
+            ai.models.generateContent({ 
                 model: modelId,
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                config: { temperature: 0.2, responseMimeType: "application/json" }
-            });
-            return res;
-        });
+                contents: prompt,
+                config: { tools: [{googleSearch: {}}], temperature: 0.2 },
+            })
+        );
 
         let text = response.text || '{}';
         text = text.replace(/```json/g, '').replace(/```/g, '').trim();
@@ -119,82 +103,6 @@ async function enrichWithDerivTrends(assets: MomentumAsset[], token: string): Pr
     return enriched;
 }
 
-async function enrichWithTwelveData(assets: MomentumAsset[]): Promise<MomentumAsset[]> {
-    if (assets.length === 0) return assets;
-    
-    try {
-        const symbols = assets.map(a => a.symbol).join(',');
-        
-        // Extract local key if available
-        const storedSettings = localStorage.getItem('greyquant_user_settings');
-        const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
-        const localKey = userSettings?.twelveDataApiKey;
-        const localDerivToken = userSettings?.derivApiToken || userSettings?.derivToken;
-        
-        let url = `/api/quantum-stream?symbol=${encodeURIComponent(symbols)}`;
-        if (localKey) url += `&apikey=${localKey}`;
-        if (localDerivToken) url += `&token=${localDerivToken}`;
-        
-        try {
-            const res = await fetch(url);
-            if (!res.ok) {
-                // Secondary fallback attempt
-                let fallbackUrl = `/api/marketFetcher?symbol=${encodeURIComponent(symbols)}`;
-                if (localDerivToken) fallbackUrl += `&token=${localDerivToken}`;
-                
-                const fallbackRes = await fetch(fallbackUrl);
-                if (!fallbackRes.ok) return assets;
-                const data = await fallbackRes.json();
-                return updateAssetsWithData(assets, data);
-            }
-            const data = await res.json();
-            return updateAssetsWithData(assets, data);
-        } catch (fetchErr) {
-            console.warn('[SuggestionService] fetch failed, trying secondary endpoint...', fetchErr);
-            const fallbackRes = await fetch(`/api/marketFetcher?symbol=${encodeURIComponent(symbols)}`);
-            if (fallbackRes.ok) {
-                const data = await fallbackRes.json();
-                return updateAssetsWithData(assets, data);
-            }
-            return assets;
-        }
-    } catch (e) {
-        console.warn('[SuggestionService] Twelve Data enrichment failed:', e);
-        return assets;
-    }
-}
-
-function updateAssetsWithData(assets: MomentumAsset[], data: any): MomentumAsset[] {
-    const mapping = (s: string) => {
-        let m = s.toUpperCase().trim();
-        if (m.includes(':')) m = m.split(':')[1];
-        if (m === 'GOLD' || m === 'XAUUSD') return 'XAU/USD';
-        if (m === 'US30' || m === 'DJI') return 'DJI';
-        if (m === 'NAS100' || m === 'NDX') return 'NDX';
-        if (m === 'SPX500' || m === 'SPX') return 'SPX';
-        if (m.length === 6 && !m.includes('/')) return `${m.slice(0, 3)}/${m.slice(3)}`;
-        return m;
-    };
-
-    return assets.map(asset => {
-        const mappedSymbol = mapping(asset.symbol);
-        const quote = (data && typeof data === 'object') ? (data[mappedSymbol] || data[asset.symbol] || data) : null;
-        if (!quote || quote.status === 'error') return asset;
-        
-        return {
-            ...asset,
-            price: quote.close || quote.price || '0.00',
-            change: parseFloat(quote.change || '0'),
-            changePercent: parseFloat(quote.percent_change || '0'),
-            volume: quote.volume || 'N/A',
-            rsi: quote.rsi,
-            sma: quote.sma,
-            adx: quote.adx,
-            dataSource: quote.dataSource || 'Market Data'
-        };
-    });
-}
-
 export async function getOrRefreshSuggestions(force: boolean = false) {
     const now = Date.now();
     let cachedData: any = null;
@@ -209,13 +117,13 @@ export async function getOrRefreshSuggestions(force: boolean = false) {
         }
     }
 
-    // 2. Check if cache is valid (reduce duration to 30 mins to keep data fresher)
-    const REFRESH_THRESHOLD = 30 * 60 * 1000;
+    // 2. Check if cache is valid
     const isValid = cachedData && 
-                    (now - cachedData.timestamp < REFRESH_THRESHOLD) && 
+                    (now - cachedData.timestamp < CACHE_DURATION) && 
                     cachedData.data && 
                     Array.isArray(cachedData.data.bullish) && 
-                    Array.isArray(cachedData.data.bearish);
+                    Array.isArray(cachedData.data.bearish) &&
+                    (cachedData.data.bullish.length === 0 || cachedData.data.bullish[0].trend1Hr !== undefined);
 
     if (!force && isValid) {
         return { bullish: cachedData.data.bullish || [], bearish: cachedData.data.bearish || [], nextUpdate: cachedData.timestamp + CACHE_DURATION };
@@ -225,22 +133,17 @@ export async function getOrRefreshSuggestions(force: boolean = false) {
     try {
         const { bullish, bearish } = await fetchAssetSuggestions();
         
-        // Grab token to enrich with Deriv
-        let derivToken = '';
+        // Grab token to enrich
+        let token = '';
         const userSettingsRaw = localStorage.getItem('greyquant_user_settings');
         if (userSettingsRaw) {
             try {
-                derivToken = JSON.parse(userSettingsRaw).derivApiToken || '';
+                token = JSON.parse(userSettingsRaw).derivApiToken || '';
             } catch (e) {}
         }
         
-        // Enrichment pipeline
-        let enrichedBullish = await enrichWithDerivTrends(bullish, derivToken);
-        let enrichedBearish = await enrichWithDerivTrends(bearish, derivToken);
-        
-        // Add Real-time values via Twelve Data
-        enrichedBullish = await enrichWithTwelveData(enrichedBullish);
-        enrichedBearish = await enrichWithTwelveData(enrichedBearish);
+        const enrichedBullish = await enrichWithDerivTrends(bullish, token);
+        const enrichedBearish = await enrichWithDerivTrends(bearish, token);
 
         if (enrichedBullish.length > 0 || enrichedBearish.length > 0) {
             // SUCCESS: Update Cache

@@ -288,16 +288,6 @@ export interface MomentumAsset {
     reason: string;
     trend1Hr?: 'Bullish' | 'Bearish' | 'Neutral';
     trend4Hr?: 'Bullish' | 'Bearish' | 'Neutral';
-    action?: 'Ready to trade' | 'Wait';
-    supplyZone?: string;
-    demandZone?: string;
-    newsRisk?: 'Low' | 'Medium' | 'High';
-    price?: string;
-    rsi?: string | number;
-    sma?: string | number;
-    adx?: string | number;
-    status?: string;
-    dataSource?: string;
 }
 
 export interface AssetSuggestion {
