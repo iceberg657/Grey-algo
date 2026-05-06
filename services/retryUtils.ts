@@ -128,32 +128,26 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Strictly Prioritize Key 2)
 export const getAnalysisPool = () => getUniqueKeys([K.K2(), K.K1()]); 
 export const ANALYSIS_MODELS = [
-    'gemini-2.0-flash', // Faster model
+    'gemini-2.0-flash', 
     'gemini-1.5-flash',
-    'gemini-3.1-flash-lite-preview'
+    'gemini-1.5-pro'
 ];
 
 // 2. CHAT & NEWS (Key 5)
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
 export const getChatPool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Prioritize K2, then K5, then K1
 export const CHAT_MODELS = [
-    'gemini-3.1-flash-lite-preview',
-    'gemini-3-flash-preview',
-    'gemini-3.1-pro',
-    'gemini-2.5-flash',
-    'gemini-2.5-pro',
-    'gemini-2.0-flash'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
 export const getSuggestionPool = () => getUniqueKeys([K.K2(), K.K6()]); // Prioritize K2
 export const SUGGESTION_MODELS = [
-    'gemini-3.1-flash-lite-preview',
-    'gemini-3-flash-preview',
-    'gemini-3.1-pro',
-    'gemini-2.5-flash',
-    'gemini-2.5-pro',
-    'gemini-2.0-flash'
+    'gemini-2.0-flash',
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
 ];
 
 // Shared Pools
@@ -162,7 +156,8 @@ export const getSuggestionStructurePool = () => getUniqueKeys([K.K2(), K.K5(), K
 
 export const LANE_2_MODELS = [
     'gemini-2.0-flash', 
-    'gemini-1.5-flash'
+    'gemini-1.5-flash',
+    'gemini-1.5-pro'
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)

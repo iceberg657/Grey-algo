@@ -292,6 +292,12 @@ export interface MomentumAsset {
     supplyZone?: string;
     demandZone?: string;
     newsRisk?: 'Low' | 'Medium' | 'High';
+    price?: string;
+    rsi?: string | number;
+    sma?: string | number;
+    adx?: string | number;
+    status?: string;
+    dataSource?: string;
 }
 
 export interface AssetSuggestion {

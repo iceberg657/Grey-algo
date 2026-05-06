@@ -110,6 +110,7 @@
 
 html {
     scrollbar-gutter: stable;
+    scroll-behavior: smooth;
 }
 
 body {
@@ -207,6 +208,22 @@ body.learning-mode::after {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(16, 185, 129, 0.4);
 }
+
+/* Performance Optimizations */
+.motion-safe-transition {
+    transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+.gpu-accelerated {
+    will-change: transform, opacity;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+}
+
+button, a {
+    @apply transition-all duration-300;
+}
+
 @keyframes draw-path {
     to {
         stroke-dashoffset: 0;

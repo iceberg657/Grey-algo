@@ -90,7 +90,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [analysisCount, setAnalysisCount] = useState<number>(0);
     const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
     const [bullishSuggestions, setBullishSuggestions] = useState<MomentumAsset[]>(() => {
-        const cached = localStorage.getItem('greyquant_asset_suggestions_v3');
+        const cached = localStorage.getItem('greyquant_asset_suggestions_v5');
         if (cached) {
             try {
                 const parsed = JSON.parse(cached);
@@ -100,7 +100,7 @@ export const HomePage: React.FC<HomePageProps> = ({
         return [];
     });
     const [bearishSuggestions, setBearishSuggestions] = useState<MomentumAsset[]>(() => {
-        const cached = localStorage.getItem('greyquant_asset_suggestions_v3');
+        const cached = localStorage.getItem('greyquant_asset_suggestions_v5');
         if (cached) {
             try {
                 const parsed = JSON.parse(cached);
@@ -114,44 +114,50 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
     const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
     const [isTwelveDataConfigured, setIsTwelveDataConfigured] = useState<boolean | null>(null);
+    const [isDerivConfigured, setIsDerivConfigured] = useState<boolean | null>(null);
 
     useEffect(() => {
         const checkStatus = async (retryCount = 0) => {
-            // First check if we have a key in localStorage
             const storedSettings = localStorage.getItem('greyquant_user_settings');
             const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
-            const localKey = userSettings?.twelveDataApiKey;
+            const localTwelveKey = userSettings?.twelveDataApiKey;
+            const localDerivToken = userSettings?.derivApiToken || userSettings?.derivToken;
 
             try {
-                const res = await fetch('/api/twelveData?action=status');
+                // Try the stealth quantum-stream endpoint first
+                const res = await fetch('/api/quantum-stream?action=status');
                 if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
                 
-                const contentType = res.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    throw new Error('Server returned non-JSON response');
-                }
-                
                 const data = await res.json();
-                console.log('Twelve Data Status Response:', data);
+                console.log('Market Status Response:', data);
                 
-                // Consider it configured if either the backend has it OR we have it locally
-                const isConfigured = (data.configured && data.valid) || (!!localKey && localKey.length > 10);
-                setIsTwelveDataConfigured(isConfigured);
+                const twelveOk = (data.configured && data.valid) || (!!localTwelveKey && localTwelveKey.length > 5);
+                const derivOk = data.derivConfigured || (!!localDerivToken && localDerivToken.length > 5);
+
+                setIsTwelveDataConfigured(twelveOk);
+                setIsDerivConfigured(derivOk);
+            } catch (err: any) {
+                console.warn('Market Data Status check issue:', err);
                 
-                if (!isConfigured && retryCount === 0) {
-                    console.warn('[TwelveData] API Key missing or invalid. Market confluence will be limited.');
+                // Fallback attempt with second endpoint if first one failed due to fetch error
+                if (err.message && (err.message.includes('fetch') || err.message.includes('NetworkError'))) {
+                    try {
+                        const res2 = await fetch('/api/marketFetcher?action=status');
+                        if (res2.ok) {
+                            const data2 = await res2.json();
+                            setIsTwelveDataConfigured((data2.configured && data2.valid) || (!!localTwelveKey && localTwelveKey.length > 5));
+                            setIsDerivConfigured(data2.derivConfigured || (!!localDerivToken && localDerivToken.length > 5));
+                            return;
+                        }
+                    } catch (e) {}
                 }
-            } catch (err) {
-                console.error('Twelve Data Status Error:', err);
-                
-                // Retry once after 2 seconds if it's a fetch failure
+
                 if (retryCount < 1) {
                     setTimeout(() => checkStatus(retryCount + 1), 2000);
                     return;
                 }
-
-                // Fallback to local key check if fetch fails after retry
-                setIsTwelveDataConfigured(!!localKey && localKey.length > 10);
+                setIsTwelveDataConfigured(!!localTwelveKey && localTwelveKey.length > 5);
+                setIsDerivConfigured(!!localDerivToken && localDerivToken.length > 5);
             }
         };
 
@@ -482,11 +488,21 @@ export const HomePage: React.FC<HomePageProps> = ({
                         {isTwelveDataConfigured !== null && (
                             <button 
                                 onClick={handleOpenSettings}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${isTwelveDataConfigured ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 animate-pulse'}`} 
-                                title={isTwelveDataConfigured ? "Twelve Data API Connected" : "Twelve Data API Key Missing - Click to Fix"}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${isTwelveDataConfigured ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'}`} 
+                                title={isTwelveDataConfigured ? "Twelve Data API Connected" : "Twelve Data API Key Missing"}
                             >
                                 <div className={`w-1.5 h-1.5 rounded-full ${isTwelveDataConfigured ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                                <span className="hidden sm:inline">{isTwelveDataConfigured ? 'Twelve Data Active' : 'Twelve Data Offline'}</span>
+                                <span className="hidden sm:inline">12D</span>
+                            </button>
+                        )}
+                        {isDerivConfigured !== null && (
+                            <button 
+                                onClick={handleOpenSettings}
+                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${isDerivConfigured ? 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400' : 'bg-gray-500/10 border-gray-500/30 text-gray-600 dark:text-gray-400 opacity-50'}`} 
+                                title={isDerivConfigured ? "Deriv API Connected" : "Deriv API Key Missing"}
+                            >
+                                <div className={`w-1.5 h-1.5 rounded-full ${isDerivConfigured ? 'bg-blue-500 animate-pulse' : 'bg-gray-500'}`}></div>
+                                <span className="hidden sm:inline">DRV</span>
                             </button>
                         )}
                         <ThemeToggleButton />

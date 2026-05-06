@@ -48,71 +48,108 @@ export interface TwelveDataTimeSeries {
     status: string;
 }
 
+import { fetchDerivHistory, calculateIndicators } from './derivDataService';
+
+const fetchWithTimeout = async (resource: string, options: any = {}, timeout = 5000) => {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+        const response = await fetch(resource, {
+            ...options,
+            signal: controller.signal
+        });
+        clearTimeout(id);
+        return response;
+    } catch (error) {
+        clearTimeout(id);
+        throw error;
+    }
+};
+
 export async function fetchMarketData(symbol: string, interval: string = '1h'): Promise<any | null> {
     try {
-        // Check if we have a key in localStorage
         const storedSettings = localStorage.getItem('greyquant_user_settings');
         const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
         const localKey = userSettings?.twelveDataApiKey;
+        const derivToken = userSettings?.derivApiToken || userSettings?.derivToken;
 
-        if (localKey && localKey.length > 10) {
+        // 1. Try Twelve Data (Local Client Fetch) if key exists
+        if (localKey && localKey.length > 5) {
             try {
-                // If we have a local key, call Twelve Data directly from the client in parallel
-                // This maintains the same confluence as the backend proxy
-                const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
-                    fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`, { cache: 'no-store' }),
-                    fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
-                    fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
-                    fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
-                    fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
-                    fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' })
-                ]);
-
-                if (quoteRes.ok) {
-                    const quoteData = await quoteRes.json();
-                    
-                    if (quoteData.status !== 'error') {
-                        const rsiData = rsiRes.ok ? await rsiRes.json() : null;
-                        const smaData = smaRes.ok ? await smaRes.json() : null;
-                        const stddevData = stddevRes.ok ? await stddevRes.json() : null;
-                        const atrData = atrRes.ok ? await atrRes.json() : null;
-                        const adxData = adxRes.ok ? await adxRes.json() : null;
-
-                        return {
-                            ...quoteData,
-                            rsi: rsiData?.values?.[0]?.rsi || 'N/A',
-                            sma: smaData?.values?.[0]?.sma || 'N/A',
-                            stddev: stddevData?.values?.[0]?.stddev || 'N/A',
-                            atr: atrData?.values?.[0]?.atr || 'N/A',
-                            adx: adxData?.values?.[0]?.adx || 'N/A',
-                            interval
-                        };
-                    } else {
-                        console.warn(`Twelve Data API error with local key for ${symbol}:`, quoteData.message);
-                        // Fall through to backend proxy
-                    }
+                // Try proxy first to avoid CORS (using robust quantum-stream endpoint)
+                let proxyUrl = `/api/quantum-stream?symbol=${encodeURIComponent(symbol)}&interval=${interval}&apikey=${localKey}`;
+                if (derivToken) proxyUrl += `&token=${encodeURIComponent(derivToken)}`;
+                
+                const proxyRes = await fetchWithTimeout(proxyUrl, { cache: 'no-store' }, 8000);
+                if (proxyRes.ok) {
+                    const data = await proxyRes.json();
+                    if (!data.error) return { ...data, dataSource: 'Twelve Data (Local Proxy)' };
                 }
-            } catch (localError) {
-                console.warn('Failed to fetch Twelve Data with local key, falling back to proxy:', localError);
-                // Fall through to backend proxy
+            } catch (err) {
+                console.warn('[MarketService] Local Twelve Data fetch failed or timed out');
             }
         }
 
-        // Fallback to backend proxy
-        const url = `/api/twelveData?action=quote&symbol=${encodeURIComponent(symbol)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
-        const response = await fetch(url, { cache: 'no-store' });
-        
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.error || `Twelve Data API error: ${response.statusText}`);
+        // 2. Try System Twelve Data (Proxy) via Robust Endpoint
+        try {
+            let url = `/api/quantum-stream?symbol=${encodeURIComponent(symbol)}&interval=${interval}`;
+            if (derivToken) url += `&token=${encodeURIComponent(derivToken)}`;
+            
+            const response = await fetchWithTimeout(url, { cache: 'no-store' }, 8000);
+            if (response.ok) {
+                const data = await response.json();
+                if (!data.error) return { ...data, dataSource: data.dataSource || 'Twelve Data (System Proxy)' };
+            } else {
+                // Secondary fallback to primary proxy if quantum-stream is blocked
+                let fallbackUrl = `/api/marketFetcher?symbol=${encodeURIComponent(symbol)}&interval=${interval}`;
+                if (derivToken) fallbackUrl += `&token=${encodeURIComponent(derivToken)}`;
+                
+                const fallbackRes = await fetchWithTimeout(fallbackUrl, { cache: 'no-store' }, 8000);
+                if (fallbackRes.ok) {
+                    const data = await fallbackRes.json();
+                    if (!data.error) return { ...data, dataSource: 'Twelve Data (Fallback Proxy)' };
+                }
+            }
+        } catch (err) {
+            console.warn('[MarketService] System Twelve Data fetch failed or timed out', err);
         }
-        
-        const data = await response.json();
-        
-        // The backend proxy returns combined data (quote + RSI + SMA)
-        return data;
+
+        // 3. Try Deriv Fallback (Candlestick Data for Indicators)
+        try {
+            console.log(`[MarketService] Using Deriv fallback for ${symbol}`);
+            let granularity = 3600; // 1h
+            if (interval === '5min') granularity = 300;
+            else if (interval === '15min') granularity = 900;
+            else if (interval === '4h') granularity = 14400;
+            else if (interval === '1day') granularity = 86400;
+
+            const history = await fetchDerivHistory(symbol, granularity, 100, derivToken);
+            if (history && history.candles && history.candles.length > 0) {
+                const lastCandle = history.candles[history.candles.length - 1];
+                const indicators = calculateIndicators(history.candles);
+                return {
+                    symbol,
+                    name: symbol,
+                    close: lastCandle.close.toString(),
+                    high: lastCandle.high.toString(),
+                    low: lastCandle.low.toString(),
+                    open: lastCandle.open.toString(),
+                    percent_change: '0.00',
+                    rsi: indicators?.rsi || 'N/A',
+                    sma: indicators?.sma || 'N/A',
+                    atr: indicators?.atr || 'N/A',
+                    interval,
+                    dataSource: 'Deriv (Neural Fallback)',
+                    is_market_open: true
+                };
+            }
+        } catch (err) {
+            console.warn('[MarketService] Deriv fallback failed');
+        }
+
+        return { error: 'All data sources exhausted', symbol, close: '0.00', dataSource: 'None' };
     } catch (error) {
-        console.error('Failed to fetch Twelve Data via proxy:', error);
-        return { error: error instanceof Error ? error.message : 'Unknown error fetching Twelve Data' };
+        console.error('Market Service Exception:', error);
+        return { error: 'Service failure', symbol };
     }
 }

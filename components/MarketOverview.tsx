@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { getOrRefreshSuggestions } from '../services/suggestionService';
 import type { MomentumAsset } from '../types';
 import { MarketTicker } from './MarketTicker';
@@ -30,19 +31,34 @@ const ASSET_POOL = [...MAJORS_POOL, ...MINORS_POOL];
 const getRandomPair = () => ASSET_POOL[Math.floor(Math.random() * ASSET_POOL.length)];
 
 // --- Neural Radar Widget ---
-const METRICS = ['MOMENTUM', 'STRUCTURE', 'LIQUIDITY', 'VOLUME', 'VOLATILITY'];
+const METRICS = ['TREND', 'MOMENTUM', 'STRUCTURE', 'STRENGTH', 'VOLATILITY'];
 
-const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol, theme }) => {
+const NeuralRadarWidget: React.FC<{ symbol: string; theme: string; asset?: MomentumAsset }> = ({ symbol, theme, asset }) => {
     // Generate deterministic "random" stats based on symbol name string char codes
-    // This ensures the chart looks consistent for the specific symbol during its 2hr window
+    // But if we have real indicators, use them!
     const stats = useMemo(() => {
+        // If we have actual metrics from enrichment, use them
+        if (asset && (asset.rsi || asset.adx || asset.sma)) {
+            const rsiVal = asset.rsi ? parseFloat(asset.rsi.toString()) : 50;
+            const adxVal = asset.adx ? parseFloat(asset.adx.toString()) : 25;
+            
+            // Normalize Indicators to 0-100 score
+            const momentum = Math.abs(rsiVal - 50) + 50; // Distance from 50 (overbought/oversold = high momentum)
+            const strength = Math.min(adxVal * 2, 100); // ADX 25+ is strong, 50+ is ultra
+            const trend = asset.momentum === 'Bullish' ? 85 : 15;
+            const volatility = asset.adx ? (parseFloat(asset.adx.toString()) > 40 ? 90 : 40) : 50;
+            const structure = asset.action?.includes('Ready') ? 95 : 60;
+
+            return [trend, momentum, structure, strength, volatility];
+        }
+
         const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
         const rand = (offset: number) => {
             const x = Math.sin(seed + offset) * 10000;
             return Math.floor((x - Math.floor(x)) * 70) + 30; // Value between 30 and 100
         };
         return METRICS.map((_, i) => rand(i));
-    }, [symbol]);
+    }, [symbol, asset]);
 
     const overallScore = Math.floor(stats.reduce((a, b) => a + b, 0) / stats.length);
     const bias = overallScore >= 50 ? 'BULLISH' : 'BEARISH';
@@ -354,7 +370,13 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                     
                     {/* Neural Radar Widget */}
                     <div className="w-full h-80 flex-grow relative rounded-xl overflow-hidden border border-gray-200 dark:border-white/5 shadow-2xl">
-                        <NeuralRadarWidget symbol={currentPair} theme={theme} />
+                        {(() => {
+                            const asset = [...bullishSuggestions, ...bearishSuggestions].find(a => 
+                                a.symbol.toUpperCase().includes(currentPair.split(':')[1] || currentPair) || 
+                                currentPair.toUpperCase().includes(a.symbol.toUpperCase())
+                            );
+                            return <NeuralRadarWidget symbol={currentPair} theme={theme} asset={asset} />;
+                        })()}
                     </div>
                 </div>
 
@@ -415,20 +437,35 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                     ) : bullishSuggestions.length > 0 ? (
                         <>
                             <div className="col-span-2">
-                                <h4 className="text-lg font-black text-green-600 dark:text-green-400 mb-4 uppercase tracking-widest">Bullish Momentum</h4>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="text-lg font-black text-green-600 dark:text-green-400 uppercase tracking-widest">Bullish Momentum</h4>
+                                    <button 
+                                        onClick={() => fetchAssets(true)}
+                                        disabled={isUpdatingSuggestions}
+                                        className="text-[9px] font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isUpdatingSuggestions ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                        Refresh Engine
+                                    </button>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {bullishSuggestions.map((asset, idx) => {
-                                        const isExpanded = expandedAsset === `bullish-${idx}`;
-                                        return (
-                                        <div 
-                                            key={idx} 
-                                            onClick={(e) => {
-                                                if (window.innerWidth < 768) {
-                                                    setExpandedAsset(isExpanded ? null : `bullish-${idx}`);
-                                                }
-                                            }}
-                                            className={`p-5 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-green-500/5 dark:hover:bg-green-500/10 border-gray-200 dark:border-white/10`}
-                                        >
+                                    <AnimatePresence mode="popLayout">
+                                        {bullishSuggestions.map((asset, idx) => {
+                                            const isExpanded = expandedAsset === `bullish-${idx}`;
+                                            return (
+                                            <motion.div 
+                                                key={asset.symbol + idx}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                transition={{ delay: idx * 0.05, duration: 0.3 }}
+                                                onClick={(e) => {
+                                                    if (window.innerWidth < 768) {
+                                                        setExpandedAsset(isExpanded ? null : `bullish-${idx}`);
+                                                    }
+                                                }}
+                                                className={`p-5 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-green-500/5 dark:hover:bg-green-500/10 border-gray-200 dark:border-white/10`}
+                                            >
                                             <div className="flex justify-between items-center cursor-pointer" onClick={(e) => {
                                                 if (window.innerWidth >= 768 && onAssetSelect) {
                                                      e.stopPropagation();
@@ -437,6 +474,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                             }}>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors uppercase">{asset.symbol}</span>
+                                                    {asset.price && parseFloat(asset.price.toString()) > 0 && (
+                                                        <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400">@{parseFloat(asset.price.toString()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</span>
+                                                    )}
                                                     {asset.action && (
                                                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-md ${
                                                             asset.action.toLowerCase().includes('ready') 
@@ -449,7 +489,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                                     )}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1">
-                                                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-600 dark:text-green-300`}>{asset.momentum}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        {asset.changePercent !== undefined && (
+                                                            <span className={`text-[10px] font-black ${asset.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                                {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(2)}%
+                                                            </span>
+                                                        )}
+                                                        <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-green-500/20 text-green-600 dark:text-green-300`}>{asset.momentum}</span>
+                                                    </div>
                                                     {asset.newsRisk && (
                                                         <div className={`text-[7px] font-black px-2 py-0.5 rounded border uppercase transition-all shadow-sm ${
                                                             asset.newsRisk.toLowerCase() === 'high' ? 'bg-red-500 text-white border-red-600' : 
@@ -463,19 +510,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                             </div>
                                             <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic border-l-2 border-green-500/30 pl-3">"{asset.reason}"</p>
                                             
-                                            {/* Intelligence Grid - Always Visible */}
                                             <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-white/5">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="bg-red-500/10 dark:bg-red-500/20 p-2.5 rounded-xl border border-red-500/20 transition-all hover:scale-105">
-                                                        <span className="block text-[8px] font-black text-red-500/80 uppercase tracking-widest mb-1">Supply Pool</span>
-                                                        <span className="text-[11px] font-mono font-black text-red-500 tracking-tighter truncate">{asset.supplyZone || 'Scanning...'}</span>
-                                                    </div>
-                                                    <div className="bg-green-500/10 dark:bg-green-500/20 p-2.5 rounded-xl border border-green-500/20 transition-all hover:scale-105">
-                                                        <span className="block text-[8px] font-black text-green-500/80 uppercase tracking-widest mb-1">Demand Pool</span>
-                                                        <span className="text-[11px] font-mono font-black text-green-500 tracking-tighter truncate">{asset.demandZone || 'Scanning...'}</span>
-                                                    </div>
-                                                </div>
-                                                
                                                 <div className="flex items-center justify-between gap-2 px-1">
                                                      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm ${
                                                          asset.newsRisk?.toLowerCase() === 'high' ? 'bg-red-500 text-white border-red-600' : 
@@ -513,25 +548,41 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                                     <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend4Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend4Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>4H: {asset.trend4Hr}</span>
                                                 )}
                                             </div>
-                                        </div>
+                                        </motion.div>
                                     )})}
+                                    </AnimatePresence>
                                 </div>
                             </div>
                             <div className="col-span-2">
-                                <h4 className="text-lg font-black text-red-600 dark:text-red-400 mb-4 uppercase tracking-widest">Bearish Momentum</h4>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h4 className="text-lg font-black text-red-600 dark:text-red-400 uppercase tracking-widest">Bearish Momentum</h4>
+                                    <button 
+                                        onClick={() => fetchAssets(true)}
+                                        disabled={isUpdatingSuggestions}
+                                        className="text-[9px] font-black uppercase tracking-widest text-cyan-600 dark:text-cyan-400 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                        <svg xmlns="http://www.w3.org/2000/svg" className={`h-3 w-3 ${isUpdatingSuggestions ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+                                        Refresh Engine
+                                    </button>
+                                </div>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {bearishSuggestions.map((asset, idx) => {
-                                        const isExpanded = expandedAsset === `bearish-${idx}`;
-                                        return (
-                                        <div 
-                                            key={idx} 
-                                            onClick={(e) => {
-                                                if (window.innerWidth < 768) {
-                                                    setExpandedAsset(isExpanded ? null : `bearish-${idx}`);
-                                                }
-                                            }}
-                                            className={`p-5 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-red-500/5 dark:hover:bg-red-500/10 border-gray-200 dark:border-white/10`}
-                                        >
+                                    <AnimatePresence mode="popLayout">
+                                        {bearishSuggestions.map((asset, idx) => {
+                                            const isExpanded = expandedAsset === `bearish-${idx}`;
+                                            return (
+                                            <motion.div 
+                                                key={asset.symbol + idx}
+                                                initial={{ opacity: 0, y: 10 }}
+                                                animate={{ opacity: 1, y: 0 }}
+                                                exit={{ opacity: 0, scale: 0.95 }}
+                                                transition={{ delay: idx * 0.05, duration: 0.3 }}
+                                                onClick={(e) => {
+                                                    if (window.innerWidth < 768) {
+                                                        setExpandedAsset(isExpanded ? null : `bearish-${idx}`);
+                                                    }
+                                                }}
+                                                className={`p-5 rounded-xl border-2 transition-all hover:scale-[1.02] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-red-500/5 dark:hover:bg-red-500/10 border-gray-200 dark:border-white/10`}
+                                            >
                                             <div className="flex justify-between items-center cursor-pointer" onClick={(e) => {
                                                 if (window.innerWidth >= 768 && onAssetSelect) {
                                                      e.stopPropagation();
@@ -540,6 +591,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                             }}>
                                                 <div className="flex items-center gap-2">
                                                     <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors uppercase">{asset.symbol}</span>
+                                                    {asset.price && parseFloat(asset.price.toString()) > 0 && (
+                                                        <span className="text-[10px] font-mono font-bold text-slate-500 dark:text-slate-400">@{parseFloat(asset.price.toString()).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}</span>
+                                                    )}
                                                     {asset.action && (
                                                         <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border shadow-md ${
                                                             asset.action.toLowerCase().includes('ready') 
@@ -552,7 +606,14 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                                     )}
                                                 </div>
                                                 <div className="flex flex-col items-end gap-1">
-                                                    <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-600 dark:text-red-300`}>{asset.momentum}</span>
+                                                    <div className="flex items-center gap-2">
+                                                        {asset.changePercent !== undefined && (
+                                                            <span className={`text-[10px] font-black ${asset.changePercent >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                                                {asset.changePercent >= 0 ? '+' : ''}{asset.changePercent.toFixed(2)}%
+                                                            </span>
+                                                        )}
+                                                        <span className={`text-[9px] font-black px-2.5 py-1 rounded-lg uppercase tracking-widest bg-red-500/20 text-red-600 dark:text-red-300`}>{asset.momentum}</span>
+                                                    </div>
                                                     {asset.newsRisk && (
                                                         <div className={`text-[7px] font-black px-2 py-0.5 rounded border uppercase transition-all shadow-sm ${
                                                             asset.newsRisk.toLowerCase() === 'high' ? 'bg-red-500 text-white border-red-600' : 
@@ -566,18 +627,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                             </div>
                                             <p className="text-xs text-slate-700 dark:text-gray-400 font-medium leading-relaxed line-clamp-2 italic border-l-2 border-red-500/30 pl-3">"{asset.reason}"</p>
                                             
-                                            {/* Intelligence Grid - Always Visible */}
                                             <div className="flex flex-col gap-3 pt-3 border-t border-gray-200 dark:border-white/5">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="bg-red-500/10 dark:bg-red-500/20 p-2.5 rounded-xl border border-red-500/20 transition-all hover:scale-105">
-                                                        <span className="block text-[8px] font-black text-red-500/80 uppercase tracking-widest mb-1">Supply Pool</span>
-                                                        <span className="text-[11px] font-mono font-black text-red-500 tracking-tighter truncate">{asset.supplyZone || 'Scanning...'}</span>
-                                                    </div>
-                                                    <div className="bg-green-500/10 dark:bg-green-500/20 p-2.5 rounded-xl border border-green-500/20 transition-all hover:scale-105">
-                                                        <span className="block text-[8px] font-black text-green-500/80 uppercase tracking-widest mb-1">Demand Pool</span>
-                                                        <span className="text-[11px] font-mono font-black text-green-500 tracking-tighter truncate">{asset.demandZone || 'Scanning...'}</span>
-                                                    </div>
-                                                </div>
 
                                                 <div className="flex items-center justify-between gap-2 px-1">
                                                      <div className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border shadow-sm ${
@@ -616,8 +666,9 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                                     <span className={`text-[8px] font-bold px-2 py-0.5 rounded uppercase border ${asset.trend4Hr === 'Bullish' ? 'bg-green-500/10 text-green-500 border-green-500/20' : asset.trend4Hr === 'Bearish' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-gray-500/10 text-gray-500 border-gray-500/20'}`}>4H: {asset.trend4Hr}</span>
                                                 )}
                                             </div>
-                                        </div>
+                                        </motion.div>
                                     )})}
+                                    </AnimatePresence>
                                 </div>
                             </div>
                         </>

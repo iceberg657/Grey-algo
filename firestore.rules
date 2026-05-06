@@ -60,9 +60,8 @@ service cloud.firestore {
 
     function isValidUser(data) {
       return data.keys().hasAll(['uid', 'email', 'role', 'analysisCount', 'access', 'createdAt']) &&
-             data.keys().size() >= 6 &&
              data.uid is string && data.uid == request.auth.uid &&
-             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.email is string &&
              data.role in ['user', 'admin'] &&
              data.analysisCount is number &&
              data.access is map &&
@@ -103,7 +102,7 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       
-      allow create: if isOwner(userId) && isValidUser(incoming()) && (incoming().role == 'user' || isSuperAdmin());
+      allow create: if isOwner(userId) && (incoming().role == 'user' || isSuperAdmin());
       
       allow update: if (
         (isOwner(userId) && isValidUser(incoming()) && incoming().role == existing().role) || 

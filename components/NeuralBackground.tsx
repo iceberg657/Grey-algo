@@ -32,7 +32,10 @@ export const NeuralBackground: React.FC = () => {
 
         const particles: Particle[] = [];
         // Calculate particle count based on screen area to maintain density
-        const particleCount = Math.floor((window.innerWidth * window.innerHeight) / 12000);
+        const particleCount = Math.min(
+            Math.floor((window.innerWidth * window.innerHeight) / 30000), // Further reduced density
+            70 // Max 70 particles for low lag
+        );
 
         const initParticles = () => {
             particles.length = 0;
@@ -73,17 +76,19 @@ export const NeuralBackground: React.FC = () => {
                 ctx.fillStyle = particleFill;
                 ctx.fill();
 
-                // Connections
+                // Faster distance check (skip sqrt when possible)
                 for (let j = i + 1; j < particles.length; j++) {
                     const p2 = particles[j];
                     const dx = p.x - p2.x;
+                    if (Math.abs(dx) > 120) continue;
                     const dy = p.y - p2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 150) {
+                    if (Math.abs(dy) > 120) continue;
+                    
+                    if (distSq < 10000) { // 100 * 100
+                        const dist = Math.sqrt(distSq);
                         ctx.beginPath();
-                        ctx.strokeStyle = `rgba(${lineBase}, ${0.2 * (1 - dist / 150)})`;
-                        ctx.lineWidth = 1;
+                        ctx.strokeStyle = `rgba(${lineBase}, ${0.12 * (1 - dist / 100)})`;
+                        ctx.lineWidth = 0.6;
                         ctx.moveTo(p.x, p.y);
                         ctx.lineTo(p2.x, p2.y);
                         ctx.stroke();
