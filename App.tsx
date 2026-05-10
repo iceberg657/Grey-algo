@@ -668,17 +668,19 @@ const App: React.FC = () => {
 
             {userMetadata?.role === 'admin' && <AutoLearningManager />}
             <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={appView}
-                        initial={{ opacity: 0, y: 10, scale: 0.98 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: -10, scale: 0.98 }}
-                        transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
-                    >
-                        {content}
-                    </motion.div>
-                </AnimatePresence>
+                <div>
+                    <AnimatePresence mode="wait">
+                        <motion.div
+                            key={appView}
+                            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -10, scale: 0.98 }}
+                            transition={{ duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
+                        >
+                            {content}
+                        </motion.div>
+                    </AnimatePresence>
+                </div>
             </div>
         </ErrorBoundary>
     );

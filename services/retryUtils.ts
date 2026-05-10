@@ -120,6 +120,11 @@ const K = {
     K9: () => KEYS.k9 || ''
 };
 
+export async function getApiKey() {
+    await initializeApiKey();
+    return K.K9() || API_KEY || '';
+}
+
 // Helper to get unique keys from a list of potential keys
 const getUniqueKeys = (keys: string[]) => {
     return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));

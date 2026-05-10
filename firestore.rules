@@ -38,8 +38,7 @@ service cloud.firestore {
     // Super admin fallback for bootstrap user.
     function isSuperAdmin() {
       return isSignedIn() && 
-             request.auth.token.email == "ma8138498@gmail.com" &&
-             isEmailVerified();
+             request.auth.token.email == "ma8138498@gmail.com";
     }
 
     function isAdmin() {
