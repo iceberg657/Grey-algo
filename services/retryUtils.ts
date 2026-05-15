@@ -130,12 +130,13 @@ const getUniqueKeys = (keys: string[]) => {
     return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));
 };
 
-// 1. CHART ANALYSIS (Strictly Prioritize Key 2)
-export const getAnalysisPool = () => getUniqueKeys([K.K2(), K.K1()]); 
+// 1. CHART ANALYSIS (Strictly Prioritize Lane Rotation)
+export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
-    'gemini-2.0-flash', // Faster model
-    'gemini-1.5-flash',
-    'gemini-3.1-flash-lite-preview'
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-3-flash',
+    'gemini-3.1-flash-lite'
 ];
 
 // 2. CHAT & NEWS (Key 5)

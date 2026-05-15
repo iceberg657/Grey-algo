@@ -19,9 +19,7 @@ import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
-import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
-import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
 import { AnimatePresence, motion } from 'motion/react';
 import { 
@@ -515,6 +513,7 @@ const App: React.FC = () => {
                     onClearInitialInput={() => setPendingChatQuery(null)}
                     isLocked={systemSettings?.chatLocked && userMetadata?.role !== 'admin'}
                     userMetadata={userMetadata}
+                    onNavigate={(view) => navigateTo(view as any)}
                 />
             );
             break;

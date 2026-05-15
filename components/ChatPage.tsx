@@ -4,6 +4,7 @@ import { motion } from 'motion/react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName } from '../services/chatService';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import { useTheme } from './contexts/ThemeContext';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { NeuralBackground } from './NeuralBackground';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -165,6 +166,7 @@ interface ChatPageProps {
     onClearInitialInput?: () => void;
     isLocked?: boolean;
     userMetadata?: UserMetadata | null;
+    onNavigate?: (view: string) => void;
 }
 
 const OracleLogo: React.FC = () => (
@@ -211,12 +213,221 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [imageFiles, setImageFiles] = useState<File[]>([]);
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+    const [isLiveMode, setIsLiveMode] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const recognitionRef = useRef<any>(null);
+    const [showKeyboardOverlay, setShowKeyboardOverlay] = useState(false);
+    const [liveTextInput, setLiveTextInput] = useState('');
+    const [isLiveMicMuted, setIsLiveMicMuted] = useState(false);
+    const [liveStatus, setLiveStatus] = useState<string>('Connecting...');
+    const liveWsRef = useRef<WebSocket | null>(null);
+    const liveStreamRef = useRef<MediaStream | null>(null);
+    const audioCtxRef = useRef<AudioContext | null>(null);
+    const nextStartTimeRef = useRef(0);
+    const inputAudioCtxRef = useRef<AudioContext | null>(null);
+
+    const handleSendLiveText = () => {
+        if (!liveTextInput.trim() || !liveWsRef.current || liveWsRef.current.readyState !== WebSocket.OPEN) return;
+        liveWsRef.current.send(JSON.stringify({ text: liveTextInput }));
+        setLiveTextInput('');
+        setShowKeyboardOverlay(false);
+    };
+
+    const pcmToBase64 = (pcmData: Float32Array) => {
+      const buffer = new ArrayBuffer(pcmData.length * 2);
+      const view = new DataView(buffer);
+      for (let i = 0; i < pcmData.length; i++) {
+        let s = Math.max(-1, Math.min(1, pcmData[i]));
+        view.setInt16(i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      }
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      // Note: btoa can be slow, but usually fine for 4096 samples
+      return btoa(binary);
+    };
+
+    const playAudioChunk = (base64: string) => {
+        if (!audioCtxRef.current) return;
+        const ctx = audioCtxRef.current;
+        const binary = atob(base64);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+        }
+        const pcm16 = new Int16Array(bytes.buffer);
+        const audioBuffer = ctx.createBuffer(1, pcm16.length, 24000);
+        const channelData = audioBuffer.getChannelData(0);
+        for (let i = 0; i < pcm16.length; i++) {
+            channelData[i] = pcm16[i] / 32768;
+        }
+        
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        
+        // Add gain node for volume boost
+        const gainNode = ctx.createGain();
+        gainNode.gain.value = 3.0; // 3x volume boost
+        
+        source.connect(gainNode);
+        gainNode.connect(ctx.destination);
+        
+        const currentTime = ctx.currentTime;
+        if (nextStartTimeRef.current < currentTime) {
+            nextStartTimeRef.current = currentTime + 0.1;
+        }
+        source.start(nextStartTimeRef.current);
+        nextStartTimeRef.current += audioBuffer.duration;
+    };
+
+    const toggleLiveMic = () => {
+        if (liveStreamRef.current) {
+            const track = liveStreamRef.current.getAudioTracks()[0];
+            if (track) {
+                track.enabled = !track.enabled;
+                setIsLiveMicMuted(!track.enabled);
+            }
+        }
+    };
+
+    useEffect(() => {
+        if (isLiveMode) {
+            let mounted = true;
+            let stream: MediaStream | null = null;
+            let processor: ScriptProcessorNode | null = null;
+            let source: MediaStreamAudioSourceNode | null = null;
+            setIsLiveMicMuted(false);
+            setLiveStatus('Connecting...');
+
+            const setupLive = async () => {
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                let wsUrl = `${protocol}//${window.location.host}/live`;
+                const ws = new WebSocket(wsUrl);
+                liveWsRef.current = ws;
+
+                audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
+                inputAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
+                nextStartTimeRef.current = 0;
+
+                ws.onopen = () => {
+                    if (mounted) setLiveStatus('Awaiting Voice Input...');
+                };
+
+                try {
+                    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    liveStreamRef.current = stream;
+                } catch(e) {
+                    console.error("Mic error:", e);
+                    if (mounted) {
+                        setLiveStatus('Microphone Error');
+                        setTimeout(() => setIsLiveMode(false), 2000);
+                    }
+                    return;
+                }
+
+                if (!mounted) return;
+                
+                source = inputAudioCtxRef.current.createMediaStreamSource(stream);
+                processor = inputAudioCtxRef.current.createScriptProcessor(4096, 1, 1);
+                source.connect(processor);
+                processor.connect(inputAudioCtxRef.current.destination);
+
+                processor.onaudioprocess = (e) => {
+                    if (ws.readyState === WebSocket.OPEN && !isLiveMicMuted) {
+                        const base64 = pcmToBase64(e.inputBuffer.getChannelData(0));
+                        ws.send(JSON.stringify({ audio: base64 }));
+                    }
+                };
+
+                ws.onmessage = (event) => {
+                    if (!mounted) return;
+                    const msg = JSON.parse(event.data);
+                    if (msg.audio) playAudioChunk(msg.audio);
+                    if (msg.interrupted) {
+                        nextStartTimeRef.current = 0; // barge-in flush
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log("Live WS Closed");
+                    if (mounted) {
+                        setLiveStatus('Disconnected. Checking limits...');
+                        setTimeout(() => setIsLiveMode(false), 2000);
+                    }
+                };
+            };
+            setupLive();
+
+            return () => {
+                mounted = false;
+                if (liveWsRef.current) liveWsRef.current.close();
+                if (processor) processor.disconnect();
+                if (source) source.disconnect();
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                if (audioCtxRef.current) audioCtxRef.current.close();
+                if (inputAudioCtxRef.current) inputAudioCtxRef.current.close();
+                liveStreamRef.current = null;
+            };
+        }
+    }, [isLiveMode]);
+
     const chatContainerRef = useRef<HTMLDivElement>(null);
+
+    // Initialize Speech Recognition
+    useEffect(() => {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SpeechRecognition) {
+            recognitionRef.current = new SpeechRecognition();
+            recognitionRef.current.continuous = false;
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = 'en-US';
+
+            recognitionRef.current.onstart = () => setIsListening(true);
+            recognitionRef.current.onend = () => setIsListening(false);
+            
+            recognitionRef.current.onresult = (event: any) => {
+                const transcript = Array.from(event.results)
+                    .map((result: any) => result[0])
+                    .map((result: any) => result.transcript)
+                    .join('');
+                
+                setInput(transcript);
+                
+                // If it's a final result, we could auto-send in Live mode if we wanted, 
+                // but let's keep it manual for safety.
+            };
+
+            recognitionRef.current.onerror = (event: any) => {
+                console.error('Speech recognition error:', event.error);
+                setIsListening(false);
+            };
+        }
+    }, []);
+
+    const toggleListening = () => {
+        if (!recognitionRef.current) {
+            alert("Speech recognition is not supported in this browser.");
+            return;
+        }
+
+        if (isListening) {
+            recognitionRef.current.stop();
+        } else {
+            try {
+                recognitionRef.current.start();
+            } catch (err) {
+                console.error("Failed to start listening", err);
+            }
+        }
+    };
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [currentModelName, setCurrentModelName] = useState<string>('');
     const [retrySeconds, setRetrySeconds] = useState<number>(0);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
+    const { toggleTheme } = useTheme();
 
     useEffect(() => {
         const stored = localStorage.getItem('greyquant_user_settings');
@@ -413,7 +624,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             messageParts.push({ text: text + extraContext });
 
-            const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
+            const result = await sendMessageStreamWithRetry(messageParts, startCountdown, isLiveMode);
             setCurrentModelName(getCurrentModelName());
             setRetrySeconds(0); 
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
@@ -422,16 +633,71 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             const streamMessageId = `model-stream-${Date.now()}`;
             setMessages(prev => [...prev, { id: streamMessageId, role: 'model', text: '' }]);
 
+            const chat = await getChatInstance(isLiveMode);
+            let hasFunctionCalls = false;
+            let functionResponses: any[] = [];
+
             for await (const chunk of result) {
-                responseText += chunk.text;
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
-                    if (msgIndex !== -1) {
-                         newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+                const functionCalls = (chunk as any).functionCalls;
+                if (functionCalls && functionCalls.length > 0) {
+                    hasFunctionCalls = true;
+                    for (const call of functionCalls) {
+                        console.log(`[Neural Link] Tool Call: ${call.name}`, call.args);
+                        let result: any = { status: "success" };
+
+                        if (call.name === 'navigateTo' && onNavigate) {
+                            onNavigate(call.args.page);
+                            result = { status: "success", message: `Navigated to ${call.args.page}` };
+                        } else if (call.name === 'toggleTheme') {
+                            toggleTheme();
+                            result = { status: "success", themeSwitched: true };
+                        } else if (call.name === 'getMarketVitals') {
+                            result = { 
+                                status: "active", 
+                                activeKeys: 12, 
+                                neuralLanes: "k7-cascade", 
+                                model: "GreyAlpha Quantum" 
+                            };
+                        }
+
+                        functionResponses.push({
+                            functionResponse: {
+                                name: call.name,
+                                response: result
+                            }
+                        });
                     }
-                    return newMessages;
-                });
+                }
+
+                if (chunk.text) {
+                    responseText += chunk.text;
+                    setMessages(prev => {
+                        const newMessages = [...prev];
+                        const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
+                        if (msgIndex !== -1) {
+                             newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+                        }
+                        return newMessages;
+                    });
+                }
+            }
+
+            // If we had function calls, we need to send responses back to the model
+            if (hasFunctionCalls && functionResponses.length > 0) {
+                console.log("[Neural Link] Feeding tool results back to model...");
+                const followUpResult = await chat.sendMessage(functionResponses);
+                const followUpText = followUpResult.response.text();
+                if (followUpText) {
+                    responseText += "\n\n" + followUpText;
+                    setMessages(prev => {
+                        const newMessages = [...prev];
+                        const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
+                        if (msgIndex !== -1) {
+                             newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+                        }
+                        return newMessages;
+                    });
+                }
             }
 
             // Save final model message to Firestore
@@ -534,6 +800,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         )}
                     </div>
                     <div className="flex items-center space-x-1 sm:space-x-2">
+                        <button 
+                            onClick={() => setIsLiveMode(!isLiveMode)}
+                            className={`flex items-center space-x-2 px-3 py-1.5 rounded-xl border transition-all ${
+                                isLiveMode 
+                                ? 'bg-red-500/20 border-red-500/50 text-red-500' 
+                                : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-gray-400 border-white/5'
+                            }`}
+                            title={isLiveMode ? "Disable Live Neural Link" : "Enable Live Neural Link (System Control)"}
+                        >
+                            <div className={`w-1.5 h-1.5 rounded-full ${isLiveMode ? 'bg-red-500 animate-pulse' : 'bg-gray-400 dark:bg-slate-600'}`} />
+                            <span className="text-[10px] uppercase font-black tracking-widest hidden xs:block">{isLiveMode ? 'Live' : 'Standard'}</span>
+                        </button>
                         <ThemeToggleButton />
                         <button onClick={onLogout} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-xs sm:text-sm font-medium p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Logout">
                             Logout
@@ -543,6 +821,106 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             </header>
 
             <main ref={chatContainerRef} className="flex-grow overflow-y-auto overflow-x-hidden scroll-smooth relative z-0">
+                {isLiveMode ? (
+                    <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-transparent">
+                        <div className="relative mb-8 group">
+                            <div className="absolute inset-0 bg-green-500/20 blur-3xl rounded-full scale-150 animate-pulse"></div>
+                            <div className="w-32 h-32 md:w-48 md:h-48 bg-slate-950 border-2 border-green-500/50 rounded-full flex items-center justify-center shadow-[0_0_50px_rgba(34,197,94,0.3)] relative overflow-hidden">
+                                <div className="absolute inset-0 bg-green-500/10 animate-[ping_3s_ease-in-out_infinite]"></div>
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 md:h-24 md:w-24 text-green-400 animate-[pulse_2s_ease-in-out_infinite]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <h2 className="text-2xl font-black text-white tracking-widest uppercase mb-2 animate-pulse">Neural Link Active</h2>
+                        <p className={`text-sm md:text-base mb-12 flex items-center space-x-2 ${liveStatus.includes('Error') || liveStatus.includes('Disconnected') ? 'text-red-400/80' : 'text-green-400/80'}`}>
+                             <span className={`w-2 h-2 rounded-full animate-ping ${liveStatus.includes('Error') || liveStatus.includes('Disconnected') ? 'bg-red-500' : 'bg-green-500'}`}></span>
+                             <span>{liveStatus}</span>
+                        </p>
+
+                        {/* Controls */}
+                        <div className="flex items-center gap-4">
+                            {/* Mute Mic Toggle */}
+                            <button 
+                                onClick={toggleLiveMic}
+                                className={`p-4 rounded-full transition-all border ${isLiveMicMuted ? 'bg-red-500/20 text-red-500 border-red-500/50 hover:bg-red-500/30' : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-white/5 hover:border-white/20'}`}
+                                title={isLiveMicMuted ? "Unmute Microphone" : "Mute Microphone"}
+                            >
+                                {isLiveMicMuted ? (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" clipRule="evenodd" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2" />
+                                    </svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                                    </svg>
+                                )}
+                            </button>
+
+                            {/* Image Injection */}
+                            <input type="file" ref={(el) => { if(el) (window as any).liveImageInput = el }} className="hidden" accept="image/*" onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file || !liveWsRef.current || liveWsRef.current.readyState !== WebSocket.OPEN) return;
+                                const reader = new FileReader();
+                                reader.onload = () => {
+                                    const base64 = (reader.result as string).split(',')[1];
+                                    liveWsRef.current?.send(JSON.stringify({ video: { data: base64, mimeType: file.type } }));
+                                };
+                                reader.readAsDataURL(file);
+                            }} />
+                            <button 
+                                onClick={() => (window as any).liveImageInput?.click()}
+                                className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-4 rounded-full transition-all border border-white/5 hover:border-white/20"
+                                title="Send Image to Neural Link"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+
+                            {/* Keyboard Overlay Toggle */}
+                            <button 
+                                onClick={() => setShowKeyboardOverlay(!showKeyboardOverlay)}
+                                className="bg-slate-800 hover:bg-slate-700 text-slate-300 p-4 rounded-full transition-all border border-white/5 hover:border-white/20"
+                                title="Keyboard Input"
+                            >
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {showKeyboardOverlay && (
+                            <motion.div 
+                                initial={{ y: 20, opacity: 0 }}
+                                animate={{ y: 0, opacity: 1 }}
+                                className="absolute bottom-6 w-full max-w-lg px-4"
+                            >
+                                <form onSubmit={(e) => { e.preventDefault(); handleSendLiveText(); }} className="flex items-center gap-2 bg-slate-800/90 backdrop-blur-md p-2 rounded-2xl border border-white/10 shadow-2xl">
+                                    <input 
+                                        type="text" 
+                                        value={liveTextInput} 
+                                        onChange={(e) => setLiveTextInput(e.target.value)} 
+                                        placeholder="Send a direct command..." 
+                                        className="flex-grow bg-transparent text-white placeholder-gray-400 py-2 px-4 focus:outline-none"
+                                        autoFocus
+                                    />
+                                    <button type="submit" disabled={!liveTextInput.trim()} className="p-2 w-10 h-10 flex items-center justify-center text-white bg-green-600 rounded-full hover:bg-green-500 disabled:bg-slate-700 disabled:text-gray-500 transition-all">
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                                    </button>
+                                </form>
+                            </motion.div>
+                        )}
+                        <button 
+                            onClick={() => setIsLiveMode(false)}
+                            className="absolute top-6 right-6 text-slate-400 hover:text-white p-2 rounded-full bg-slate-800/50 hover:bg-slate-700 transition-all font-bold uppercase text-xs"
+                        >
+                            Exit
+                        </button>
+                    </div>
+                ) : (
                 <div className="w-full max-w-7xl mx-auto px-4 sm:p-6 h-full">
                     {messages.length === 0 && !isLoading ? (
                         <div className="flex-grow flex flex-col items-center justify-center text-center h-full pb-20">
@@ -583,9 +961,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         </div>
                     )}
                 </div>
+                )}
             </main>
 
             <footer className="flex-shrink-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm border-t border-gray-200 dark:border-slate-800 z-10 pb-[env(safe-area-inset-bottom)]">
+                {!isLiveMode && (
                 <div className="w-full max-w-7xl mx-auto px-3 py-2 sm:p-4">
                     {uploadError && (
                         <div className="mx-4 mb-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-xs font-bold text-center animate-bounce">
@@ -604,6 +984,21 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     )}
                     <form onSubmit={handleSendMessage} className={`flex items-center gap-2 bg-white/80 dark:bg-slate-900/40 backdrop-blur-md p-2 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm focus-within:ring-2 focus-within:ring-green-500/50 transition-all ${retrySeconds > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
                          <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
+                        <button 
+                            type="button" 
+                            onClick={toggleListening} 
+                            disabled={isLoading || retrySeconds > 0} 
+                            className={`p-2 transition-colors rounded-full ${
+                                isListening 
+                                ? 'bg-red-500 text-white animate-pulse' 
+                                : 'text-gray-500 hover:text-red-500 dark:text-gray-400 dark:hover:text-red-400 hover:bg-gray-100 dark:hover:bg-slate-800'
+                            }`}
+                            title="Voice Input"
+                        >
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+                            </svg>
+                        </button>
                         <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isLoading || retrySeconds > 0} className="p-2 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 disabled:opacity-50 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                         </button>
@@ -613,10 +1008,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         </button>
                     </form>
                 </div>
+                )}
             </footer>
+            {!isLiveMode && (
             <button onClick={onNewChat} className="absolute bottom-24 right-4 sm:right-8 bg-green-600/90 hover:bg-green-500/90 backdrop-blur-md border border-green-500/50 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95 z-20" title="New Chat">
                 <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
             </button>
+            )}
         </div>
     );
 };

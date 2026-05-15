@@ -386,7 +386,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         ? analyzeSMC(
             derivData.candles,
             derivData.multiTimeframe?.confirm?.candles,
-            derivData.multiTimeframe?.htf?.candles
+            derivData.multiTimeframe?.htf?.candles,
+            asset
           )
         : null;
       console.log(`[SniperLiveTrade] SMC Quant Engine Results:`, quantData);

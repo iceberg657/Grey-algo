@@ -109,7 +109,7 @@ export function findSwings(candles: OHLC[], leftBars = 3, rightBars = 3) {
 }
 
 // Master SMC Analysis
-export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: any[]) {
+export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: any[], assetSymbol: string = 'UNKNOWN') {
     if (!candles || candles.length < 50) return null;
 
     const closes = candles.map(c => c.close);
@@ -424,6 +424,21 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     };
     const stdDev = calculateStdDev(closes);
 
+    // ✅ NEW: Binary Execution Engine (Quant calculates the explicit signal)
+    let explicitSignal: 'BUY' | 'SELL' | 'NEUTRAL' = 'NEUTRAL';
+    let mathematicalSL = 0;
+
+    // Performance Optimization for UK100/EUR indices
+    const isLondonAsset = 
+        assetSymbol.includes('UK100') || 
+        assetSymbol.includes('FTSE') || 
+        assetSymbol.includes('GER40') || 
+        assetSymbol.includes('DAX') || 
+        assetSymbol.includes('EUR');
+
+    // Increase SL buffer for London assets during volatile sessions (Stop Hunting Protection)
+    const slMultiplier = (isLondonAsset && (session === 'LONDON' || session === 'LONDON_NY_OVERLAP')) ? 1.0 : 0.5;
+
     // ✅ NEW: Confidence Scoring (45-55% threshold)
     let confidenceScore = 0;
     if (trend !== 'RANGING') confidenceScore += 20;
@@ -455,10 +470,6 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const rangingException = trend === 'RANGING' && (bos || liquiditySweep) && rangeExtremity > 0.5;
     const signalValid = confidenceScore >= 45 || rangingException;
     
-    // ✅ NEW: Binary Execution Engine (Quant calculates the explicit signal)
-    let explicitSignal: 'BUY' | 'SELL' | 'NEUTRAL' = 'NEUTRAL';
-    let mathematicalSL = 0;
-
     if (signalValid) {
         // Enforce direction based on HTF structure and Displacement
         const isBullishSetup = (tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
@@ -468,17 +479,17 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
         if (isBullishSetup && currentZone === 'DISCOUNT') {
             explicitSignal = 'BUY';
-            // Hard SL: Below OTE deep or OB lowest boundary minus 0.5 ATR
+            // Hard SL: Below OTE deep or OB lowest boundary minus volatility buffer
             mathematicalSL = Math.min(
-                ote.bullish.deep - (atr * 0.5), 
-                displacementCandle ? displacementCandle.low - (atr * 0.5) : currentPrice - (atr * 1.5)
+                ote.bullish.deep - (atr * slMultiplier), 
+                displacementCandle ? displacementCandle.low - (atr * slMultiplier) : currentPrice - (atr * 1.5)
             );
         } else if (isBearishSetup && currentZone === 'PREMIUM') {
             explicitSignal = 'SELL';
-            // Hard SL: Above OTE deep or OB highest boundary plus 0.5 ATR
+            // Hard SL: Above OTE deep or OB highest boundary plus volatility buffer
             mathematicalSL = Math.max(
-                ote.bearish.deep + (atr * 0.5), 
-                displacementCandle ? displacementCandle.high + (atr * 0.5) : currentPrice + (atr * 1.5)
+                ote.bearish.deep + (atr * slMultiplier), 
+                displacementCandle ? displacementCandle.high + (atr * slMultiplier) : currentPrice + (atr * 1.5)
             );
         } else if (rangingException) {
             explicitSignal = currentPrice > midpoint ? 'SELL' : 'BUY';

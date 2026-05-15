@@ -12,7 +12,7 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { GoogleGenAI } from "@google/genai";
 import fs from 'node:fs/promises';
-import { encrypt } from './src/services/encryptionService';
+import { encrypt } from './src/services/encryptionService.js';
 import marketDataHandler from './api/marketData.js';
 import configHandler from './api/config.js';
 import analyzeHandler from './api/gemini/analyze.js';
@@ -490,8 +490,72 @@ async function startServer() {
   };
 
   // WebSocket handling
-  wss.on('connection', (ws) => {
-    console.log('Client connected');
+  wss.on('connection', async (ws, req) => {
+    // Determine path
+    if (req.url === '/live') {
+      try {
+        const apiKey = process.env.API_KEY_5 || process.env.GEMINI_API_KEY || '';
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const session = await ai.live.connect({
+          model: "gemini-3.1-flash-live-preview",
+          callbacks: {
+            onmessage: (message: any) => {
+              const audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
+              if (audio) {
+                 if (ws.readyState === 1) ws.send(JSON.stringify({ audio }));
+              }
+              if (message.serverContent?.interrupted) {
+                 if (ws.readyState === 1) ws.send(JSON.stringify({ interrupted: true }));
+              }
+            },
+          },
+          config: {
+            responseModalities: ["AUDIO" as any], 
+            speechConfig: {
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
+            },
+            systemInstruction: `You are 'Oracle', a high-frequency trading AI and elite Trading Coach.
+You are interacting in LIVE multimodal voice mode via a Neural Link.
+Keep your responses fast, sharp, and confident. Use a professional, futuristic, and intense tone.
+Base analysis on SMC (Smart Money Concepts), ICT, and institutional order flow.`,
+          },
+        });
+
+        ws.on('message', (message) => {
+          try {
+            const data = JSON.parse(message.toString());
+            if (data.audio) {
+              session.sendRealtimeInput({
+                audio: { data: data.audio, mimeType: "audio/pcm;rate=16000" },
+              });
+            } else if (data.text) {
+              session.sendRealtimeInput({
+                text: data.text
+              });
+            } else if (data.video) { // for image injection
+              session.sendRealtimeInput({
+                video: { data: data.video.data, mimeType: data.video.mimeType }
+              });
+            }
+          } catch (e) {
+            console.error('[Live] Error processing client message', e);
+          }
+        });
+
+        ws.on('close', () => {
+          console.log('[Live] Client disconnected');
+          try { session.close(); } catch(e){}
+        });
+
+      } catch (e) {
+        console.error('[Live] Error connecting to Gemini Live API', e);
+        if (ws.readyState === 1) ws.close();
+      }
+      return;
+    }
+
+    console.log('Client connected on route:', req.url);
     
     // Send initial state
     ws.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState }));

@@ -25,6 +25,8 @@ export const MARKET_CONFIGS: Record<string, MarketConfig> = {
     // --- US INDICES ---
     'US30': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 30, tp1Distance: 90 },
     'NAS100': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 20, tp1Distance: 60 },
+    'UK100': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 15, tp1Distance: 45 },
+    'GER40': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 15, tp1Distance: 45 },
 
     // --- DERIV SYNTHETICS (High Precision Mastery) ---
     

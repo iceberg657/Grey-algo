@@ -1415,13 +1415,16 @@ export async function generateSniperLiveSignal(
 **3 TIMEFRAME CONFIRMATION:**
 - Entry TF Trend: ${quantData.tfConfirmation?.entryTrend} | HTF Trend: ${quantData.tfConfirmation?.htfTrend}
 - All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
+- Current Trading Session: ${quantData.session || 'OFF_SESSION'}
 
 **ENGINE MANDATED SIGNAL:** ${quantData.explicitSignal}
 
 *CRITICAL INSTRUCTIONS:*
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
+- **LONDON/EUR PROTECTION:** If the asset is UK100, FTSE, or EUR-based and the session is LONDON, you MUST prioritize the Mathematical Strict SL provided (${quantData.mathematicalSL}). This SL includes a wider institutional buffer to protect against typical London session "Stop Hunts" and "Liquidity Sweeps".
 - You MUST use the **Mathematical Strict SL** provided above (${quantData.mathematicalSL}) or something very close to it. It already accounts for the Displacement wick and ATR noise.
+- **UK100 PROFIT ACCELERATOR:** For UK100, TP1 should be set aggressively at the first local friction point to ensure profits are locked in during volatile London moves.
 ` : '';
 
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]

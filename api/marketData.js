@@ -13,6 +13,7 @@ const SYMBOLS_MAP = {
     'XAU/USD': 'frxXAUUSD',
     'BTC/USD': 'cryBTCUSD',
     'ETH/USD': 'cryETHUSD',
+    'XRP/USD': 'cryXRPUSD',
     'DJI': 'otcDJI',
     'NDX': 'otcNDX'
 };
