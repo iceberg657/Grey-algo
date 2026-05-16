@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { getApiKey } from '../services/retryUtils';
+import { NeuralBackground } from './NeuralBackground';
+import { Mic, MicOff, Keyboard, MessageSquare, Send } from 'lucide-react';
 
 interface OraclePageProps {
   onBack: () => void;
@@ -16,6 +18,9 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
   const [transcription, setTranscription] = useState<string>('');
   const [modelMessage, setModelMessage] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
+  const [isMuted, setIsMuted] = useState(false);
+  const [textInput, setTextInput] = useState('');
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -27,6 +32,23 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
   const sessionRef = useRef<any>(null);
   const frameIntervalRef = useRef<number | null>(null);
   const nextPlayTimeRef = useRef<number>(0);
+
+  const toggleMute = () => {
+    if (streamRef.current) {
+        streamRef.current.getAudioTracks().forEach(track => {
+            track.enabled = isMuted; // enabled=true means unmuted
+        });
+        setIsMuted(!isMuted);
+    }
+  };
+
+  const sendText = () => {
+      if (sessionRef.current && textInput.trim()) {
+          sessionRef.current.sendRealtimeInput({ text: textInput });
+          setModelMessage(prev => prev + "\nUser: " + textInput); // Show user text
+          setTextInput('');
+      }
+  }
 
   const stopOracle = () => {
     if (sessionRef.current) {
@@ -308,7 +330,10 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
           </motion.button>
         ) : null
       ) : (
-        <div className={`min-h-screen w-full flex-grow text-white flex flex-col p-6 transition-all duration-700 relative overflow-hidden ${isActive ? 'bg-slate-950' : 'bg-[#0f172a]'}`}>
+        <div className={`min-h-screen w-full flex-grow text-white flex flex-col p-6 transition-all duration-700 relative overflow-hidden`}>
+          <div className="absolute inset-0 z-0">
+            <NeuralBackground />
+          </div>
           
           {/* Glowing Edge Effect */}
           <AnimatePresence>
@@ -340,7 +365,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
           <div className="relative z-10 flex-grow flex flex-col items-center justify-center max-w-4xl mx-auto w-full">
             
             {!isActive ? (
-              <div className="flex flex-col items-center gap-8">
+              <div className="flex flex-col items-center gap-8 bg-black/50 p-10 rounded-3xl border border-white/10 backdrop-blur-md">
                 <div className="w-64 h-64 rounded-full border-2 border-white/10 flex items-center justify-center relative bg-slate-900/50 backdrop-blur-sm">
                   <div className="absolute inset-0 rounded-full border border-blue-500/20 blur-sm" />
                   <div className="text-center p-6">
@@ -398,6 +423,43 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                     <div className="flex items-center space-x-2 opacity-50">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
                       <p className="font-mono text-xs">Awaiting voice or vision input...</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Text/Mic Controls */}
+                <div className="flex items-center gap-4 bg-slate-900/80 p-2 rounded-full border border-blue-500/30">
+                  <button 
+                      onClick={() => setInputMode(inputMode === 'voice' ? 'text' : 'voice')}
+                      className={`p-3 rounded-full transition-colors ${inputMode === 'text' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      title="Toggle Text Input"
+                  >
+                    {inputMode === 'voice' ? <Keyboard size={20} /> : <MessageSquare size={20} />}
+                  </button>
+
+                  {inputMode === 'voice' && (
+                    <button 
+                      onClick={toggleMute}
+                      className={`p-3 rounded-full transition-colors ${isMuted ? 'bg-red-600 text-white' : 'text-green-400 hover:text-white'}`}
+                      title={isMuted ? "Unmute Mic" : "Mute Mic"}
+                  >
+                    {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
+                  </button>
+                  )}
+
+                  {inputMode === 'text' && (
+                    <div className="flex gap-2">
+                        <input 
+                            type="text" 
+                            value={textInput} 
+                            onChange={(e) => setTextInput(e.target.value)}
+                            onKeyDown={e => e.key === 'Enter' && sendText()}
+                            placeholder="Type to Oracle..."
+                            className="bg-transparent border-b border-blue-500/50 px-2 py-1 outline-none text-sm w-48"
+                        />
+                         <button onClick={sendText} className="p-2 text-blue-500 hover:text-blue-300">
+                            <Send size={20} />
+                         </button>
                     </div>
                   )}
                 </div>
