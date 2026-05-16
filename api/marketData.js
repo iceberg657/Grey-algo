@@ -17,75 +17,6 @@ const SYMBOLS_MAP = {
     'NDX': 'otcNDX'
 };
 
-async function fetchSymbolData(symbol, derivSymbol, token) {
-    return new Promise((resolve) => {
-        const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
-        const timeout = setTimeout(() => {
-            ws.close();
-            resolve(null);
-        }, 5000);
-
-        ws.on('open', () => {
-            if (token) {
-                ws.send(JSON.stringify({ authorize: token }));
-            } else {
-                // Try without auth for public ticks_history if possible, 
-                // but Deriv usually requires auth for many symbols
-                ws.send(JSON.stringify({ 
-                    ticks_history: derivSymbol,
-                    adjust_start_time: 1,
-                    count: 2,
-                    end: 'latest',
-                    style: 'ticks'
-                }));
-            }
-        });
-
-        ws.on('message', (data) => {
-            const response = JSON.parse(data);
-            
-            if (response.msg_type === 'authorize' && !response.error) {
-                ws.send(JSON.stringify({ 
-                    ticks_history: derivSymbol,
-                    adjust_start_time: 1,
-                    count: 2,
-                    end: 'latest',
-                    style: 'ticks'
-                }));
-            } else if (response.msg_type === 'ticks_history') {
-                const history = response.history;
-                if (history && history.prices && history.prices.length >= 2) {
-                    const currentPrice = parseFloat(history.prices[1]);
-                    const prevPrice = parseFloat(history.prices[0]);
-                    const change = currentPrice - prevPrice;
-                    const changePercent = (change / prevPrice) * 100;
-
-                    resolve({
-                        symbol,
-                        price: currentPrice,
-                        change: change,
-                        changePercent: changePercent
-                    });
-                } else {
-                    resolve(null);
-                }
-                ws.close();
-                clearTimeout(timeout);
-            } else if (response.error) {
-                ws.close();
-                clearTimeout(timeout);
-                resolve(null);
-            }
-        });
-
-        ws.on('error', () => {
-            ws.close();
-            clearTimeout(timeout);
-            resolve(null);
-        });
-    });
-}
-
 export async function fetchFromDeriv(token) {
     if (!token) {
         console.warn('[MarketData] Deriv Token missing, cannot fetch ticker data.');
@@ -93,23 +24,91 @@ export async function fetchFromDeriv(token) {
     }
 
     console.log('[MarketData] Fetching ticker data from Deriv...');
-    const results = [];
-    for (const [displaySymbol, derivSymbol] of Object.entries(SYMBOLS_MAP)) {
-        const data = await fetchSymbolData(displaySymbol, derivSymbol, token);
-        if (data) results.push(data);
-    }
+    
+    return new Promise((resolve) => {
+        const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+        const results = [];
+        const expectedCount = Object.keys(SYMBOLS_MAP).length;
+        let receivedCount = 0;
+        
+        const timeout = setTimeout(() => {
+            ws.close();
+            if (results.length > 0) {
+                marketDataCache = { timestamp: Date.now(), data: results };
+            }
+            resolve(results.length > 0 ? results : marketDataCache.data);
+        }, 10000); // 10 seconds timeout for the whole batch
 
-    if (results.length > 0) {
-        marketDataCache = { timestamp: Date.now(), data: results };
-        return results;
-    }
-    return marketDataCache.data;
+        ws.on('open', () => {
+            if (token) {
+                ws.send(JSON.stringify({ authorize: token }));
+            }
+        });
+
+        ws.on('message', (data) => {
+            const response = JSON.parse(data);
+            
+            if (response.msg_type === 'authorize' && !response.error) {
+                // Once authorized, request all symbols
+                Object.entries(SYMBOLS_MAP).forEach(([displaySymbol, derivSymbol]) => {
+                    ws.send(JSON.stringify({ 
+                        ticks_history: derivSymbol,
+                        adjust_start_time: 1,
+                        count: 2,
+                        end: 'latest',
+                        style: 'ticks',
+                        req_id: displaySymbol // use displaySymbol as req_id to track
+                    }));
+                });
+            } else if (response.msg_type === 'ticks_history') {
+                receivedCount++;
+                const history = response.history;
+                const req_id = response.req_id;
+                
+                if (history && history.prices && history.prices.length >= 2) {
+                    const currentPrice = parseFloat(history.prices[history.prices.length - 1]);
+                    const prevPrice = parseFloat(history.prices[history.prices.length - 2]);
+                    const change = currentPrice - prevPrice;
+                    const changePercent = (change / prevPrice) * 100;
+
+                    results.push({
+                        symbol: req_id,
+                        price: currentPrice,
+                        change: change,
+                        changePercent: changePercent
+                    });
+                }
+                
+                if (receivedCount >= expectedCount || response.error) {
+                    ws.close();
+                    clearTimeout(timeout);
+                    if (results.length > 0) {
+                        marketDataCache = { timestamp: Date.now(), data: results };
+                    }
+                    resolve(results.length > 0 ? results : marketDataCache.data);
+                }
+            } else if (response.error && response.msg_type !== 'ticks_history') {
+                console.error('[MarketData] Deriv WS Error:', response.error);
+                ws.close();
+                clearTimeout(timeout);
+                resolve(marketDataCache.data);
+            }
+        });
+
+        ws.on('error', (err) => {
+            console.error('[MarketData] Deriv WS Catch Error:', err);
+            ws.close();
+            clearTimeout(timeout);
+            resolve(marketDataCache.data);
+        });
+    });
 }
 
 export default async (req, res) => {
     const isStale = !marketDataCache.timestamp || (Date.now() - marketDataCache.timestamp > CACHE_DURATION);
     const token = req.query?.token || process.env.DERIV_API_TOKEN || process.env.VITE_DERIV_API_TOKEN || process.env.DERIV_TOKEN || process.env.VITE_DERIV_TOKEN;
-    if (isStale) {
+    
+    if (isStale || req.query?.force) {
         const data = await fetchFromDeriv(token);
         res.status(200).json(data || []);
     } else {
