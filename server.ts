@@ -549,7 +549,8 @@ Base analysis on SMC (Smart Money Concepts), ICT, and institutional order flow.`
         });
 
       } catch (e) {
-        console.error('[Live] Error connecting to Gemini Live API', e);
+        console.error('[Live] Error connecting to Gemini Live API:', e);
+        if (ws.readyState === 1) ws.send(JSON.stringify({ type: 'ERROR', message: 'Failed to connect to Live API: ' + (e instanceof Error ? e.message : String(e)) }));
         if (ws.readyState === 1) ws.close();
       }
       return;

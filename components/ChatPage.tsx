@@ -352,6 +352,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                 ws.onmessage = (event) => {
                     if (!mounted) return;
                     const msg = JSON.parse(event.data);
+                    if (msg.type === 'ERROR') {
+                        setLiveStatus(msg.message);
+                        return;
+                    }
                     if (msg.audio) playAudioChunk(msg.audio);
                     if (msg.interrupted) {
                         nextStartTimeRef.current = 0; // barge-in flush
