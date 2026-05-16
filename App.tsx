@@ -516,7 +516,6 @@ const App: React.FC = () => {
                     onClearInitialInput={() => setPendingChatQuery(null)}
                     isLocked={systemSettings?.chatLocked && userMetadata?.role !== 'admin'}
                     userMetadata={userMetadata}
-                    onNavigate={(view) => navigateTo(view as any)}
                 />
             );
             break;

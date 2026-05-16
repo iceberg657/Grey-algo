@@ -15,8 +15,6 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
         mappedSymbol = 'cryETHUSD';
     } else if (normalized === 'LTC' || normalized === 'LTCUSD' || normalized === 'CRYLTCUSD') {
         mappedSymbol = 'cryLTCUSD';
-    } else if (normalized === 'XRP' || normalized === 'XRPUSD' || normalized === 'CRYXRPUSD') {
-        mappedSymbol = 'cryXRPUSD';
     } else if (normalized === 'US30' || normalized === 'OTCDJI' || normalized.includes('DJI') || normalized.includes('DOW') || normalized.includes('US30')) {
         mappedSymbol = 'OTC_DJI';
     } else if (normalized === 'US100' || normalized === 'NDX' || normalized.includes('NAS100') || normalized.includes('USTEC') || normalized.includes('US100')) {
