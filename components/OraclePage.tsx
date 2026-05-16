@@ -298,8 +298,6 @@ If the user enables vision, you can see their entire screen or camera. If asked 
 Analyze the market structure, give the exact bias (Buy/Sell), calculate safest Stop Loss (SL) using local liquidity points, and dictate Take Profit (TP) levels. 
 Be concise, assertive, and brilliant. Describe what you see mathematically.
 
-You have access to a Google Search tool. You MUST use it to search for real-time forex market news and global economic events to inform your bias whenever the user asks about what's happening around the world in the forex market or specific currency pairs.
-
 You also have the ability to navigate the user to different pages in the app if they ask you to open a specific page.
 Use the tool 'navigate_to_page' with the correct 'page' argument. Available pages are: 'interactive-chart', 'home', 'chat', 'history', 'products', 'journal', 'admin', 'autotrade', 'sniper'`,
           tools: [
@@ -320,8 +318,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                   }
                 }
               ]
-            },
-            { googleSearch: {} }
+            }
           ],
         },
       });
