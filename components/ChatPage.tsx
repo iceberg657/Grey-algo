@@ -302,7 +302,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             setLiveStatus('Connecting...');
 
             const setupLive = async () => {
-                let wsUrl = '/live';
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                const hostUrl = window.location.host;
+                const wsUrl = `${protocol}//${hostUrl}/live`;
+                console.log('Attempting to connect to WebSocket at:', wsUrl);
                 const ws = new WebSocket(wsUrl);
                 liveWsRef.current = ws;
 

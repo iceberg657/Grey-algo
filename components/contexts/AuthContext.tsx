@@ -89,7 +89,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
                             createdAt: Date.now()
                         };
                         try {
-                            await setDoc(userRef, initialMeta);
+                            console.log("Creating user metadata:", initialMeta);
+                            // Ensure the object has the uid field explicitly
+                            await setDoc(userRef, { ...initialMeta, uid: currentUser.uid });
                             setUserMetadata(initialMeta);
                         } catch (e) {
                             console.error("Failed to create user metadata:", e);

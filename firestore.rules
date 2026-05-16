@@ -102,10 +102,10 @@ service cloud.firestore {
       allow get: if isOwner(userId) || isAdmin();
       allow list: if isAdmin();
       
-      allow create: if isOwner(userId) && isValidUser(incoming()) && (incoming().role == 'user' || isSuperAdmin());
+      allow create: if isOwner(userId) && isValidUser(incoming()) && incoming().uid == userId;
       
       allow update: if (
-        (isOwner(userId) && isValidUser(incoming()) && incoming().role == existing().role) || 
+        (isOwner(userId) && isValidUser(incoming()) && incoming().uid == userId && incoming().role == existing().role) || 
         isAdmin()
       ) && incoming().diff(existing()).affectedKeys().hasOnly([
         'email', 'role', 'analysisCount', 'isRevoked', 'access', 'mt5Credentials', 'updatedAt'
