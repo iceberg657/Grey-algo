@@ -494,7 +494,7 @@ async function startServer() {
     // Determine path
     if (req.url === '/live') {
       try {
-        const apiKey = process.env.API_KEY_5 || process.env.GEMINI_API_KEY || '';
+        const apiKey = process.env.API_KEY_4 || process.env.GEMINI_API_KEY || '';
         const ai = new GoogleGenAI({ apiKey });
         
         const session = await ai.live.connect({
