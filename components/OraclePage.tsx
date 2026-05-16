@@ -25,22 +25,34 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const orbRef = useRef<HTMLDivElement>(null);
   
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
   const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const sessionRef = useRef<any>(null);
   const frameIntervalRef = useRef<number | null>(null);
   const nextPlayTimeRef = useRef<number>(0);
 
+  const inputModeRef = useRef<'voice' | 'text'>('voice');
+  const isMutedRef = useRef<boolean>(false);
+
   const toggleMute = () => {
     if (streamRef.current) {
+        const nextMuted = !isMuted;
         streamRef.current.getAudioTracks().forEach(track => {
-            track.enabled = isMuted; // enabled=true means unmuted
+            track.enabled = !nextMuted; // enabled=true means unmuted
         });
-        setIsMuted(!isMuted);
+        setIsMuted(nextMuted);
+        isMutedRef.current = nextMuted;
     }
+  };
+
+  const setInputModeWithRef = (mode: 'voice' | 'text') => {
+      setInputMode(mode);
+      inputModeRef.current = mode;
   };
 
   const sendText = () => {
@@ -59,6 +71,10 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
     if (scriptProcessorRef.current) {
       scriptProcessorRef.current.disconnect();
       scriptProcessorRef.current = null;
+    }
+    if (analyserRef.current) {
+      analyserRef.current.disconnect();
+      analyserRef.current = null;
     }
     if (mediaStreamSourceRef.current) {
       mediaStreamSourceRef.current.disconnect();
@@ -144,6 +160,11 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
         const source = audioCtx.createMediaStreamSource(audioStream);
         mediaStreamSourceRef.current = source;
         
+        const analyser = audioCtx.createAnalyser();
+        analyser.fftSize = 256;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+        
         processor = audioCtx.createScriptProcessor(4096, 1, 1);
         scriptProcessorRef.current = processor;
         
@@ -162,6 +183,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
             if (processor && audioStream) {
               // Audio input loop
                 processor.onaudioprocess = (e) => {
+                  if (isMutedRef.current || inputModeRef.current === 'text') return;
                   const inputData = e.inputBuffer.getChannelData(0);
                   const pcm16 = new Int16Array(inputData.length);
                   for (let i = 0; i < inputData.length; i++) {
@@ -182,7 +204,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                 };
             } else {
                 // If there's no audio stream, automatically switch to text mode
-                setInputMode('text');
+                setInputModeWithRef('text');
             }
 
             // Video frames loop (only if camera enabled)
@@ -257,8 +279,8 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                       
                       let playTime = nextPlayTimeRef.current;
                       if (playTime < aCtx.currentTime) {
-                          // Buffer underrun occurred, add a tiny delay to build up buffer to prevent micro-stutters
-                          playTime = aCtx.currentTime + 0.1;
+                          // Buffer underrun occurred, add a delay to build up buffer to prevent stutters
+                          playTime = aCtx.currentTime + 0.3;
                       }
                       sourceNode.start(playTime);
                       nextPlayTimeRef.current = playTime + audioBuffer.duration;
@@ -337,6 +359,40 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
       stopOracle();
     };
   }, []);
+
+  // Visualizer loop
+  useEffect(() => {
+    let animationId: number;
+    const updateVisualizer = () => {
+      if (isActive && analyserRef.current && orbRef.current && !isMuted) {
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < dataArray.length; i++) {
+          sum += dataArray[i];
+        }
+        const avg = sum / dataArray.length;
+        // Map average (typically 0 - 100 for speech) to scale and opacity
+        const scale = 1 + (avg / 256) * 0.5;
+        const opacity = avg > 3 ? Math.min(1, 0.3 + (avg / 128)) : 0;
+        
+        orbRef.current.style.transform = `scale(${scale})`;
+        orbRef.current.style.opacity = `${opacity}`;
+      } else if (orbRef.current) {
+        orbRef.current.style.transform = `scale(1)`;
+        orbRef.current.style.opacity = `0`;
+      }
+      animationId = requestAnimationFrame(updateVisualizer);
+    };
+
+    if (isActive) {
+      updateVisualizer();
+    }
+
+    return () => {
+      if (animationId) cancelAnimationFrame(animationId);
+    };
+  }, [isActive, isMuted]);
 
   return (
     <>
@@ -453,7 +509,15 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                     <div className="w-16 h-16 bg-white/90 rounded-full shadow-[0_0_40px_rgba(255,255,255,1)]" />
                   </motion.div>
                   
+                  {/* Oracle speaking pulsing ring */}
                   <div className="absolute -inset-4 bg-blue-500/20 blur-xl rounded-full z-0 pointer-events-none animate-pulse" />
+
+                  {/* User Voice Audio Visualizer */}
+                  <div 
+                    ref={orbRef}
+                    className="absolute inset-0 bg-cyan-400/50 shadow-[0_0_80px_rgba(34,211,238,0.8)] blur-xl rounded-full z-0 pointer-events-none transition-opacity duration-75" 
+                    style={{ opacity: 0, transform: 'scale(1)' }}
+                  />
                 </div>
 
                 {/* Transcription Feed */}
@@ -474,7 +538,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                 {/* Text/Mic Controls */}
                 <div className="flex items-center gap-4 bg-slate-900/80 p-2 rounded-full border border-blue-500/30">
                   <button 
-                      onClick={() => setInputMode(inputMode === 'voice' ? 'text' : 'voice')}
+                      onClick={() => setInputModeWithRef(inputMode === 'voice' ? 'text' : 'voice')}
                       className={`p-3 rounded-full transition-colors ${inputMode === 'text' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
                       title="Toggle Text Input"
                   >
