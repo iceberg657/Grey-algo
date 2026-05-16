@@ -315,6 +315,14 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     if (mounted) setLiveStatus('Awaiting Voice Input...');
                 };
 
+                ws.onerror = (error) => {
+                    console.error("Live WebSocket Error:", error);
+                    if (mounted) {
+                        setLiveStatus('Connection Error');
+                        setTimeout(() => setIsLiveMode(false), 2000);
+                    }
+                };
+
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     liveStreamRef.current = stream;
