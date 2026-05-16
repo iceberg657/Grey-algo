@@ -12,6 +12,7 @@ import { ProductsPage } from './components/ProductsPage';
 import { AdminPanel } from './components/AdminPanel';
 import { AutoTradePage } from './components/AutoTradePage';
 import { SniperLiveTrade } from './components/SniperLiveTrade';
+import { AgentCommandCenter } from './components/AgentCommandCenter';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';
@@ -19,7 +20,9 @@ import { LandingPage } from './components/LandingPage';
 import { TransitionLoader } from './components/TransitionLoader';
 import { resetChat as resetChatService } from './services/chatService';
 import { AutoLearningManager } from './components/AutoLearningManager';
+import { generateTradingSignal } from './services/geminiService';
 import { Loader } from './components/Loader'; 
+import { NeuralBackground } from './components/NeuralBackground';
 import { initializeApiKey } from './services/retryUtils';
 import { AnimatePresence, motion } from 'motion/react';
 import { 

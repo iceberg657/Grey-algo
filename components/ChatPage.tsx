@@ -10,8 +10,6 @@ import { NeuralBackground } from './NeuralBackground';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import type { UserMetadata, UserSettings } from '../types';
-import { GoogleGenAI } from "@google/genai";
-import { getApiKey } from '../services/retryUtils';
 
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
@@ -304,83 +302,18 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             setLiveStatus('Connecting...');
 
             const setupLive = async () => {
-                const apiKey = await getApiKey();
-                if (!apiKey) {
-                    if (mounted) setLiveStatus('Error: No API Key found.');
-                    setTimeout(() => setIsLiveMode(false), 2000);
-                    return;
-                }
+                const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+                let wsUrl = `${protocol}//${window.location.host}/live`;
+                const ws = new WebSocket(wsUrl);
+                liveWsRef.current = ws;
 
                 audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
                 inputAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
                 nextStartTimeRef.current = 0;
 
-                try {
-                    const ai = new GoogleGenAI({ apiKey });
-                    const session = await ai.live.connect({
-                        model: "gemini-3.1-flash-live-preview",
-                        callbacks: {
-                            onmessage: (message: any) => {
-                                if (!mounted) return;
-                                const audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
-                                if (audio) {
-                                    playAudioChunk(audio);
-                                }
-                                if (message.serverContent?.interrupted) {
-                                    nextStartTimeRef.current = 0; // barge-in flush
-                                }
-                            },
-                        },
-                        config: {
-                            responseModalities: ["AUDIO" as any],
-                            speechConfig: {
-                                voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
-                            },
-                            systemInstruction: `You are 'Oracle', a high-frequency trading AI and elite Trading Coach.
-You are interacting in LIVE multimodal voice mode via a Neural Link.
-Keep your responses fast, sharp, and confident. Use a professional, futuristic, and intense tone.
-Base analysis on SMC (Smart Money Concepts), ICT, and institutional order flow.`,
-                        },
-                    });
-
+                ws.onopen = () => {
                     if (mounted) setLiveStatus('Awaiting Voice Input...');
-
-                    // Mock the liveWsRef so we can use existing send/close logic
-                    liveWsRef.current = {
-                        readyState: WebSocket.OPEN,
-                        send: (msgString: string) => {
-                            const data = JSON.parse(msgString);
-                            try {
-                                if (data.audio) {
-                                    session.sendRealtimeInput([{
-                                        mimeType: "audio/pcm;rate=16000",
-                                        data: data.audio
-                                    }]);
-                                } else if (data.text) {
-                                    session.send({ text: data.text });
-                                } else if (data.video) {
-                                    session.sendRealtimeInput([{
-                                        mimeType: data.video.mimeType,
-                                        data: data.video.data
-                                    }]);
-                                }
-                            } catch (e) {
-                                console.error("[Live] sendError:", e);
-                            }
-                        },
-                        close: () => {
-                            try { session.close(); } catch(e){}
-                        }
-                    } as any;
-
-                } catch (e) {
-                     console.error("Live connect error:", e);
-                     if (mounted) {
-                         setLiveStatus('Error: Connection failed');
-                         setTimeout(() => setIsLiveMode(false), 2000);
-                     }
-                     return;
-                }
+                };
 
                 try {
                     stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -397,14 +330,31 @@ Base analysis on SMC (Smart Money Concepts), ICT, and institutional order flow.`
                 if (!mounted) return;
                 
                 source = inputAudioCtxRef.current.createMediaStreamSource(stream);
-                processor = inputAudioCtxRef.current.createScriptProcessor(4096, 1, 1);
+                processor = inputAudioCtxRef.current.createScriptProcessor(1024, 1, 1);
                 source.connect(processor);
                 processor.connect(inputAudioCtxRef.current.destination);
 
                 processor.onaudioprocess = (e) => {
-                    if (liveWsRef.current?.readyState === WebSocket.OPEN && !isLiveMicMuted) {
+                    if (ws.readyState === WebSocket.OPEN && !isLiveMicMuted) {
                         const base64 = pcmToBase64(e.inputBuffer.getChannelData(0));
-                        liveWsRef.current.send(JSON.stringify({ audio: base64 }));
+                        ws.send(JSON.stringify({ audio: base64 }));
+                    }
+                };
+
+                ws.onmessage = (event) => {
+                    if (!mounted) return;
+                    const msg = JSON.parse(event.data);
+                    if (msg.audio) playAudioChunk(msg.audio);
+                    if (msg.interrupted) {
+                        nextStartTimeRef.current = 0; // barge-in flush
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log("Live WS Closed");
+                    if (mounted) {
+                        setLiveStatus('Disconnected. Checking limits...');
+                        setTimeout(() => setIsLiveMode(false), 2000);
                     }
                 };
             };
