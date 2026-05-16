@@ -89,33 +89,41 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
 
       const ai = new GoogleGenAI({ apiKey });
 
-      let audioStream: MediaStream;
+      let audioStream: MediaStream | null = null;
       try {
         audioStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
       } catch (audioErr: any) {
         console.warn("Audio access failed:", audioErr);
-        if (audioErr.name === 'NotAllowedError' || audioErr.message.includes('Permission denied')) {
-            throw new Error("Microphone permission denied. Please grant permission or open the app in a new tab (using the button in the top right of the preview).");
-        }
-        throw new Error("Could not access microphone.");
+        // Instead of throwing an error, we gracefully fallback to text mode.
+        // We will force text input mode once connected.
       }
       
       let displayStream: MediaStream | null = null;
       if (includeCamera) {
           try {
-            displayStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
-          } catch (camErr: any) {
-            console.warn("Camera access failed:", camErr);
-            if (camErr.name === 'NotAllowedError' || camErr.message.includes('Permission denied')) {
-                throw new Error("Camera permission denied. Please grant permission or open the app in a new tab.");
+            const isDesktop = window.innerWidth > 768;
+            if (isDesktop && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+                displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'monitor' } });
+            } else {
+                displayStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
             }
-            throw new Error("Could not access camera.");
+          } catch (camErr: any) {
+            console.warn("Primary visual access failed:", camErr);
+            try {
+                // Fallback to regular camera if screen share fails/is declined
+                displayStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+            } catch (fallbackErr: any) {
+                if (fallbackErr.name === 'NotAllowedError' || fallbackErr.message.includes('Permission denied')) {
+                    throw new Error("Screen/Camera permission denied. Please grant permission or open the app in a new tab.");
+                }
+                throw new Error("Could not access camera or screen.");
+            }
           }
       }
       
       // Combine tracks
       const combinedStream = new MediaStream([
-        ...audioStream.getTracks(), 
+        ...(audioStream ? audioStream.getTracks() : []), 
         ...(displayStream ? displayStream.getTracks() : [])
       ]);
       streamRef.current = combinedStream;
@@ -125,20 +133,23 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
         await videoRef.current.play();
       }
 
-      // 2. Setup Audio Processing
+      // 2. Setup Audio Processing for Playback and Input
       const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       audioContextRef.current = audioCtx;
-      
-      const source = audioCtx.createMediaStreamSource(audioStream);
-      mediaStreamSourceRef.current = source;
-      
-      const processor = audioCtx.createScriptProcessor(4096, 1, 1);
-      scriptProcessorRef.current = processor;
-      
-      source.connect(processor);
-      processor.connect(audioCtx.destination);
-
       nextPlayTimeRef.current = audioCtx.currentTime;
+      
+      let processor: ScriptProcessorNode | null = null;
+      
+      if (audioStream) {
+        const source = audioCtx.createMediaStreamSource(audioStream);
+        mediaStreamSourceRef.current = source;
+        
+        processor = audioCtx.createScriptProcessor(4096, 1, 1);
+        scriptProcessorRef.current = processor;
+        
+        source.connect(processor);
+        processor.connect(audioCtx.destination);
+      }
 
       // 3. Connect to Live API
       const sessionPromise = ai.live.connect({
@@ -148,6 +159,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
             setIsActive(true);
             setIsInitializing(false);
             
+            if (processor && audioStream) {
               // Audio input loop
                 processor.onaudioprocess = (e) => {
                   const inputData = e.inputBuffer.getChannelData(0);
@@ -168,8 +180,12 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                     });
                   });
                 };
+            } else {
+                // If there's no audio stream, automatically switch to text mode
+                setInputMode('text');
+            }
 
-                // Video frames loop (only if camera enabled)
+            // Video frames loop (only if camera enabled)
                 if (includeCamera && videoRef.current && canvasRef.current) {
                     frameIntervalRef.current = window.setInterval(() => {
                       if (videoRef.current && canvasRef.current) {
@@ -278,30 +294,35 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
           },
           outputAudioTranscription: {},
           systemInstruction: `You are Oracle, an Apex-level Quantitative Trading AI. 
-You can see my entire screen. If I ask you to analyze a chart and give me a signal, you MUST act as an elite Institutional ICT/SMC trader. 
-Analyze the market structure, give me the exact bias (Buy/Sell), calculate the safest Stop Loss (SL) using local liquidity points, and dictate the Take Profit (TP) levels. 
-Be concise, assertive, and brilliant. Also, describe what you see mathematically.
+If the user enables vision, you can see their entire screen or camera. If asked to analyze a chart and give a signal, you MUST act as an elite Institutional ICT/SMC trader. 
+Analyze the market structure, give the exact bias (Buy/Sell), calculate safest Stop Loss (SL) using local liquidity points, and dictate Take Profit (TP) levels. 
+Be concise, assertive, and brilliant. Describe what you see mathematically.
 
-You have the ability to navigate the user to different pages in the app if they ask you to open a specific page.
+You have access to a Google Search tool. You MUST use it to search for real-time forex market news and global economic events to inform your bias whenever the user asks about what's happening around the world in the forex market or specific currency pairs.
+
+You also have the ability to navigate the user to different pages in the app if they ask you to open a specific page.
 Use the tool 'navigate_to_page' with the correct 'page' argument. Available pages are: 'interactive-chart', 'home', 'chat', 'history', 'products', 'journal', 'admin', 'autotrade', 'sniper'`,
-          tools: [{
-            functionDeclarations: [
-              {
-                name: 'navigate_to_page',
-                description: 'Navigates the web app to a specific page or view.',
-                parameters: {
-                  type: 'object',
-                  properties: {
-                    page: {
-                      type: 'string',
-                      description: "The page to navigate to. Valid values: 'interactive-chart', 'home', 'chat', 'history', 'products', 'journal', 'admin', 'autotrade', 'sniper'",
-                    }
-                  },
-                  required: ['page']
+          tools: [
+            {
+              functionDeclarations: [
+                {
+                  name: 'navigate_to_page',
+                  description: 'Navigates the web app to a specific page or view.',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      page: {
+                        type: 'string',
+                        description: "The page to navigate to. Valid values: 'interactive-chart', 'home', 'chat', 'history', 'products', 'journal', 'admin', 'autotrade', 'sniper'",
+                      }
+                    },
+                    required: ['page']
+                  }
                 }
-              }
-            ]
-          }],
+              ]
+            },
+            { googleSearch: {} }
+          ],
         },
       });
 
@@ -395,7 +416,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                     onChange={e => setIsCameraEnabled(e.target.checked)}
                     className="w-5 h-5 rounded border-gray-500 bg-black/50 text-blue-500 focus:ring-blue-500"
                   />
-                  <label htmlFor="cameraToggle" className="text-slate-400 font-mono text-sm cursor-pointer">Enable Camera</label>
+                  <label htmlFor="cameraToggle" className="text-slate-400 font-mono text-sm cursor-pointer">Share Screen (Desktop) / Camera</label>
                 </div>
 
                 <button 
@@ -405,7 +426,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                 >
                   {isInitializing ? 'Connecting Matrix...' : 'Awaken Oracle'}
                 </button>
-                <p className="text-xs text-slate-500 text-center max-w-sm">Requires microphone access for voice chat. If you enable the camera, you will be prompted for camera permissions.</p>
+                <p className="text-xs text-slate-500 text-center max-w-sm mt-3">Requires microphone access for voice chat. If you enable visual access, you will be prompted to share your screen or camera.</p>
                 {error && (
                   <div className="flex flex-col items-center gap-2 mt-4 text-center p-4 bg-red-950/50 rounded-xl border border-red-500/50">
                     <p className="text-red-400 text-sm max-w-sm font-semibold">{error}</p>
