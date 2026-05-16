@@ -21,6 +21,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
   const [inputMode, setInputMode] = useState<'voice' | 'text'>('voice');
   const [isMuted, setIsMuted] = useState(false);
   const [textInput, setTextInput] = useState('');
+  const [isCameraEnabled, setIsCameraEnabled] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -79,7 +80,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
     setIsInitializing(false);
   };
 
-  const startOracle = async () => {
+  const startOracle = async (includeCamera: boolean) => {
     setIsInitializing(true);
     setError(null);
     try {
@@ -88,35 +89,38 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
 
       const ai = new GoogleGenAI({ apiKey });
 
-      // 1. Setup Audio Input
-      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
-      
-      let displayStream: MediaStream | null = null;
+      let audioStream: MediaStream;
       try {
-        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-          displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'monitor' } });
-        } else {
-          throw new Error("Screen sharing is not supported by your browser or device.");
+        audioStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, sampleRate: 16000 } });
+      } catch (audioErr: any) {
+        console.warn("Audio access failed:", audioErr);
+        if (audioErr.name === 'NotAllowedError' || audioErr.message.includes('Permission denied')) {
+            throw new Error("Microphone permission denied. Please grant permission or open the app in a new tab (using the button in the top right of the preview).");
         }
-      } catch (e: any) {
-        console.warn("Screen sharing failed, falling back to camera or audio only:", e);
-        // Fallback to camera if screen sharing fails/unsupported
-        try {
-          displayStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-        } catch (camErr) {
-          console.warn("Camera fallback also failed:", camErr);
-          throw new Error("Could not access screen sharing or camera. Please grant permissions, or open in a new tab if in preview.");
-        }
+        throw new Error("Could not access microphone.");
       }
       
-      // Combine tracks for local cleanup
+      let displayStream: MediaStream | null = null;
+      if (includeCamera) {
+          try {
+            displayStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+          } catch (camErr: any) {
+            console.warn("Camera access failed:", camErr);
+            if (camErr.name === 'NotAllowedError' || camErr.message.includes('Permission denied')) {
+                throw new Error("Camera permission denied. Please grant permission or open the app in a new tab.");
+            }
+            throw new Error("Could not access camera.");
+          }
+      }
+      
+      // Combine tracks
       const combinedStream = new MediaStream([
         ...audioStream.getTracks(), 
         ...(displayStream ? displayStream.getTracks() : [])
       ]);
       streamRef.current = combinedStream;
 
-      if (videoRef.current) {
+      if (videoRef.current && displayStream) {
         videoRef.current.srcObject = displayStream;
         await videoRef.current.play();
       }
@@ -144,43 +148,45 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
             setIsActive(true);
             setIsInitializing(false);
             
-            // Audio input loop
-            processor.onaudioprocess = (e) => {
-              const inputData = e.inputBuffer.getChannelData(0);
-              const pcm16 = new Int16Array(inputData.length);
-              for (let i = 0; i < inputData.length; i++) {
-                pcm16[i] = Math.max(-1, Math.min(1, inputData[i])) * 32767;
-              }
-              const uint8 = new Uint8Array(pcm16.buffer);
-              let binary = '';
-              for (let i = 0; i < uint8.length; i++) {
-                binary += String.fromCharCode(uint8[i]);
-              }
-              const base64Data = btoa(binary);
-              sessionPromise.then(s => {
-                s.sendRealtimeInput({
-                  audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-                });
-              });
-            };
-
-            // Video frames loop
-            frameIntervalRef.current = window.setInterval(() => {
-              if (videoRef.current && canvasRef.current) {
-                const ctx = canvasRef.current.getContext('2d');
-                if (ctx) {
-                  // Capture 720p roughly
-                  ctx.drawImage(videoRef.current, 0, 0, 1280, 720);
-                  const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.5);
-                  const base64Data = dataUrl.split(',')[1];
+              // Audio input loop
+                processor.onaudioprocess = (e) => {
+                  const inputData = e.inputBuffer.getChannelData(0);
+                  const pcm16 = new Int16Array(inputData.length);
+                  for (let i = 0; i < inputData.length; i++) {
+                    const s = Math.max(-1, Math.min(1, inputData[i]));
+                    pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+                  }
+                  const uint8 = new Uint8Array(pcm16.buffer);
+                  let binary = '';
+                  for (let i = 0; i < uint8.length; i++) {
+                    binary += String.fromCharCode(uint8[i]);
+                  }
+                  const base64Data = btoa(binary);
                   sessionPromise.then(s => {
                     s.sendRealtimeInput({
-                      video: { data: base64Data, mimeType: 'image/jpeg' }
+                      audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
                     });
                   });
+                };
+
+                // Video frames loop (only if camera enabled)
+                if (includeCamera && videoRef.current && canvasRef.current) {
+                    frameIntervalRef.current = window.setInterval(() => {
+                      if (videoRef.current && canvasRef.current) {
+                        const ctx = canvasRef.current.getContext('2d');
+                        if (ctx) {
+                          ctx.drawImage(videoRef.current, 0, 0, 640, 480);
+                          const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.5);
+                          const base64Data = dataUrl.split(',')[1];
+                          sessionPromise.then(s => {
+                            s.sendRealtimeInput({
+                              video: { data: base64Data, mimeType: 'image/jpeg' }
+                            });
+                          });
+                        }
+                      }
+                    }, 2000); 
                 }
-              }
-            }, 2000); // Send frame every 2 seconds to save bandwidth
           },
           onmessage: async (message: LiveServerMessage) => {
             if (message.toolCall) {
@@ -233,7 +239,11 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                       sourceNode.buffer = audioBuffer;
                       sourceNode.connect(aCtx.destination);
                       
-                      const playTime = Math.max(aCtx.currentTime, nextPlayTimeRef.current);
+                      let playTime = nextPlayTimeRef.current;
+                      if (playTime < aCtx.currentTime) {
+                          // Buffer underrun occurred, add a tiny delay to build up buffer to prevent micro-stutters
+                          playTime = aCtx.currentTime + 0.1;
+                      }
                       sourceNode.start(playTime);
                       nextPlayTimeRef.current = playTime + audioBuffer.duration;
                     }
@@ -377,19 +387,35 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                   </div>
                 </div>
 
+                <div className="flex items-center gap-2 mb-4">
+                  <input 
+                    type="checkbox" 
+                    id="cameraToggle" 
+                    checked={isCameraEnabled} 
+                    onChange={e => setIsCameraEnabled(e.target.checked)}
+                    className="w-5 h-5 rounded border-gray-500 bg-black/50 text-blue-500 focus:ring-blue-500"
+                  />
+                  <label htmlFor="cameraToggle" className="text-slate-400 font-mono text-sm cursor-pointer">Enable Camera</label>
+                </div>
+
                 <button 
-                  onClick={startOracle}
+                  onClick={() => startOracle(isCameraEnabled)}
                   disabled={isInitializing}
                   className="px-10 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 rounded-full font-black tracking-widest uppercase transition-all shadow-[0_0_30px_rgba(59,130,246,0.3)] hover:shadow-[0_0_50px_rgba(59,130,246,0.6)] disabled:opacity-50"
                 >
                   {isInitializing ? 'Connecting Matrix...' : 'Awaken Oracle'}
                 </button>
-                <p className="text-xs text-slate-500 text-center max-w-sm">Requires camera/microphone, and you must select "Entire Screen" when prompted to allow Oracle to see your active charts. If on mobile, it will use your back camera.</p>
+                <p className="text-xs text-slate-500 text-center max-w-sm">Requires microphone access for voice chat. If you enable the camera, you will be prompted for camera permissions.</p>
                 {error && (
-                  <div className="flex flex-col items-center gap-2 mt-4 text-center">
-                    <p className="text-red-400 text-sm max-w-sm">{error}</p>
-                    <a href={window.location.href} target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:underline text-xs">
-                      Open App Fullscreen
+                  <div className="flex flex-col items-center gap-2 mt-4 text-center p-4 bg-red-950/50 rounded-xl border border-red-500/50">
+                    <p className="text-red-400 text-sm max-w-sm font-semibold">{error}</p>
+                    {error.includes("permission") && (
+                        <p className="text-red-300 text-xs mt-2 max-w-sm">
+                            <strong className="text-white">Note:</strong> Browsers often block permissions inside previews. Try opening the app in a new tab by clicking the button below, or the arrow in the top right.
+                        </p>
+                    )}
+                    <a href={window.location.href} target="_blank" rel="noopener noreferrer" className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-medium text-xs shadow-md transition-colors">
+                      Open App in New Tab
                     </a>
                   </div>
                 )}
