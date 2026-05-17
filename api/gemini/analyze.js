@@ -32,7 +32,7 @@ export default async function handler(req, res) {
     if (systemInstruction) requestBody.systemInstruction = systemInstruction;
 
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 90000);
+    const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 90000);
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
       method: 'POST',
@@ -44,7 +44,7 @@ export default async function handler(req, res) {
     });
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
+      if (!response.ok) {
       let errorData;
       try {
         errorData = await response.json();
@@ -52,7 +52,7 @@ export default async function handler(req, res) {
         const text = await response.text();
         errorData = { error: { message: `Gemini API error (${response.status}): ${text.substring(0, 200)}` } };
       }
-      console.error('[GeminiProxy] API Error:', errorData);
+      console.error('[GeminiProxy] API Error:', errorData.error?.message || errorData);
       return res.status(response.status).json(errorData);
     }
 

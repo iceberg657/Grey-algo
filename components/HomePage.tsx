@@ -141,8 +141,10 @@ export const HomePage: React.FC<HomePageProps> = ({
                 if (!isConfigured && retryCount === 0) {
                     console.warn('[TwelveData] API Key missing or invalid. Market confluence will be limited.');
                 }
-            } catch (err) {
-                console.error('Twelve Data Status Error:', err);
+            } catch (err: any) {
+                if (retryCount >= 1) {
+                    console.warn('[TwelveData] Status check failed after retry:', err.message);
+                }
                 
                 // Retry once after 2 seconds if it's a fetch failure
                 if (retryCount < 1) {

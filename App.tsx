@@ -12,7 +12,6 @@ import { ProductsPage } from './components/ProductsPage';
 import { AdminPanel } from './components/AdminPanel';
 import { AutoTradePage } from './components/AutoTradePage';
 import { SniperLiveTrade } from './components/SniperLiveTrade';
-import { AgentCommandCenter } from './components/AgentCommandCenter';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';

@@ -2,7 +2,6 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { SignalDisplay } from './SignalDisplay';
-import { AnnotatedChart } from './AnnotatedChart';
 import type { SignalData } from '../types';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { updateTradeOutcome } from '../services/historyService';
@@ -110,10 +109,6 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                         <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent h-[200%] pointer-events-none animate-shimmer"></div>
                         
                         <SignalDisplay data={data} />
-
-                        {image && (
-                            <AnnotatedChart imageSrc={image} data={data} />
-                        )}
 
                         {/* Trade Journaling Section */}
                         <div className="mt-12 pt-8 border-t border-gray-200 dark:border-white/10">

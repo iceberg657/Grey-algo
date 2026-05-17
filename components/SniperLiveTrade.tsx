@@ -258,7 +258,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       console.log(`[SniperLiveTrade] Fetching 3 timeframes for ${symbol}...`);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 25000); // 25 second timeout for 3 fetches
+      const timeoutId = setTimeout(() => controller.abort('timeout'), 25000); // 25 second timeout for 3 fetches
 
       // Fetch all 3 timeframes simultaneously with 1000 candles history
       const [entryRes, confirmRes, htfRes] = await Promise.all([
@@ -309,8 +309,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       return combinedData;
     } catch (err: any) {
       console.error('Deriv Price Fetch Error:', err);
-      const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout');
-      throw new Error(isTimeout ? `Deriv API Timeout: Failed to fetch live data for ${asset} within 15s.` : `Deriv API Error: ${err.message}`);
+      const isTimeout = err.name === 'AbortError' || err.message?.includes('timeout') || err.message?.includes('aborted');
+      throw new Error(isTimeout ? `Deriv API Timeout: Failed to fetch live data for ${asset} within 25s.` : `Deriv API Error: ${err.message}`);
     } finally {
       setIsFetchingPrice(false);
     }

@@ -208,11 +208,8 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
         return val.toFixed(displayPrecision);
     };
     
-    // Determine Recommended Entry Index based on entryType
-    const recommendedEntryIndex = data.entryType === 'Market Execution' ? 1 : 0; 
-    
-    // Use pre-calculated data from SignalData if available (from tradeSetup.ts)
-    const entry = data.entryPoints[recommendedEntryIndex] || data.entryPoints[0] || 0;
+    // Use the first entry point for display and calculation to stay consistent with the UI
+    const entry = data.entryPoints[0] || 0;
     const sl = data.stopLoss || 0;
     const tp3 = data.takeProfits[2] || data.takeProfits[0] || 0;
     
@@ -407,7 +404,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                              </span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
                                 {data.entryPoints.slice(0, data.signal === 'NEUTRAL' ? 3 : 1).map((ep, i) => {
-                                    const isRecommended = i === recommendedEntryIndex && data.signal !== 'NEUTRAL';
+                                    const isRecommended = data.signal !== 'NEUTRAL';
                                     return (
                                         <div key={i} className={`text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative ${isRecommended ? 'border-green-500/50 shadow-green-500/20' : 'border-gray-200 dark:border-white/10'}`}>
                                             {isRecommended && (
@@ -588,7 +585,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
                             <span className="text-gray-800 dark:text-white font-bold">
-                                {data.signal === 'NEUTRAL' ? 'N/A' : (data.riskRewardRatio || "1:2")}
+                                {data.signal === 'NEUTRAL' ? 'N/A' : (data.riskRewardRatio || (diffSL > 0 ? `1:${(diffTP3/diffSL).toFixed(1).replace(/\.0$/, '')}` : 'N/A'))}
                             </span>
                         </div>
 
@@ -1017,7 +1014,6 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '1400ms' }}>
                     <Section title="Verification Protocol" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <VerificationStepCard title="News & Session" step={data.verificationProtocol.newsAndSessionCheck} />
                             <VerificationStepCard title="Higher Timeframe" step={data.verificationProtocol.higherTimeframeCheck} />
                             <VerificationStepCard title="Liquidity Sweep" step={data.verificationProtocol.liquiditySweepCheck} />
                             <VerificationStepCard title="Risk/Reward" step={data.verificationProtocol.riskRewardCheck} />

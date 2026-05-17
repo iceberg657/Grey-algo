@@ -126,7 +126,6 @@ export interface VerificationStep {
 }
 
 export interface VerificationProtocol {
-    newsAndSessionCheck: VerificationStep;
     higherTimeframeCheck: VerificationStep;
     liquiditySweepCheck: VerificationStep;
     riskRewardCheck: VerificationStep;
@@ -178,7 +177,6 @@ export interface SignalData {
     counterArgumentRejection?: string;
     riskAnalysis?: RiskAnalysis;
     sentiment?: Sentiment;
-    economicEvents?: EconomicEvent[];
     sources?: {
         uri: string;
         title: string;

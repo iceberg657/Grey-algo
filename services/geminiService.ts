@@ -10,7 +10,20 @@ import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, currentDate?: Date) => {
+  const date = currentDate || new Date();
+  const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
+  const isTraditionalMarket = !asset.toUpperCase().includes('BTC') && !asset.toUpperCase().includes('ETH') && !asset.toUpperCase().includes('CRYPTO') && !asset.toUpperCase().includes('DERIV');
+
+  const weekendInstruction = (isWeekend && isTraditionalMarket) ? `
+**MARKET CLOSED / WEEKEND DETECTED:**
+You are analyzing a traditional financial asset (${asset}) on a weekend. The market is currently CLOSED.
+- You MUST explicitly state in the analysis (summary and reasoning) that the market is closed.
+- Provide a PROJECTION or PREPARATION analysis for the market open (e.g., "Monday Open Plan").
+- Set the signal to "NEUTRAL" or clearly label it as a "Pending Setup for Market Open".
+- Do not output a live execution signal, as execution is impossible right now.
+` : '';
+
   const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
     asset.toUpperCase().includes(k)
   );
@@ -263,6 +276,13 @@ You MUST frame your final 'marketStory' and 'summary' as a collaborative consens
 3. **Risk Mitigation:** Responsible for FVG identification and Pip-risk evaluation.
 4. **Execution Quant:** Responsible for the final decisive entry trigger and confluence scoring.
 
+**MANDATORY: YOU MUST PROVIDE FULL DETAILS FOR EVERY FIELD IN THE OUTPUT JSON.**
+- Populate EVERY field, including ACTUAL specific price values for entryPoints, stopLoss, takeProfits. DO NOT use 0.00, 100, 300, or placeholder numbers! Even if you have to estimate from the image Y-axis, provide real, accurate price targets.
+- Provide exactly 10 distinct, detailed reasoning points. DO NOT skip or write 'pending'.
+- Explicitly define the HTF macro bias and trigger conditions.
+- Include all relevant intelligence sources and analysis details.
+- If a value is unknown, use 'N/A' for strings, but DO NOT skip the field. Numerical fields MUST have valid numbers.
+
 In your 'marketStory', use headers or tags (e.g., [STRUCTURE], [LIQUIDITY]) to denote which agent is speaking for that specific part of the analysis.
 
 ${learnedContext}
@@ -272,6 +292,7 @@ ${twelveDataContext}
 ${accountInfo}
 ${tradeModeInstructions}
 ${institutionalMath}
+${weekendInstruction}
 
 ---
 
@@ -798,13 +819,11 @@ You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a 
       "5. CHoCH/BOS Confirmed: [Pass/Fail]",
       "6. FVG/OB Retest: [Pass/Fail]",
       "7. Premium/Discount Zone: [Pass/Fail]",
-      "8. Economic News Cleared: [Pass/Fail]",
-      "9. Risk:Reward Acceptable: [Pass/Fail]",
-      "10. Twelve Data Confluence: [Pass/Fail]"
+      "8. Risk:Reward Acceptable: [Pass/Fail]",
+      "9. Twelve Data Confluence: [Pass/Fail]"
     ]
   },
   "verificationProtocol": {
-    "newsAndSessionCheck": { "passed": boolean, "reasoning": string },
     "higherTimeframeCheck": { "passed": boolean, "reasoning": "How this aligns with Global Trend [${globalTrend?.momentum || 'N/A'}]" },
     "liquiditySweepCheck": { "passed": boolean, "reasoning": string },
     "riskRewardCheck": { "passed": boolean, "reasoning": string }
@@ -855,7 +874,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
           request.tradingStyle,
           request.userSettings,
           request.twelveDataQuote,
-          request.globalTrend
+          request.globalTrend,
+          new Date()
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -896,7 +916,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 const config: any = { 
                     tools: [{googleSearch: {}}], 
                     temperature: 0,
-                    maxOutputTokens: 8192 // Ensure enough room for deep reasoning
+                    maxOutputTokens: 8192,
+                    responseMimeType: 'application/json'
                 };
                 
                 let responseText = '';
@@ -935,7 +956,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                     candidates = data.candidates;
                     promptFeedback = data.promptFeedback;
                 } catch (proxyError: any) {
-                    console.error('[Gemini] Proxy failed:', proxyError);
+                    console.warn(`[Gemini] Proxy inference failed (${proxyError.message}), checking fallbacks...`);
                     const errorMsg = (proxyError.message || '').toLowerCase();
                     
                     if (
@@ -990,6 +1011,13 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             finalConfidence = data.confidence || 0;
         }
 
+        // Apply Confidence Clamping: 60-79% for regular, 80-95% for sure signals
+        if (finalConfidence < 80) {
+            finalConfidence = Math.min(79, Math.max(60, finalConfidence));
+        } else if (finalConfidence > 95) {
+            finalConfidence = 95;
+        }
+
         // Extract Grounding Metadata (Real Search Results)
         const groundingChunks = candidates?.[0]?.groundingMetadata?.groundingChunks || [];
         const groundingSources = groundingChunks
@@ -1029,9 +1057,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         }
         if (safeReasoning.length > 10) {
             safeReasoning = safeReasoning.slice(0, 10);
-        } else while (safeReasoning.length < 10) {
-            safeReasoning.push(`Point ${safeReasoning.length + 1}: Additional confluence factor pending verification.`);
         }
+        // REMOVED: Placeholder autofilling for reasoning points. If the AI didn't generate 10, it should be reflected as missing or incomplete.
 
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
@@ -1427,11 +1454,26 @@ export async function generateSniperLiveSignal(
 - **UK100 PROFIT ACCELERATOR:** For UK100, TP1 should be set aggressively at the first local friction point to ensure profits are locked in during volatile London moves.
 ` : '';
 
+  const date = new Date();
+  const isWeekend = date.getDay() === 0 || date.getDay() === 6; // Sunday or Saturday
+  const isTraditionalMarket = !assetName.toUpperCase().includes('BTC') && !assetName.toUpperCase().includes('ETH') && !assetName.toUpperCase().includes('CRYPTO') && !assetName.toUpperCase().includes('DERIV');
+  
+  const weekendInstruction = (isWeekend && isTraditionalMarket) ? `
+**MARKET CLOSED / WEEKEND DETECTED:**
+You are analyzing a traditional financial asset (${assetName}) on a weekend. The market is currently CLOSED.
+- You MUST explicitly state in the reasoning that the market is closed.
+- Provide a PROJECTION or PREPARATION analysis for the market open.
+- Set the signal to "NEUTRAL" and explain it's a "Pending Setup for Market Open".
+- Do not output a live execution signal, as execution is impossible right now.
+` : '';
+
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
 System Role: You are a High-Frequency Institutional Execution Bot.
 
 Data:
 ${quantContext}
+
+${weekendInstruction}
 
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:
@@ -1526,7 +1568,7 @@ JSON Structure:
         let text = '';
         try {
           const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), 50000); // 50s timeout limit
+          const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 50000); // 50s timeout limit
 
           const proxyRes = await fetch('/api/gemini/analyze', {
             method: 'POST',
@@ -1756,44 +1798,34 @@ function extractJson(str: string): any {
             }
         }
 
-        // 3. Sanitization: remove comments and line breaks that might break JSON.parse
-        target = target
-            .replace(/\/\/.*$/gm, '') // Remove single-line comments
-            .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-            .replace(/[\u0000-\u001F\u007F-\u009F]/g, ''); // Remove control characters
-
+        // Try parsing immediately before doing any destructive operations
         try {
             return JSON.parse(target);
-        } catch (initialError) {
-            // 4. If standard parse fails, attempt deep repair
-            const repaired = repairJson(target);
+        } catch (firstPassError) {
+            console.log("Initial JSON.parse failed, attempting sanitization...", firstPassError);
+            
+            // 3. Sanitization: remove comments and line breaks that might break JSON.parse
+            // Be careful to not break URLs starting with https://
+            let sanitized = target
+                .replace(/(?<!https?:)\/\/.*$/gm, '') // Remove single-line comments (but NOT in URLs)
+                .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
+                .replace(/[\u0000-\u0019\u007F-\u009F]/g, ''); // Remove most control characters except normal whitespace
+
             try {
-                return JSON.parse(repaired);
-            } catch (repairError) {
-                console.warn('JSON Repair failed, attempting regex extraction of key fields...');
-                
-                // 5. Final Fallback: Heuristic extraction for critical fields
-                const signalMatch = str.match(/"signal":\s*"(BUY|SELL|NEUTRAL)"/i);
-                const confidenceMatch = str.match(/"confidence":\s*(\d+)/);
-                const assetMatch = str.match(/"asset":\s*"([^"]+)"/);
-                
-                if (signalMatch) {
-                    return {
-                        signal: signalMatch[1].toUpperCase(),
-                        confidence: confidenceMatch ? parseInt(confidenceMatch[1]) : 50,
-                        asset: assetMatch ? assetMatch[1] : 'Asset',
-                        reasoning: ["System Anomaly: JSON structure was corrupted but directional bias was salvaged."],
-                        fallbackTriggered: true
-                    };
+                return JSON.parse(sanitized);
+            } catch (initialError) {
+                // 4. If standard parse fails, attempt deep repair
+                const repaired = repairJson(sanitized);
+                try {
+                    return JSON.parse(repaired);
+                } catch (repairError) {
+                    console.warn('JSON Repair failed. Will not use hardcoded heuristic fallbacks as they corrupt price data. Throwing error to trigger model fallback.');
+                    throw repairError;
                 }
-                throw repairError;
-            }
         }
-    } catch (e) {
-        console.error('CRITICAL: Unified JSON Extraction Failure:', e);
-        // Absolute last resort
-        if (str.toUpperCase().includes('BUY')) return { signal: 'BUY', confidence: 45, reasoning: ["Heuristic Fallback: 'BUY' keyword detected in unparsable stream."] };
-        if (str.toUpperCase().includes('SELL')) return { signal: 'SELL', confidence: 45, reasoning: ["Heuristic Fallback: 'SELL' keyword detected in unparsable stream."] };
-        return {};
+    }
+    } catch (e: any) {
+        console.error('CRITICAL: Unified JSON Extraction Failure:', e.message || e);
+        throw e;
     }
 }
