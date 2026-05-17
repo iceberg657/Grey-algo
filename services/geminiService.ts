@@ -916,8 +916,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 const config: any = { 
                     tools: [{googleSearch: {}}], 
                     temperature: 0,
-                    maxOutputTokens: 8192,
-                    responseMimeType: 'application/json'
+                    maxOutputTokens: 8192
                 };
                 
                 let responseText = '';
@@ -1560,7 +1559,6 @@ JSON Structure:
       ANALYSIS_MODELS,
       async (modelId) => {
         const config: any = { 
-          responseMimeType: "application/json",
           temperature: 0,
           maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
         };
