@@ -30,10 +30,10 @@ You are strictly FORBIDDEN from trading against the Global HTF Bias provided bel
 - **Context:** ${globalTrend.reason}
 
 **HARD CONSTRAINTS:**
-1. If Global Momentum is **BULLISH**, you should generally look for BUY setups. If the image shows a SELL setup without clear reversal logic, issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bullish Trend".
-2. If Global Momentum is **BEARISH**, you should generally look for SELL setups. If the image shows a BUY setup without clear reversal logic, issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bearish Trend".
+1. If Global Momentum is **BULLISH**, you should ONLY look for BUY setups. If the image shows a SELL setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bullish Trend".
+2. If Global Momentum is **BEARISH**, you should ONLY look for SELL setups. If the image shows a BUY setup, you MUST issue a **NEUTRAL** signal with reasoning: "Against Global HTF Bearish Trend".
 3. Counter-trend setups are strictly for educational breakdown ONLY and MUST result in a NEUTRAL signal for actual trading.
-4. If there is absolutely no valid trade setup, you may output NEUTRAL (No Trade). When issuing NEUTRAL, all figures (Entry, SL, TP) MUST be exactly 0.
+4. You are FORBIDDEN from being NEUTRAL for any reason OTHER than extreme trend misalignment or high-impact news.
 ` : "";
 
   const globalTrendContext = globalTrend ? `
@@ -68,7 +68,7 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1.5 RR.`
     : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
-- **NEUTRAL ALLOWED SPARINGLY:** You may issue a NEUTRAL (No Trade) signal if the market structure is completely invalid, but aim for at most 1 NEUTRAL signal per day. When issuing NEUTRAL, all price targets must be 0.
+- **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL or "No Trade" signal.
 - **FORCE DIRECTION (DECISIVE BIAS):** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST fulfill that request and pick that side. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
 - **BIAS OVER NEUTRALITY:** If your confidence score is lower, still do NOT sit on the fence. Check the trend bias:
     - If Trend is UP -> Issue 'WEAK BULLISH' (labeled as BUY).
@@ -290,7 +290,9 @@ Use the Twelve Data "Mathematical Truth" to perform statistical analysis:
 3. **Equilibrium Validation:** Evaluate if the asset has returned to the Equilibrium (50% mark) of the recent structural leg.
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
-1. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** Your signal should generally be BUY or SELL. You may issue a **NEUTRAL** signal if there is absolutely no valid trade setup (e.g. at most 1 No Trade signal a day). Instead of forcing a bad trade, use NEUTRAL and set all price targets to 0.
+1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL in almost all cases. 
+   - **EXCEPTION:** You are ONLY permitted to issue a **NEUTRAL** signal if the local price action is directly contradicting the **Protocol Zero: HTF Trend Alignment**. 
+   - In all other cases, you MUST prioritize a directional signal (BUY/SELL).
 2. **THOU SHALT CRUSH THE COUNTER-ARGUMENT:** You MUST explicitly explain why the alternative scenario (e.g., why you didn't choose SELL when issuing a BUY) was rejected.
 3. **THOU SHALT BE CONSISTENT:** Your technical analysis must align perfectly with your signal and entry points.
 4. **THOU SHALT FOLLOW THE PROTOCOL:** Adhere strictly to the SMC/ICT and risk management frameworks provided.
@@ -360,8 +362,8 @@ You MUST round all price levels (entryPoints, stopLoss, takeProfits) according t
 - **Deriv Synthetics:** Relative to current price (e.g., Volatility 75 -> 2 decimals, Step Index -> 3 decimals).
 **STRICTLY PROHIBITED:** Avoid long trailing decimals like 49753.48215. Truncate/round to the levels above.
 
-6. **DONT ABUSE NEUTRALITY:**
-    - Do NOT default to NEUTRAL frequently. But if there is absolutely no trade, you may output NEUTRAL. If NEUTRAL, set Entry, SL, TP to 0.
+6. **BIAS OVER NEUTRALITY (FIX FOR FREQUENT NEUTRAL SIGNALS):**
+    - Do NOT default to NEUTRAL.
     - **Dominant Signal Override:** If a 'BOS' or 'CHoCH' is detected in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.
     - Only avoid a signal if high-impact news is expected within 30 minutes.
 
@@ -423,8 +425,8 @@ ${ALGO_LOGIC}
    - If price closes beyond the invalidation level, the trade is dead immediately.
    - If price starts declining (for buys) or inclining (for sells) at a certain level against the setup, CLOSE immediately. Do not wait for SL.
 
-6. **NEUTRAL SIGNAL PROTOCOL:**
-   - You may issue a NEUTRAL signal if the market is completely unclear or there is no trade setup. If issuing NEUTRAL, you must replace all figures (Entry points, Stop Loss, Take Profits) with exactly 0.
+6. **NO NEUTRAL SIGNAL PROTOCOL:**
+   - You are explicitly forbidden from issuing a NEUTRAL signal. If the market is unclear, use your institutional mapping to identify where smart money is most likely to trap retail and issue a signal in the direction of the expected trap clearance.
    - Support your signal with rock-solid reasoning that addresses why the opposing side was rejected.
    - For \`buyConditions\` (or execution conditions), use this format/logic:
      - M5 or M15 Break of Structure (BOS)
@@ -685,11 +687,11 @@ If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirat
 ---
 
 **CRITICAL INSTRUCTION: DIRECT BIAS**
-You should choose BUY or SELL, but can choose NEUTRAL if there is no setup (set numeric fields to 0). Provide a specific and complete JSON output.
+You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a specific and complete JSON output.
 
 **JSON OUTPUT (RAW ONLY - NO MARKDOWN):**
 {
-  "signal": "BUY" | "SELL" | "NEUTRAL",
+  "signal": "BUY" | "SELL",
   "confidence": number, // 0-100. CRITICAL: Calculate this strictly based on the Execution Checklist. (e.g., 6 passes = 60%, 8 passes = 80%).
   "asset": "${asset}",
   "timeframe": "e.g., M5, M15, H1",
@@ -1031,30 +1033,16 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             safeReasoning.push(`Point ${safeReasoning.length + 1}: Additional confluence factor pending verification.`);
         }
 
-        let rawSignalText = String(data.signal || '').toUpperCase();
-        let parsedSignal: 'BUY' | 'SELL' | 'NEUTRAL' = 'NEUTRAL';
-        if (rawSignalText.includes('BUY')) parsedSignal = 'BUY';
-        else if (rawSignalText.includes('SELL')) parsedSignal = 'SELL';
-        else if (rawSignalText.includes('NEUTRAL') || rawSignalText.includes('NO TRADE')) parsedSignal = 'NEUTRAL';
-
-        let derivedEntries = data.entryPoints || [];
-        if (!Array.isArray(derivedEntries) || derivedEntries.length === 0 || !derivedEntries[0] || derivedEntries[0] === 0) {
-            const currentPrice = request.twelveDataQuote?.close 
-                ? parseFloat(request.twelveDataQuote.close) 
-                : 0;
-            derivedEntries = [currentPrice, currentPrice, currentPrice];
-        }
-
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
-            signal: parsedSignal,
-            confidence: parsedSignal === 'NEUTRAL' ? 0 : finalConfidence,
-            entryPoints: parsedSignal === 'NEUTRAL' ? [0, 0, 0] : derivedEntries,
+            signal: (data.signal === 'NEUTRAL' ? ((request.query?.toLowerCase().includes('sell') || request.query?.toLowerCase().includes('bearish')) ? 'SELL' : 'BUY') : data.signal) as 'BUY' | 'SELL',
+            confidence: finalConfidence,
+            entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
             triggerConditions: data.triggerConditions || { breakoutLevel: 0, retestLogic: "N/A", entryTriggerCandle: "N/A" },
-            stopLoss: parsedSignal === 'NEUTRAL' ? 0 : (data.stopLoss || 0),
-            takeProfits: parsedSignal === 'NEUTRAL' ? [0, 0, 0] : (data.takeProfits || [0, 0, 0]),
+            stopLoss: data.stopLoss || 0,
+            takeProfits: data.takeProfits || [0, 0, 0],
             possiblePips: data.possiblePips || 0,
             winProbability: data.winProbability || 0,
             recommendedPositions: data.recommendedPositions || 2,
@@ -1472,7 +1460,7 @@ style.includes('day trading') ? `
     - Fair Value Gaps (FVG)
     - Break of Structure (BOS) / Change of Character (CHoCH)
     - Liquidity Pools (Equal Highs/Lows)
-8. **DECISIVE BIAS:** You should generally pick a side (BUY or SELL). However, if there is absolutely no valid trade, you may issue a 'NEUTRAL' signal. If NEUTRAL, set Entry, SL, and TP to 0.
+8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow.
 
 **CRITICAL DATA (SMC BASIS):**
 - ASSET: ${assetName}
@@ -1585,13 +1573,7 @@ JSON Structure:
         const midEntry = (entryRange.min + entryRange.max) / 2;
         const diffPercent = livePrice > 0 ? Math.abs(midEntry - livePrice) / livePrice : 0;
         
-        let rawSniperSignalText = String(signal.signal || '').toUpperCase();
-        let parsedSniperSignal = 'NEUTRAL';
-        if (rawSniperSignalText.includes('BUY')) parsedSniperSignal = 'BUY';
-        else if (rawSniperSignalText.includes('SELL')) parsedSniperSignal = 'SELL';
-        else if (rawSniperSignalText.includes('NEUTRAL') || rawSniperSignalText.includes('NO TRADE') || rawSniperSignalText.includes('HOLD')) parsedSniperSignal = 'NEUTRAL';
-
-        let finalSignal = parsedSniperSignal;
+        let finalSignal = signal.signal;
         let finalEntryRange = entryRange;
         let finalSL = sl;
         let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
@@ -1621,36 +1603,40 @@ JSON Structure:
 
         // --- FINAL SNIPER CONSTRAINTS ---
         if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
-            finalSignal = 'NEUTRAL';
-            finalReasoning.push(`🎯 Sniper Mandate: No clear valid setup. Issuing NEUTRAL (No Trade).`);
-            finalEntryRange = { min: 0, max: 0 };
-            finalSL = 0;
-            signal.takeProfits = [0, 0, 0];
+            if (signal.signal === 'BUY' || signal.signal === 'SELL') {
+                finalSignal = signal.signal;
+                finalReasoning.push(`🎯 Retaining AI directional bias (${finalSignal}) despite price recalibration.`);
+            } else {
+                if ((query?.toLowerCase().includes('sell') || query?.toLowerCase().includes('bearish')) || (quantData?.trend === 'BEARISH' || quantData?.currentZone === 'PREMIUM')) {
+                    finalSignal = 'SELL';
+                } else {
+                    finalSignal = 'BUY';
+                }
+                finalReasoning.push(`🎯 Sniper Mandate: Neutrality rejected. Trade forced in direction of structural bias (${finalSignal}).`);
+            }
         }
 
         const rawConf = signal.confidence || 50;
-        let finalConfidence = finalSignal === 'NEUTRAL' ? 0 : Math.floor(70 + (rawConf / 100) * 15);
-        if (signal.neuralFilter && signal.neuralFilter.confidenceBoost && finalSignal !== 'NEUTRAL') {
+        let finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
+        if (signal.neuralFilter && signal.neuralFilter.confidenceBoost) {
             finalConfidence = Math.max(0, Math.min(100, finalConfidence + signal.neuralFilter.confidenceBoost));
         }
 
         // SL Validation against ATR if quantData is present
-        if (quantData?.atr && finalSignal !== 'NEUTRAL') {
+        if (quantData?.atr) {
             finalSL = validateSL(finalSignal as 'BUY'|'SELL', midEntry, finalSL, quantData.atr, signal.asset || assetName);
             finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
         }
 
         // Apply mathematical RR overrides
         let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0,0,0];
+        const rrLevels = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL, signal.asset || assetName);
         let finalPositionProtocol: string | undefined = undefined;
 
-        if (finalSignal !== 'NEUTRAL') {
-            const rrLevels = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL, signal.asset || assetName);
-
-            if (rrLevels) {
-                finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
-                finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2x, 3x risk distances.`);
-                finalPositionProtocol = `
+        if (rrLevels) {
+            finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
+            finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2x, 3x risk distances.`);
+            finalPositionProtocol = `
 **POSITION MANAGEMENT PROTOCOL:**
 - Entry: ${midEntry}
 - Stop Loss: ${finalSL} (Risk: ${rrLevels.risk.toFixed(5)})
@@ -1662,20 +1648,19 @@ JSON Structure:
 RULE: Once TP1 is hit you CANNOT lose on this trade.
 Move SL to entry immediately after TP1.
 `;
-            } else {
-                // Validate TPs are on correct side of entry just in case
-                const tpsValid = finalSignal === 'BUY'
-                    ? finalTPs.every((tp: number) => tp > midEntry)
-                    : finalTPs.every((tp: number) => tp < midEntry);
+        } else {
+            // Validate TPs are on correct side of entry just in case
+            const tpsValid = finalSignal === 'BUY'
+                ? finalTPs.every(tp => tp > midEntry)
+                : finalTPs.every(tp => tp < midEntry);
 
-                if (!tpsValid) {
-                    console.warn('[RR] TP validation failed — recalculating');
-                    const recalculated = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL);
-                    if (recalculated) {
-                        finalTPs[0] = recalculated.tp1 || finalTPs[0] || 0;
-                        finalTPs[1] = recalculated.tp2 || finalTPs[1] || 0;
-                        finalTPs[2] = recalculated.tp3 || finalTPs[2] || 0;
-                    }
+            if (!tpsValid) {
+                console.warn('[RR] TP validation failed — recalculating');
+                const recalculated = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL);
+                if (recalculated) {
+                    finalTPs[0] = recalculated.tp1 || finalTPs[0] || 0;
+                    finalTPs[1] = recalculated.tp2 || finalTPs[1] || 0;
+                    finalTPs[2] = recalculated.tp3 || finalTPs[2] || 0;
                 }
             }
         }
@@ -1683,7 +1668,7 @@ Move SL to entry immediately after TP1.
         // Calculate Lot Size based on User Settings
         const accountBalance = userSettings?.accountBalance || 10000;
         const riskPercent = userSettings?.riskPerTrade || 1;
-        const lotInfo = finalSignal === 'NEUTRAL' ? { recommendedLot: 0, riskAmount: 0 } : calculateLotSize(accountBalance, riskPercent, midEntry, finalSL);
+        const lotInfo = calculateLotSize(accountBalance, riskPercent, midEntry, finalSL);
 
         const sanitizedSignal: SignalData = {
           id: `sniper_${Date.now()}`,
@@ -1692,7 +1677,7 @@ Move SL to entry immediately after TP1.
           signal: finalSignal,
           confidence: finalConfidence,
           timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
-          entryPoints: finalSignal === 'NEUTRAL' ? [0, 0, 0] : [midEntry],
+          entryPoints: [midEntry],
           entryRange: finalEntryRange || null,
           stopLoss: finalSL,
           takeProfits: finalTPs,
