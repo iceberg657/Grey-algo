@@ -1529,17 +1529,28 @@ style.includes('day trading') ? `
 USER REQUEST: "${query}"
 
 **MANDATORY EXECUTION RULES:**
-1. **SNIPER CONFIDENCE CAP:** Your confidence score MUST NOT exceed 85%. Even if the setup is perfect, cap your score at 85% to reflect inherent market risk.
-2. **IMMEDIATE EXECUTION & SURGICAL PRECISION:** Every setup you provide MUST be for **IMMEDIATE MARKET EXECUTION**. Your entryRange MUST encapsulate the current LIVE MARKET PRICE (${livePrice}). SL and TP MUST be extremely tight and visible on the current timeframe. Avoid targets that require massive pips.
-3. **INTELLIGENT & TIGHT STOP LOSS:** 
+1. **MATHEMATICAL CONFIDENCE SCORING:** Your confidence score MUST be explicitly calculated based on confluence, not chosen randomly. 
+   - Base score: start at 50%.
+   - +10% if Trend Bias aligns perfectly.
+   - +10% if Displacement is YES.
+   - +10% if Current Price is in OTE (Optimal Trade Entry) or valid Premium/Discount zone.
+   - +5% if BOS/CHoCH confirms the direction.
+   - Penalties: Deduct heavily (-20%) if trading against HTF Bias or outside of optimal zones.
+   - CAP: Your final score MUST NOT exceed 85% to reflect inherent market risk.
+2. **TIMEFRAME PRECISION:** Your selected \`timeframe\` output must not be random. It MUST be logically derived:
+   - If Displacement is YES and volatility/momentum is high, select "15m" (or 5m for scalps) for surgical precision.
+   - If the market is consolidating, or in a broader structural zone waiting for a trigger, select "1H" (or 4H for swing).
+   - The chosen timeframe MUST logically match the scale of your Entry Range and Stop Loss pip distance.
+3. **IMMEDIATE EXECUTION & SURGICAL PRECISION:** Every setup you provide MUST be for **IMMEDIATE MARKET EXECUTION**. Your entryRange MUST encapsulate the current LIVE MARKET PRICE (${livePrice}). SL and TP MUST be extremely tight and visible on the current timeframe. Avoid targets that require massive pips.
+4. **INTELLIGENT & TIGHT STOP LOSS:** 
    - Use "Structural Invalidation" points. Protect against noise but keep it surgical.
    - **Neural Precision:** In your reasoning, provide deep, institutional-grade logic for your SL placement. Explain why it separates you from retail "noise" even at this tight distance.
-4. **SOLID REASONING:** Your reasoning MUST be extremely robust. Focus on Institutional footprints, Liquidity Sweeps, and Market Invariants. Explain exactly WHY you chose the direction and WHY the alternative path is less likely.
-5. **POSITION MANAGEMENT & LOT SIZING:**
+5. **SOLID REASONING:** Your reasoning MUST be extremely robust. Focus on Institutional footprints, Liquidity Sweeps, and Market Invariants. Explain exactly WHY you chose the direction and WHY the alternative path is less likely.
+6. **POSITION MANAGEMENT & LOT SIZING:**
    - You MUST calculate and suggest a \`formattedLotSize\` based on standard risk management (e.g. 1% risk of a typical $10,000 account, or based on the pip distance to SL).
    - You MUST suggest the \`recommendedPositions\` (e.g. split into 2 or 3 positions for partial takes).
    - You MUST provide the \`positionLotSize\` (e.g. "0.01 per position").
-6. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+7. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
 
 JSON Structure:
 {
