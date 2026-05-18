@@ -587,6 +587,19 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       <main className="max-w-4xl mx-auto px-4 py-8 pb-32">
         {accessStatus === 'locked' ? renderLocked() : accessStatus === 'pending' ? renderPending() : (
           <>
+            {/* Monday/Friday Warning Banner */}
+            {([1, 5].includes(new Date().getDay())) && (
+              <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="text-sm font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-1">Trading Day Warning</h3>
+                  <p className="text-xs text-amber-700 dark:text-amber-400/80 leading-relaxed">
+                    Historical logs restrict high-confidence trading on Mondays and Fridays due to lower profitability and market unpredictability. Capital preservation is priority. Proceed with extreme caution or remain flat.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* Style Selector */}
             <div className="mb-8 sticky top-20 z-40 bg-slate-50/80 dark:bg-[#020617]/80 backdrop-blur-md py-2 transition-colors duration-300">
               <div className="flex items-center justify-between mb-3 px-1">
@@ -980,7 +993,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Enter asset (e.g. 'Setup for Gold' or 'EURUSD analysis')"
+                placeholder="Asset + Broker Price (e.g. US30 @ 39550 or EURUSD)"
                 className="w-full bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 backdrop-blur-xl shadow-xl dark:shadow-none text-slate-900 dark:text-slate-100"
                 disabled={isAnalyzing}
               />

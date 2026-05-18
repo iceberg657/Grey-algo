@@ -1466,6 +1466,23 @@ You are analyzing a traditional financial asset (${assetName}) on a weekend. The
 - Do not output a live execution signal, as execution is impossible right now.
 ` : '';
 
+  const isMondayOrFriday = date.getDay() === 1 || date.getDay() === 5;
+  const unprofitableDayInstruction = isMondayOrFriday ? `
+**TRADING DAY WARNING (MONDAY/FRIDAY DETECTED):**
+Historical performance shows extreme drop in profitability on Mondays (Gap/Fakeouts) and Fridays (Profit Taking/Reversals).
+- You MUST heavily penalize the confidence score (Confidence MUST be between 30% and 55%).
+- You MUST explicitly include a bold warning in the reasoning mentioning the risks of trading on this specific day.
+- Consider issuing "NEUTRAL" for anything other than A+ High-Probability structural setups.
+` : '';
+
+  const hasBrokerPrice = query.includes('@');
+  const brokerInstruction = hasBrokerPrice ? `
+**BROKER PRICE DEVIATION DETECTED:**
+The user has provided their own broker's exact price inside the query (e.g. '@ 39550'). 
+- You MUST anchor your entire mathematical model (EntryRange, StopLoss, and TakeProfit levels) precisely around this USER-PROVIDED broker price, NOT strictly the Deriv Live Market Price.
+- Broker feeds differ across FTMO, Headway, or Prop Firms. The user's provided quoted price is the absolute structural anchor.
+` : '';
+
   const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
 System Role: You are a High-Frequency Institutional Execution Bot.
 
@@ -1473,6 +1490,8 @@ Data:
 ${quantContext}
 
 ${weekendInstruction}
+${unprofitableDayInstruction}
+${brokerInstruction}
 
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:

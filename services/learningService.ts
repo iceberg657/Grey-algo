@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
+import { executeLaneCall, getChatPool, CHAT_MODELS, getAutoMlPool, AUTO_ML_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
 import { db, auth } from '../firebase';
 import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection, where } from 'firebase/firestore';
 import { Trade } from '../types';
@@ -203,7 +203,7 @@ export const generateLessonFromTradeLog = async () => {
             const ai = new GoogleGenAI({ apiKey });
             const prompt = `Analyze these recent ${trades.length} trades from the user's trade log: ${JSON.stringify(trades)}. Identify what went right or wrong, or formulate a new concise actionable trading rule/insight (a "Neural Lesson"). Output STRICTLY the rule in one short sentence without quotes or introductions.`;
 
-            const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
+            const response = await runWithModelFallback<GenerateContentResponse>(AUTO_ML_MODELS, (modelId) => 
                 ai.models.generateContent({
                     model: modelId,
                     contents: prompt,
@@ -223,7 +223,7 @@ export const generateLessonFromTradeLog = async () => {
                 await addDoc(collection(db, 'learned_rules'), globalStrategy);
             }
             return strategyInfo || null;
-        }, getChatPool);
+        }, getAutoMlPool);
 
     } catch (e) {
         console.error("Failed to generate lesson from trade log:", e);

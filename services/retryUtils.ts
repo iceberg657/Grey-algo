@@ -165,6 +165,12 @@ export const SUGGESTION_MODELS = [
     'gemini-2.0-flash'
 ];
 
+// 4. AUTO ML TRADE LOGGING
+export const getAutoMlPool = () => getUniqueKeys([K.K2()]); 
+export const AUTO_ML_MODELS = [
+    'gemini-3.0-flash'
+];
+
 // Shared Pools
 export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
 export const getSuggestionStructurePool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Global Market now prioritizes Key 2
