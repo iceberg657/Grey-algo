@@ -72,6 +72,7 @@ export interface AnalysisRequest {
     learnedStrategies?: string[];
     userSettings?: UserSettings;
     twelveDataQuote?: any;
+    quantData?: any;
 }
 
 export interface MarketConfig {

@@ -1,3 +1,4 @@
+import { calculateEMA, calculateRSI, findSwings } from './analyticsEngine';
 export interface OHLC {
     epoch: number;
     open: number;
@@ -94,92 +95,6 @@ export interface OrderBlock {
     mitigated: boolean;
 }
 
-// EMA Calculation
-export function calculateEMA(data: number[], period: number): number[] {
-    if (data.length < period) return [];
-    
-    const k = 2 / (period + 1);
-    const ema = [];
-    
-    // Initial SMA
-    let sum = 0;
-    for (let i = 0; i < period; i++) sum += data[i];
-    ema.push(sum / period);
-    
-    // EMA Formula
-    for (let i = period; i < data.length; i++) {
-        ema.push(data[i] * k + ema[ema.length - 1] * (1 - k));
-    }
-    
-    return ema;
-}
-
-// RSI Calculation
-export function calculateRSI(data: number[], period: number = 14): number[] {
-    if (data.length < period + 1) return [];
-
-    let gains = 0;
-    let losses = 0;
-
-    for (let i = 1; i <= period; i++) {
-        const diff = data[i] - data[i - 1];
-        if (diff >= 0) gains += diff;
-        else losses -= diff;
-    }
-
-    let avgGain = gains / period;
-    let avgLoss = losses / period;
-    const rsi = [];
-    
-    if (avgLoss === 0) {
-        rsi.push(100);
-    } else {
-        const rs = avgGain / avgLoss;
-        rsi.push(100 - (100 / (1 + rs)));
-    }
-
-    for (let i = period + 1; i < data.length; i++) {
-        const diff = data[i] - data[i - 1];
-        const gain = diff >= 0 ? diff : 0;
-        const loss = diff < 0 ? -diff : 0;
-
-        avgGain = (avgGain * (period - 1) + gain) / period;
-        avgLoss = (avgLoss * (period - 1) + loss) / period;
-
-        if (avgLoss === 0) {
-            rsi.push(100);
-        } else {
-            const rs = avgGain / avgLoss;
-            rsi.push(100 - (100 / (1 + rs)));
-        }
-    }
-
-    return rsi;
-}
-
-// Find Swings (Fractals)
-export function findSwings(candles: OHLC[], leftBars = 3, rightBars = 3) {
-    const swingHighs: {index: number, price: number}[] = [];
-    const swingLows: {index: number, price: number}[] = [];
-
-    for (let i = leftBars; i < candles.length - rightBars; i++) {
-        let isHigh = true;
-        let isLow = true;
-        const currentHigh = candles[i].high;
-        const currentLow = candles[i].low;
-
-        for (let j = i - leftBars; j <= i + rightBars; j++) {
-            if (i === j) continue;
-            if (candles[j].high >= currentHigh) isHigh = false;
-            if (candles[j].low <= currentLow) isLow = false;
-        }
-
-        if (isHigh) swingHighs.push({ index: i, price: currentHigh });
-        if (isLow) swingLows.push({ index: i, price: currentLow });
-    }
-
-    return { swingHighs, swingLows };
-}
 
 // --- ADVANCED SNIPER MODULES ---
 
@@ -682,32 +597,10 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const highs = candles.map(c => c.high);
     const lows = candles.map(c => c.low);
 
-    // EMA Calculation
-    const calculateEMA = (data: number[], period: number) => {
-        const k = 2 / (period + 1);
-        let ema = data[0];
-        for (let i = 1; i < data.length; i++) {
-            ema = data[i] * k + ema * (1 - k);
-        }
-        return ema;
-    };
+    const ema50 = calculateEMA(closes, 50)[calculateEMA(closes, 50).length - 1]; // Simplified for now as imported is array
+    const ema200 = calculateEMA(closes, 200)[calculateEMA(closes, 200).length - 1];
 
-    const ema50 = calculateEMA(closes, 50);
-    const ema200 = calculateEMA(closes, 200);
-
-    // RSI Calculation
-    const calculateRSI = (data: number[], period = 14) => {
-        let gains = 0, losses = 0;
-        for (let i = 1; i <= period; i++) {
-            const diff = data[i] - data[i - 1];
-            if (diff > 0) gains += diff;
-            else losses -= diff;
-        }
-        const rs = gains / (losses || 1);
-        return 100 - 100 / (1 + rs);
-    };
-
-    const rsi = calculateRSI(closes);
+    const rsi = calculateRSI(closes)[calculateRSI(closes).length - 1];
 
     // Swing Highs and Lows
     const lastSwingHigh = Math.max(...highs.slice(-20));
@@ -786,8 +679,8 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         const confirmEma50 = calculateEMA(confirmCloses, 50);
         const confirmEma200 = calculateEMA(confirmCloses, 200);
         const confirmPrice = confirmCloses[confirmCloses.length - 1];
-        tfConfirmation.confirmTrend = confirmEma50 > confirmEma200 && confirmPrice > confirmEma50
-            ? 'BULLISH' : confirmEma50 < confirmEma200 && confirmPrice < confirmEma50
+        tfConfirmation.confirmTrend = confirmEma50[confirmEma50.length - 1] > confirmEma200[confirmEma200.length - 1] && confirmPrice > confirmEma50[confirmEma50.length - 1]
+            ? 'BULLISH' : confirmEma50[confirmEma50.length - 1] < confirmEma200[confirmEma200.length - 1] && confirmPrice < confirmEma50[confirmEma50.length - 1]
             ? 'BEARISH' : 'RANGING';
     }
 
@@ -796,8 +689,8 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         const htfEma50 = calculateEMA(htfCloses, 50);
         const htfEma200 = calculateEMA(htfCloses, 200);
         const htfPrice = htfCloses[htfCloses.length - 1];
-        tfConfirmation.htfTrend = htfEma50 > htfEma200 && htfPrice > htfEma50
-            ? 'BULLISH' : htfEma50 < htfEma200 && htfPrice < htfEma50
+        tfConfirmation.htfTrend = htfEma50[htfEma50.length - 1] > htfEma200[htfEma200.length - 1] && htfPrice > htfEma50[htfEma50.length - 1]
+            ? 'BULLISH' : htfEma50[htfEma50.length - 1] < htfEma200[htfEma200.length - 1] && htfPrice < htfEma50[htfEma50.length - 1]
             ? 'BEARISH' : 'RANGING';
     }
 

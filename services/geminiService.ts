@@ -10,10 +10,41 @@ import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, currentDate?: Date) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date) => {
   const date = currentDate || new Date();
   const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
   const isTraditionalMarket = !asset.toUpperCase().includes('BTC') && !asset.toUpperCase().includes('ETH') && !asset.toUpperCase().includes('CRYPTO') && !asset.toUpperCase().includes('DERIV');
+
+  const quantContext = (quantData || {}).trend 
+     ? `
+**ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
+- Trend Bias: ${quantData.trend}
+- EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
+- Current RSI: ${quantData.rsi}
+- Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
+- BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
+
+**VOLUME PROFILE & VPVR (INSTITUTIONAL NODES):**
+- POC: ${quantData.volumeProfile?.poc.toFixed(5) || 'N/A'}
+- Value Area: ${quantData.volumeProfile?.val.toFixed(5) || 'N/A'} - ${quantData.volumeProfile?.vah.toFixed(5) || 'N/A'}
+- OB-Volume Confluence: ${quantData.obVolConfluence?.aligned ? 'YES ✅' : 'NO ❌'}
+
+**LIQUIDITY HEATMAP:**
+- Price Just Swept: ${quantData.liquidityHeatmap?.priceJustSweptBSL ? 'BSL SWEPT 🔴' : quantData.liquidityHeatmap?.priceJustSweptSSL ? 'SSL SWEPT 🟢' : 'NONE'}
+
+**WEIGHTED SCORE & GRADE:**
+- Total Score: ${quantData.weightedScore?.totalScore || 'N/A'}/100
+- Grade: ${quantData.weightedScore?.grade || 'N/A'}
+`
+     : `
+**CRITICAL: REAL-TIME QUANT DATA IS MISSING. YOU MUST ANALYZE THE CHART IMAGE TO CALCULATE THE FOLLOWING "MATHEMATICAL TRUTH":**
+- **Trend Bias:** Analyze the structural Highs and Lows (HH, HL, LH, LL).
+- **Market Structure Bias:** BOS/CHoCH identification.
+- **Volume Nodes:** Identify price areas with dense wick/body activity (POC estimation).
+- **Liquidity:** Identify equal Highs (BSL) and Lows (SSL) and confirm if price has swept them.
+- **Weighted Score:** Perform the 100-point scoring algorithm (SMC 30pts, VolProfile 20pts, Trend 20pts, News 20pts, Session 10pts).
+- **Final Result:** Output this analysis in the same structured format as if Deriv data was provided.
+`;
 
   const weekendInstruction = (isWeekend && isTraditionalMarket) ? `
 **MARKET CLOSED / WEEKEND DETECTED:**
@@ -257,7 +288,7 @@ function detectEntries(candles) {
 
   return `
 ⚠️ **SYSTEM OVERRIDE: IGNORE ALL PREVIOUS CONTEXT. THIS IS A NEW, INDEPENDENT ANALYSIS.**
-
+${quantContext}
 🔥 **CORE OBJECTIVE: ${aggressiveness}**
 
 You are **Oracle**, the apex-level trading AI engine and elite Trading Coach. You are the "Alpha" model, designed to push the boundaries of Quantitative and Institutional trading. Your goal is a consistent **75%+ Win Rate** by merging visual chart intelligence with raw mathematical truth.
@@ -875,6 +906,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
           request.userSettings,
           request.twelveDataQuote,
           request.globalTrend,
+          request.quantData,
           new Date()
         );
         
