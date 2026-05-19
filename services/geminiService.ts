@@ -1428,6 +1428,17 @@ export async function generateSniperLiveSignal(
 - Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
 - BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
 
+**VOLUME PROFILE & VPVR (INSTITUTIONAL NODES):**
+- POC (Target): ${quantData.volumeProfile?.poc.toFixed(5)}
+- Value Area: ${quantData.volumeProfile?.val.toFixed(5)} - ${quantData.volumeProfile?.vah.toFixed(5)}
+- High Volume Nodes: ${quantData.volumeProfile?.hvns.map((h: any) => h.priceLevel.toFixed(5)).join(', ')}
+- OB-Volume Confluence: ${quantData.obVolConfluence?.aligned ? 'YES ✅' : 'NO ❌'} (${quantData.obVolConfluence?.reason})
+
+**LIQUIDITY HEATMAP (SMC BASIS):**
+- Nearest BSL (Sell-Stops): ${quantData.liquidityHeatmap?.nearestBSL?.price.toFixed(5) || 'NONE'}
+- Nearest SSL (Buy-Stops): ${quantData.liquidityHeatmap?.nearestSSL?.price.toFixed(5) || 'NONE'}
+- Just Swept Liquidity: ${quantData.liquidityHeatmap?.priceJustSweptBSL ? 'BSL SWEPT 🔴' : quantData.liquidityHeatmap?.priceJustSweptSSL ? 'SSL SWEPT 🟢' : 'NONE'}
+
 **INSTITUTIONAL DISPLACEMENT & FLOW:**
 - Displacement (Thick Candle/1.5x ATR): ${quantData.displacement ? `YES ✅ (${quantData.displacementDirection})` : 'NO ❌'}
 - Current Price in Optimal Trade Entry (OTE): ${quantData.isInOTE ? 'YES ✅' : 'NO ❌'}
@@ -1441,13 +1452,18 @@ export async function generateSniperLiveSignal(
 **3 TIMEFRAME CONFIRMATION:**
 - Entry TF Trend: ${quantData.tfConfirmation?.entryTrend} | HTF Trend: ${quantData.tfConfirmation?.htfTrend}
 - All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
-- Current Trading Session: ${quantData.session || 'OFF_SESSION'}
+- Current Trading Session: ${quantData.session || 'OFF_SESSION'} (${quantData.killzone?.reason})
 
-**ENGINE MANDATED SIGNAL:** ${quantData.explicitSignal}
+**ENGINE WEIGHTED SCORE & GRADE:**
+- Total Score: ${quantData.weightedScore?.totalScore}/100
+- Grade: ${quantData.weightedScore?.grade}
+- Risk Tier: ${quantData.weightedScore?.riskTier} (${quantData.weightedScore?.suggestedRiskPercent}% recommended)
+- ENGINE MANDATED SIGNAL: ${quantData.explicitSignal}
 
 *CRITICAL INSTRUCTIONS:*
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
+- **GRADE PENALTY:** If the Grade is "C", you MUST warn the user about the low confluence but provide the best possible execution setup if forced by the query.
 - **LONDON/EUR PROTECTION:** If the asset is UK100, FTSE, or EUR-based and the session is LONDON, you MUST prioritize the Mathematical Strict SL provided (${quantData.mathematicalSL}). This SL includes a wider institutional buffer to protect against typical London session "Stop Hunts" and "Liquidity Sweeps".
 - You MUST use the **Mathematical Strict SL** provided above (${quantData.mathematicalSL}) or something very close to it. It already accounts for the Displacement wick and ATR noise.
 - **UK100 PROFIT ACCELERATOR:** For UK100, TP1 should be set aggressively at the first local friction point to ensure profits are locked in during volatile London moves.

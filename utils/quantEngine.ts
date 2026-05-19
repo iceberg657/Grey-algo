@@ -21,6 +21,79 @@ export interface SMCSignals {
     isDiscount: boolean;
 }
 
+export interface VolumeNode {
+    priceLevel: number;
+    volume: number;
+    type: 'HVN' | 'LVN'; // High/Low Volume Node
+}
+
+export interface VolumeProfile {
+    poc: number; // Price with highest volume
+    vah: number; // Value Area High (70% volume above)
+    val: number; // Value Area Low (70% volume below)
+    hvns: VolumeNode[]; // High Volume Nodes
+    lvns: VolumeNode[]; // Low Volume Nodes
+    valueArea: { upper: number; lower: number };
+}
+
+export interface LiquidityLevel {
+    price: number;
+    type: 'BSL' | 'SSL'; // Buy-side or Sell-side liquidity
+    strength: number; // How many equal highs/lows stacked
+    swept: boolean; // Has price already taken it
+    distanceFromPrice: number;
+}
+
+export interface LiquidityHeatmap {
+    bslLevels: LiquidityLevel[]; // Sell-stop clusters above price
+    sslLevels: LiquidityLevel[]; // Buy-stop clusters below price
+    nearestBSL: LiquidityLevel | null;
+    nearestSSL: LiquidityLevel | null;
+    priceJustSweptBSL: boolean;
+    priceJustSweptSSL: boolean;
+    nextLiquidityTarget: LiquidityLevel | null;
+}
+
+export interface KillzoneResult {
+    session: string;
+    active: boolean;
+    minutesIntoSession: number;
+    minutesUntilOpen: number | null;
+    multiplier: number;
+    score: number; // Points for scoring model
+    allowEntry: boolean;
+    reason: string;
+}
+
+export interface CorrelationRule {
+    asset: string;
+    driver: string; // e.g. 'DXY', 'US10Y'
+    relationship: 'INVERSE' | 'DIRECT';
+    weight: number; // How strongly they correlate
+}
+
+export interface WeightedScore {
+    smcStructure: number; // Max 30pts
+    volumeProfile: number; // Max 20pts
+    globalTrend: number; // Max 20pts
+    newsSentiment: number; // Max 20pts
+    sessionTiming: number; // Max 10pts
+    correlationPenalty: number;
+    liquiditySweepBonus: number;
+    totalScore: number;        // Out of 100
+    grade: 'A+' | 'A' | 'B+' | 'B' | 'C' | 'NO TRADE';
+    riskTier: 'FULL' | 'HALF' | 'QUARTER' | 'SKIP';
+    suggestedRiskPercent: number;
+    breakdown: string[];
+}
+
+export interface OrderBlock {
+    type: 'BULLISH_OB' | 'BEARISH_OB';
+    upper: number;
+    lower: number;
+    mitigated: boolean;
+}
+
 // EMA Calculation
 export function calculateEMA(data: number[], period: number): number[] {
     if (data.length < period) return [];
@@ -107,6 +180,499 @@ export function findSwings(candles: OHLC[], leftBars = 3, rightBars = 3) {
 
     return { swingHighs, swingLows };
 }
+
+// --- ADVANCED SNIPER MODULES ---
+
+// 1. VOLUME PROFILE
+export const calculateVolumeProfile = (
+    candles: OHLC[],
+    tickSize: number = 0.0001,
+    valueAreaPercent: number = 0.70
+): VolumeProfile => {
+    // Step 1: Build price buckets
+    const highest = Math.max(...candles.map(c => c.high));
+    const lowest  = Math.min(...candles.map(c => c.low));
+    const range   = highest - lowest;
+
+    // Number of price levels (rows in profile)
+    const numLevels = Math.min(Math.round(range / tickSize), 200);
+    const levelSize = range / Math.max(numLevels, 1);
+
+    // Initialize volume buckets
+    const buckets: Map<number, number> = new Map();
+    for (let i = 0; i <= numLevels; i++) {
+        const price = parseFloat((lowest + i * levelSize).toFixed(5));
+        buckets.set(price, 0);
+    }
+
+    // Step 2: Distribute volume across price levels
+    candles.forEach(candle => {
+        const candleRange = candle.high - candle.low;
+        if (candleRange === 0) return;
+
+        const vol = (candle as any).tick_volume || (candle as any).volume || 1;
+
+        buckets.forEach((_, priceLevel) => {
+            if (priceLevel >= candle.low && priceLevel <= candle.high) {
+                // Weight: price proximity to candle body
+                const bodyHigh = Math.max(candle.open, candle.close);
+                const bodyLow  = Math.min(candle.open, candle.close);
+                const inBody   = priceLevel >= bodyLow && priceLevel <= bodyHigh;
+
+                // Body gets 70% of volume, wicks get 30%
+                const weight = inBody ? 0.7 : 0.3;
+                const levelsInBody = Math.max(
+                    Math.round((bodyHigh - bodyLow) / levelSize), 1
+                );
+                const levelsInWick = Math.max(numLevels - levelsInBody, 1);
+
+                const volPerLevel = inBody
+                    ? (vol * weight) / levelsInBody
+                    : (vol * (1 - weight)) / levelsInWick;
+
+                buckets.set(priceLevel, (buckets.get(priceLevel) || 0) + volPerLevel);
+            }
+        });
+    });
+
+    // Step 3: Find POC (highest volume price)
+    let poc = lowest;
+    let maxVol = 0;
+    buckets.forEach((vol, price) => {
+        if (vol > maxVol) { maxVol = vol; poc = price; }
+    });
+
+    // Step 4: Value Area (70% of total volume around POC)
+    const totalVolume = Array.from(buckets.values()).reduce((a, b) => a + b, 0);
+    const targetVol   = totalVolume * valueAreaPercent;
+
+    let vaVol = buckets.get(poc) || 0;
+    let vah   = poc;
+    let val   = poc;
+    const sortedPrices = Array.from(buckets.keys()).sort((a, b) => a - b);
+    const pocIndex      = sortedPrices.indexOf(poc);
+
+    let upperIdx = pocIndex;
+    let lowerIdx = pocIndex;
+
+    while (vaVol < targetVol) {
+        const upperVol = upperIdx + 1 < sortedPrices.length
+            ? buckets.get(sortedPrices[upperIdx + 1]) || 0 : 0;
+        const lowerVol = lowerIdx - 1 >= 0
+            ? buckets.get(sortedPrices[lowerIdx - 1]) || 0 : 0;
+
+        if (upperVol >= lowerVol && upperIdx + 1 < sortedPrices.length) {
+            upperIdx++;
+            vah   = sortedPrices[upperIdx];
+            vaVol += upperVol;
+        } else if (lowerIdx - 1 >= 0) {
+            lowerIdx--;
+            val   = sortedPrices[lowerIdx];
+            vaVol += lowerVol;
+        } else break;
+    }
+
+    // Step 5: Identify HVN and LVN
+    const avgVol  = totalVolume / (buckets.size || 1);
+    const hvns: VolumeNode[] = [];
+    const lvns: VolumeNode[] = [];
+
+    buckets.forEach((vol, price) => {
+        if (vol >= avgVol * 1.5) {
+            hvns.push({ priceLevel: price, volume: vol, type: 'HVN' });
+        } else if (vol <= avgVol * 0.5) {
+            lvns.push({ priceLevel: price, volume: vol, type: 'LVN' });
+        }
+    });
+
+    return {
+        poc,
+        vah,
+        val,
+        hvns: hvns.sort((a, b) => b.volume - a.volume).slice(0, 5),
+        lvns: lvns.sort((a, b) => a.volume - b.volume).slice(0, 5),
+        valueArea: { upper: vah, lower: val }
+    };
+};
+
+export const checkOBVolumeConfluence = (
+    orderBlock: OrderBlock,
+    volumeProfile: VolumeProfile,
+    tolerance: number = 0.0005
+): { aligned: boolean; score: number; reason: string } => {
+    // Check POC alignment
+    const obBottom = Math.min(orderBlock.upper, orderBlock.lower);
+    const obTop = Math.max(orderBlock.upper, orderBlock.lower);
+
+    const pocInOB = volumeProfile.poc >= obBottom - tolerance &&
+                    volumeProfile.poc <= obTop + tolerance;
+
+    // Check HVN alignment
+    const hvnInOB = volumeProfile.hvns.some(hvn =>
+        hvn.priceLevel >= obBottom - tolerance &&
+        hvn.priceLevel <= obTop + tolerance
+    );
+
+    // Check Value Area alignment
+    const vaOverlap =
+        obBottom <= volumeProfile.vah &&
+        obTop    >= volumeProfile.val;
+
+    if (pocInOB) {
+        return {
+            aligned: true,
+            score: 20, 
+            reason: `POC (${volumeProfile.poc.toFixed(5)}) confirmed inside Order Block institutional volume cluster`
+        };
+    }
+    if (hvnInOB) {
+        return {
+            aligned: true,
+            score: 15,
+            reason: `HVN aligned with Order Block strong volume support`
+        };
+    }
+    if (vaOverlap) {
+        return {
+            aligned: true,
+            score: 10,
+            reason: `Order Block within Value Area (${volumeProfile.val.toFixed(5)} - ${volumeProfile.vah.toFixed(5)})`
+        };
+    }
+
+    return { aligned: false, score: 0, reason: 'No volume confluence at Order Block' };
+};
+
+// 2. CROSS-ASSET CORRELATION
+const CORRELATION_MAP: Record<string, CorrelationRule[]> = {
+    'EURUSD': [{ asset: 'EURUSD', driver: 'DXY', relationship: 'INVERSE', weight: 0.85 }],
+    'GBPUSD': [{ asset: 'GBPUSD', driver: 'DXY', relationship: 'INVERSE', weight: 0.80 }],
+    'AUDUSD': [{ asset: 'AUDUSD', driver: 'DXY', relationship: 'INVERSE', weight: 0.75 }],
+    'NZDUSD': [{ asset: 'NZDUSD', driver: 'DXY', relationship: 'INVERSE', weight: 0.75 }],
+    'USDJPY': [{ asset: 'USDJPY', driver: 'DXY', relationship: 'DIRECT', weight: 0.80 }],
+    'USDCHF': [{ asset: 'USDCHF', driver: 'DXY', relationship: 'DIRECT', weight: 0.80 }],
+    'XAUUSD': [{ asset: 'XAUUSD', driver: 'DXY', relationship: 'INVERSE', weight: 0.70 }],
+    'OTC_DJI': [{ asset: 'OTC_DJI', driver: 'US10Y', relationship: 'INVERSE', weight: 0.65 }],
+    'OTC_NDX': [{ asset: 'OTC_NDX', driver: 'US10Y', relationship: 'INVERSE', weight: 0.70 }],
+};
+
+export const calculatePearsonCorrelation = (
+    seriesA: number[],
+    seriesB: number[]
+): number => {
+    const n = Math.min(seriesA.length, seriesB.length);
+    if (n < 10) return 0;
+
+    const sliceA = seriesA.slice(-n);
+    const sliceB = seriesB.slice(-n);
+
+    const meanA = sliceA.reduce((a, b) => a + b, 0) / n;
+    const meanB = sliceB.reduce((a, b) => a + b, 0) / n;
+
+    let numerator   = 0;
+    let denomA      = 0;
+    let denomB      = 0;
+
+    for (let i = 0; i < n; i++) {
+        const diffA  = sliceA[i] - meanA;
+        const diffB  = sliceB[i] - meanB;
+        numerator   += diffA * diffB;
+        denomA      += diffA * diffA;
+        denomB      += diffB * diffB;
+    }
+
+    const denominator = Math.sqrt(denomA * denomB);
+    return denominator === 0 ? 0 : numerator / denominator;
+};
+
+export const getKillzoneScore = (): KillzoneResult => {
+    const now = new Date();
+    const hour = now.getUTCHours();
+    const minute = now.getUTCMinutes();
+
+    // London Open (07:00 - 09:00 UTC) 
+    if (hour >= 7 && hour < 9) {
+        const minutesIn = (hour - 7) * 60 + minute;
+        return {
+            session: 'LONDON_OPEN',
+            active: true,
+            minutesIntoSession: minutesIn,
+            minutesUntilOpen: null,
+            multiplier: 1.2,
+            score: 10,
+            allowEntry: true,
+            reason: `London Open Killzone ${minutesIn}min in. Prime institutional activity.`
+        };
+    }
+
+    // London/NY Overlap (11:00 - 12:00 UTC)
+    if (hour >= 11 && hour < 12) {
+        return {
+            session: 'LONDON_NY_OVERLAP',
+            active: true,
+            minutesIntoSession: (hour - 11) * 60 + minute,
+            minutesUntilOpen: null,
+            multiplier: 1.3,
+            score: 10,
+            allowEntry: true,
+            reason: 'London/NY Overlap Highest institutional volume of the day.'
+        };
+    }
+
+    // New York Open (12:00 - 14:00 UTC)
+    if (hour >= 12 && hour < 14) {
+        const minutesIn = (hour - 12) * 10 + minute;
+        return {
+            session: 'NY_OPEN',
+            active: true,
+            minutesIntoSession: minutesIn,
+            minutesUntilOpen: null,
+            multiplier: 1.2,
+            score: 10,
+            allowEntry: true,
+            reason: `New York Open Killzone ${minutesIn}min in. High probability zone.`
+        };
+    }
+
+    // London Peak (09:00 - 11:00 UTC)
+    if (hour >= 9 && hour < 11) {
+        return {
+            session: 'LONDON_PEAK',
+            active: true,
+            minutesIntoSession: (hour - 9) * 60 + minute,
+            minutesUntilOpen: null,
+            multiplier: 1.0,
+            score: 8,
+            allowEntry: true,
+            reason: 'London Peak Good volume, trend continuation phase.'
+        };
+    }
+
+    if (hour >= 14 && hour < 16) {
+        return {
+            session: 'NY_PEAK',
+            active: true,
+            minutesIntoSession: (hour - 14) * 60 + minute,
+            minutesUntilOpen: null,
+            multiplier: 1.0,
+            score: 8,
+            allowEntry: true,
+            reason: 'New York Peak Trend continuation, good for runners.'
+        };
+    }
+
+    if (hour >= 0 && hour < 7) {
+        const minutesUntilLondon = (7 - hour) * 60 - minute;
+        return {
+            session: 'ASIAN',
+            active: false,
+            minutesIntoSession: hour * 60 + minute,
+            minutesUntilOpen: minutesUntilLondon,
+            multiplier: 0.5,
+            score: 2,
+            allowEntry: false, 
+            reason: `Asian Session Low institutional volume. London opens in ${minutesUntilLondon}min.`
+        };
+    }
+
+    const minutesUntilAsian = hour >= 16 ? (24 - hour) * 60 - minute : 0;
+    const minutesUntilLondon = minutesUntilAsian + 7 * 60;
+
+    return {
+        session: 'DEAD_ZONE',
+        active: false,
+        minutesIntoSession: (hour - 16) * 60 + minute,
+        minutesUntilOpen: minutesUntilLondon,
+        multiplier: 0.3,
+        score: 0,
+        allowEntry: false,
+        reason: `Dead Zone Institutional algorithms offline. London opens in ~${Math.round(minutesUntilLondon / 60)}hrs.`
+    };
+};
+
+export const buildLiquidityHeatmap = (
+    candles: OHLC[],
+    currentPrice: number,
+    tolerance: number = 0.0003
+): LiquidityHeatmap => {
+    const bslLevels: LiquidityLevel[] = [];
+    const sslLevels: LiquidityLevel[] = [];
+
+    const highs = candles.map(c => c.high);
+    const lows  = candles.map(c => c.low);
+
+    const groupLevels = (prices: number[], type: 'BSL' | 'SSL') => {
+        const clusters: Map<number, number> = new Map();
+
+        prices.forEach(price => {
+            let foundCluster = false;
+            clusters.forEach((count, level) => {
+                if (Math.abs(price - level) <= tolerance) {
+                    clusters.set(level, count + 1);
+                    foundCluster = true;
+                }
+            });
+            if (!foundCluster) clusters.set(price, 1);
+        });
+
+        clusters.forEach((strength, price) => {
+            if (strength >= 2) {
+                const swept = type === 'BSL'
+                    ? currentPrice > price   
+                    : currentPrice < price;  
+
+                const level: LiquidityLevel = {
+                    price,
+                    type,
+                    strength,
+                    swept,
+                    distanceFromPrice: Math.abs(currentPrice - price)
+                };
+
+                if (type === 'BSL') bslLevels.push(level);
+                else                sslLevels.push(level);
+            }
+        });
+    };
+
+    groupLevels(highs, 'BSL');
+    groupLevels(lows, 'SSL');
+
+    bslLevels.sort((a, b) => a.distanceFromPrice - b.distanceFromPrice);
+    sslLevels.sort((a, b) => a.distanceFromPrice - b.distanceFromPrice);
+
+    const recentCandles  = candles.slice(-3);
+    const recentHighs    = recentCandles.map(c => c.high);
+    const recentLows     = recentCandles.map(c => c.low);
+    const recentClose    = candles[candles.length - 1].close;
+
+    const priceJustSweptBSL = bslLevels.some(level =>
+        Math.max(...recentHighs) > level.price &&
+        recentClose < level.price
+    );
+
+    const priceJustSweptSSL = sslLevels.some(level =>
+        Math.min(...recentLows) < level.price &&
+        recentClose > level.price
+    );
+
+    const unsweptBSL = bslLevels.filter(l => !l.swept && l.price > currentPrice);
+    const unsweptSSL = sslLevels.filter(l => !l.swept && l.price < currentPrice);
+
+    return {
+        bslLevels:          bslLevels.slice(0, 5),
+        sslLevels:          sslLevels.slice(0, 5),
+        nearestBSL:         unsweptBSL[0] || null,
+        nearestSSL:         unsweptSSL[0] || null,
+        priceJustSweptBSL,
+        priceJustSweptSSL,
+        nextLiquidityTarget: priceJustSweptSSL
+            ? unsweptBSL[0] || null  
+            : priceJustSweptBSL
+            ? unsweptSSL[0] || null  
+            : null
+    };
+};
+
+export const calculateWeightedScore = (
+    smcFactors: {
+        htfBOS: boolean,
+        bosInstitutional: boolean,
+        zoneValid: boolean,
+        otePrecise: boolean,
+        obConfluence: boolean
+    },
+    vpScore: number,
+    trendAligned: boolean,
+    correlationScore: number,
+    correlationPenalty: number,
+    newsRiskLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'CLEAR',
+    killzoneScore: number,
+    liquiditySweptBonus: number
+): WeightedScore => {
+    const breakdown: string[] = [];
+
+    // 1. SMC STRUCTURE (30 pts)
+    let smcScore = 0;
+    if (smcFactors.htfBOS)          { smcScore += 10; breakdown.push('HTF BOS confirmed +10'); }
+    if (smcFactors.bosInstitutional){ smcScore += 8;  breakdown.push('Institutional displacement +8'); }
+    if (smcFactors.zoneValid)       { smcScore += 7;  breakdown.push('Correct Premium/Discount zone +7'); }
+    if (smcFactors.otePrecise)      { smcScore += 3;  breakdown.push('Price in OTE 70.5% zone +3'); }
+    if (smcFactors.obConfluence)    { smcScore += 2;  breakdown.push('OB confluence +2'); }
+    smcScore = Math.min(smcScore, 30);
+
+    // 2. VOLUME PROFILE (20 pts)
+    const volScore = Math.min(vpScore, 20);
+    if (vpScore > 0) breakdown.push(`Volume Profile +${volScore}`);
+
+    // 3. GLOBAL TREND / CORRELATION (20 pts)
+    let trendScore = 0;
+    if (trendAligned) { trendScore += 10; breakdown.push('3TF trend aligned +10'); }
+    trendScore += Math.min(correlationScore, 10);
+    if (correlationScore > 0) breakdown.push(`Correlation score +${Math.min(correlationScore, 10)}`);
+    trendScore = Math.min(trendScore, 20);
+
+    // 4. NEWS SENTIMENT (20 pts)
+    let newsScore = 0;
+    switch (newsRiskLevel) {
+        case 'CLEAR':  newsScore = 20; breakdown.push('No news risk +20'); break;
+        case 'LOW':    newsScore = 15; breakdown.push('Low news risk +15'); break;
+        case 'MEDIUM': newsScore = 8;  breakdown.push('Medium news risk +8'); break;
+        case 'HIGH':   newsScore = 0;  breakdown.push('HIGH NEWS RISK +0 ⚠️'); break;
+    }
+
+    // 5. SESSION TIMING (10 pts)
+    const sessScore = Math.min(killzoneScore, 10);
+    if (killzoneScore > 0) breakdown.push(`Session score +${sessScore}`);
+
+    // CORRELATION PENALTY
+    if (correlationPenalty > 0) {
+        breakdown.push(`Correlation conflict -${correlationPenalty} ⚠️`);
+    }
+
+    // LIQUIDITY SWEEP BONUS
+    if (liquiditySweptBonus > 0) {
+        breakdown.push(`Liquidity sweep bonus +${liquiditySweptBonus} 🎯`);
+    }
+
+    const rawTotal = smcScore + volScore + trendScore + newsScore + sessScore + liquiditySweptBonus;
+    const totalScore = Math.max(0, Math.min(rawTotal - correlationPenalty, 100));
+
+    const grade =
+        totalScore >= 90 ? 'A+' :
+        totalScore >= 80 ? 'A'  :
+        totalScore >= 75 ? 'B+' :
+        totalScore >= 65 ? 'B'  :
+        totalScore >= 50 ? 'C'  : 'NO TRADE';
+
+    const riskTier =
+        grade === 'A+' ? 'FULL'    :
+        grade === 'A'  ? 'FULL'    :
+        grade === 'B+' ? 'HALF'    :
+        grade === 'B'  ? 'QUARTER' : 'SKIP';
+
+    const suggestedRiskPercent =
+        grade === 'A+' ? 2.0  :
+        grade === 'A'  ? 1.0  :
+        grade === 'B+' ? 0.5  :
+        grade === 'B'  ? 0.25 :
+        grade === 'C'  ? 0.1  : 0;
+
+    return {
+        smcStructure:        smcScore,
+        volumeProfile:       volScore,
+        globalTrend:         trendScore,
+        newsSentiment:       newsScore,
+        sessionTiming:       sessScore,
+        correlationPenalty,
+        liquiditySweepBonus: liquiditySweptBonus,
+        totalScore,
+        grade,
+        riskTier,
+        suggestedRiskPercent,
+        breakdown
+    };
+};
 
 // Master SMC Analysis
 export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: any[], assetSymbol: string = 'UNKNOWN') {
@@ -406,8 +972,6 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         if (utcHour >= 0 && utcHour < 7) return 'ASIAN';
         return 'OFF_SESSION';
     };
-    const session = detectSession();
-
     // Standard Deviation Overextension
     const calculateStdDev = (data: number[], period = 20) => {
         const slice = data.slice(-period);
@@ -424,6 +988,28 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     };
     const stdDev = calculateStdDev(closes);
 
+    // --- NEW SNIPER INTEGRATIONS ---
+    
+    // 1. Volume Profile
+    // Heuristic for tick size: 0.0001 for Forex, larger for indices/crypto
+    let tickSize = 0.0001;
+    if (currentPrice > 1000) tickSize = 0.1;
+    else if (currentPrice > 100) tickSize = 0.01;
+    
+    const volumeProfile = calculateVolumeProfile(candles, tickSize);
+    
+    // 2. Liquidity Heatmap
+    const liquidityHeatmap = buildLiquidityHeatmap(candles, currentPrice);
+    
+    // 3. Session Killzone
+    const killzone = getKillzoneScore();
+    
+    // 4. OB Volume Confluence
+    let obVolConfluence = { aligned: false, score: 0, reason: 'No OB detected' };
+    if (orderBlock) {
+        obVolConfluence = checkOBVolumeConfluence(orderBlock as any, volumeProfile);
+    }
+
     // ✅ NEW: Binary Execution Engine (Quant calculates the explicit signal)
     let explicitSignal: 'BUY' | 'SELL' | 'NEUTRAL' = 'NEUTRAL';
     let mathematicalSL = 0;
@@ -437,72 +1023,54 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         assetSymbol.includes('EUR');
 
     // Increase SL buffer for London assets during volatile sessions (Stop Hunting Protection)
-    const slMultiplier = (isLondonAsset && (session === 'LONDON' || session === 'LONDON_NY_OVERLAP')) ? 1.0 : 0.5;
+    const slMultiplier = (isLondonAsset && (killzone.session.includes('LONDON'))) ? 1.0 : 0.5;
 
-    // ✅ NEW: Confidence Scoring (45-55% threshold)
-    let confidenceScore = 0;
-    if (trend !== 'RANGING') confidenceScore += 20;
-    if (bos) confidenceScore += 15;
-    if (liquiditySweep) confidenceScore += 15;
-    if (zoneValid) confidenceScore += 20;
-    if (tfConfirmation.allAligned) confidenceScore += 20;
-    
-    // RSI Sentiment
-    if (rsi > 60 && trend === 'BULLISH') confidenceScore += 10;
-    if (rsi < 40 && trend === 'BEARISH') confidenceScore += 10;
-    if (trend === 'RANGING' && (rsi < 30 || rsi > 70)) confidenceScore += 15; // Mean reversion setups
+    // --- WEIGHTED SCORING MODEL ---
+    const smcFactors = {
+        htfBOS: tfConfirmation.allAligned && bos,
+        bosInstitutional: displacement,
+        zoneValid: zoneValid,
+        otePrecise: isInOTE,
+        obConfluence: !!orderBlock
+    };
 
-    // Math additions to score
-    if (atr > 0) confidenceScore += 5; // Market has volatility
-    if (fvg && fvgRetest) confidenceScore += 10;
-    if (orderBlock?.mitigated) confidenceScore += 10;
-    if (session === 'LONDON' || session === 'NEW_YORK') confidenceScore += 10;
-    if (session === 'LONDON_NY_OVERLAP') confidenceScore += 15;
-    if (session === 'ASIAN') confidenceScore -= 10;
-    if (stdDev.overextended) confidenceScore += 10;
-    
-    // Core Institutional Multipliers
-    if (displacement) confidenceScore += 25; // Massive weight to displacement
-    if (isInOTE) confidenceScore += 20;
+    const liquidityBonus = (liquidityHeatmap.priceJustSweptSSL && trend === 'BULLISH') || 
+                          (liquidityHeatmap.priceJustSweptBSL && trend === 'BEARISH') ? 15 : 0;
 
-    // Block signal logic
-    // If ranging but strong setup exists, we allow it if price is at boundaries
-    const rangingException = trend === 'RANGING' && (bos || liquiditySweep) && rangeExtremity > 0.5;
-    const signalValid = confidenceScore >= 45 || rangingException;
-    
+    const weightedScore = calculateWeightedScore(
+        smcFactors,
+        obVolConfluence.score,
+        tfConfirmation.allAligned,
+        0, // Correlation Score (need driver data)
+        0, // Correlation Penalty
+        'CLEAR', // News Sentiment (need API)
+        killzone.score,
+        liquidityBonus
+    );
+
+    // Enforce direction based on HTF structure and Displacement
+    const isBullishSetup = (tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
+                           (!displacementDirection || displacementDirection === 'BULLISH');
+    const isBearishSetup = (tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
+                           (!displacementDirection || displacementDirection === 'BEARISH');
+
+    const signalValid = weightedScore.totalScore >= 50;
+
     if (signalValid) {
-        // Enforce direction based on HTF structure and Displacement
-        const isBullishSetup = (tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
-                               (!displacementDirection || displacementDirection === 'BULLISH');
-        const isBearishSetup = (tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
-                               (!displacementDirection || displacementDirection === 'BEARISH');
-
         if (isBullishSetup && currentZone === 'DISCOUNT') {
             explicitSignal = 'BUY';
-            // Hard SL: Below OTE deep or OB lowest boundary minus volatility buffer
             mathematicalSL = Math.min(
                 ote.bullish.deep - (atr * slMultiplier), 
                 displacementCandle ? displacementCandle.low - (atr * slMultiplier) : currentPrice - (atr * 1.5)
             );
         } else if (isBearishSetup && currentZone === 'PREMIUM') {
             explicitSignal = 'SELL';
-            // Hard SL: Above OTE deep or OB highest boundary plus volatility buffer
             mathematicalSL = Math.max(
                 ote.bearish.deep + (atr * slMultiplier), 
                 displacementCandle ? displacementCandle.high + (atr * slMultiplier) : currentPrice + (atr * 1.5)
             );
-        } else if (rangingException) {
-            explicitSignal = currentPrice > midpoint ? 'SELL' : 'BUY';
-            mathematicalSL = explicitSignal === 'BUY' ? lowest - atr : highest + atr;
         }
     }
-
-    // Final check: Never trade if range is too tight (volatility filter)
-    const volatilitySqueeze = range / currentPrice < 0.0005; // 0.05% range is too small
-    
-    // We pass explicitSignal so Gemini has strict instructions on direction
-    const blockSignal = false; 
-    const blockReason = null;
 
     return {
         trend,
@@ -514,7 +1082,6 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         bos,
         choch,
         liquiditySweep,
-        // New additions
         displacement,
         displacementCandle,
         displacementDirection,
@@ -526,16 +1093,19 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         discountZone,
         currentZone,
         zoneValid,
-        confidenceScore,
+        confidenceScore: weightedScore.totalScore, // Map total score to confidence
         signalValid,
-        blockSignal,
-        blockReason,
         tfConfirmation,
         atr,
         fvg,
         fvgRetest,
         orderBlock,
-        session,
-        stdDev
+        session: killzone.session,
+        killzone,
+        stdDev,
+        volumeProfile,
+        liquidityHeatmap,
+        weightedScore,
+        obVolConfluence
     };
 }
