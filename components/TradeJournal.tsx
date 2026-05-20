@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trade } from '../types';
 import { getTradeHistory, updateTradeOutcome } from '../services/tradeLogger';
-import { collection, query, orderBy, onSnapshot, limit, deleteDoc, doc } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, limit, deleteDoc, doc, where } from 'firebase/firestore';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { GlobalStrategy, UserMetadata } from '../types';
 import { useAuth } from '../hooks/useAuth';
@@ -13,16 +13,26 @@ export const TradeJournal = () => {
     const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
     useEffect(() => {
+        if (!userMetadata?.uid) {
+            setRecentStrategies([]);
+            return;
+        }
+
         // Fetch Learned Strategies
         const rulesRef = collection(db, 'learned_rules');
-        const defaultQ = query(rulesRef, orderBy('timestamp', 'desc'), limit(50));
+        const defaultQ = query(
+            rulesRef, 
+            where('userId', '==', userMetadata.uid)
+        );
         
         const unsubscribeStrategies = onSnapshot(defaultQ, (snapshot) => {
             const rules: GlobalStrategy[] = [];
             snapshot.forEach(doc => {
                 rules.push({ id: doc.id, ...doc.data() } as GlobalStrategy);
             });
-            setRecentStrategies(rules);
+            // Sort by timestamp descending on client side to avoid indexing requirements
+            rules.sort((a, b) => b.timestamp - a.timestamp);
+            setRecentStrategies(rules.slice(0, 50));
         }, (err) => {
             handleFirestoreError(err, OperationType.GET, 'learned_rules');
         });
@@ -30,7 +40,7 @@ export const TradeJournal = () => {
         return () => {
             unsubscribeStrategies();
         };
-    }, []);
+    }, [userMetadata?.uid]);
 
     const handleDeleteStrategy = async (id: string) => {
         const path = `learned_rules/${id}`;

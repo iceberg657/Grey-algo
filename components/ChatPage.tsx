@@ -193,6 +193,7 @@ const SUGGESTED_PROMPTS = [
 ];
 
 const getModelSymbol = (modelName: string) => {
+    if (modelName.includes('3.5')) return 'Φ';
     if (modelName.includes('2.5-pro')) return 'Α'; 
     if (modelName.includes('2.5-flash')) return 'Β'; 
     if (modelName.includes('2.0-flash')) return 'Γ'; 

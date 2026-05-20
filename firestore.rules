@@ -93,6 +93,15 @@ service cloud.firestore {
              data.active is bool;
     }
 
+    function isValidLearnedRule(data) {
+      return data.keys().hasAll(['rule', 'timestamp', 'sourceCount', 'confidence', 'userId']) &&
+             data.rule is string && data.rule.size() <= 1000 &&
+             data.timestamp is number &&
+             data.sourceCount is number &&
+             data.confidence is number &&
+             data.userId is string && data.userId == request.auth.uid;
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -165,6 +174,14 @@ service cloud.firestore {
     match /auto_ml_strategies/{strategyId} {
       allow read: if isSignedIn();
       allow write: if isAdmin();
+    }
+
+    // --- Learned Rules ---
+    match /learned_rules/{ruleId} {
+      allow get: if isValidId(ruleId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isValidId(ruleId) && isSignedIn() && isValidLearnedRule(incoming()) && incoming().userId == request.auth.uid;
+      allow delete: if isValidId(ruleId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
   }
 }

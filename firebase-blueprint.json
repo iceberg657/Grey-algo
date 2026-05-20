@@ -130,6 +130,20 @@
         "isActive": { "type": "boolean" }
       },
       "required": ["name", "description", "rules", "timestamp"]
+    },
+    "LearnedRule": {
+      "title": "LearnedRule",
+      "description": "AI-learned trading lesson/rule",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "rule": { "type": "string" },
+        "timestamp": { "type": "integer" },
+        "sourceCount": { "type": "integer" },
+        "confidence": { "type": "number" },
+        "userId": { "type": "string" }
+      },
+      "required": ["rule", "timestamp", "sourceCount", "confidence", "userId"]
     }
   },
   "firestore": {
@@ -172,6 +186,10 @@
     "/auto_ml_strategies/{strategyId}": {
       "schema": "AutoMLStrategy",
       "description": "Collection of strategies learned by Auto ML"
+    },
+    "/learned_rules/{ruleId}": {
+      "schema": "LearnedRule",
+      "description": "Neural lessons learned by AutoML"
     }
   }
 }

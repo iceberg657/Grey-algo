@@ -133,6 +133,7 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Strictly Prioritize Lane Rotation)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
+    'gemini-3.5-flash',
     'gemini-3-flash',
     'gemini-3.1-flash-lite',
     'gemini-3.1-pro-preview',
@@ -145,6 +146,7 @@ export const ANALYSIS_MODELS = [
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
 export const getChatPool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Prioritize K2, then K5, then K1
 export const CHAT_MODELS = [
+    'gemini-3.5-flash',
     'gemini-3.1-flash',
     'gemini-3.1-pro-preview',
     'gemini-3.1-flash-lite',
@@ -157,6 +159,7 @@ export const CHAT_MODELS = [
 // 3. AI ASSETS SUGGESTION (Key 6)
 export const getSuggestionPool = () => getUniqueKeys([K.K2(), K.K6()]); // Prioritize K2
 export const SUGGESTION_MODELS = [
+    'gemini-3.5-flash',
     'gemini-3.1-flash',
     'gemini-3.1-pro-preview',
     'gemini-3.1-flash-lite',
@@ -168,6 +171,7 @@ export const SUGGESTION_MODELS = [
 // 4. AUTO ML TRADE LOGGING
 export const getAutoMlPool = () => getUniqueKeys([K.K2()]); 
 export const AUTO_ML_MODELS = [
+    'gemini-3.5-flash',
     'gemini-3.0-flash'
 ];
 
@@ -176,6 +180,7 @@ export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
 export const getSuggestionStructurePool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Global Market now prioritizes Key 2
 
 export const LANE_2_MODELS = [
+    'gemini-3.5-flash',
     'gemini-3.1-flash',
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash',
