@@ -45,6 +45,7 @@ import {
 } from 'firebase/firestore';
 import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import { getDailyMarketRegime, DailyRegime } from '../services/pilotService';
 
 interface SniperMessage {
   id: string;
@@ -72,8 +73,20 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [showAssets, setShowAssets] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
+  const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
 
     useEffect(() => {
+        // Initialize Daily Market Regime Tracking (AI Pilot)
+        const initRegime = async () => {
+            try {
+                const regime = await getDailyMarketRegime();
+                setDailyRegime(regime);
+            } catch (e) {
+                console.warn("[SniperLiveTrade] Failed to establish AI Pilot link.");
+            }
+        };
+        initRegime();
+
         const stored = localStorage.getItem('greyquant_user_settings');
         if (stored) {
             try {
@@ -398,7 +411,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         derivData, 
         [], // Default learned strategies
         quantData,
-        userSettings
+        userSettings,
+        dailyRegime?.regime // Inject the AI Pilot's Daily Regime
       );
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking

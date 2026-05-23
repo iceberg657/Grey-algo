@@ -175,6 +175,14 @@ export const AUTO_ML_MODELS = [
     'gemini-3.0-flash'
 ];
 
+// 5. AI PILOT / REGIME TRACKER (Key 8)
+export const getPilotPool = () => getUniqueKeys([K.K8(), K.K2()]); // Prioritize K8, fallback to K2
+export const PILOT_MODELS = [
+    'gemini-3.1-pro-preview',
+    'gemini-2.5-pro',
+    'gemini-3.5-flash'
+];
+
 // Shared Pools
 export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
 export const getSuggestionStructurePool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Global Market now prioritizes Key 2

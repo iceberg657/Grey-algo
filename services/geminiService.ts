@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import type { AnalysisRequest, SignalData, UserSettings, TradingStyle } from '../types';
-import { runWithModelFallback, executeLaneCall, getAnalysisPool, ANALYSIS_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, getAnalysisPool, getPilotPool, ANALYSIS_MODELS, PILOT_MODELS } from './retryUtils';
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
@@ -9,11 +9,21 @@ import { calculateLotSize } from '../utils/lotSizeCalculator';
 import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
+import { detectMarketRegime, MarketRegime } from '../utils/marketRegime';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime) => {
   const date = currentDate || new Date();
   const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
   const isTraditionalMarket = !asset.toUpperCase().includes('BTC') && !asset.toUpperCase().includes('ETH') && !asset.toUpperCase().includes('CRYPTO') && !asset.toUpperCase().includes('DERIV');
+
+  const regimeContext = regime ? `
+🚨 **AI PILOT MODE: MARKET REGIME ACTIVE (${regime.type})**
+- **Regime Description:** ${regime.description}
+- **Suggested Protocol:** ${regime.protocol}
+- **Risk Multiplier:** ${regime.riskMultiplier}x (Apply this to your normal lot size and risk calculations).
+- **Context:** The AI Pilot has designated today's environment as ${regime.type.replace(/_/g, ' ')}. 
+- **Strategic Mandate:** You MUST adjust your TP targets and SL buffers to match this regime. If the regime suggests "Mean Reversion", do not look for 1:5 RR expansion trades.
+` : "";
 
   const quantContext = (quantData || {}).trend 
      ? `
@@ -288,6 +298,7 @@ function detectEntries(candles) {
 
   return `
 ⚠️ **SYSTEM OVERRIDE: IGNORE ALL PREVIOUS CONTEXT. THIS IS A NEW, INDEPENDENT ANALYSIS.**
+${regimeContext}
 ${quantContext}
 🔥 **CORE OBJECTIVE: ${aggressiveness}**
 
@@ -1446,7 +1457,8 @@ export async function generateSniperLiveSignal(
   derivData: any,
   learnedStrategies: string[] = [],
   quantData?: any,
-  userSettings?: UserSettings
+  userSettings?: UserSettings,
+  regime?: MarketRegime
 ): Promise<SignalData> {
   const livePrice = derivData?.price || 0;
   const assetName = derivData?.symbol || 'Asset';
@@ -1515,12 +1527,17 @@ You are analyzing a traditional financial asset (${assetName}) on a weekend. The
 ` : '';
 
   const isMondayOrFriday = date.getDay() === 1 || date.getDay() === 5;
-  const unprofitableDayInstruction = isMondayOrFriday ? `
-**TRADING DAY WARNING (MONDAY/FRIDAY DETECTED):**
-Historical performance shows extreme drop in profitability on Mondays (Gap/Fakeouts) and Fridays (Profit Taking/Reversals).
-- You MUST heavily penalize the confidence score (Confidence MUST be between 30% and 55%).
-- You MUST explicitly include a bold warning in the reasoning mentioning the risks of trading on this specific day.
-- Consider issuing "NEUTRAL" for anything other than A+ High-Probability structural setups.
+  const currentRegime = regime || (derivData.candles ? detectMarketRegime(derivData.candles, assetName) : undefined);
+  
+  const unprofitableDayInstruction = (isMondayOrFriday || (currentRegime && currentRegime.type === 'YEAR_END_UNSTABLE')) ? `
+🚨 **AI PILOT MODE: MARKET REGIME ADAPTATION ACTIVE (${currentRegime?.type || (date.getDay() === 1 ? 'MONDAY' : 'FRIDAY')})**
+Historical performance shows traditional models fail today. Activating **ADAPTIVE PILOT PROTOCOL**:
+- **Current Regime:** ${currentRegime?.description || 'Daily transition instability.'}
+- **Mandate:** ${currentRegime?.protocol || 'Prioritize capital preservation. Aim for 1:1.5 RR quick scalps.'}
+- **Strategy Shift:** Switch from Trend-Following to **MEAN REVERSION**. Assume local high/low of the last 4 hours will hold.
+- **Indices Warning:** For US30, US100, US500, and UK100, do NOT chase breakouts. Wait for the hunt of the previous day's high/low.
+- **Risk Multiplier:** Apply a ${currentRegime?.riskMultiplier || 0.7}x multiplier to your lot size calculations.
+- **Confidence Calibration:** Do not penalize confidence to zero, but be realistic (60% - 75% max for A+ setups).
 ` : '';
 
   const hasBrokerPrice = query.includes('@');
