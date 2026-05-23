@@ -17,6 +17,7 @@ import { PacificTimeClock } from './PacificTimeClock';
 import { resetNeuralLanes } from '../services/retryUtils';
 import { getLearnedStrategies } from '../services/learningService';
 import { fetchMarketData } from '../services/twelveDataService';
+import { analyzeRCA } from '../utils/rcaEngine';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, where, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
@@ -282,12 +283,14 @@ export const HomePage: React.FC<HomePageProps> = ({
             
             // Fetch live market data for confluence
             let marketData = null;
+            let rcaData = null;
             if (requestData.asset) {
                 // Determine interval based on trading style
                 let interval = '1h';
-                if (requestData.tradingStyle === 'Scalping') interval = '5min';
-                else if (requestData.tradingStyle === 'Day Trading') interval = '15min';
-                else if (requestData.tradingStyle === 'Swing Trading') interval = '4h';
+                let derivGranularity = 3600;
+                if (requestData.tradingStyle === 'Scalping') { interval = '5min'; derivGranularity = 300; }
+                else if (requestData.tradingStyle === 'Day Trading') { interval = '15min'; derivGranularity = 900; }
+                else if (requestData.tradingStyle === 'Swing Trading') { interval = '4h'; derivGranularity = 14400; }
                 
                 // Clean asset name for Twelve Data
                 let symbol = requestData.asset.toUpperCase();
@@ -305,6 +308,21 @@ export const HomePage: React.FC<HomePageProps> = ({
                 }
                 
                 marketData = await fetchMarketData(symbol, interval);
+
+                // Try to fetch Deriv data for RCA Markov Engine evaluation
+                try {
+                    const derivSymbol = requestData.asset.toUpperCase();
+                    const tokenParam = userSettings?.derivApiToken ? `&token=${encodeURIComponent(userSettings.derivApiToken)}` : '';
+                    const derivRes = await fetch(`/api/derivData?symbol=${derivSymbol}&history=true&granularity=${derivGranularity}&count=200${tokenParam}`);
+                    if (derivRes.ok) {
+                        const d = await derivRes.json();
+                        if (d && d.candles && d.candles.length >= 50) {
+                            rcaData = analyzeRCA(d.candles);
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Deriv RCA fetch failed, continuing without RCA quant data:", e);
+                }
             }
 
             const fullRequest: AnalysisRequest = {
@@ -312,6 +330,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 userSettings,
                 learnedStrategies,
                 twelveDataQuote: marketData,
+                quantData: rcaData,
                 globalTrend
             };
 

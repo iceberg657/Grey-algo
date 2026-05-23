@@ -1,4 +1,5 @@
 import { calculateEMA, calculateRSI, findSwings } from './analyticsEngine';
+import { calculateMarkovRegime, MarkovRegimeResult } from './markovEngine';
 export interface OHLC {
     epoch: number;
     open: number;
@@ -965,6 +966,21 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         }
     }
 
+    // 5. Markov Chain Regime Engine
+    const markovRegime = calculateMarkovRegime(candles, 20);
+    if (markovRegime && signalValid) {
+        // Boost score if markov aligns with the setup
+        if (explicitSignal === 'BUY' && markovRegime.signal === 'BUY') {
+            weightedScore.totalScore = Math.min(100, weightedScore.totalScore + 15);
+        } else if (explicitSignal === 'SELL' && markovRegime.signal === 'SELL') {
+            weightedScore.totalScore = Math.min(100, weightedScore.totalScore + 15);
+        } else if (markovRegime.signal !== 'NEUTRAL' && explicitSignal !== markovRegime.signal) {
+            // Penalize conflicting markov regime
+            weightedScore.totalScore = Math.max(0, weightedScore.totalScore - 10);
+            weightedScore.breakdown.push(`Markov conflict penalization -10`);
+        }
+    }
+
     return {
         trend,
         ema50,
@@ -999,6 +1015,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         volumeProfile,
         liquidityHeatmap,
         weightedScore,
-        obVolConfluence
+        obVolConfluence,
+        markovRegime
     };
 }

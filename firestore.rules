@@ -176,6 +176,11 @@ service cloud.firestore {
       allow write: if isAdmin();
     }
 
+    // --- Market Regimes ---
+    match /market_regimes/{regimeId} {
+      allow read, write: if true;
+    }
+
     // --- Learned Rules ---
     match /learned_rules/{ruleId} {
       allow get: if isValidId(ruleId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());

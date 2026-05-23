@@ -26,13 +26,18 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 ` : "";
 
   const quantContext = (quantData || {}).trend 
-     ? `
+     ? (quantData.weightedScore 
+        ? `
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
 - EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
 - Current RSI: ${quantData.rsi}
 - Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
 - BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
+
+**MARKOV CHAIN REGIME (HEDGE FUND METHOD):**
+- Mathematical State: ${quantData.markovRegime?.currentState || 'N/A'}
+- Calculated Direction: ${quantData.markovRegime?.signal || 'N/A'} (Confidence: ${quantData.markovRegime?.confidence?.toFixed(1) || 0}%)
 
 **VOLUME PROFILE & VPVR (INSTITUTIONAL NODES):**
 - POC: ${quantData.volumeProfile?.poc.toFixed(5) || 'N/A'}
@@ -46,6 +51,27 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - Total Score: ${quantData.weightedScore?.totalScore || 'N/A'}/100
 - Grade: ${quantData.weightedScore?.grade || 'N/A'}
 `
+        : `
+**RCA ENGINE DATA (REGULAR CHART ANALYSIS FACT SHEET):**
+- Trend Bias: ${quantData.trend}
+- EMA 50: ${quantData.ema50.toFixed(5)} | EMA 200: ${quantData.ema200.toFixed(5)}
+- Current RSI: ${quantData.rsi.toFixed(1)}
+- BOS Detection: ${quantData.bos ? 'YES ✅' : 'NO ❌'}
+- FVG / Imbalance: ${quantData.fvg ? `DETECTED (${quantData.fvg.type})` : 'NONE'}
+- Order Block (OB): ${quantData.ob ? `DETECTED (${quantData.ob.type})` : 'NONE'}
+
+**MARKOV CHAIN REGIME (HEDGE FUND METHOD):**
+- Mathematical State: ${quantData.markovRegime?.currentState || 'N/A'}
+- Calculated Direction: ${quantData.markovRegime?.signal || 'N/A'} (Confidence: ${quantData.markovRegime?.confidence?.toFixed(1) || 0}%)
+
+**ADVANCED TARGETING (FTA & OTE):**
+- Target Friction Level (FTA): ${quantData.firstTroubleArea?.primaryTarget?.toFixed(5)} (${quantData.firstTroubleArea?.targetType})
+- OTE Sweet Spot (70.5%): ${quantData.fibonacciOTE?.oteSweetSpot?.toFixed(5)}
+- Starvation Protocol: ${quantData.starvationPrevention?.preventStarvation ? `ACTIVE - Split Orders [Aggr: ${quantData.starvationPrevention.splits.aggressiveEntryPortion}] / [Consrv: ${quantData.starvationPrevention.splits.conservativeEntryPortion}]` : 'INACTIVE'}
+
+**RCA SCORE:**
+- Confluence Confidence: ${quantData.confluenceConfidence}/100
+`)
      : `
 **CRITICAL: REAL-TIME QUANT DATA IS MISSING. YOU MUST ANALYZE THE CHART IMAGE TO CALCULATE THE FOLLOWING "MATHEMATICAL TRUTH":**
 - **Trend Bias:** Analyze the structural Highs and Lows (HH, HL, LH, LL).

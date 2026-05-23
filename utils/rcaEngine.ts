@@ -1,6 +1,7 @@
 
 import { detectFVG, detectOrderBlock } from './sharedEngine';
 import { calculateEMA, calculateRSI } from './analyticsEngine';
+import { calculateMarkovRegime, MarkovRegimeResult } from './markovEngine';
 
 export interface FibonacciLevels {
     equilibrium: number;   // 0.50
@@ -39,6 +40,7 @@ export interface RCAMetrics {
     firstTroubleArea: FTALevels;
     starvationPrevention: StarvationFilter;
     confluenceConfidence: number; // Out of 100
+    markovRegime?: MarkovRegimeResult;
     message: string;
 }
 
@@ -202,6 +204,20 @@ export function analyzeRCA(candles: any[]): RCAMetrics | null {
     const isRsiBearishAlign = trend === 'BEARISH' && rsi < 50 && rsi > 30;
     if (isRsiBullishAlign || isRsiBearishAlign) score += 10;
 
+    // --- 5. MARKOV CHAIN REGIME ENGINE ---
+    const markovRegime = calculateMarkovRegime(candles, 20);
+    if (markovRegime) {
+        if (trend === 'BULLISH' && markovRegime.signal === 'BUY') {
+            score += 15; // Confidence boost for aligned buy
+        } else if (trend === 'BEARISH' && markovRegime.signal === 'SELL') {
+            score += 15; // Confidence boost for aligned sell
+        } else if (trend !== 'RANGING' && markovRegime.signal !== 'NEUTRAL' && 
+                   ((trend === 'BULLISH' && markovRegime.signal === 'SELL') || 
+                    (trend === 'BEARISH' && markovRegime.signal === 'BUY'))) {
+            score -= 15; // Conflicting signals
+        }
+    }
+
     return {
         trend,
         ema50,
@@ -214,7 +230,8 @@ export function analyzeRCA(candles: any[]): RCAMetrics | null {
         firstTroubleArea,
         starvationPrevention,
         confluenceConfidence: Math.min(100, score),
-        message: "RCA Advanced Confluence & Target Analysis Complete"
+        markovRegime,
+        message: "RCA Advanced Confluence & Target Analysis Complete (with Markov Hedge Fund Logic)"
     };
 }
 
