@@ -678,8 +678,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                   animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col items-center justify-center py-20 text-center"
                 >
-                  <div className="w-20 h-20 bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-slate-800">
-                    <Activity className="w-10 h-10 text-slate-700" />
+                  <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                    <Activity className="w-10 h-10 text-slate-300 dark:text-slate-700" />
                   </div>
                   <h2 className="text-xl font-bold text-slate-400 mb-2">Neural Link Ready</h2>
                   <p className="text-slate-500 text-sm max-w-xs">
@@ -708,10 +708,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                     ) : (
                       <div className="flex flex-col items-start gap-4 w-full">
                         <div className="flex items-center gap-3">
-                          <div className="w-8 h-8 bg-slate-900 rounded-lg flex items-center justify-center border border-slate-800 flex-shrink-0">
-                            <Bot className="w-4 h-4 text-emerald-500" />
+                          <div className="w-8 h-8 bg-white dark:bg-slate-900 rounded-lg flex items-center justify-center border border-slate-200 dark:border-slate-800 flex-shrink-0">
+                            <Bot className="w-4 h-4 text-emerald-600 dark:text-emerald-500" />
                           </div>
-                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Neural Response</span>
+                          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-500">Neural Response</span>
                         </div>
                         
                         {msg.signal ? (

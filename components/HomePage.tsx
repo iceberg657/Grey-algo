@@ -1,6 +1,25 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { 
+    MessageSquare, 
+    Zap, 
+    Target, 
+    ShieldAlert, 
+    Calculator, 
+    BookOpen, 
+    Package, 
+    History, 
+    Book, 
+    LogOut,
+    Settings,
+    Activity,
+    Compass,
+    Bell,
+    ExternalLink,
+    ChevronRight,
+    TrendingUp
+} from 'lucide-react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { Loader } from './Loader';
@@ -49,24 +68,28 @@ const NavButton: React.FC<{
     <motion.button
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.03, duration: 0.3 }}
+        transition={{ delay: index * 0.03, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
         onClick={onClick}
         aria-label={ariaLabel}
-        className={`group flex items-center justify-center h-14 w-14 md:w-auto md:px-5 md:py-2.5 rounded-2xl transition-all duration-300 border backdrop-blur-md hover:scale-110 active:scale-95 shadow-[0_4px_16px_0_rgba(0,0,0,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] relative ${
+        className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all duration-500 border backdrop-blur-xl hover:scale-105 active:scale-95 shadow-lg ${
             highlight 
-                ? 'bg-green-600 text-white border-green-500 hover:bg-green-500' 
-                : 'text-green-600 dark:text-green-400 bg-white/80 dark:bg-slate-800/40 border-gray-200 dark:border-white/10 hover:bg-white dark:hover:bg-slate-700/50'
+                ? 'bg-emerald-600 text-white border-emerald-500/50 hover:bg-emerald-500 shadow-emerald-500/20' 
+                : 'text-slate-600 dark:text-slate-400 bg-white/40 dark:bg-slate-900/40 border-white/20 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800/60 hover:text-emerald-500 dark:hover:text-emerald-400'
         }`}
     >
         {isLocked && (
-            <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-lg z-20">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 00-2 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                </svg>
+            <div className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-1 shadow-lg z-20 border border-white/20 shadow-rose-500/30">
+                <ShieldAlert size={10} />
             </div>
         )}
-        {icon}
-        <span className="hidden md:inline md:ml-3 text-xs font-black uppercase tracking-widest">{label}</span>
+        <div className={`transition-transform duration-500 group-hover:rotate-6 ${highlight ? 'text-white' : 'text-slate-400 group-hover:text-emerald-500'}`}>
+            {icon}
+        </div>
+        <span className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1">{label}</span>
+        
+        {highlight && (
+            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-white/40 rounded-full blur-sm" />
+        )}
     </motion.button>
 );
 
@@ -357,83 +380,74 @@ export const HomePage: React.FC<HomePageProps> = ({
     const navItems = [
         {
             onClick: onNavigateToChat,
-            label: 'Chat',
+            label: 'Oracle',
             ariaLabel: 'Open Oracle Chat',
             isLocked: systemSettings?.chatLocked && !isAdmin,
-            className: "liquid-glass",
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" /></svg>
+            icon: <MessageSquare size={20} />
         },
         {
             onClick: onNavigateToAutoTrade,
-            label: 'Auto Trade',
+            label: 'Auto',
             ariaLabel: 'Open Auto Trade Terminal',
             highlight: true,
-            className: "liquid-glass-accent",
             isLocked: (systemSettings?.autoTradeLocked || userMetadata?.access?.autoTrade === 'locked') && !isAdmin,
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            icon: <Zap size={20} />
         },
         {
             onClick: onNavigateToSniper,
             label: 'Sniper',
             ariaLabel: 'Open Sniper Live Trade',
             highlight: true,
-            className: "liquid-glass-accent",
             isLocked: (systemSettings?.sniperLocked || userMetadata?.access?.sniperLiveTrade === 'locked') && !isAdmin,
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /><circle cx="12" cy="12" r="3" /></svg>
+            icon: <Target size={20} />
         },
         ...(isAdmin ? [{
             onClick: onNavigateToAdmin,
             label: 'Admin',
             ariaLabel: 'Open Admin Control Center',
-            className: "liquid-glass",
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+            icon: <ShieldAlert size={20} />
         }] : []),
         {
             onClick: () => setShowRiskCalc(true),
-            label: 'Risk Calc',
+            label: 'Risk',
             ariaLabel: 'Open Position Size Calculator',
-            className: "liquid-glass",
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>
+            icon: <Calculator size={20} />
         },
         {
             onClick: () => setShowCheatSheet(true),
             label: 'Academy',
             ariaLabel: 'Open Tactical Academy',
-            className: "liquid-glass",
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+            icon: <BookOpen size={20} />
         },
         {
             onClick: onNavigateToProducts,
-            label: 'Products',
+            label: 'Vault',
             ariaLabel: 'Open GreyAlpha Products',
-            className: "liquid-glass",
             isLocked: userMetadata?.access?.products === 'locked' && !isAdmin,
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" /></svg>
+            icon: <Package size={20} />
         },
         {
             onClick: onNavigateToHistory,
             label: 'History',
             ariaLabel: 'View analysis history',
-            className: "liquid-glass",
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            icon: <History size={20} />
         },
         {
             onClick: onNavigateToJournal,
             label: 'Journal',
             ariaLabel: 'Open Performance Journal',
-            className: "liquid-glass",
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+            icon: <Book size={20} />
         },
         {
             onClick: onLogout,
-            label: 'Logout',
+            label: 'Exit',
             ariaLabel: 'Logout',
-            icon: <svg xmlns="http://www.w3.org/2000/svg" className={iconClasses} fill="none" viewBox="0 0 24 24" strokeWidth="2.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0l3-3m0 0l-3-3m3 3H9" /></svg>
+            icon: <LogOut size={20} />
         },
     ];
 
     return (
-        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 pb-20">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans flex flex-col transition-colors duration-500 pb-20 overflow-x-hidden">
             <PacificTimeClock />
             
             {/* Broadcast Banner */}
@@ -441,17 +455,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                 {broadcasts.length > 0 && (
                     <motion.div 
                         initial={{ y: -100 }}
-                        animate={{ y: 0 }}
+                        animate={{ y: 20 }}
                         exit={{ y: -100 }}
-                        className="fixed top-0 left-0 right-0 z-[120] bg-green-600 text-white py-2 px-4 shadow-lg flex items-center justify-center gap-4"
+                        className="fixed top-0 left-1/2 -translate-x-1/2 z-[120] bg-emerald-600 text-white py-2 px-6 rounded-full shadow-2xl flex items-center gap-3 border border-emerald-400/30 backdrop-blur-md"
                     >
-                        <span className="animate-pulse w-2 h-2 bg-white rounded-full"></span>
-                        <p className="text-[10px] font-black uppercase tracking-widest text-center">
-                            SYSTEM BROADCAST: {broadcasts[0].message}
+                        <Bell size={12} className="animate-pulse" />
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">
+                            Neural Broadcast: {broadcasts[0].message}
                         </p>
-                        <span className="text-[8px] opacity-70 font-mono">
-                            {new Date(broadcasts[0].timestamp).toLocaleTimeString()}
-                        </span>
                     </motion.div>
                 )}
             </AnimatePresence>
@@ -495,61 +506,45 @@ export const HomePage: React.FC<HomePageProps> = ({
             <motion.div 
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5 }}
-                className={`w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col perspective-1000 ${broadcasts.length > 0 ? 'pt-16' : ''}`}
+                transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
+                className={`w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-10 flex-grow flex flex-col ${broadcasts.length > 0 ? 'pt-20' : ''}`}
             >
-                <header className="text-center mb-10 relative">
-                      <div className="absolute top-0 right-0 flex items-center gap-2">
+                <header className="flex flex-col items-center mb-16 relative">
+                    <div className="absolute top-0 right-0 flex items-center gap-3">
                         {isTwelveDataConfigured !== null && (
                             <button 
                                 onClick={handleOpenSettings}
-                                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-[10px] font-bold uppercase tracking-wider transition-all hover:scale-105 active:scale-95 ${isTwelveDataConfigured ? 'bg-green-500/10 border-green-500/30 text-green-600 dark:text-green-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400 animate-pulse'}`} 
-                                title={isTwelveDataConfigured ? "Twelve Data API Connected" : "Twelve Data API Key Missing - Click to Fix"}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-md ${isTwelveDataConfigured ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 animate-pulse'}`} 
+                                title={isTwelveDataConfigured ? "Twelve Data Connected" : "Connection Refused"}
                             >
-                                <div className={`w-1.5 h-1.5 rounded-full ${isTwelveDataConfigured ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                                <span className="hidden sm:inline">{isTwelveDataConfigured ? 'Twelve Data Active' : 'Twelve Data Offline'}</span>
+                                <span className={`w-1 h-1 rounded-full ${isTwelveDataConfigured ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                                <span className="hidden sm:inline">{isTwelveDataConfigured ? 'Network: Live' : 'Network: Offline'}</span>
                             </button>
                         )}
                         <ThemeToggleButton />
                     </div>
-                    <button onClick={handleOpenSettings} className="block mx-auto cursor-pointer group focus:outline-none focus:ring-2 focus:ring-green-400/50 rounded-2xl p-2" title="Open Settings">
-                        <svg className="h-16 w-16 mx-auto mb-4 group-hover:scale-110 transition-transform duration-300" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                            <defs>
-                                <filter id="brilliantGlow" x="-100%" y="-100%" width="300%" height="300%">
-                                    <feGaussianBlur in="SourceGraphic" stdDeviation="1.5" result="blur" />
-                                    <feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 0.9 0" result="glow" />
-                                    <feComposite in="SourceGraphic" in2="glow" operator="over" />
-                                </filter>
-                                <linearGradient id="greenCandleFill" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stopColor="#6ee7b7" />
-                                    <stop offset="100%" stopColor="#10b981" />
-                                </linearGradient>
-                                <linearGradient id="darkGreenCandleFill" x1="0" y1="0" x2="1" y2="1">
-                                    <stop offset="0%" stopColor="#059669" />
-                                    <stop offset="100%" stopColor="#047857" />
-                                </linearGradient>
-                            </defs>
-                            <g className="animate-bounce-candle origin-center [animation-delay:-0.2s]" filter="url(#brilliantGlow)">
-                                <path d="M20 12V20" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
-                                <rect x="16" y="20" width="8" height="18" rx="1" fill="url(#darkGreenCandleFill)"/>
-                                <path d="M20 38V48" stroke="#065f46" strokeWidth="3" strokeLinecap="round"/>
-                            </g>
-                            <g className="animate-bounce-candle origin-center" filter="url(#brilliantGlow)">
-                                <path d="M44 16V26" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
-                                <rect x="40" y="26" width="8" height="18" rx="1" fill="url(#greenCandleFill)"/>
-                                <path d="M44 44V52" stroke="#34d399" strokeWidth="3" strokeLinecap="round"/>
-                            </g>
-                        </svg>
-                        <h1 className="text-4xl sm:text-5xl font-black tracking-tight animated-gradient-text animate-animated-gradient group-hover:brightness-110 transition-all italic uppercase tracking-[-0.05em]">
-                            GreyAlpha
+
+                    <motion.div 
+                        whileHover={{ scale: 1.02 }}
+                        className="relative cursor-pointer group"
+                        onClick={handleOpenSettings}
+                    >
+                        <div className="absolute inset-0 bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                        <h1 className="text-5xl sm:text-6xl font-black tracking-tightest text-slate-900 dark:text-white transition-all duration-500 italic uppercase">
+                            Grey<span className="text-emerald-500">Alpha</span>
                         </h1>
-                    </button>
-                    <p className="mt-3 text-sm font-black text-gray-600 dark:text-dark-text/40 uppercase tracking-[0.4em]">
-                        Autonomous Neural Trading Architecture
-                    </p>
+                    </motion.div>
+                    
+                    <div className="mt-4 flex items-center gap-4 text-slate-400 dark:text-slate-500">
+                        <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
+                        <p className="text-[9px] font-bold uppercase tracking-[0.6em] whitespace-nowrap">
+                            Autonomous Neural Systems
+                        </p>
+                        <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
+                    </div>
                 </header>
 
-                <nav className="mb-12 flex justify-center items-center flex-wrap gap-3 sm:gap-4">
+                <nav className="mb-16 grid grid-cols-5 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
                     {navItems.map((item, idx) => (
                         <NavButton
                             key={item.label}
@@ -564,8 +559,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                     ))}
                 </nav>
 
-                <main className="relative group">
-                   <div>
+                <main className="grid grid-cols-1 gap-12">
+                   <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.2 }}
+                   >
                        <MarketOverview 
                             analysisCount={analysisCount} 
                             onResetCount={handleResetAnalysisCount} 
@@ -577,27 +576,32 @@ export const HomePage: React.FC<HomePageProps> = ({
                                 setBearishSuggestions(bear);
                             }}
                        />
-                   </div>
+                   </motion.div>
 
-                   <div>
-                        {/* High-Tech HUD Brackets for Form */}
-                        <div className="absolute -top-3 -left-3 w-10 h-10 border-t-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:-translate-y-1"></div>
-                        <div className="absolute -top-3 -right-3 w-10 h-10 border-t-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:-translate-y-1"></div>
-                        <div className="absolute -bottom-3 -left-3 w-10 h-10 border-b-4 border-l-4 z-10 border-green-500/50 transition-all duration-700 group-hover:-translate-x-1 group-hover:-translate-y-1"></div>
-                        <div className="absolute -bottom-3 -right-3 w-10 h-10 border-b-4 border-r-4 z-10 border-green-500/50 transition-all duration-700 group-hover:translate-x-1 group-hover:-translate-y-1"></div>
+                   <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.4 }}
+                        className="relative group lg:max-w-4xl lg:mx-auto w-full"
+                   >
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+                            <TrendingUp size={14} className="text-emerald-500" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Analysis Core</span>
+                        </div>
 
-                        <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-6 sm:p-10 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.1)] dark:shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
-                             {/* Interactive Scanline */}
-                             <div className="absolute inset-0 bg-gradient-to-b from-transparent via-green-500/5 to-transparent h-[200%] pointer-events-none animate-shimmer"></div>
+                        <div className="bg-white dark:bg-slate-950 p-6 sm:p-10 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
+                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-30" />
                              
                             {error ? (
                                  <div className="min-h-[400px] flex flex-col items-center justify-center relative z-10">
-                                    <ErrorMessage message={error} />
+                                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-3xl mb-8">
+                                        <ErrorMessage message={error} />
+                                    </div>
                                     <button
                                         onClick={handleReconnect}
-                                        className="mt-6 px-6 py-2.5 text-xs font-black uppercase tracking-widest text-white bg-red-600 rounded-xl hover:bg-red-500 transition-all shadow-lg hover:shadow-red-500/30"
+                                        className="px-8 py-4 bg-rose-500 hover:bg-rose-400 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-rose-500/20 active:scale-95"
                                     >
-                                        Reconnect Lane
+                                        Restore Neural Link
                                     </button>
                                 </div>
                             ) : (
@@ -605,21 +609,23 @@ export const HomePage: React.FC<HomePageProps> = ({
                                     <SignalGeneratorForm 
                                         onSubmit={(req, file) => handleGenerateSignal(req, file!)} 
                                         isLoading={isLoading} 
-
                                     />
                                 </div>
                             )}
                         </div>
-                   </div>
+                   </motion.div>
                 </main>
             </motion.div>
-            <footer className="w-full text-center mt-12 px-4 sm:px-6 lg:px-8 text-gray-700 dark:text-dark-text/40 text-[10px] font-black uppercase tracking-[0.3em]">
+            
+            <footer className="w-full text-center mt-20 px-4 pb-12 text-slate-400 dark:text-slate-600">
                 <div className="flex flex-col items-center">
-                    <p className="max-w-xl mx-auto opacity-70">
-                        Operational parameters within acceptable bounds. Preserve capital at all costs.
-                    </p>
-                    <p className="mt-4">
-                        Contact Command: <a href="mailto:ma8138498@gmail.com" className="font-black text-green-600 dark:text-green-400 hover:underline">ma8138498@gmail.com</a>
+                    <div className="flex items-center gap-6 mb-6">
+                        <div className="h-px w-12 bg-slate-100 dark:bg-slate-900" />
+                        <Activity size={20} className="opacity-20 translate-y-1" />
+                        <div className="h-px w-12 bg-slate-100 dark:bg-slate-900" />
+                    </div>
+                    <p className="max-w-sm mx-auto text-[9px] font-bold uppercase tracking-[0.4em] leading-loose opacity-60">
+                        Operational parameters within bounds. Terminal status: <span className="text-emerald-500">Synchronized</span>.
                     </p>
                 </div>
             </footer>

@@ -414,8 +414,8 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
           </motion.button>
         ) : null
       ) : (
-        <div className={`min-h-screen w-full flex-grow text-white flex flex-col p-6 transition-all duration-700 relative overflow-hidden`}>
-          <div className="absolute inset-0 z-0">
+        <div className={`min-h-screen w-full flex-grow bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col p-6 transition-all duration-700 relative overflow-hidden`}>
+          <div className="absolute inset-0 z-0 opacity-40 dark:opacity-100">
             <NeuralBackground />
           </div>
           
@@ -434,14 +434,14 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
 
           {/* Header */}
           <header className="relative z-10 flex justify-between items-center mb-10">
-            <button onClick={onBack} className="text-gray-400 hover:text-white transition-colors">
-              &larr; Back to App
+            <button onClick={onBack} className="text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors flex items-center gap-2 font-medium">
+              <span className="text-lg">←</span> Back to App
             </button>
             <div className="flex flex-col items-end">
-              <h1 className="text-3xl font-black tracking-widest uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-indigo-500">
+              <h1 className="text-3xl font-black tracking-widest uppercase bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-500">
                 The Oracle
               </h1>
-              <p className="text-xs text-blue-400/70 tracking-[0.2em] uppercase mt-1">Multi-Modal Vision & Audio Matrix</p>
+              <p className="text-[10px] text-blue-600/70 dark:text-blue-400/70 tracking-[0.2em] uppercase mt-1 font-bold">Multi-Modal Neural Matrix</p>
             </div>
           </header>
 
@@ -449,15 +449,15 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
           <div className="relative z-10 flex-grow flex flex-col items-center justify-center max-w-4xl mx-auto w-full">
             
             {!isActive ? (
-              <div className="flex flex-col items-center gap-8 bg-black/50 p-10 rounded-3xl border border-white/10 backdrop-blur-md">
-                <div className="w-64 h-64 rounded-full border-2 border-white/10 flex items-center justify-center relative bg-slate-900/50 backdrop-blur-sm">
+              <div className="flex flex-col items-center gap-8 bg-white/40 dark:bg-black/50 p-10 rounded-3xl border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-2xl dark:shadow-none">
+                <div className="w-64 h-64 rounded-full border-2 border-slate-200 dark:border-white/10 flex items-center justify-center relative bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
                   <div className="absolute inset-0 rounded-full border border-blue-500/20 blur-sm" />
                   <div className="text-center p-6">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-blue-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-16 w-16 mx-auto mb-4 text-blue-500/40 dark:text-blue-400/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <p className="text-sm text-slate-400 font-mono">Oracle is dormant.</p>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 font-mono italic">Waiting for Command.</p>
                   </div>
                 </div>
 
@@ -467,9 +467,9 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                     id="cameraToggle" 
                     checked={isCameraEnabled} 
                     onChange={e => setIsCameraEnabled(e.target.checked)}
-                    className="w-5 h-5 rounded border-gray-500 bg-black/50 text-blue-500 focus:ring-blue-500"
+                    className="w-5 h-5 rounded border-slate-300 dark:border-slate-500 bg-white dark:bg-black/50 text-blue-600 focus:ring-blue-500"
                   />
-                  <label htmlFor="cameraToggle" className="text-slate-400 font-mono text-sm cursor-pointer">Share Screen (Desktop) / Camera</label>
+                  <label htmlFor="cameraToggle" className="text-slate-600 dark:text-slate-400 font-mono text-sm cursor-pointer">Share Screen / Camera Access</label>
                 </div>
 
                 <button 
@@ -479,7 +479,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                 >
                   {isInitializing ? 'Connecting Matrix...' : 'Awaken Oracle'}
                 </button>
-                <p className="text-xs text-slate-500 text-center max-w-sm mt-3">Requires microphone access for voice chat. If you enable visual access, you will be prompted to share your screen or camera.</p>
+                <p className="text-xs text-slate-500 dark:text-slate-500 text-center max-w-sm mt-3 font-medium">Enabled visual access allows Oracle to synthesize real-time data from your environment.</p>
                 {error && (
                   <div className="flex flex-col items-center gap-2 mt-4 text-center p-4 bg-red-950/50 rounded-xl border border-red-500/50">
                     <p className="text-red-400 text-sm max-w-sm font-semibold">{error}</p>
@@ -521,25 +521,25 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                 </div>
 
                 {/* Transcription Feed */}
-                <div className="w-full max-w-2xl bg-black/40 border border-blue-500/30 p-6 rounded-2xl backdrop-blur-md max-h-64 overflow-y-auto">
-                  <h3 className="text-xs tracking-widest text-blue-400 uppercase font-bold mb-4">Neural Data Stream (Transcription)</h3>
+                <div className="w-full max-w-2xl bg-white/60 dark:bg-black/40 border border-blue-500/20 dark:border-blue-500/30 p-6 rounded-[32px] backdrop-blur-xl max-h-64 overflow-y-auto shadow-xl dark:shadow-none">
+                  <h3 className="text-[10px] tracking-widest text-blue-600 dark:text-blue-400 uppercase font-black mb-4">Neural Data Stream</h3>
                   {modelMessage ? (
-                    <p className="font-mono text-sm leading-relaxed text-slate-300">
+                    <p className="font-mono text-sm leading-relaxed text-slate-700 dark:text-slate-300">
                       {modelMessage}
                     </p>
                   ) : (
-                    <div className="flex items-center space-x-2 opacity-50">
+                    <div className="flex items-center space-x-2 opacity-60">
                       <div className="w-2 h-2 bg-blue-500 rounded-full animate-ping" />
-                      <p className="font-mono text-xs">Awaiting voice or vision input...</p>
+                      <p className="font-mono text-xs text-slate-500 dark:text-slate-400">Awaiting voice or vision input Matrix...</p>
                     </div>
                   )}
                 </div>
 
                 {/* Text/Mic Controls */}
-                <div className="flex items-center gap-4 bg-slate-900/80 p-2 rounded-full border border-blue-500/30">
+                <div className="flex items-center gap-4 bg-white/80 dark:bg-slate-900/80 p-2 rounded-full border border-slate-200 dark:border-blue-500/30 shadow-2xl dark:shadow-none">
                   <button 
                       onClick={() => setInputModeWithRef(inputMode === 'voice' ? 'text' : 'voice')}
-                      className={`p-3 rounded-full transition-colors ${inputMode === 'text' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                      className={`p-3 rounded-full transition-all duration-300 ${inputMode === 'text' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}
                       title="Toggle Text Input"
                   >
                     {inputMode === 'voice' ? <Keyboard size={20} /> : <MessageSquare size={20} />}
@@ -548,7 +548,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                   {inputMode === 'voice' && (
                     <button 
                       onClick={toggleMute}
-                      className={`p-3 rounded-full transition-colors ${isMuted ? 'bg-red-600 text-white' : 'text-green-400 hover:text-white'}`}
+                      className={`p-3 rounded-full transition-all duration-300 ${isMuted ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20'}`}
                       title={isMuted ? "Unmute Mic" : "Mute Mic"}
                   >
                     {isMuted ? <MicOff size={20} /> : <Mic size={20} />}
@@ -562,10 +562,10 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                             value={textInput} 
                             onChange={(e) => setTextInput(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && sendText()}
-                            placeholder="Type to Oracle..."
-                            className="bg-transparent border-b border-blue-500/50 px-2 py-1 outline-none text-sm w-48"
+                            placeholder="Consult the Oracle..."
+                            className="bg-transparent border-b border-slate-200 dark:border-blue-500/50 px-3 py-1 outline-none text-sm w-48 text-slate-800 dark:text-white placeholder-slate-400"
                         />
-                         <button onClick={sendText} className="p-2 text-blue-500 hover:text-blue-300">
+                         <button onClick={sendText} className="p-2 text-blue-600 dark:text-blue-500 hover:scale-110 transition-transform">
                             <Send size={20} />
                          </button>
                     </div>

@@ -1,6 +1,21 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+    Send, 
+    Image as ImageIcon, 
+    Plus, 
+    ArrowLeft, 
+    LogOut, 
+    Eye, 
+    Volume2, 
+    Square, 
+    Sparkles, 
+    RefreshCcw,
+    AlertCircle,
+    User,
+    Terminal
+} from 'lucide-react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName } from '../services/chatService';
 import { ThemeToggleButton } from './ThemeToggleButton';
@@ -27,22 +42,23 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
         reader.onerror = error => reject(error);
     });
 
-// A simple markdown to HTML converter for bold and lists
+// A slightly better markdown to HTML converter
 const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
     const formatText = (inputText: string) => {
         let html = inputText
-            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+            .replace(/`(.*?)`/g, '<code class="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-emerald-600 dark:text-emerald-400 font-mono text-xs">$1</code>') // Inline code
+            .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>') // Bold
             .replace(/\n/g, '<br />'); // New lines
 
         // Unordered lists
         if (html.includes('* ')) {
-             html = html.replace(/^\* (.*$)/gm, '<li class="ml-4 list-disc">$1</li>');
-             html = `<ul>${html}</ul>`.replace(/<\/li><br \/><ul>/g, '</li><ul>').replace(/<\/ul><br \/><li>/g,'</ul><li>');
+             html = html.replace(/^\* (.*$)/gm, '<li class="ml-5 list-disc mb-1">$1</li>');
+             html = `<ul class="my-2">${html}</ul>`.replace(/<\/li><br \/><ul>/g, '</li><ul>').replace(/<\/ul><br \/><li>/g,'</ul><li>');
         }
         return { __html: html };
     };
 
-    return <div className="break-words" dangerouslySetInnerHTML={formatText(text)} />;
+    return <div className="break-words leading-relaxed text-slate-700 dark:text-slate-300" dangerouslySetInnerHTML={formatText(text)} />;
 };
 
 const ChatBubble: React.FC<{
@@ -51,49 +67,65 @@ const ChatBubble: React.FC<{
     onToggleSpeech: (message: ChatMessage) => void;
 }> = ({ message, isBusy, onToggleSpeech }) => {
     const isUser = message.role === 'user';
+    
     return (
-        <div className={`flex items-end gap-2 ${isUser ? 'justify-end' : 'justify-start'} w-full`}>
-            {!isUser && (
-                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600 dark:text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                        <circle cx="12" cy="12" r="3"/>
-                    </svg>
-                </div>
-            )}
-            <div className={`relative group max-w-[85%] lg:max-w-lg p-3 rounded-2xl text-sm shadow-sm backdrop-blur-sm ${isUser ? 'bg-blue-500/90 text-white rounded-br-none border border-blue-400/30' : 'bg-gray-200/80 text-gray-800 dark:bg-slate-800/60 dark:text-gray-200 rounded-bl-none border border-gray-300/50 dark:border-slate-700/50'}`}>
-                 {message.images && message.images.length > 0 && (
-                    <div className={`grid gap-2 mb-2 ${message.images.length === 3 ? 'grid-cols-3' : message.images.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
-                        {message.images.map((imgSrc, index) => (
-                             <img 
-                                key={index}
-                                src={imgSrc} 
-                                alt={`User upload ${index + 1}`} 
-                                className="rounded-lg max-w-full h-auto object-cover"
-                                style={{ maxHeight: '200px' }}
-                            />
-                        ))}
-                    </div>
-                 )}
-                 <SimpleMarkdown text={message.text} />
-                  {!isUser && (
-                     <button
-                        onClick={() => onToggleSpeech(message)}
-                        className="absolute -top-2 -right-2 p-1.5 rounded-full bg-gray-300/90 dark:bg-dark-card/90 text-green-600 dark:text-green-400 opacity-100 md:opacity-0 md:group-hover:opacity-100 focus:opacity-100 transition-opacity disabled:opacity-30 disabled:cursor-not-allowed shadow-sm z-10"
-                        aria-label={isBusy ? "Stop reading message" : "Read message aloud"}
-                    >
-                        {isBusy ? (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8 7a1 1 0 00-1 1v4a1 1 0 001 1h4a1 1 0 001-1V8a1 1 0 00-1-1H8z" clipRule="evenodd" />
-                            </svg>
-                        ) : (
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
-                                <path d="M4.022 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356zM5.394 9.122a.5.5 0 00-.638.45l.216 1.082a.5.5 0 00.94-.188l-.216-1.082a.5.5 0 00-.302-.262zM7.17 8.356a.5.5 0 00-.687.396l.128.64a.5.5 0 00.94-.188l-.128-.64a.5.5 0 00-.253-.208zM15.978 10.155a.5.5 0 00-.544.544l.288 1.443a.5.5 0 00.94-.188l-.288-1.443a.5.5 0 00-.396-.356z" clipRule="evenodd" /><path d="M11 12.333a1.5 1.5 0 01-3 0V7.5a1.5 1.5 0 013 0v4.833z" /></svg>
-                        )}
-                    </button>
-                 )}
+        <motion.div 
+            initial={{ opacity: 0, y: 10, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
+            className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} w-full group mb-4`}
+        >
+            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border transition-all duration-300 ${
+                isUser 
+                ? 'bg-blue-600 border-blue-500/50 text-white mt-1' 
+                : 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 mt-1'
+            }`}>
+                {isUser ? <User size={16} /> : <Eye size={16} />}
             </div>
-        </div>
+
+            <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] lg:max-w-[75%]`}>
+                <div className={`relative px-4 py-3 rounded-2xl text-sm transition-all duration-300 ${
+                    isUser 
+                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-none shadow-lg shadow-blue-500/10 border border-blue-400/20' 
+                    : 'bg-white dark:bg-slate-900/60 text-gray-800 dark:text-slate-200 rounded-tl-none shadow-sm border border-gray-100 dark:border-white/5 backdrop-blur-md'
+                }`}>
+                    {message.images && message.images.length > 0 && (
+                        <div className={`grid gap-2 mb-3 ${message.images.length === 3 ? 'grid-cols-3' : message.images.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
+                            {message.images.map((imgSrc, index) => (
+                                <motion.img 
+                                    whileHover={{ scale: 1.02 }}
+                                    key={index}
+                                    src={imgSrc} 
+                                    alt={`Upload ${index + 1}`} 
+                                    className="rounded-xl max-w-full h-auto object-cover border border-white/20"
+                                    style={{ maxHeight: '240px' }}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    
+                    <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <SimpleMarkdown text={message.text} />
+                    </div>
+
+                    {!isUser && (
+                        <button
+                            onClick={() => onToggleSpeech(message)}
+                            className="absolute -right-3 -bottom-3 p-2 rounded-full bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 shadow-xl border border-gray-100 dark:border-slate-700 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all duration-300 scale-90 hover:scale-100"
+                            aria-label={isBusy ? "Stop reading" : "Read aloud"}
+                        >
+                            {isBusy ? <Square size={14} fill="currentColor" /> : <Volume2 size={14} />}
+                        </button>
+                    )}
+                </div>
+                
+                {message.timestamp && (
+                    <span className="text-[10px] mt-1 text-slate-400 dark:text-slate-500 font-medium tracking-wider uppercase px-2">
+                        {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                )}
+            </div>
+        </motion.div>
     );
 };
 
@@ -111,9 +143,7 @@ const TypingIndicator: React.FC = () => {
     ];
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setShowThinking(true);
-        }, 5000);
+        const timer = setTimeout(() => setShowThinking(true), 4000);
         return () => clearTimeout(timer);
     }, []);
 
@@ -121,38 +151,46 @@ const TypingIndicator: React.FC = () => {
         if (!showThinking) return;
         const interval = setInterval(() => {
             setThoughtIndex((prev) => (prev + 1) % thoughts.length);
-        }, 2500);
+        }, 3000);
         return () => clearInterval(interval);
     }, [showThinking, thoughts.length]);
 
     return (
-        <div className="flex items-end gap-2 justify-start animate-fade-in">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 dark:bg-green-500/20 border border-green-200 dark:border-green-500/50 flex items-center justify-center">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-green-600 dark:text-green-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                </svg>
+        <motion.div 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-3 w-full mb-4"
+        >
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-emerald-500/10 dark:bg-emerald-500/20 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 flex items-center justify-center animate-pulse mt-1">
+                <Eye size={16} />
             </div>
-            <div className="max-w-md lg:max-w-lg p-3 rounded-2xl bg-gray-200/80 dark:bg-slate-800/60 backdrop-blur-sm border border-gray-300/50 dark:border-slate-700/50 text-gray-800 dark:text-gray-200 rounded-bl-none">
+            
+            <div className="bg-white/50 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-2xl rounded-tl-none border border-gray-100 dark:border-white/5 shadow-sm min-w-[120px]">
                 {!showThinking ? (
-                    <div className="flex items-center space-x-1 h-5 px-1">
-                        <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse [animation-delay:-0.3s]"></div>
-                        <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse [animation-delay:-0.15s]"></div>
-                        <div className="w-2 h-2 bg-green-500 dark:bg-green-400 rounded-full animate-pulse"></div>
+                    <div className="flex items-center space-x-1.5 h-5">
+                        {[0, 0.15, 0.3].map((delay) => (
+                            <motion.div 
+                                key={delay}
+                                animate={{ y: [0, -4, 0] }}
+                                transition={{ duration: 0.6, repeat: Infinity, delay }}
+                                className="w-1.5 h-1.5 bg-emerald-500 rounded-full"
+                            />
+                        ))}
                     </div>
                 ) : (
-                    <div className="flex items-center gap-3 px-1 animate-fade-in">
-                        <span className="relative flex h-2.5 w-2.5 flex-shrink-0">
-                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                          <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
-                        </span>
-                        <span className="text-xs sm:text-sm font-medium italic text-gray-500 dark:text-gray-400 animate-pulse">
+                    <div className="flex items-center gap-3 animate-fade-in">
+                        <motion.div 
+                            animate={{ scale: [1, 1.2, 1] }} 
+                            transition={{ duration: 2, repeat: Infinity }}
+                            className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" 
+                        />
+                        <span className="text-xs font-medium text-slate-500 dark:text-slate-400 italic">
                             {thoughts[thoughtIndex]}
                         </span>
                     </div>
                 )}
             </div>
-        </div>
+        </motion.div>
     );
 };
 
@@ -169,20 +207,22 @@ interface ChatPageProps {
 }
 
 const OracleLogo: React.FC = () => (
-    <div className="relative w-32 h-32 mb-6 flex items-center justify-center">
-        <div className="relative z-10 w-24 h-24 rounded-full flex items-center justify-center bg-white/90 dark:bg-slate-800/90 border-2 border-gray-200 dark:border-slate-700 shadow-2xl backdrop-blur-sm">
-             <svg xmlns="http://www.w3.org/2000/svg" className="w-12 h-12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                <defs>
-                    <linearGradient id="eyeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <stop offset="0%" stopColor="#2dd4bf" />
-                        <stop offset="100%" stopColor="#a78bfa" />
-                    </linearGradient>
-                </defs>
-                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" stroke="url(#eyeGradient)"/>
-                <circle cx="12" cy="12" r="3" stroke="url(#eyeGradient)"/>
-            </svg>
+    <motion.div 
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 1, ease: "easeOut" }}
+        className="relative w-24 h-24 mb-6 flex items-center justify-center"
+    >
+        <div className="absolute inset-0 bg-emerald-500/20 dark:bg-emerald-500/10 blur-3xl animate-pulse" />
+        <div className="relative z-10 w-20 h-20 rounded-3xl flex items-center justify-center bg-white/10 dark:bg-slate-800/20 border border-white/20 dark:border-slate-700/30 shadow-2xl backdrop-blur-xl rotate-12 group hover:rotate-0 transition-transform duration-500">
+             <motion.div
+                animate={{ scale: [1, 1.1, 1] }}
+                transition={{ duration: 3, repeat: Infinity }}
+             >
+                <Eye size={40} strokeWidth={1} className="text-emerald-500" />
+             </motion.div>
         </div>
-    </div>
+    </motion.div>
 );
 
 const SUGGESTED_PROMPTS = [
@@ -493,85 +533,118 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     }, [initialInput, executeSendMessage, onClearInitialInput]);
     
     return (
-        <div className="h-[100dvh] bg-gray-50 dark:bg-slate-950 text-gray-800 dark:text-dark-text font-sans flex flex-col relative overflow-hidden">
+        <div className="h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans flex flex-col relative overflow-hidden">
             <NeuralBackground />
             
-            {isLocked && (
-                <div className="absolute inset-0 z-[100] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-6 text-center">
+            <AnimatePresence>
+                {isLocked && (
                     <motion.div 
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        className="bg-slate-900 border border-white/10 p-10 rounded-3xl max-w-sm w-full shadow-2xl"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="absolute inset-0 z-[100] bg-slate-950/90 backdrop-blur-xl flex items-center justify-center p-6 text-center"
                     >
-                        <div className="w-16 h-16 bg-red-500/20 rounded-full flex items-center justify-center mx-auto mb-6 border border-red-500/30">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                            </svg>
-                        </div>
-                        <h2 className="text-2xl font-black uppercase tracking-tighter italic mb-4">Neural Link Offline</h2>
-                        <p className="text-slate-400 text-sm mb-8">
-                            Chat is closed, please try again later.
-                        </p>
-                        <button 
-                            onClick={onBack}
-                            className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl transition-all"
+                        <motion.div 
+                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            className="bg-slate-900 border border-white/5 p-10 rounded-[32px] max-w-sm w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-t-white/10"
                         >
-                            Return to Base
-                        </button>
+                            <div className="w-16 h-16 bg-red-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-red-500/20">
+                                <AlertCircle className="h-8 w-8 text-red-500" />
+                            </div>
+                            <h2 className="text-2xl font-bold tracking-tight mb-3">Neural Link Offline</h2>
+                            <p className="text-slate-400 text-sm mb-8 leading-relaxed">
+                                The Oracle is currently dormant. Access is restricted until the next synchronization cycle.
+                            </p>
+                            <button 
+                                onClick={onBack}
+                                className="w-full py-4 bg-slate-800 hover:bg-slate-700 text-white font-semibold rounded-2xl transition-all active:scale-[0.98] shadow-lg"
+                            >
+                                Return to Base
+                            </button>
+                        </motion.div>
                     </motion.div>
-                </div>
-            )}
+                )}
+            </AnimatePresence>
 
-            <header className="flex-shrink-0 bg-white/80 dark:bg-slate-950/80 backdrop-blur-sm border-b border-gray-200 dark:border-slate-800 z-10">
-                <div className="w-full max-w-7xl mx-auto p-3 sm:p-4 flex justify-between items-center">
-                    <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white p-2 -ml-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                        Back
+            <header className="flex-shrink-0 bg-white/40 dark:bg-slate-950/40 backdrop-blur-xl border-b border-white/10 dark:border-slate-900/50 z-10">
+                <div className="w-full max-w-5xl mx-auto px-4 py-3 flex justify-between items-center h-16">
+                    <button onClick={onBack} className="group flex items-center text-sm font-medium text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-all">
+                        <div className="p-2 mr-2 rounded-xl border border-transparent group-hover:border-slate-200 dark:group-hover:border-slate-800 group-hover:bg-white dark:group-hover:bg-slate-900/50 transition-all">
+                            <ArrowLeft size={18} />
+                        </div>
+                        <span className="hidden sm:inline">Portal</span>
                     </button>
-                    <div className="flex flex-col items-center mx-2">
-                        <h1 className="text-lg sm:text-xl font-semibold text-gray-900 dark:text-gray-200 truncate">Oracle AI</h1>
+                    
+                    <div className="flex flex-col items-center">
+                        <div className="flex items-center gap-2">
+                            <Sparkles size={14} className="text-emerald-500 animate-pulse" />
+                            <h1 className="text-sm font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Oracle AI</h1>
+                        </div>
                         {currentModelName && (
-                            <span className="text-xl md:text-2xl font-bold ml-1 cursor-help font-mono text-green-600 dark:text-green-400" title={`Active Model: ${currentModelName}`}>
-                                {getModelSymbol(currentModelName)}
-                            </span>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                                <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
+                                <span className="text-[10px] font-mono font-medium text-emerald-600/80 dark:text-emerald-400/80 uppercase">
+                                    {currentModelName.split('/').pop()?.split('-')[0] || 'Neural'} {getModelSymbol(currentModelName)}
+                                </span>
+                            </div>
                         )}
                     </div>
-                    <div className="flex items-center space-x-1 sm:space-x-2">
-                        <button onClick={() => setShowOracle(true)} className="p-2 text-gray-400 hover:text-green-500 rounded-lg transition-colors" title="Open Oracle">
-                             <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-                                <circle cx="12" cy="12" r="3"/>
-                            </svg>
+
+                    <div className="flex items-center gap-1 sm:gap-3">
+                        <button onClick={() => setShowOracle(true)} className="p-2 text-slate-400 hover:text-emerald-500 hover:bg-white dark:hover:bg-white/5 rounded-xl transition-all" title="System Insight">
+                             <Terminal size={20} />
                         </button>
                         <ThemeToggleButton />
-                        <button onClick={onLogout} className="text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors text-xs sm:text-sm font-medium p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-800" aria-label="Logout">
-                            Logout
+                        <button onClick={onLogout} className="p-2 text-slate-400 hover:text-red-500 hover:bg-white dark:hover:bg-white/5 rounded-xl transition-all" aria-label="Disconnect">
+                            <LogOut size={20} />
                         </button>
                     </div>
                 </div>
             </header>
 
-            <main ref={chatContainerRef} className="flex-grow overflow-y-auto overflow-x-hidden scroll-smooth relative z-0">
-                <div className="w-full max-w-7xl mx-auto px-4 sm:p-6 h-full">
+            <main ref={chatContainerRef} className="flex-grow overflow-y-auto scrollbar-hide relative z-0">
+                <div className="w-full max-w-5xl mx-auto px-4 pt-10 pb-32">
                     {messages.length === 0 && !isLoading ? (
-                        <div className="flex-grow flex flex-col items-center justify-center text-center h-full pb-20">
+                        <div className="flex flex-col items-center justify-center text-center py-20">
                             <OracleLogo />
-                            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-gray-100">Hi, I'm Oracle AI</h2>
-                            <p className="text-gray-500 dark:text-gray-400 mt-2 px-4 mb-8">Analyze markets, predict trends, and get trading insights.</p>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-2xl px-4">
+                            <motion.h2 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                                className="text-3xl sm:text-4xl font-bold tracking-tight text-slate-900 dark:text-white"
+                            >
+                                Seeking <span className="text-emerald-500">Clarity</span>?
+                            </motion.h2>
+                            <motion.p 
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                transition={{ delay: 0.4 }}
+                                className="text-slate-500 dark:text-slate-400 mt-4 max-w-sm leading-relaxed"
+                            >
+                                Ask the Oracle for real-time market analysis, strategy synthesis, or trend forecasting.
+                            </motion.p>
+                            
+                            <motion.div 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.6 }}
+                                className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-xl mt-12"
+                            >
                                 {SUGGESTED_PROMPTS.map((prompt, idx) => (
                                     <button
                                         key={idx}
                                         onClick={() => handleSuggestionClick(prompt)}
-                                        className="text-sm text-left p-4 rounded-xl bg-white/80 dark:bg-slate-900/40 border border-gray-200 dark:border-white/10 backdrop-blur-md hover:bg-white dark:hover:bg-slate-800/60 transition-colors shadow-sm text-gray-700 dark:text-gray-300"
+                                        className="text-xs font-semibold text-left p-4 rounded-2xl bg-white/50 dark:bg-white/[0.03] border border-slate-200 dark:border-white/5 backdrop-blur-md hover:bg-white dark:hover:bg-white/[0.08] hover:border-emerald-500/30 transition-all group flex items-center justify-between"
                                     >
-                                        {prompt}
+                                        <span className="text-slate-600 dark:text-slate-300">{prompt}</span>
+                                        <Plus size={14} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
                                     </button>
                                 ))}
-                            </div>
+                            </motion.div>
                         </div>
                     ) : (
-                        <div className="space-y-6 pt-4 pb-4">
+                        <div className="space-y-2">
                              {messages.map((msg) => (
                                 <ChatBubble 
                                     key={msg.id} 
@@ -581,57 +654,149 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 />
                             ))}
                             {isLoading && <TypingIndicator />}
-                            {retrySeconds > 0 && (
-                                <div className="flex justify-center w-full animate-fade-in my-2">
-                                    <div className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center shadow-lg border ${isLoading ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-600 dark:text-yellow-400' : 'bg-red-500/10 border-red-500/30 text-red-600 dark:text-red-400'}`}>
-                                        {isLoading ? `Rate limit reached. Retrying in ${retrySeconds}s...` : `System Cooldown: Restoring Neural Link in ${retrySeconds}s`}
-                                    </div>
-                                </div>
+                            
+                            <AnimatePresence>
+                                {retrySeconds > 0 && (
+                                    <motion.div 
+                                        initial={{ opacity: 0, scale: 0.9 }}
+                                        animate={{ opacity: 1, scale: 1 }}
+                                        exit={{ opacity: 0, scale: 0.9 }}
+                                        className="flex justify-center my-6"
+                                    >
+                                        <div className={`px-6 py-3 rounded-2xl text-xs font-bold tracking-widest uppercase flex items-center gap-3 shadow-2xl border ${
+                                            isLoading 
+                                            ? 'bg-yellow-500 text-black border-yellow-400' 
+                                            : 'bg-red-500 text-white border-red-400'
+                                        }`}>
+                                            <RefreshCcw size={14} className="animate-spin" />
+                                            {isLoading ? `Rate limit active: ${retrySeconds}s` : `System Cooldown: ${retrySeconds}s`}
+                                        </div>
+                                    </motion.div>
+                                )}
+                            </AnimatePresence>
+                            
+                            {error && !retrySeconds && (
+                                <motion.div 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    className="mx-auto max-w-md p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500 text-sm font-medium"
+                                >
+                                    <AlertCircle size={18} />
+                                    {error}
+                                </motion.div>
                             )}
-                            {error && !retrySeconds && <p className="text-red-400 text-sm text-center p-2 bg-red-500/10 rounded-lg mx-4">{error}</p>}
                         </div>
                     )}
                 </div>
             </main>
 
-            <footer className="flex-shrink-0 bg-white/90 dark:bg-slate-950/90 backdrop-blur-sm border-t border-gray-200 dark:border-slate-800 z-10 pb-[env(safe-area-inset-bottom)]">
-                <div className="w-full max-w-7xl mx-auto px-3 py-2 sm:p-4">
-                    {uploadError && (
-                        <div className="mx-4 mb-2 p-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-xs font-bold text-center animate-bounce">
-                            {uploadError}
-                        </div>
-                    )}
-                    {imagePreviews.length > 0 && (
-                        <div className="flex flex-wrap gap-2 p-2 bg-gray-100 dark:bg-slate-800/60 rounded-lg mb-2 mx-1">
-                            {imagePreviews.map((preview, index) => (
-                                <div key={preview} className="relative group">
-                                    <img src={preview} alt="Preview" className="h-16 w-16 object-cover rounded border border-gray-300 dark:border-slate-600" />
-                                    <button onClick={() => handleRemoveImage(index)} className="absolute -top-2 -right-2 bg-red-500 text-white w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold shadow-md hover:bg-red-600 transition-colors">✕</button>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                    <form onSubmit={handleSendMessage} className={`flex items-center gap-2 bg-white/80 dark:bg-slate-900/40 backdrop-blur-md p-2 rounded-2xl border border-gray-200 dark:border-white/10 shadow-sm focus-within:ring-2 focus-within:ring-green-500/50 transition-all ${retrySeconds > 0 ? 'opacity-50 pointer-events-none' : ''}`}>
-                         <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
-                        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={isLoading || retrySeconds > 0} className="p-2 text-gray-500 hover:text-green-600 dark:text-gray-400 dark:hover:text-green-400 disabled:opacity-50 rounded-full hover:bg-gray-100 dark:hover:bg-slate-800 transition-colors">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        </button>
-                        <input type="text" value={input} onPaste={handlePaste} onChange={(e) => setInput(e.target.value)} placeholder={retrySeconds > 0 ? `Cooling down (${retrySeconds}s)...` : "Ask Oracle..."} disabled={isLoading || retrySeconds > 0} className="flex-grow bg-transparent text-gray-900 dark:text-gray-100 text-base md:text-sm focus:outline-none block w-full placeholder-gray-500 dark:placeholder-gray-600 py-1" />
-                        <button type="submit" disabled={isLoading || retrySeconds > 0 || (!input.trim() && imageFiles.length === 0)} className="p-2 w-10 h-10 flex items-center justify-center text-white bg-green-600 rounded-full hover:bg-green-500 disabled:bg-gray-200 dark:disabled:bg-slate-800 disabled:text-gray-400 transition-all shadow-sm">
-                           {isLoading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>}
-                        </button>
-                    </form>
+            <footer className="absolute bottom-6 inset-x-0 z-20 pointer-events-none">
+                <div className="w-full max-w-3xl mx-auto px-4 flex flex-col items-center gap-4">
+                    <AnimatePresence>
+                        {imagePreviews.length > 0 && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: 20 }}
+                                className="w-full pointer-events-auto p-4 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-3xl border border-white/20 dark:border-slate-800 shadow-2xl flex gap-3 overflow-x-auto"
+                            >
+                                {imagePreviews.map((preview, index) => (
+                                    <div key={preview} className="relative flex-shrink-0">
+                                        <img src={preview} alt="Preview" className="h-20 w-20 object-cover rounded-2xl border border-white/10" />
+                                        <button 
+                                            onClick={() => handleRemoveImage(index)} 
+                                            className="absolute -top-2 -right-2 bg-slate-900 text-white w-6 h-6 rounded-full flex items-center justify-center text-xs border border-white/20 hover:bg-red-500 transition-colors"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+                                <button 
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className="h-20 w-20 flex-shrink-0 flex items-center justify-center bg-slate-100 dark:bg-white/5 rounded-2xl border border-dashed border-slate-300 dark:border-white/10 text-slate-400 hover:text-emerald-500 hover:border-emerald-500/50 transition-all"
+                                >
+                                    <Plus size={24} />
+                                </button>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+
+                    <div className="w-full pointer-events-auto relative group">
+                        <form 
+                            onSubmit={handleSendMessage} 
+                            className={`relative flex items-center bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200 dark:border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.1)] focus-within:border-emerald-500/50 focus-within:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all duration-500 p-1.5 ${retrySeconds > 0 ? 'opacity-50 grayscale' : ''}`}
+                        >
+                            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
+                            
+                            <button 
+                                type="button" 
+                                onClick={() => fileInputRef.current?.click()} 
+                                disabled={isLoading || retrySeconds > 0} 
+                                className="p-3 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all"
+                            >
+                                <ImageIcon size={22} />
+                            </button>
+                            
+                            <input 
+                                type="text" 
+                                value={input} 
+                                onPaste={handlePaste} 
+                                onChange={(e) => setInput(e.target.value)} 
+                                placeholder={retrySeconds > 0 ? `System Recovery (${retrySeconds}s)...` : "Consult the Oracle..."} 
+                                disabled={isLoading || retrySeconds > 0} 
+                                className="flex-grow bg-transparent text-slate-900 dark:text-white px-2 py-3 text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-600" 
+                            />
+                            
+                            <div className="flex items-center gap-1">
+                                {input.trim() === '' && imageFiles.length === 0 && !isLoading && (
+                                     <button onClick={onNewChat} type="button" className="p-3 text-slate-400 hover:text-blue-500 transition-all" title="New Link">
+                                        <RefreshCcw size={20} />
+                                    </button>
+                                )}
+                                
+                                <button 
+                                    type="submit" 
+                                    disabled={isLoading || retrySeconds > 0 || (!input.trim() && imageFiles.length === 0)} 
+                                    className={`relative flex items-center justify-center h-12 w-12 rounded-full transition-all duration-300 ${
+                                        isLoading 
+                                        ? 'bg-slate-100 dark:bg-white/5' 
+                                        : 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20 active:scale-95'
+                                    }`}
+                                >
+                                    {isLoading ? (
+                                        <div className="w-5 h-5 border-2 border-slate-300 dark:border-white/20 border-t-emerald-500 rounded-full animate-spin"></div>
+                                    ) : (
+                                        <Send size={18} className="ml-0.5" />
+                                    )}
+                                </button>
+                            </div>
+                        </form>
+                        
+                        {uploadError && (
+                            <motion.div 
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="absolute -top-12 left-1/2 -translate-x-1/2 px-4 py-2 bg-red-500 text-white text-[10px] font-bold uppercase tracking-widest rounded-full shadow-xl whitespace-nowrap"
+                            >
+                                {uploadError}
+                            </motion.div>
+                        )}
+                    </div>
                 </div>
             </footer>
-            <button onClick={onNewChat} className="absolute bottom-24 right-4 sm:right-8 bg-green-600/90 hover:bg-green-500/90 backdrop-blur-md border border-green-500/50 text-white w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center shadow-lg transition-transform transform hover:scale-105 active:scale-95 z-20" title="New Chat">
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 sm:h-7 sm:w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" /></svg>
-            </button>
 
-            {showOracle && (
-                <div className="fixed inset-0 z-[1000] bg-slate-950">
-                    <OraclePage onBack={() => setShowOracle(false)} isHidden={false} />
-                </div>
-            )}
+            <AnimatePresence>
+                {showOracle && (
+                    <motion.div 
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-[1000] bg-slate-950"
+                    >
+                        <OraclePage onBack={() => setShowOracle(false)} isHidden={false} />
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
     );
 };
