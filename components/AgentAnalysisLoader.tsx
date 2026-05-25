@@ -53,7 +53,7 @@ export const AgentAnalysisLoader: React.FC<{ inline?: boolean }> = ({ inline = f
 
                 return next;
             });
-        }, 1500);
+        }, 2000);
 
         return () => clearInterval(agentInterval);
     }, []);
@@ -149,7 +149,7 @@ export const AgentAnalysisLoader: React.FC<{ inline?: boolean }> = ({ inline = f
                             className="h-full bg-green-500"
                             initial={{ width: "0%" }}
                             animate={{ width: "100%" }}
-                            transition={{ duration: 15, ease: "linear" }}
+                            transition={{ duration: 18, ease: "linear" }}
                         />
                     </div>
                     <p className="mt-4 text-[9px] font-black uppercase tracking-[0.6em] text-slate-500 animate-pulse">

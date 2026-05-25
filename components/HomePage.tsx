@@ -357,7 +357,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                 globalTrend
             };
 
-            const data = await generateTradingSignal(fullRequest);
+            const [data] = await Promise.all([
+                generateTradingSignal(fullRequest),
+                new Promise(resolve => setTimeout(resolve, 12000)) // Minimum 12s thorough analysis
+            ]);
+            
             const newCount = incrementAnalysisCount();
             setAnalysisCount(newCount);
             

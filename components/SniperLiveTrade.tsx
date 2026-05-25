@@ -387,8 +387,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         return;
       }
 
-      // 2. Fetch live price from Deriv API
-      const derivData = await fetchLivePrice(asset);
+      // 2. Fetch live price from Deriv API and perform analysis with minimum delay
+      const [derivData] = await Promise.all([
+        fetchLivePrice(asset),
+        new Promise(resolve => setTimeout(resolve, 12000)) // Minimum 12s "thinking" time
+      ]);
       
       if (!derivData) {
         throw new Error(`Failed to fetch live market data for ${asset}. Ensure your Deriv API Token is correct.`);

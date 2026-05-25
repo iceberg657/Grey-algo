@@ -456,6 +456,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             messageParts.push({ text: text + extraContext });
 
+            // Minimum 8s "thinking" time for thorough neural mapping
+            await new Promise(resolve => setTimeout(resolve, 8000));
+
             const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
             setCurrentModelName(getCurrentModelName());
             setRetrySeconds(0); 
