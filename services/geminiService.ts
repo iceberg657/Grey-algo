@@ -10,6 +10,7 @@ import { logTrade } from './tradeLogger';
 import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
 import { detectMarketRegime, MarketRegime } from '../utils/marketRegime';
+import { GREYALPHA_IDENTITY } from './identity';
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime) => {
   const date = currentDate || new Date();
@@ -323,6 +324,8 @@ function detectEntries(candles) {
 `;
 
   return `
+${GREYALPHA_IDENTITY}
+
 ⚠️ **SYSTEM OVERRIDE: IGNORE ALL PREVIOUS CONTEXT. THIS IS A NEW, INDEPENDENT ANALYSIS.**
 ${regimeContext}
 ${quantContext}

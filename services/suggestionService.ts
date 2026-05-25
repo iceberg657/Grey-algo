@@ -2,6 +2,7 @@ import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
 import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
 import type { MomentumAsset } from '../types';
+import { GREYALPHA_IDENTITY } from './identity';
 
 const CACHE_KEY = 'greyquant_asset_suggestions_v3';
 const CACHE_DURATION = 60 * 60 * 1000; // 1-hour refresh cycle
@@ -19,6 +20,8 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
         const ai = new GoogleGenAI({ apiKey });
         
         const prompt = `
+        ${GREYALPHA_IDENTITY}
+
         **TASK:** You are a specialized Market Scanner. Identify the top 4 bullish and top 4 bearish currency pairs from the allowed list that are being most actively traded at the start of the current trading day.
 
         **ALLOWED ASSET POOL:**

@@ -5,6 +5,7 @@ import { db, auth } from '../firebase';
 import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection, where } from 'firebase/firestore';
 import { Trade } from '../types';
 import { sanitizeForFirestore } from '../utils/firestoreUtils';
+import { GREYALPHA_IDENTITY } from './identity';
 
 const STORAGE_KEY = 'greyalpha_automl_stats';
 const STRATEGIES_KEY = 'greyalpha_learned_strategies';
@@ -138,10 +139,14 @@ export const performAutoLearning = async (): Promise<string | null> => {
         return await executeLaneCall<string>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            let prompt = "Discover a new actionable SMC/ICT trading rule or insight based on recent market behavior. Output strictly the rule in one concise sentence.";
+            let prompt = `${GREYALPHA_IDENTITY}
+            
+            Discover a new actionable SMC/ICT trading rule or insight based on recent market behavior. Output strictly the rule in one concise sentence.`;
             
             if (trades.length > 10) {
-                prompt = `Analyze these ${trades.length} recent trades from multiple users: ${JSON.stringify(trades)}. 
+                prompt = `${GREYALPHA_IDENTITY}
+                
+                Analyze these ${trades.length} recent trades from multiple users: ${JSON.stringify(trades)}. 
                 Identify patterns in 'Win' vs 'Loss' trades. 
                 What specific market conditions or signal parameters lead to higher probability? 
                 What should we filter out? 
@@ -201,7 +206,9 @@ export const generateLessonFromTradeLog = async () => {
         await initializeApiKey();
         return await executeLaneCall<string>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
-            const prompt = `Analyze these recent ${trades.length} trades from the user's trade log: ${JSON.stringify(trades)}. Identify what went right or wrong, or formulate a new concise actionable trading rule/insight (a "Neural Lesson"). Output STRICTLY the rule in one short sentence without quotes or introductions.`;
+            const prompt = `${GREYALPHA_IDENTITY}
+            
+            Analyze these recent ${trades.length} trades from the user's trade log: ${JSON.stringify(trades)}. Identify what went right or wrong, or formulate a new concise actionable trading rule/insight (a "Neural Lesson"). Output STRICTLY the rule in one short sentence without quotes or introductions.`;
 
             const response = await runWithModelFallback<GenerateContentResponse>(AUTO_ML_MODELS, (modelId) => 
                 ai.models.generateContent({

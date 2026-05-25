@@ -2,11 +2,14 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
 import { runWithModelFallback, executeLaneCall, getSuggestionStructurePool, LANE_2_MODELS } from './retryUtils';
+import { GREYALPHA_IDENTITY } from './identity';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds
 
 const GLOBAL_MARKET_PROMPT = `
+${GREYALPHA_IDENTITY}
+
 **CRITICAL INSTRUCTION:** You are a chief market strategist. You MUST use the provided Google Search tool to fetch REAL-TIME data. Do NOT rely on training data.
 
 **Instructions:**

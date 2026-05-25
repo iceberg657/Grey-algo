@@ -4,6 +4,7 @@ import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { getApiKey } from '../services/retryUtils';
 import { NeuralBackground } from './NeuralBackground';
 import { Mic, MicOff, Keyboard, MessageSquare, Send } from 'lucide-react';
+import { GREYALPHA_IDENTITY } from '../services/identity';
 
 interface OraclePageProps {
   onBack: () => void;
@@ -315,7 +316,9 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
             voiceConfig: { prebuiltVoiceConfig: { voiceName: "Zephyr" } },
           },
           outputAudioTranscription: {},
-          systemInstruction: `You are Oracle, an Apex-level Quantitative Trading AI. 
+          systemInstruction: `${GREYALPHA_IDENTITY}
+          
+          You are Oracle, an Apex-level Quantitative Trading AI. 
 If the user enables vision, you can see their entire screen or camera. If asked to analyze a chart and give a signal, you MUST act as an elite Institutional ICT/SMC trader. 
 Analyze the market structure, give the exact bias (Buy/Sell), calculate safest Stop Loss (SL) using local liquidity points, and dictate Take Profit (TP) levels. 
 Be concise, assertive, and brilliant. Describe what you see mathematically.

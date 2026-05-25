@@ -5,6 +5,7 @@ import { executeLaneCall, getPilotPool, PILOT_MODELS } from './retryUtils';
 import { GoogleGenAI } from '@google/genai';
 import { fetchMarketData } from './twelveDataService';
 import { MarketRegime } from '../utils/marketRegime';
+import { GREYALPHA_IDENTITY } from './identity';
 
 export interface DailyRegime {
     id: string; // YYYY-MM-DD-PST
@@ -65,6 +66,8 @@ async function trackDailyRegime(id: string): Promise<DailyRegime | null> {
         const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); // Use Pro for macro synthesis
 
         const prompt = `
+        ${GREYALPHA_IDENTITY}
+
         System: You are the AI Pilot of GreyAlpha, an institutional trading system.
         Task: Analyze the current market snapshots and determine the "Global Market Regime" for today.
         
