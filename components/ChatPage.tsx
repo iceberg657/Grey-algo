@@ -427,32 +427,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             
             // Check for potential asset symbol in text and if we have a TwelveData key
             let extraContext = '';
-            let key = ''; 
-            try { 
-                const stored = localStorage.getItem('greyquant_user_settings');
-                if (stored) {
-                    const settings = JSON.parse(stored);
-                    key = settings.twelveDataApiKey || '';
-                }
-            } catch(e) {}
-            
-            if (key) {
-                // Regex matches sequences like AAPL, BTC/USD, EURUSD
-                const potentialAssets = text.match(/\b([A-Z]{3}\/?[A-Z]{3}|[A-Z]{1,5})\b/gi);
-                if (potentialAssets && potentialAssets.length > 0) {
-                    for (const asset of potentialAssets) {
-                        try {
-                            const res = await fetch(`/api/twelveData?symbol=${asset}&interval=1h&apikey=${key}`);
-                            const data = await res.json();
-                            if (data && !data.error && data.close) {
-                                extraContext += `\n[System Data: Real-time TwelveData for ${asset}: Price=${data.close}, High=${data.high}, Low=${data.low}, Open=${data.open}, RSI=${data.rsi}, ATR=${data.atr}]`;
-                            }
-                        } catch(e) {
-                            console.error("Failed to fetch twelve data for", asset, e);
-                        }
-                    }
-                }
-            }
 
             messageParts.push({ text: text + extraContext });
 

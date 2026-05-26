@@ -25,7 +25,6 @@ import {
 import { generateSniperLiveSignal } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
-import { fetchMarketData } from '../services/twelveDataService';
 import { saveAnalysis } from '../services/historyService';
 import { generateLessonFromTradeLog } from '../services/learningService';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -269,7 +268,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       const timeframes = getTimeframes(style);
 
       console.log(`[SniperLiveTrade] Fetching 3 timeframes for ${symbol}...`);
-
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('timeout'), 25000); // 25 second timeout for 3 fetches
 
@@ -293,6 +292,25 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       console.log(`[SniperLiveTrade] Successfully fetched market data for ${symbol}`);
       // Parse out live price from the last candle
       const lastCandle = entryData.candles && entryData.candles.length > 0 ? entryData.candles[entryData.candles.length - 1] : null;
+      
+      if (!lastCandle) {
+          throw new Error("No market data received from Deriv API.");
+      }
+
+      // Staleness Detection (Max 1 hour for indices, 15m for others)
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const candleAge = nowSeconds - lastCandle.epoch;
+      const isMajorAsset = ['OTC_DJI', 'OTC_NDX', 'OTC_SPC', 'OTC_FTSE', 'frxXAUUSD', 'frxEURUSD', 'frxGBPUSD', 'cryBTCUSD', 'cryETHUSD'].includes(symbol);
+      const maxAge = isMajorAsset ? 3600 : 900; 
+
+      if (candleAge > maxAge) {
+          const ageMinutes = Math.floor(candleAge / 60);
+          console.warn(`[SniperLiveTrade] STALE DATA DETECTED: Price is ${ageMinutes}m old.`);
+          // IMPORTANT: Do not throw an error here. Markets (especially indices) close for weekends and holidays.
+          // We still want the AI to be able to analyze the last 1000 candles.
+          entryData.isMarketClosed = true;
+      }
+
       if (lastCandle) {
           entryData.price = lastCandle.close;
           entryData.bid = lastCandle.close;
@@ -777,13 +795,22 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 {/* Entry */}
                                 <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors relative overflow-hidden">
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Sniper Entry Range</span>
-                                    <button onClick={() => copyToClipboard(msg.signal?.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : (msg.signal?.entryPoints?.[0]?.toString() || ''), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                      {msg.signal.entryType === 'Market Execution' ? 'Execution Range' : 'Sniper Entry Range'}
+                                    </span>
+                                    <button onClick={() => copyToClipboard(msg.signal?.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : (msg.signal?.entryPoints?.join(' - ') || ''), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `Entry-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
-                                  <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white">
-                                    {msg.signal?.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : (msg.signal?.entryPoints?.[0] || 'N/A')}
+                                  <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white flex items-baseline gap-2">
+                                    {msg.signal?.entryRange 
+                                        ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` 
+                                        : msg.signal?.entryPoints?.length > 1 
+                                          ? `${msg.signal.entryPoints[0]} - ${msg.signal.entryPoints[msg.signal.entryPoints.length - 1]}`
+                                          : (msg.signal?.entryPoints?.[0] || msg.signal.priceAtSignal || 'N/A')}
+                                    {msg.signal.entryType === 'Market Execution' && (
+                                      <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest animate-pulse">Live</span>
+                                    )}
                                   </div>
                                   {msg.signal?.triggerConditions && (
                                     <div className="mt-2 text-[9px] font-bold text-emerald-500/70 uppercase tracking-tighter flex items-center gap-1">
@@ -792,8 +819,15 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                     </div>
                                   )}
                                   <div className="mt-2 flex flex-col gap-1">
-                                    {msg.signal?.entryType && (
-                                      <div className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded inline-flex items-center gap-1 w-fit">
+                                    {msg.signal.entryType === 'Market Execution' ? (
+                                      <div className="flex flex-col gap-1 mt-1">
+                                        <div className="text-[10px] font-bold text-emerald-600/90 dark:text-emerald-400/90 bg-emerald-500/10 px-2 py-1 rounded inline-flex items-center gap-1 w-fit border border-emerald-500/20">
+                                          <Zap className="w-3 h-3" />
+                                          {msg.signal.entryType} @ {msg.signal.priceAtSignal}
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <div className="text-[10px] font-bold text-slate-500 bg-slate-100 dark:bg-slate-800/50 px-2 py-1 rounded inline-flex items-center gap-1 w-fit mt-1">
                                         <Target className="w-3 h-3" />
                                         {msg.signal.entryType}
                                       </div>

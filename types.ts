@@ -150,6 +150,7 @@ export interface SignalData {
     timeframe: string;
     signal: 'BUY' | 'SELL' | 'NEUTRAL';
     confidence: number;
+    priceAtSignal?: number;
     entryPoints: number[];
     entryRange?: { min: number; max: number };
     entryType: 'Market Execution' | 'Buy Limit' | 'Sell Limit' | 'Buy Stop' | 'Sell Stop' | 'Buy Stop Limit' | 'Sell Stop Limit';

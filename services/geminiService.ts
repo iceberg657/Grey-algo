@@ -1253,52 +1253,7 @@ export async function generateTradingSignal(
     
     // 1. Fetch learned strategies (Global + Local)
     const learnedStrategies = await getLearnedStrategies();
-    
-    // Fetch Twelve Data for confluence if asset is provided and not already in request
     let twelveDataQuote = request.twelveDataQuote || null;
-    if (asset && !twelveDataQuote) {
-        try {
-            // Map TradingStyle to Twelve Data Interval
-            let interval = '15min';
-            const style = request.tradingStyle;
-            if (style.includes('1 to 15mins')) interval = '1min';
-            else if (style.includes('15 to 30mins')) interval = '5min';
-            else if (style.includes('1 to 2hrs')) interval = '15min';
-            else if (style.includes('2 to 4hrs')) interval = '1h';
-            else if (style.includes('swing')) interval = '1day';
-
-            console.log(`[TwelveData] Initiating fetch for ${asset} at ${interval}...`);
-            
-            // Check for local key in localStorage
-            let localKey = '';
-            try {
-                const stored = localStorage.getItem('greyquant_user_settings');
-                if (stored) {
-                    const settings = JSON.parse(stored);
-                    localKey = settings.twelveDataApiKey || '';
-                }
-            } catch (e) {
-                console.warn('Failed to read local Twelve Data key:', e);
-            }
-
-            const url = `/api/twelveData?action=quote&symbol=${encodeURIComponent(asset)}&interval=${interval}${localKey ? `&apikey=${localKey}` : ''}`;
-            const response = await fetch(url);
-            if (response.ok) {
-                twelveDataQuote = await response.json();
-                twelveDataQuote.interval = interval;
-                console.log(`[TwelveData] Successfully retrieved data for ${asset}:`, twelveDataQuote);
-            } else {
-                const errorText = await response.text();
-                console.warn(`[TwelveData] Fetch failed for ${asset} (${response.status}):`, errorText);
-            }
-        } catch (e) {
-            console.error(`[TwelveData] Critical error fetching data for ${asset}:`, e);
-        }
-    } else if (!asset) {
-        console.warn('[TwelveData] No asset symbol provided in request. Mathematical verification will be skipped.');
-    } else {
-        console.log('[TwelveData] Using provided quote from request:', twelveDataQuote);
-    }
 
     const updatedRequest = {
         ...request,
@@ -1840,6 +1795,8 @@ Move SL to entry immediately after TP1.
           asset: signal.asset || assetName,
           signal: finalSignal,
           confidence: finalConfidence,
+          priceAtSignal: livePrice,
+          truthLayerUsed: !!derivData?.truthLayerUsed,
           timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
           entryPoints: [midEntry],
           entryRange: finalEntryRange || null,
