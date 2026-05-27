@@ -74,19 +74,36 @@ export const getRecentLessons = async (): Promise<string[]> => {
     }
 };
 
+export interface AgentSkill {
+    ruleName: string;
+    triggerTags: string[];
+    condition: string;
+    procedure: string;
+    version?: number;
+    updatedAt?: number;
+}
+
 export const getLearnedStrategies = async (): Promise<string[]> => {
     try {
         // First get local strategies
         const stored = localStorage.getItem(STRATEGIES_KEY);
         const local = stored ? JSON.parse(stored) : [];
 
-        // Then get latest global strategies from Firestore
-        const globalRef = collection(db, 'global_strategies');
-        const q = query(globalRef, orderBy('timestamp', 'desc'), limit(5));
+        // Global skills (the new structured AgentSkill format)
+        const globalRef = collection(db, 'learned_rules');
+        const q = query(globalRef, orderBy('timestamp', 'desc'), limit(15));
         const snapshot = await getDocs(q);
-        const global = snapshot.docs.map(doc => doc.data().rule);
+        
+        const globalDetailed = snapshot.docs.map(doc => {
+            const data = doc.data();
+            if (data.procedure && data.condition) {
+                // Formatting the structured JSON into structural rule string
+                return `### LEARNED RULE: ${data.ruleName || 'Optimization'}\n- Condition: ${data.condition}\n- Optimized Action: ${data.procedure}`;
+            }
+            return data.rule; // Fallback for old simple string rules
+        }).filter(Boolean);
 
-        // Get active Auto ML strategy
+        // Active Auto ML strategy
         const autoMLRef = collection(db, 'auto_ml_strategies');
         const qAutoML = query(autoMLRef, where('isActive', '==', true), limit(1));
         const autoMLSnapshot = await getDocs(qAutoML);
@@ -96,7 +113,7 @@ export const getLearnedStrategies = async (): Promise<string[]> => {
         const lessons = await getRecentLessons();
 
         // Combine and keep unique
-        return Array.from(new Set([...global, ...local, ...autoML, ...lessons])).slice(0, 25);
+        return Array.from(new Set([...globalDetailed, ...local, ...autoML, ...lessons])).slice(0, 25);
     } catch (e) {
         console.error("Failed to fetch strategies:", e);
         const stored = localStorage.getItem(STRATEGIES_KEY);
@@ -189,48 +206,83 @@ export const performAutoLearning = async (): Promise<string | null> => {
     }
 };
 
-export const generateLessonFromTradeLog = async () => {
+export const generateLessonFromTradeLog = async (tradeId?: string) => {
     const user = auth.currentUser;
     if (!user) return null;
     
     try {
         const tradesRef = collection(db, 'users', user.uid, 'trades');
-        const q = query(tradesRef, orderBy('timestamp', 'desc'), limit(10));
+        // Fetch the last 20 to find completed trades
+        const q = query(tradesRef, orderBy('timestamp', 'desc'), limit(20));
         const snapshot = await getDocs(q);
-        const trades = snapshot.docs.map(doc => doc.data());
+        
+        // Filter ONLY trades that have a defined outcome (Win/Loss)
+        const trades = snapshot.docs
+            .map(doc => doc.data())
+            .filter(t => t.outcome === 'Win' || t.outcome === 'Loss')
+            .slice(0, 5); // take the last 5 completed ones
         
         if (trades.length === 0) {
            return null;
         }
 
         await initializeApiKey();
-        return await executeLaneCall<string>(async (apiKey) => {
+        return await executeLaneCall<any>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
-            const prompt = `${GREYALPHA_IDENTITY}
             
-            Analyze these recent ${trades.length} trades from the user's trade log: ${JSON.stringify(trades)}. Identify what went right or wrong, or formulate a new concise actionable trading rule/insight (a "Neural Lesson"). Output STRICTLY the rule in one short sentence without quotes or introductions.`;
+            const metaPrompt = `
+You are an expert Meta-Cognitive Analyzer. Your job is to review the execution trajectory of a trading agent and extract architectural improvements, structural rules, or behavioral corrections to prevent losing streaks.
 
-            const response = await runWithModelFallback<GenerateContentResponse>(AUTO_ML_MODELS, (modelId) => 
+### RECENT EXECUTION LOG:
+${JSON.stringify(trades, null, 2)}
+
+### INSTRUCTIONS:
+1. Analyze why the recent trades succeeded or failed. Identify the exact moment a choice led to an error, a bad setup, or an optimized outcome.
+2. Synthesize this finding into highly dense, portable procedural instructions ("Skills").
+3. Output the result strictly in JSON. If no significant optimization or error pattern is found, return an empty array.
+
+### OUTPUT SCHEMA (JSON):
+{
+  "newSkills": [
+    {
+      "ruleName": "Short descriptive name of the behavior",
+      "triggerTags": ["tag1", "tag2"],
+      "condition": "The exact scenario when the agent should apply this rule",
+      "procedure": "Explicit, directive instructions on what to do or avoid to guarantee success next time."
+    }
+  ]
+}`;
+
+            const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
                 ai.models.generateContent({
                     model: modelId,
-                    contents: prompt,
-                    config: { temperature: 0.7 },
+                    contents: metaPrompt,
+                    config: { 
+                        responseMimeType: "application/json",
+                        temperature: 0.2
+                    }
                 })
             );
             
-            const strategyInfo = response.text?.trim();
-            if (strategyInfo) {
-                const globalStrategy = sanitizeForFirestore({
-                    rule: strategyInfo,
-                    timestamp: Date.now(),
-                    sourceCount: trades.length,
-                    confidence: Math.floor(Math.random() * 15) + 85, // 85-99%
-                    userId: user.uid
-                });
-                await addDoc(collection(db, 'learned_rules'), globalStrategy);
+            try {
+                const analysis = JSON.parse(response.text?.trim() || '{}');
+                if (analysis.newSkills && Array.isArray(analysis.newSkills)) {
+                    for (const skill of analysis.newSkills) {
+                        const globalSkill = sanitizeForFirestore({
+                            ...skill,
+                            timestamp: Date.now(),
+                            userId: user.uid,
+                            version: 1,
+                        });
+                        await addDoc(collection(db, 'learned_rules'), globalSkill);
+                    }
+                    return analysis.newSkills;
+                }
+            } catch (err) {
+                console.error("Failed to parse meta-analysis JSON:", err);
             }
-            return strategyInfo || null;
-        }, getAutoMlPool);
+            return null;
+        }, getChatPool);
 
     } catch (e) {
         console.error("Failed to generate lesson from trade log:", e);

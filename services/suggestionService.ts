@@ -50,7 +50,10 @@ export async function fetchAssetSuggestions(): Promise<{ bullish: MomentumAsset[
             ai.models.generateContent({ 
                 model: modelId,
                 contents: prompt,
-                config: { tools: [{googleSearch: {}}], temperature: 0.2 },
+                config: { 
+                    temperature: 0.2,
+                    responseMimeType: "application/json"
+                },
             })
         );
 

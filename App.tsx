@@ -12,6 +12,7 @@ import { ProductsPage } from './components/ProductsPage';
 import { AdminPanel } from './components/AdminPanel';
 import { AutoTradePage } from './components/AutoTradePage';
 import { SniperLiveTrade } from './components/SniperLiveTrade';
+import { TradingBlueprintPage } from './components/TradingBlueprintPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';
@@ -45,7 +46,7 @@ import { OnboardingFlow } from './components/OnboardingFlow';
 import { SettingsModal } from './components/SettingsModal';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper' | 'blueprint';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -350,6 +351,10 @@ const App: React.FC = () => {
         navigateTo('sniper');
     };
 
+    const handleNavigateToBlueprint = () => {
+        navigateTo('blueprint');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         navigateTo(previousView); 
@@ -496,6 +501,7 @@ const App: React.FC = () => {
                     onNavigateToAdmin={handleNavigateToAdmin}
                     onNavigateToAutoTrade={handleNavigateToAutoTrade}
                     onNavigateToSniper={handleNavigateToSniper}
+                    onNavigateToBlueprint={handleNavigateToBlueprint}
                     onOpenSettings={() => setShowSettings(true)}
                     onAssetSelect={handleAssetSelect}
                     userMetadata={userMetadata}
@@ -588,6 +594,11 @@ const App: React.FC = () => {
         case 'admin':
             content = (
                 <AdminPanel onBack={handleNavigateToHome} />
+            );
+            break;
+        case 'blueprint':
+            content = (
+                <TradingBlueprintPage onBack={handleNavigateToHome} />
             );
             break;
         case 'autotrade':

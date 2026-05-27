@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { GoogleGenAI, LiveServerMessage, Modality } from '@google/genai';
 import { getApiKey } from '../services/retryUtils';
 import { NeuralBackground } from './NeuralBackground';
-import { Mic, MicOff, Keyboard, MessageSquare, Send } from 'lucide-react';
+import { Mic, MicOff, Keyboard, MessageSquare, Send, ImagePlus } from 'lucide-react';
 import { GREYALPHA_IDENTITY } from '../services/identity';
 
 interface OraclePageProps {
@@ -27,6 +27,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const orbRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -63,6 +64,35 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
           setTextInput('');
       }
   }
+
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+      const files = event.target.files;
+      if (!files || files.length === 0 || !sessionRef.current) return;
+      
+      const fileArray = Array.from(files).slice(0, 10);
+      setModelMessage(prev => prev + `\nUser: [Uploaded ${fileArray.length} image(s)]`);
+
+      fileArray.forEach(file => {
+          const reader = new FileReader();
+          reader.onload = () => {
+              const dataUrl = reader.result as string;
+              const base64Data = dataUrl.split(',')[1];
+              
+              const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+              const mimeType = isHeic ? 'image/heic' : (file.type || 'image/jpeg');
+              
+              sessionRef.current.sendRealtimeInput({
+                  video: { data: base64Data, mimeType }
+              });
+          };
+          reader.readAsDataURL(file);
+      });
+      
+      // Reset input
+      if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+      }
+  };
 
   const stopOracle = () => {
     if (sessionRef.current) {
@@ -558,8 +588,27 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                   </button>
                   )}
 
+                  {/* Shared Upload Button */}
+                  <button 
+                    onClick={() => fileInputRef.current?.click()} 
+                    className="p-3 rounded-full text-slate-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-500/10 transition-colors"
+                    title="Upload Images to Oracle"
+                  >
+                    <ImagePlus size={20} />
+                  </button>
+
+                  {/* Hidden file input for image uploads */}
+                  <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      className="hidden" 
+                      accept="image/*" 
+                      multiple 
+                      onChange={handleImageUpload} 
+                  />
+
                   {inputMode === 'text' && (
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-2">
                         <input 
                             type="text" 
                             value={textInput} 

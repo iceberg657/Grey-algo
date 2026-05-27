@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import type { AnalysisRequest, SignalData, UserSettings, TradingStyle } from '../types';
-import { runWithModelFallback, executeLaneCall, getAnalysisPool, getPilotPool, ANALYSIS_MODELS, PILOT_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, getAnalysisPool, getPilotPool, ANALYSIS_MODELS, PILOT_MODELS, initializeApiKey, getChatPool, CHAT_MODELS } from './retryUtils';
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
@@ -1907,4 +1907,63 @@ function extractJson(str: string): any {
         console.error('CRITICAL: Unified JSON Extraction Failure:', e.message || e);
         throw e;
     }
+}
+
+export async function generateTradingBlueprint(
+  sessions: { name: string, assets: string[] }[],
+  userSettings?: UserSettings
+): Promise<string> {
+    await initializeApiKey();
+    return await executeLaneCall<string>(async (apiKey) => {
+        const ai = new GoogleGenAI({ apiKey });
+        
+        const sessionInfo = sessions.filter(s => s.assets.length > 0)
+            .map(s => `${s.name} Session: ${s.assets.join(', ')}`)
+            .join('\n');
+
+        const promptText = `${GREYALPHA_IDENTITY}
+        
+You are tasked with creating a highly precise, institutional-grade "Everyday Trading Plan" for a trader from Monday to Friday.
+
+Here are the sessions and assets the trader has selected:
+${sessionInfo}
+
+### INSTRUCTIONS:
+1. Create a structured, day-by-day (Monday to Friday) trading blueprint.
+2. For each day, assign a focus based on typical institutional market dynamics (e.g., Monday liquidity building).
+3. Specify EXACT optimal time windows to trade their selected assets.
+4. Keep it strictly focused on risk management, daily setups, and optimal entry windows.
+5. Limit the assets array for each session to ONLY 1 or 2 high-probability assets for that specific day/session, rather than listing all selected assets.
+6. Provide your output strictly as a JSON object matching this schema:
+{
+  "schedule": [
+    {
+      "day": "Monday",
+      "focus": "Liquidity Building",
+      "sessions": [
+        {
+          "name": "London",
+          "timeWindow": "07:00 - 10:00 UTC",
+          "assets": ["EURUSD"],
+          "notes": "Wait for initial fakeout"
+        }
+      ]
+    }
+  ]
+}
+Return pure JSON only.`;
+
+        const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
+            ai.models.generateContent({
+                model: modelId,
+                contents: promptText,
+                config: {
+                    temperature: 0.2,
+                    responseMimeType: "application/json"
+                }
+            })
+        );
+        
+        return response.text?.trim() || "Failed to generate Trading Blueprint.";
+    }, getChatPool);
 }

@@ -50,6 +50,7 @@ interface HomePageProps {
     onNavigateToAdmin: () => void;
     onNavigateToAutoTrade: () => void;
     onNavigateToSniper: () => void;
+    onNavigateToBlueprint: () => void;
     onOpenSettings?: () => void;
     onAssetSelect?: (asset: string) => void;
     userMetadata: UserMetadata | null;
@@ -103,6 +104,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     onNavigateToAdmin, 
     onNavigateToAutoTrade,
     onNavigateToSniper,
+    onNavigateToBlueprint,
     onOpenSettings,
     onAssetSelect,
     userMetadata,
@@ -135,8 +137,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     });
     if (criticalError) throw criticalError;
 
-    const [showRiskCalc, setShowRiskCalc] = useState<boolean>(false);
-    const [showCheatSheet, setShowCheatSheet] = useState<boolean>(false);
+
     const [isTwelveDataConfigured, setIsTwelveDataConfigured] = useState<boolean | null>(null);
 
     useEffect(() => {
@@ -370,16 +371,10 @@ export const HomePage: React.FC<HomePageProps> = ({
             icon: <ShieldAlert size={20} />
         }] : []),
         {
-            onClick: () => setShowRiskCalc(true),
-            label: 'Risk',
-            ariaLabel: 'Open Position Size Calculator',
-            icon: <Calculator size={20} />
-        },
-        {
-            onClick: () => setShowCheatSheet(true),
-            label: 'Academy',
-            ariaLabel: 'Open Tactical Academy',
-            icon: <BookOpen size={20} />
+            onClick: onNavigateToBlueprint,
+            label: 'Blueprint',
+            ariaLabel: 'Open Trading Blueprint',
+            icon: <Compass size={20} />
         },
         {
             onClick: onNavigateToProducts,
@@ -443,26 +438,6 @@ export const HomePage: React.FC<HomePageProps> = ({
             </AnimatePresence>
             
             <AnimatePresence>
-                {showRiskCalc && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="fixed inset-0 z-[110]"
-                    >
-                        <RiskCalculator onClose={() => setShowRiskCalc(false)} />
-                    </motion.div>
-                )}
-                {showCheatSheet && (
-                    <motion.div
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        className="fixed inset-0 z-[110]"
-                    >
-                        <CheatSheet onClose={() => setShowCheatSheet(false)} />
-                    </motion.div>
-                )}
             </AnimatePresence>
 
             <motion.div 

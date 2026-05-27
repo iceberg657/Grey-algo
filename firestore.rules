@@ -120,6 +120,11 @@ service cloud.firestore {
         'email', 'role', 'analysisCount', 'isRevoked', 'access', 'mt5Credentials', 'updatedAt'
       ]);
 
+      // Settings subcollection
+      match /settings/{settingId} {
+        allow read, write: if isOwner(userId);
+      }
+
       // Sync subcollection
       match /sync/account {
         allow read: if isOwner(userId) || isAdmin();
