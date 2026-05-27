@@ -45,6 +45,20 @@ const SessionCell = ({ session }: { session?: BlueprintSession }) => {
     );
 };
 
+const SessionColumn = ({ sessions }: { sessions: BlueprintSession[] }) => {
+    const validSessions = sessions.filter(s => s.assets && s.assets.length > 0);
+    if (!validSessions || validSessions.length === 0) {
+        return <div className="text-slate-400 dark:text-slate-600 text-xs italic py-2">Off / No Trade</div>;
+    }
+    return (
+        <div className="flex flex-col gap-5">
+            {validSessions.map((session, idx) => (
+                <SessionCell key={idx} session={session} />
+            ))}
+        </div>
+    );
+};
+
 const AVAILABLE_ASSETS = [
     'EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD', 'USDCAD', 'USDJPY', 'USDCHF', 
     'XAUUSD', 'US30', 'NAS100', 'SPX500', 'UK100', 'BTCUSD', 'ETHUSD'
@@ -57,6 +71,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
     const [asianAssets, setAsianAssets] = useState<string[]>([]);
     const [londonAssets, setLondonAssets] = useState<string[]>([]);
     const [nyAssets, setNyAssets] = useState<string[]>([]);
+    const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
     
     const [isGenerating, setIsGenerating] = useState(false);
     const [blueprintStr, setBlueprintStr] = useState<string | null>(null);
@@ -99,6 +114,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                     if (docSnap.data().asianAssets) setAsianAssets(docSnap.data().asianAssets);
                     if (docSnap.data().londonAssets) setLondonAssets(docSnap.data().londonAssets);
                     if (docSnap.data().nyAssets) setNyAssets(docSnap.data().nyAssets);
+                    if (docSnap.data().timezone) setTimezone(docSnap.data().timezone);
                 }
             } catch (err) {
                 console.error("Failed to load blueprint", err);
@@ -130,7 +146,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 { name: 'London', assets: londonAssets },
                 { name: 'New York', assets: nyAssets }
             ];
-            const result = await generateTradingBlueprint(sessions);
+            const result = await generateTradingBlueprint(sessions, undefined, timezone);
             setBlueprintStr(result);
             
             const user = auth.currentUser;
@@ -140,6 +156,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                     asianAssets,
                     londonAssets,
                     nyAssets,
+                    timezone,
                     updatedAt: Date.now()
                 });
             }
@@ -269,6 +286,22 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                             </div>
                         </div>
 
+                        {/* Timezone Selection */}
+                        <div className="mb-6">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-3 flex items-center gap-2">
+                                <Globe size={14} /> Local Timezone
+                            </h3>
+                            <select
+                                value={timezone}
+                                onChange={(e) => setTimezone(e.target.value)}
+                                className="w-full bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-2.5 text-sm font-medium text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
+                            >
+                                {Intl.supportedValuesOf('timeZone').map(tz => (
+                                    <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>
+                                ))}
+                            </select>
+                        </div>
+
                         {error && (
                             <p className="text-xs text-red-500 font-bold mb-4">{error}</p>
                         )}
@@ -310,13 +343,13 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                                                  <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mt-2">{dayPlan.focus}</div>
                                              </td>
                                              <td className="p-4 align-top">
-                                                  <SessionCell session={dayPlan.sessions.find(s => s.name.toLowerCase().includes('asian'))} />
+                                                  <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('asian'))} />
                                              </td>
                                              <td className="p-4 align-top border-l border-slate-100 dark:border-slate-800/50">
-                                                  <SessionCell session={dayPlan.sessions.find(s => s.name.toLowerCase().includes('london'))} />
+                                                  <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('london'))} />
                                              </td>
                                              <td className="p-4 align-top border-l border-slate-100 dark:border-slate-800/50">
-                                                  <SessionCell session={dayPlan.sessions.find(s => s.name.toLowerCase().includes('new york') || s.name.toLowerCase().includes('ny'))} />
+                                                  <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('new york') || s.name.toLowerCase().includes('ny'))} />
                                              </td>
                                          </tr>
                                       ))}

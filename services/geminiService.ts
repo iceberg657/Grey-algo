@@ -1911,7 +1911,8 @@ function extractJson(str: string): any {
 
 export async function generateTradingBlueprint(
   sessions: { name: string, assets: string[] }[],
-  userSettings?: UserSettings
+  userSettings?: UserSettings,
+  timezone: string = 'UTC'
 ): Promise<string> {
     await initializeApiKey();
     return await executeLaneCall<string>(async (apiKey) => {
@@ -1927,13 +1928,14 @@ You are tasked with creating a highly precise, institutional-grade "Everyday Tra
 
 Here are the sessions and assets the trader has selected:
 ${sessionInfo}
+The trader's local timezone is: ${timezone}
 
 ### INSTRUCTIONS:
 1. Create a structured, day-by-day (Monday to Friday) trading blueprint.
 2. For each day, assign a focus based on typical institutional market dynamics (e.g., Monday liquidity building).
-3. Specify EXACT optimal time windows to trade their selected assets.
+3. Specify EXACT optimal time windows to trade their selected assets formatted strictly in their specified timezone (${timezone}).
 4. Keep it strictly focused on risk management, daily setups, and optimal entry windows.
-5. Limit the assets array for each session to ONLY 1 or 2 high-probability assets for that specific day/session, rather than listing all selected assets.
+5. Limit the assets array for each time window to EXACTLY 1 high-probability asset. If you need to suggest multiple assets for a session (e.g., London), create multiple separate entries in the 'sessions' array with non-overlapping time windows to prevent trader indecision.
 6. Provide your output strictly as a JSON object matching this schema:
 {
   "schedule": [
@@ -1943,7 +1945,7 @@ ${sessionInfo}
       "sessions": [
         {
           "name": "London",
-          "timeWindow": "07:00 - 10:00 UTC",
+          "timeWindow": "07:00 - 10:00 ${timezone}",
           "assets": ["EURUSD"],
           "notes": "Wait for initial fakeout"
         }
