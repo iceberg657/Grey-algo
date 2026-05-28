@@ -49,6 +49,77 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
+    <script>
+        // React + Google Translate crash monkeypatch
+        if (typeof Node === 'function' && Node.prototype) {
+            const originalRemoveChild = Node.prototype.removeChild;
+            Node.prototype.removeChild = function(child) {
+                if (child.parentNode !== this) {
+                    if (console) console.warn('Cannot remove a child from a different parent', child, this);
+                    return child;
+                }
+                return originalRemoveChild.apply(this, arguments);
+            };
+
+            const originalInsertBefore = Node.prototype.insertBefore;
+            Node.prototype.insertBefore = function(newNode, referenceNode) {
+                if (referenceNode && referenceNode.parentNode !== this) {
+                    if (console) console.warn('Cannot insert before a reference node from a different parent', referenceNode, this);
+                    return newNode;
+                }
+                return originalInsertBefore.apply(this, arguments);
+            };
+
+            const originalReplaceChild = Node.prototype.replaceChild;
+            Node.prototype.replaceChild = function(newChild, oldChild) {
+                if (oldChild && oldChild.parentNode !== this) {
+                    if (console) console.warn('Cannot replace a child from a different parent', oldChild, this);
+                    return oldChild;
+                }
+                return originalReplaceChild.apply(this, arguments);
+            };
+        }
+    </script>
+    <script>
+        // Force cookie from local storage for iframe compatibility
+        try {
+            const stored = localStorage.getItem('greyquant_user_settings');
+            if (stored) {
+                const settings = JSON.parse(stored);
+                if (settings.language) {
+                    const langMap = {
+                        'English': 'en',
+                        'French': 'fr',
+                        'Arabic': 'ar',
+                        'Spanish': 'es',
+                        'Persian': 'fa'
+                    };
+                    const langCode = langMap[settings.language] || 'en';
+                    
+                    document.cookie = 'googtrans=/en/' + langCode + '; path=/; domain=' + window.location.hostname + '; SameSite=None; Secure';
+                    document.cookie = 'googtrans=/en/' + langCode + '; path=/; SameSite=None; Secure';
+                    
+                    if (langCode === 'ar' || langCode === 'fa') {
+                        document.documentElement.dir = 'rtl';
+                    } else {
+                        document.documentElement.dir = 'ltr';
+                    }
+                    document.documentElement.lang = langCode;
+                }
+            }
+        } catch (e) {}
+    </script>
+    <div id="google_translate_element" style="display:none;"></div>
+    <script type="text/javascript">
+        function googleTranslateElementInit() {
+            new google.translate.TranslateElement({pageLanguage: 'en', autoDisplay: false}, 'google_translate_element');
+        }
+    </script>
+    <script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+    <style>
+        body { top: 0 !important; }
+        .skiptranslate { display: none !important; }
+    </style>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
     <script>

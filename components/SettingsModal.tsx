@@ -42,7 +42,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
     const handleSave = (e: React.FormEvent) => {
         e.preventDefault();
+        
+        let oldLang = 'English';
+        try {
+            const stored = localStorage.getItem('greyquant_user_settings');
+            if (stored) {
+                oldLang = JSON.parse(stored).language || 'English';
+            }
+        } catch (err) {}
+        
         localStorage.setItem('greyquant_user_settings', JSON.stringify(settings));
+        
+        const newLang = settings.language || 'English';
+        if (oldLang !== newLang) {
+            const langMap: Record<string, string> = {
+                'English': 'en',
+                'French': 'fr',
+                'Arabic': 'ar',
+                'Spanish': 'es',
+                'Persian': 'fa'
+            };
+            const langCode = langMap[newLang] || 'en';
+            document.cookie = `googtrans=/en/${langCode}; path=/; domain=${window.location.hostname}; SameSite=None; Secure`;
+            document.cookie = `googtrans=/en/${langCode}; path=/; SameSite=None; Secure`;
+            window.location.reload();
+            return;
+        }
+
         setSaved(true);
         setTimeout(() => {
             setSaved(false);
@@ -193,6 +219,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <span className="absolute right-3 top-2.5 text-gray-500">%</span>
                                 </div>
                                 <p className="text-[10px] text-green-500 mt-1 font-mono">Goal: +${targetAmount.toLocaleString()}</p>
+                            </div>
+                        </div>
+
+                        {/* Language / Localization */}
+                        <div className="grid grid-cols-1 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
+                                <select
+                                    value={settings.language || 'English'}
+                                    onChange={(e) => handleChange('language', e.target.value)}
+                                    className="w-full px-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                >
+                                    <option value="English">English</option>
+                                    <option value="French">French</option>
+                                    <option value="Arabic">Arabic</option>
+                                    <option value="Spanish">Spanish</option>
+                                    <option value="Persian">Persian (Farsi)</option>
+                                </select>
                             </div>
                         </div>
 

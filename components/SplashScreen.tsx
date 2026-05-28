@@ -10,7 +10,8 @@ export const SplashScreen: React.FC<{ onComplete: () => void }> = ({ onComplete 
             setTimeout(onComplete, 500); // Wait for exit animation
         }, 3000);
         return () => clearTimeout(timer);
-    }, [onComplete]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <AnimatePresence>

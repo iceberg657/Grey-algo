@@ -146,7 +146,19 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 { name: 'London', assets: londonAssets },
                 { name: 'New York', assets: nyAssets }
             ];
-            const result = await generateTradingBlueprint(sessions, undefined, timezone);
+            
+            // Fetch language preference from local storage
+            let userSettings;
+            try {
+                const stored = localStorage.getItem('greyquant_user_settings');
+                if (stored) {
+                    userSettings = JSON.parse(stored);
+                }
+            } catch (e) {
+                console.error("Failed to parse user settings", e);
+            }
+            
+            const result = await generateTradingBlueprint(sessions, userSettings, timezone);
             setBlueprintStr(result);
             
             const user = auth.currentUser;

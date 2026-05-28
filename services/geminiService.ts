@@ -16,6 +16,7 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const date = currentDate || new Date();
   const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
   const isTraditionalMarket = !asset.toUpperCase().includes('BTC') && !asset.toUpperCase().includes('ETH') && !asset.toUpperCase().includes('CRYPTO') && !asset.toUpperCase().includes('DERIV');
+  const language = userSettings?.language || 'English';
 
   const regimeContext = regime ? `
 🚨 **AI PILOT MODE: MARKET REGIME ACTIVE (${regime.type})**
@@ -780,6 +781,9 @@ If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirat
 
 **CRITICAL INSTRUCTION: DIRECT BIAS**
 You MUST choose BUY or SELL. You are forbidden from choosing NEUTRAL. Provide a specific and complete JSON output.
+
+**LOCALIZATION REQUIREMENT:**
+You MUST localize the exact text outputs inside fields such as "reasoning", "biasMotivation", "tradeIdea", and any other descriptive text into ${language}. Do NOT translate reserved keywords like "BUY", "SELL", or the JSON structure itself.
 
 **JSON OUTPUT (RAW ONLY - NO MARKDOWN):**
 {
@@ -1577,6 +1581,9 @@ style.includes('day trading') ? `
 
 USER REQUEST: "${query}"
 
+**LOCALIZATION REQUIREMENT:**
+You MUST localize the exact text outputs inside fields such as "reasoning", "biasMotivation", "tradeIdea", and any other descriptive text into ${userSettings?.language || 'English'}. Do NOT translate reserved keywords like "BUY", "SELL", or the JSON structure itself.
+
 **MANDATORY EXECUTION RULES:**
 1. **MATHEMATICAL CONFIDENCE SCORING:** Your confidence score MUST be explicitly calculated based on confluence, not chosen randomly. 
    - Base score: start at 50%.
@@ -1922,6 +1929,8 @@ export async function generateTradingBlueprint(
             .map(s => `${s.name} Session: ${s.assets.join(', ')}`)
             .join('\n');
 
+        const language = userSettings?.language || 'English';
+
         const promptText = `${GREYALPHA_IDENTITY}
         
 You are tasked with creating a highly precise, institutional-grade "Everyday Trading Plan" for a trader from Monday to Friday.
@@ -1929,6 +1938,7 @@ You are tasked with creating a highly precise, institutional-grade "Everyday Tra
 Here are the sessions and assets the trader has selected:
 ${sessionInfo}
 The trader's local timezone is: ${timezone}
+Target Language: ${language}
 
 ### INSTRUCTIONS:
 1. Create a structured, day-by-day (Monday to Friday) trading blueprint.
@@ -1936,7 +1946,9 @@ The trader's local timezone is: ${timezone}
 3. Specify EXACT optimal time windows to trade their selected assets formatted strictly in their specified timezone (${timezone}).
 4. Keep it strictly focused on risk management, daily setups, and optimal entry windows.
 5. Limit the assets array for each time window to EXACTLY 1 high-probability asset. If you need to suggest multiple assets for a session (e.g., London), create multiple separate entries in the 'sessions' array with non-overlapping time windows to prevent trader indecision.
-6. Provide your output strictly as a JSON object matching this schema:
+6. Localize the content: The values for \`day\`, \`focus\`, \`timeWindow\`, and \`notes\` MUST be in ${language}.
+7. IMPORTANT: The \`name\` field of each session MUST remain in English (it must contain either "Asian", "London", or "New York") so the internal system can map them to the correct columns.
+8. Provide your output strictly as a JSON object matching this schema:
 {
   "schedule": [
     {
