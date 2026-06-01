@@ -1574,6 +1574,7 @@ style.includes('day trading') ? `
     - Break of Structure (BOS) / Change of Character (CHoCH)
     - Liquidity Pools (Equal Highs/Lows)
 8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow.
+9. **SHORT INTRADAY MOVES (15m/1H):** You are actively encouraged to capture short, highly-probable momentum shifts and reaction bounces on the 15-minute and 1-hour timeframes. You do not need to wait for macro shifts. A clean liquidity sweep, order block tap, or FVG fill on the 15m/1H is a highly valid setup for a short, surgical trade with tight Risk/Reward (using tighter Stop Loss and conservative Take Profits reflecting the intraday structural swing).
 
 **CRITICAL DATA (SMC BASIS):**
 - ASSET: ${assetName}
