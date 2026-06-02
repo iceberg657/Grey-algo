@@ -12,7 +12,7 @@ import { getLearnedStrategies } from './learningService';
 import { detectMarketRegime, MarketRegime } from '../utils/marketRegime';
 import { GREYALPHA_IDENTITY } from './identity';
 
-const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime) => {
+const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime, advancedQuantSignal?: any) => {
   const date = currentDate || new Date();
   const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
   const isTraditionalMarket = !asset.toUpperCase().includes('BTC') && !asset.toUpperCase().includes('ETH') && !asset.toUpperCase().includes('CRYPTO') && !asset.toUpperCase().includes('DERIV');
@@ -30,6 +30,16 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
   const quantContext = (quantData || {}).trend 
      ? (quantData.weightedScore 
         ? `
+**ADVANCED MULTI-ASSET ENGINE SIGNAL:**
+${advancedQuantSignal ? `
+- **Signal**: ${advancedQuantSignal.signal}
+- **Grade/Tier**: ${advancedQuantSignal.tier} (Score: ${advancedQuantSignal.totalScore}/100)
+- **Breakdown**: ${advancedQuantSignal.scoreBreakdown?.join('\\n  * ')}
+- **Entry Zone**: ${advancedQuantSignal.entry}
+- **Stop Loss**: ${advancedQuantSignal.stopLoss}
+- **Take Profits**: TP1: ${advancedQuantSignal.tp1}, TP2: ${advancedQuantSignal.tp2}, TP3: ${advancedQuantSignal.tp3}
+` : 'NO ACTIVE ADVANCED CORRELATION SIGNAL'}
+
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
 - EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
@@ -951,7 +961,9 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
           request.twelveDataQuote,
           request.globalTrend,
           request.quantData,
-          new Date()
+          new Date(),
+          undefined, // regime unsupported in generateTradingSignal
+          request.advancedQuantSignal
         );
         
         const promptParts: any[] = [{ text: promptText }];
@@ -1445,6 +1457,7 @@ export async function generateSniperLiveSignal(
   derivData: any,
   learnedStrategies: string[] = [],
   quantData?: any,
+  advancedQuantSignal?: any,
   userSettings?: UserSettings,
   regime?: MarketRegime
 ): Promise<SignalData> {
@@ -1453,6 +1466,16 @@ export async function generateSniperLiveSignal(
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 
   const quantContext = quantData ? `
+**ADVANCED MULTI-ASSET ENGINE SIGNAL:**
+${advancedQuantSignal ? `
+- **Signal**: ${advancedQuantSignal.signal}
+- **Grade/Tier**: ${advancedQuantSignal.tier} (Score: ${advancedQuantSignal.totalScore}/100)
+- **Breakdown**: ${advancedQuantSignal.scoreBreakdown?.join('\\n  * ')}
+- **Entry Zone**: ${advancedQuantSignal.entry}
+- **Stop Loss**: ${advancedQuantSignal.stopLoss}
+- **Take Profits**: TP1: ${advancedQuantSignal.tp1}, TP2: ${advancedQuantSignal.tp2}, TP3: ${advancedQuantSignal.tp3}
+` : 'NO ACTIVE ADVANCED CORRELATION SIGNAL'}
+
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
 - EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
@@ -1915,6 +1938,23 @@ function extractJson(str: string): any {
         console.error('CRITICAL: Unified JSON Extraction Failure:', e.message || e);
         throw e;
     }
+}
+
+export async function getGeminiAnalysis(prompt: string): Promise<string> {
+    await initializeApiKey();
+    return await executeLaneCall<string>(async (apiKey) => {
+        const ai = new GoogleGenAI({ apiKey });
+        const response = await ai.models.generateContent({
+            model: ANALYSIS_MODELS[0],
+            contents: prompt,
+            config: {
+                temperature: 0.2, // precise analytical mode
+                thinkingConfig: { thinkingBudget: 256 }
+            }
+        });
+        if (!response.text) throw new Error("No response from AI strategy analyzer");
+        return response.text;
+    }, getAnalysisPool());
 }
 
 export async function generateTradingBlueprint(

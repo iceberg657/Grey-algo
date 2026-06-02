@@ -68,6 +68,8 @@ export interface AnalysisRequest {
     tradingStyle: TradingStyle;
     isMultiDimensional: boolean;
 
+    advancedQuantSignal?: any; // Contains the TieredSignal from advanced quant execution
+    
     globalContext?: string;
     globalTrend?: GlobalTrendInfo;
     learnedStrategies?: string[];

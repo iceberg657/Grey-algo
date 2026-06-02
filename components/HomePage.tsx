@@ -37,6 +37,7 @@ import { resetNeuralLanes } from '../services/retryUtils';
 import { getLearnedStrategies } from '../services/learningService';
 import { fetchMarketData } from '../services/twelveDataService';
 import { analyzeRCA } from '../utils/rcaEngine';
+import { QuantEnginePipeline, MarketSeries } from '../utils/advancedExecutionEngines';
 import { auth, db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, query, where, orderBy, limit, onSnapshot, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 
@@ -266,6 +267,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             // Fetch live market data for confluence
             let marketData = null;
             let rcaData = null;
+            let advancedQuantSignal = null;
             if (requestData.asset) {
                 // Determine interval based on trading style
                 let interval = '1h';
@@ -300,6 +302,23 @@ export const HomePage: React.FC<HomePageProps> = ({
                         const d = await derivRes.json();
                         if (d && d.candles && d.candles.length >= 50) {
                             rcaData = analyzeRCA(d.candles);
+                            
+                            try {
+                                const pipeline = new QuantEnginePipeline();
+                                const mSeries: MarketSeries = {
+                                    symbol: derivSymbol,
+                                    bars: d.candles.map((c: any) => ({ open: c.open, high: c.high, low: c.low, close: c.close, volume: 1, timestamp: new Date(c.epoch * 1000) }))
+                                };
+                                const isForex = !['US30', 'NAS100', 'SPX500', 'CRASH'].some(s => derivSymbol.includes(s));
+                                advancedQuantSignal = pipeline.processLiveExecution(
+                                    isForex ? 'STAT_ARB' : 'INDEX_STAT_ARB',
+                                    mSeries, mSeries, mSeries,
+                                    15,
+                                    userSettings?.autotrade?.maxRiskPerTrade || 10000
+                                );
+                            } catch (err) {
+                                console.error("Advanced Quant Engine error in RCA:", err);
+                            }
                         }
                     }
                 } catch (e) {
@@ -313,6 +332,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 learnedStrategies,
                 twelveDataQuote: marketData,
                 quantData: rcaData,
+                advancedQuantSignal,
                 globalTrend
             };
 

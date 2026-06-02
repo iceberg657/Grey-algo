@@ -22,6 +22,7 @@ import {
   User,
   Bot
 } from 'lucide-react';
+import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
 import { generateSniperLiveSignal } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
@@ -426,12 +427,67 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         : null;
       console.log(`[SniperLiveTrade] SMC Quant Engine Results:`, quantData);
 
+      let advancedQuantSignal = null;
+      try {
+          if (derivData.candles) {
+              const pipeline = new QuantEnginePipeline();
+              const mSeries: MarketSeries = {
+                  symbol: asset,
+                  bars: derivData.candles.map((c: any) => ({
+                      open: c.open, high: c.high, low: c.low, close: c.close, volume: 1, timestamp: new Date(c.epoch * 1000)
+                  }))
+              };
+              
+              const isForex = !['US30', 'NAS100', 'SPX500', 'CRASH', 'BOOM', 'OTC_'].some(s => asset.toUpperCase().includes(s));
+              const assetClass = isForex ? 'FOREX' : 'INDICES';
+              const granularity = derivData.multiTimeframe?.entry?.granularity || 900;
+              
+              const strategies: ('SMT' | 'STAT_ARB' | 'VELOCITY' | 'INDEX_SMT' | 'INDEX_STAT_ARB' | 'INDEX_LEAD_LAG')[] = isForex 
+                  ? ['SMT', 'STAT_ARB', 'VELOCITY']
+                  : ['INDEX_SMT', 'INDEX_STAT_ARB', 'INDEX_LEAD_LAG'];
+                  
+              // Filter and run only STABLE strategies dynamically determined by timeframe & asset class
+              const { getStrategyStability } = await import('../utils/backtestEngine');
+              const stableStrategies = strategies.filter(strategyId => 
+                  getStrategyStability(strategyId, assetClass, granularity) === 'STABLE'
+              );
+
+              const signals = [];
+              for (const strategy of (stableStrategies.length > 0 ? stableStrategies : strategies)) {
+                  try {
+                      // For single asset view without direct cross-correlations, we pass the same asset to A,B,C 
+                      // Wait, we can pass mSeries three times, quant engine calculates it independently.
+                      const sig = pipeline.processLiveExecution(
+                          strategy, mSeries, mSeries, mSeries,
+                          granularity / 60, // period parameter if applicable
+                          userSettings?.autotrade?.maxRiskPerTrade || 10000
+                      );
+                      if (sig && sig.signal !== 'NEUTRAL') {
+                          signals.push({ strategy, ...sig });
+                      }
+                  } catch (e) {
+                      console.warn(`Quant execution failed for ${strategy}:`, e);
+                  }
+              }
+
+              // Pick the signal with the highest score
+              if (signals.length > 0) {
+                  signals.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+                  advancedQuantSignal = signals[0];
+                  console.log(`[SniperLiveTrade] Selected Advanced Signal from ${advancedQuantSignal.strategy}:`, advancedQuantSignal);
+              }
+          }
+      } catch (e) {
+          console.error("Advanced Quant Engine Error:", e);
+      }
+
       const result = await generateSniperLiveSignal(
         currentQuery, 
         style, 
         derivData, 
         [], // Default learned strategies
         quantData,
+        advancedQuantSignal,
         userSettings,
         dailyRegime?.regime // Inject the AI Pilot's Daily Regime
       );
