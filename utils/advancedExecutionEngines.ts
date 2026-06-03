@@ -655,13 +655,24 @@ export class QuantEnginePipeline {
         const tA = arraysA.closes.length - 1;
         const tB = arraysB.closes.length - 1;
 
+        // Calculate ATR for dynamic risk sizing
+        const atrA = QuantMath.calculateATR(arraysA.highs, arraysA.lows, arraysA.closes, 14)[tA];
+        const atrB = QuantMath.calculateATR(arraysB.highs, arraysB.lows, arraysB.closes, 14)[tB];
+        let atr = atrA || (arraysA.closes[tA] * 0.001); // fallback to 0.1% volatility if ATR fails
+
+        const setStopLoss = (direction: 'BUY' | 'SELL', entry: number, atrValue: number) => {
+            const buffer = atrValue * 1.5; // 1.5x ATR for Stop Loss
+            return direction === 'BUY' ? entry - buffer : entry + buffer;
+        };
+
         switch (strategyId) {
             case 'SMT':
                 score = this.smtEngine.evaluate(dataA, dataB, dataC, newsSentimentScore);
-                signalDirection = 'BUY';
+                signalDirection = score.direction || 'BUY';
                 const arraysC = QuantMath.extractArrays(dataC);
                 entryPrice = arraysC.closes[arraysC.closes.length - 1];
-                stopLossPrice = entryPrice - 0.00150; 
+                let atrC = QuantMath.calculateATR(arraysC.highs, arraysC.lows, arraysC.closes, 14)[arraysC.closes.length - 1] || (entryPrice * 0.001);
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atrC); 
                 break;
 
             case 'STAT_ARB':
@@ -671,39 +682,39 @@ export class QuantEnginePipeline {
                 for(let i = Math.max(0, tA - 120); i <= tA; i++) historicalRatios.push(arraysA.closes[i] / arraysB.closes[i]);
                 const ratioMean = QuantMath.calculateMean(historicalRatios);
                 
-                signalDirection = currentRatio > ratioMean ? 'SELL' : 'BUY';
+                signalDirection = score.direction || (currentRatio > ratioMean ? 'SELL' : 'BUY');
                 entryPrice = arraysA.closes[tA];
-                stopLossPrice = signalDirection === 'SELL' ? entryPrice + 0.00200 : entryPrice - 0.00200;
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atr);
                 break;
 
             case 'VELOCITY':
                 score = this.velocityEngine.evaluate(dataA, dataB, newsSentimentScore);
                 const euVel = ((arraysA.closes[tA] - arraysA.closes[Math.max(0, tA - 4)]) / arraysA.closes[Math.max(0, tA - 4)]) * 10000;
                 
-                signalDirection = euVel < 0 ? 'SELL' : 'BUY';
+                signalDirection = score.direction || (euVel < 0 ? 'SELL' : 'BUY');
                 entryPrice = arraysA.closes[tA];
-                stopLossPrice = signalDirection === 'SELL' ? entryPrice + 0.00100 : entryPrice - 0.00100;
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atr);
                 break;
 
             case 'INDEX_SMT':
                 score = this.indexSmtEngine.evaluate(dataA, dataB, newsSentimentScore);
-                signalDirection = 'SELL';
+                signalDirection = score.direction || 'SELL';
                 entryPrice = arraysB.closes[tB];
-                stopLossPrice = entryPrice + 20;
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atrB || (entryPrice * 0.002));
                 break;
 
             case 'INDEX_STAT_ARB':
                 score = this.indexStatArbEngine.evaluate(dataA, dataB, newsSentimentScore);
-                signalDirection = 'BUY';
+                signalDirection = score.direction || 'BUY';
                 entryPrice = arraysA.closes[tA];
-                stopLossPrice = entryPrice - 30;
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atr);
                 break;
 
             case 'INDEX_LEAD_LAG':
                 score = this.indexLeadLagEngine.evaluate(dataA, dataB, newsSentimentScore);
-                signalDirection = 'BUY';
+                signalDirection = score.direction || 'BUY';
                 entryPrice = arraysB.closes[tB];
-                stopLossPrice = entryPrice - 40;
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atrB || (entryPrice * 0.002));
                 break;
         }
 

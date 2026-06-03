@@ -75,6 +75,7 @@ export interface CorrelationRule {
 }
 
 export interface WeightedScore {
+    direction?: 'BUY' | 'SELL';
     smcStructure: number; // Max 30pts
     volumeProfile: number; // Max 20pts
     globalTrend: number; // Max 20pts

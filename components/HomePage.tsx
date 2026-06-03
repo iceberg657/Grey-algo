@@ -309,13 +309,39 @@ export const HomePage: React.FC<HomePageProps> = ({
                                     symbol: derivSymbol,
                                     bars: d.candles.map((c: any) => ({ open: c.open, high: c.high, low: c.low, close: c.close, volume: 1, timestamp: new Date(c.epoch * 1000) }))
                                 };
-                                const isForex = !['US30', 'NAS100', 'SPX500', 'CRASH'].some(s => derivSymbol.includes(s));
-                                advancedQuantSignal = pipeline.processLiveExecution(
-                                    isForex ? 'STAT_ARB' : 'INDEX_STAT_ARB',
-                                    mSeries, mSeries, mSeries,
-                                    15,
-                                    userSettings?.autotrade?.maxRiskPerTrade || 10000
+                                const isForex = !['US30', 'NAS100', 'SPX500', 'CRASH', 'BOOM', 'OTC_'].some(s => derivSymbol.toUpperCase().includes(s));
+                                const assetClass = isForex ? 'FOREX' : 'INDICES';
+                                
+                                const strategies: ('SMT' | 'STAT_ARB' | 'VELOCITY' | 'INDEX_SMT' | 'INDEX_STAT_ARB' | 'INDEX_LEAD_LAG')[] = isForex 
+                                    ? ['SMT', 'STAT_ARB', 'VELOCITY']
+                                    : ['INDEX_SMT', 'INDEX_STAT_ARB', 'INDEX_LEAD_LAG'];
+                                    
+                                const { getStrategyStability } = await import('../utils/backtestEngine');
+                                const stableStrategies = strategies.filter(strategyId => 
+                                    getStrategyStability(strategyId, assetClass, derivGranularity) === 'STABLE'
                                 );
+
+                                const signals = [];
+                                for (const strategy of (stableStrategies.length > 0 ? stableStrategies : strategies)) {
+                                    try {
+                                        const sig = pipeline.processLiveExecution(
+                                            strategy, mSeries, mSeries, mSeries,
+                                            derivGranularity / 60,
+                                            userSettings?.autotrade?.maxRiskPerTrade || 10000
+                                        );
+                                        if (sig && sig.signal !== 'NEUTRAL') {
+                                            signals.push({ strategy, ...sig });
+                                        }
+                                    } catch (e) {
+                                        console.warn(`RCA Quant execution failed for ${strategy}:`, e);
+                                    }
+                                }
+
+                                if (signals.length > 0) {
+                                    signals.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
+                                    advancedQuantSignal = signals[0];
+                                    console.log(`[RCA] Selected Advanced Signal from ${advancedQuantSignal.strategy}:`, advancedQuantSignal);
+                                }
                             } catch (err) {
                                 console.error("Advanced Quant Engine error in RCA:", err);
                             }
