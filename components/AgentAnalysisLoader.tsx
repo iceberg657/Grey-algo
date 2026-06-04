@@ -33,6 +33,21 @@ export const AgentAnalysisLoader: React.FC<{ inline?: boolean }> = ({ inline = f
     const [agents, setAgents] = useState<Agent[]>(INITIAL_AGENTS);
     const [logs, setLogs] = useState<string[]>([]);
     const [currentStep, setCurrentStep] = useState(0);
+    const [isDeepThinking, setIsDeepThinking] = useState(false);
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('greyquant_user_settings');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed.deepThinking) {
+                    setIsDeepThinking(true);
+                }
+            }
+        } catch (e) {
+            console.error(e);
+        }
+    }, []);
 
     useEffect(() => {
         const agentInterval = setInterval(() => {
@@ -68,13 +83,25 @@ export const AgentAnalysisLoader: React.FC<{ inline?: boolean }> = ({ inline = f
 
             <div className="relative z-10 w-full max-w-2xl">
                 <header className="text-center mb-12">
-                    <motion.div 
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="inline-block px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30 text-[10px] font-black uppercase tracking-[0.4em] text-green-500 mb-4"
-                    >
-                        Neural Command Center Active
-                    </motion.div>
+                    <div className="flex flex-wrap items-center justify-center gap-2.5 mb-4">
+                        <motion.div 
+                            initial={{ opacity: 0, y: -20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="px-4 py-1.5 rounded-full bg-green-500/10 border border-green-500/30 text-[10px] font-black uppercase tracking-[0.4em] text-green-500"
+                        >
+                            Neural Command Center Active
+                        </motion.div>
+                        {isDeepThinking && (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/30 text-[10px] font-black uppercase tracking-[0.4em] text-violet-500 animate-pulse flex items-center gap-1.5"
+                            >
+                                <span className="w-1.5 h-1.5 rounded-full bg-violet-500"></span>
+                                <span>🧠 Deep Thinking Active</span>
+                            </motion.div>
+                        )}
+                    </div>
                     <h2 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter italic text-slate-900 dark:text-white flex items-center justify-center gap-4">
                         <span className="opacity-40">Phase:</span> 
                         <span className="text-green-500">Autonomous Analysis</span>

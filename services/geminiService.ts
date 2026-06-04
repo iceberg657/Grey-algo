@@ -758,9 +758,11 @@ ${(() => {
 ---
 
 🛡️ **ANTI-DRAWDOWN & PROFIT SECURING PROTOCOL (CRITICAL):**
-1. **NO BREAKOUT TRADING:** Never enter on a strong impulse candle or extension. ALWAYS wait for a retracement to a Discount/Premium zone (FVG/OB). If the price has already run away, you MUST issue a LIMIT ORDER, not a Market Execution.
+1. **NO BREAKOUT TRADING (TRAP AVOIDANCE):** Never enter on a strong impulse candle or extension. ALWAYS wait for a retracement to a Discount/Premium zone (FVG/OB). If the price has already run away or is in a trap zone, you MUST issue a LIMIT ORDER, not a Market Execution.
 2. **HIGH PROBABILITY TP1:** TP1 MUST be set at the closest logical friction point (e.g., 0.5R to 1R) to ensure the trader can secure partial profits and move SL to breakeven quickly. Hitting TP1 is the absolute minimum requirement for a successful signal.
 3. **POSITION SIZING:** Recommend splitting the trade into multiple positions (e.g., 2 or 3) to allow taking profit at TP1 while letting runners hit TP2/TP3.
+4. **TIME-WEIGHTED ENTRY ZONES (MANDATORY FIX):** Only execute Market Orders if the current setup aligns with active liquidity windows (e.g., London 8:00-10:30am, NY 2:30-5:00pm, Asia 1:30-4:00am EST/NY Local Time). If outside these windows, or if volume is dead, you MUST use pending orders (Limit/Stop).
+5. **ALGORITHMIC NOISE FILTER:** Your Stop Loss MUST buffer against ATR (Average True Range) spikes and institutional liquidity sweeps (Stop Hunts). Do not place SL exactly at the pivot; place it deep off the liquidity vacuum zone.
 
 ---
 
@@ -950,9 +952,17 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
     return await executeLaneCall<Omit<SignalData, 'id' | 'timestamp'>>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
+        const isDeepThinking = !!request.userSettings?.deepThinking;
+        const models = isDeepThinking ? [
+            'gemini-3.1-pro-preview',
+            'gemini-3.5-flash',
+            'gemini-2.5-pro',
+            'gemini-3-flash'
+        ] : ANALYSIS_MODELS;
+
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }); // Or use a generic format
-        const promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n[CURRENT LOCAL TIME: ${new Date().toISOString()}]\n` + AI_TRADING_PLAN(
+        let promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n[CURRENT LOCAL TIME: ${new Date().toISOString()}]\n` + AI_TRADING_PLAN(
           request.riskRewardRatio, 
           request.asset || "",
           request.learnedStrategies || [],
@@ -966,6 +976,19 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
           request.advancedQuantSignal
         );
         
+        if (isDeepThinking) {
+            promptText += `
+\n🧠 **AI DEEP THINKING & ANTI-REVERSAL MANDATE ATTACHED (PRO MODE):**
+You are executing with the highest level of neural reasoning. This is a critical trade analysis.
+Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNTING**:
+1. **MULTI-STEP RATIONALIZATION (Reasoning Loop):** Before finalizing the signal, run a mental counter-bias analysis. Ask yourself: "If I take a BUY, what institutional trap makes a SELL more likely? Is there unmitigated liquidity below that needs to be swept first?" 
+2. **REVERSAL SHIELD:** Regular traders often get stopped out because they trade early "Change of Character" (CHoCH) that are actually liquidity hunts or retail inducements. You MUST check if the price is hovering directly at a support/resistance pivot. If it is, assume a SWEEP of that level will occur BEFORE the actual reversal. Anchor your SL beyond the sweep zone!
+3. **ATR NOISE BUFFER:** Check the ATR (Average True Range). Your Stop Loss distance MUST have a proper buffer (minimum 1.5x of current ATR) to protect against sudden market spread spikes and institutional stop-runs.
+4. **RIGOROUS MATH CONFLUENCE:** Analyze the quant mathematical score and premium/discount zonal facts. If the Grade is not A or B, or the Zone is not fully aligned, adjust inputs or entry levels to optimize risk-reward ratio. Do not be eager; be extremely parsimonious and precise.
+5. **TRAP AVOIDANCE:** Detail in your "reasoning" array (with at least 3 deep steps) EXACTLY how this setup protects against sudden wick-out reversals and how we are surfing the real "Smart Money" footprint instead of matching retail sheep behavior.
+`;
+        }
+
         const promptParts: any[] = [{ text: promptText }];
         
         if (request.isMultiDimensional && request.images.higher) {
@@ -999,13 +1022,19 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         }
 
         const response = await runWithModelFallback<any>(
-            ANALYSIS_MODELS, 
+            models, 
             async (modelId) => {
                 const config: any = { 
                     tools: [{googleSearch: {}}], 
                     temperature: 0,
                     maxOutputTokens: 8192
                 };
+                
+                if (isDeepThinking) {
+                    config.thinkingConfig = {
+                        thinkingLevel: "HIGH"
+                    };
+                }
                 
                 let responseText = '';
                 let candidates = [];
@@ -1465,6 +1494,14 @@ export async function generateSniperLiveSignal(
   const assetName = derivData?.symbol || 'Asset';
   const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 
+  const isDeepThinking = !!userSettings?.deepThinking;
+  const models = isDeepThinking ? [
+    'gemini-3.1-pro-preview',
+    'gemini-3.5-flash',
+    'gemini-2.5-pro',
+    'gemini-3-flash'
+  ] : ANALYSIS_MODELS;
+
   const quantContext = quantData ? `
 **ADVANCED MULTI-ASSET ENGINE SIGNAL:**
 ${advancedQuantSignal ? `
@@ -1514,10 +1551,12 @@ ${advancedQuantSignal ? `
 - Grade: ${quantData.weightedScore?.grade}
 - Risk Tier: ${quantData.weightedScore?.riskTier} (${quantData.weightedScore?.suggestedRiskPercent}% recommended)
 - ENGINE MANDATED SIGNAL: ${quantData.explicitSignal}
+- ENGINE MANDATED EXECUTION: ${quantData.recommendedExecution || 'MARKET'}
 
 *CRITICAL INSTRUCTIONS:*
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
+- **EXECUTION COMPLIANCE:** If the ENGINE MANDATED EXECUTION is "LIMIT", you MUST use Pending Orders ("Buy Limit" or "Sell Limit") instead of Market Execution to protect against overextension traps.
 - **GRADE PENALTY:** If the Grade is "C", you MUST warn the user about the low confluence but provide the best possible execution setup if forced by the query.
 - **LONDON/EUR PROTECTION:** If the asset is UK100, FTSE, or EUR-based and the session is LONDON, you MUST prioritize the Mathematical Strict SL provided (${quantData.mathematicalSL}). This SL includes a wider institutional buffer to protect against typical London session "Stop Hunts" and "Liquidity Sweeps".
 - You MUST use the **Mathematical Strict SL** provided above (${quantData.mathematicalSL}) or something very close to it. It already accounts for the Displacement wick and ATR noise.
@@ -1621,16 +1660,32 @@ You MUST localize the exact text outputs inside fields such as "reasoning", "bia
    - If Displacement is YES and volatility/momentum is high, select "15m" (or 5m for scalps) for surgical precision.
    - If the market is consolidating, or in a broader structural zone waiting for a trigger, select "1H" (or 4H for swing).
    - The chosen timeframe MUST logically match the scale of your Entry Range and Stop Loss pip distance.
-3. **IMMEDIATE EXECUTION & SURGICAL PRECISION:** Every setup you provide MUST be for **IMMEDIATE MARKET EXECUTION**. Your entryRange MUST encapsulate the current LIVE MARKET PRICE (${livePrice}). SL and TP MUST be extremely tight and visible on the current timeframe. Avoid targets that require massive pips.
+3. **ADVANCED QUANT & INSTITUTIONAL EXECUTION (ANTI-LOSS MANDATE):**
+   - **Market Execution is a PRIVILEGE, not a right:** You MUST NOT generate "Market Execution" unless the asset is EXACTLY inside an unmitigated Order Block, at a swept liquidity level, AND displaying strong displacement at the *exact current live price*.
+   - **Pending Orders / Trapping:** If the current price is floating in the middle of a range, or approaching a key level but hasn't swept liquidity yet, you MUST use Pending Orders ("Buy Limit", "Sell Limit", "Buy Stop", "Sell Stop"). Set the entry range to the precise mathematical boundary of the target quant zone.
+   - **Time-Weighted Structural Breaks:** Avoid entering at the very start of a major session if there's no volume.
+   - **Volatility Stop Buffers:** The Stop Loss MUST incorporate an algorithmic Z-Score or ATR buffer to immune the trade against spread widening and stop hunts.
 4. **INTELLIGENT & TIGHT STOP LOSS:** 
    - Use "Structural Invalidation" points. Protect against noise but keep it surgical.
-   - **Neural Precision:** In your reasoning, provide deep, institutional-grade logic for your SL placement. Explain why it separates you from retail "noise" even at this tight distance.
-5. **SOLID REASONING:** Your reasoning MUST be extremely robust. Focus on Institutional footprints, Liquidity Sweeps, and Market Invariants. Explain exactly WHY you chose the direction and WHY the alternative path is less likely.
+   - **Neural Precision:** In your reasoning, provide deep, institutional-grade logic for your SL placement. Explain why it separates you from retail "noise" and prevents fake breakouts.
+5. **SOLID REASONING & ALGORITHMIC FADE:** Your reasoning MUST be extremely robust. Explain exactly how this setup mathematically fades retail behavior (e.g., catching false breakouts via limit orders) and aligns with the dominant Smart Money order book imbalance.
 6. **POSITION MANAGEMENT & LOT SIZING:**
    - You MUST calculate and suggest a \`formattedLotSize\` based on standard risk management (e.g. 1% risk of a typical $10,000 account, or based on the pip distance to SL).
    - You MUST suggest the \`recommendedPositions\` (e.g. split into 2 or 3 positions for partial takes).
    - You MUST provide the \`positionLotSize\` (e.g. "0.01 per position").
 7. **FORMAT:** Return ONLY a JSON object matching the SignalData interface.
+
+${isDeepThinking ? `
+🧠 **AI DEEP THINKING & ANTI-REVERSAL MANDATE ATTACHED (PRO MODE):**
+You are executing with the highest level of neural reasoning. This is a critical trade analysis.
+Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNTING**:
+1. **PENDING ORDER PREDOMINANCE:** In Pro Mode, prefer limit/stop orders unless the live market price is demonstrably at the exact optimal mathematical exhaustion point. Never chase price. Let price come to the limit order.
+2. **MULTI-STEP RATIONALIZATION (Reasoning Loop):** Before finalizing the signal, run a mental counter-bias analysis. Ask yourself: "If I take a BUY, what institutional trap makes a SELL more likely? Is there unmitigated liquidity below that needs to be swept first?" 
+3. **REVERSAL SHIELD:** Regular traders often get stopped out because they trade early "Change of Character" (CHoCH) that are actually liquidity hunts or retail inducements. You MUST check if the price is hovering directly at a support/resistance pivot. If it is, assume a SWEEP of that level will occur BEFORE the actual reversal. Anchor your SL beyond the sweep zone!
+4. **ATR NOISE BUFFER:** Check the ATR (Average True Range). Your Stop Loss distance MUST have a proper buffer (minimum 1.5x of current ATR) to protect against sudden market spread spikes and institutional stop-runs.
+5. **RIGOROUS MATH CONFLUENCE:** Analyze the quant mathematical score and premium/discount zonal facts. If the Grade is not A or B, or the Zone is not fully aligned, adjust inputs or entry levels to optimize risk-reward ratio. Do not be eager; be extremely parsimonious and precise.
+6. **TRAP AVOIDANCE:** Detail in your "reasoning" array EXACTLY how this setup protects against sudden wick-out reversals and how we are surfing the real "Smart Money" footprint instead of matching retail sheep behavior.
+` : ''}
 
 JSON Structure:
 {
@@ -1638,9 +1693,9 @@ JSON Structure:
   "confidence": number (MAX 85),
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
-  "entryRange": {"min": number, "max": number}, // CRITICAL: min/max MUST encapsulate the live price (${livePrice}).
-  "entryType": "Market Execution", 
-  "expirationTime": null,
+  "entryRange": {"min": number, "max": number}, // If Market Execution, encapsulate live price ${livePrice}. If Pending, set exactly at the intended entry zone.
+  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop", 
+  "expirationTime": "string if entryType is Limit/Stop based on Time Window/Session, or null",
   "stopLoss": number, // Explicit price level
   "takeProfits": [number, number], // CRITICAL: MUST provide two explicit price targets
   "formattedLotSize": "String (e.g. '0.10')",
@@ -1666,12 +1721,18 @@ JSON Structure:
 
   return await executeLaneCall<SignalData>(async (apiKey) => {
     return await runWithModelFallback<SignalData>(
-      ANALYSIS_MODELS,
+      models,
       async (modelId) => {
         const config: any = { 
           temperature: 0,
           maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
         };
+        
+        if (isDeepThinking) {
+          config.thinkingConfig = {
+            thinkingLevel: "HIGH"
+          };
+        }
         
         let text = '';
         try {

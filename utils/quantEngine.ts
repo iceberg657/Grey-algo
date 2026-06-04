@@ -908,6 +908,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     // ✅ NEW: Binary Execution Engine (Quant calculates the explicit signal)
     let explicitSignal: 'BUY' | 'SELL' | 'NEUTRAL' = 'NEUTRAL';
     let mathematicalSL = 0;
+    let recommendedExecution: 'MARKET' | 'LIMIT' = 'MARKET';
 
     // Performance Optimization for UK100/EUR indices
     const isLondonAsset = 
@@ -917,8 +918,13 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         assetSymbol.includes('DAX') || 
         assetSymbol.includes('EUR');
 
-    // Increase SL buffer for London assets during volatile sessions (Stop Hunting Protection)
-    const slMultiplier = (isLondonAsset && (killzone.session.includes('LONDON'))) ? 1.0 : 0.5;
+    // Advanced Institutional ATR Buffer & Trap Avoidance
+    let baseSlBuffer = 1.5; // Starts at 1.5x ATR
+    if (killzone.session === 'LONDON_NY_OVERLAP' || killzone.session === 'NEW_YORK') {
+        baseSlBuffer = 2.0; 
+    } else if (isLondonAsset && killzone.session === 'LONDON') {
+        baseSlBuffer = 2.5; 
+    }
 
     // --- WEIGHTED SCORING MODEL ---
     const smcFactors = {
@@ -952,18 +958,36 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const signalValid = weightedScore.totalScore >= 50;
 
     if (signalValid) {
+        // Evaluate if market execution is safe or if limit order is required
+        // Avoid market execution during dead zones or overextended bands
+        if (killzone.session === 'OFF_SESSION' || killzone.session === 'ASIAN') {
+            recommendedExecution = 'LIMIT';
+        }
+        
         if (isBullishSetup && currentZone === 'DISCOUNT') {
             explicitSignal = 'BUY';
-            mathematicalSL = Math.min(
-                ote.bullish.deep - (atr * slMultiplier), 
-                displacementCandle ? displacementCandle.low - (atr * slMultiplier) : currentPrice - (atr * 1.5)
-            );
+            if (stdDev.overextended && currentPrice > stdDev.upperBand) {
+                recommendedExecution = 'LIMIT'; // Protect against overextension trap
+            }
+            const baseLow = displacementCandle ? displacementCandle.low : ote.bullish.deep;
+            const bufferedSL = baseLow - (atr * baseSlBuffer);
+            // Ensure SL is securely below standard deviation noise floor
+            mathematicalSL = Math.min(bufferedSL, stdDev.lowerBand - (atr * 0.5));
+            if (liquidityHeatmap.priceJustSweptSSL && liquidityHeatmap.nearestSSL) {
+                 mathematicalSL = Math.min(mathematicalSL, liquidityHeatmap.nearestSSL.price - atr);
+            }
         } else if (isBearishSetup && currentZone === 'PREMIUM') {
             explicitSignal = 'SELL';
-            mathematicalSL = Math.max(
-                ote.bearish.deep + (atr * slMultiplier), 
-                displacementCandle ? displacementCandle.high + (atr * slMultiplier) : currentPrice + (atr * 1.5)
-            );
+            if (stdDev.overextended && currentPrice < stdDev.lowerBand) {
+                recommendedExecution = 'LIMIT'; // Protect against overextension trap
+            }
+            const baseHigh = displacementCandle ? displacementCandle.high : ote.bearish.deep;
+            const bufferedSL = baseHigh + (atr * baseSlBuffer);
+            // Ensure SL is securely above standard deviation noise ceiling
+            mathematicalSL = Math.max(bufferedSL, stdDev.upperBand + (atr * 0.5));
+            if (liquidityHeatmap.priceJustSweptBSL && liquidityHeatmap.nearestBSL) {
+                 mathematicalSL = Math.max(mathematicalSL, liquidityHeatmap.nearestBSL.price + atr);
+            }
         }
     }
 
@@ -998,6 +1022,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         ote,
         isInOTE,
         explicitSignal,
+        recommendedExecution,
         mathematicalSL,
         premiumZone,
         discountZone,

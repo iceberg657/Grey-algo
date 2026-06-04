@@ -1076,9 +1076,25 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                 <motion.div 
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
-                  className="flex flex-col items-start gap-4 mb-4"
+                  className="flex flex-col items-start gap-4 mb-4 w-full"
                 >
                   <AgentAnalysisLoader inline={true} />
+                  {userSettings?.deepThinking && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 1 }}
+                      className="flex items-center gap-2.5 p-3 px-4 bg-violet-500/15 dark:bg-violet-500/10 border border-violet-500/30 rounded-xl shadow-lg border-dashed w-full max-w-xl animate-pulse"
+                    >
+                      <div className="relative flex h-2.5 w-2.5 flex-shrink-0">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-violet-500"></span>
+                      </div>
+                      <span className="text-xs font-bold text-violet-700 dark:text-violet-300">
+                        🧠 AI Deep Thinking Active: Scanning order flow, checking unmitigated sweeps, and mapping stop-loss buffers...
+                      </span>
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
 

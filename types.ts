@@ -47,6 +47,7 @@ export interface UserSettings extends Partial<AccountSettings> {
     derivApiToken?: string;
     geminiApiKey?: string;
     useStrictKeyMode?: boolean;
+    deepThinking?: boolean;
     language?: string;
 }
 
