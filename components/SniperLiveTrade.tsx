@@ -46,6 +46,7 @@ import {
 import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { getDailyMarketRegime, DailyRegime } from '../services/pilotService';
+import { LiquidityHeatmapChart } from './LiquidityHeatmapChart';
 
 interface SniperMessage {
   id: string;
@@ -481,16 +482,44 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           console.error("Advanced Quant Engine Error:", e);
       }
 
-      const result = await generateSniperLiveSignal(
-        currentQuery, 
-        style, 
-        derivData, 
-        [], // Default learned strategies
-        quantData,
-        advancedQuantSignal,
-        userSettings,
-        dailyRegime?.regime // Inject the AI Pilot's Daily Regime
-      );
+      // RPD Optimization (ALGORITHMIC VETO): Intercept and reject highly probable fakeouts locally before AI API call
+      let result = null;
+      if (quantData?.weightedScore?.totalScore < 35 && quantData?.quantMath?.fakeoutProbability > 0.8) {
+          console.log('[SniperLiveTrade] ALGORITHMIC VETO TRIGGERED: Skipping AI Execution to save RPD token limit.');
+          result = {
+              id: Date.now().toString(),
+              type: 'ai',
+              signal: 'NEUTRAL',
+              asset: asset,
+              confidence: quantData.weightedScore.totalScore,
+              reasoning: [
+                  "Trade execution blocked locally by Quant Statistics Engine to save your daily RPD limit.",
+                  "System detected over 80% statistical probability of a trap/fakeout.",
+                  "Market Noise Ratio was dangerously high due to mean-reverting algorithms active on order book.",
+                  "Stay flat. Do not execute trades on this setup. We saved your account from a verified trap."
+              ],
+              entryRange: { min: 0, max: 0 },
+              stopLoss: 0,
+              takeProfits: [0, 0],
+              timestamp: Date.now(),
+              insight: "Quant Engine actively avoided an institutional trap zone.",
+              analysisBreakdown: quantData.weightedScore.breakdown,
+              recommendedPositions: '0',
+              formattedLotSize: '0.00',
+              grade: 'NO TRADE'
+          };
+      } else {
+          result = await generateSniperLiveSignal(
+            currentQuery, 
+            style, 
+            derivData, 
+            [], // Default learned strategies
+            quantData,
+            advancedQuantSignal,
+            userSettings,
+            dailyRegime?.regime // Inject the AI Pilot's Daily Regime
+          );
+      }
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
       if (result && result.signal && result.signal !== 'NEUTRAL') {
@@ -1060,6 +1089,23 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 ))}
                               </div>
                             </div>
+                            
+                            {/* Demand Zones / Liquidity Heatmap */}
+                            {msg.signal.heatmapData && msg.signal.heatmapData.length > 0 && (
+                                <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                                        <BarChart3 className="w-3 h-3" /> Orderbook Liquidity Depth Map
+                                    </h3>
+                                    <LiquidityHeatmapChart 
+                                        data={msg.signal.heatmapData} 
+                                        currentPrice={msg.signal.priceAtSignal || livePrice} 
+                                        height={180} 
+                                    />
+                                    <p className="text-[9px] text-slate-500 uppercase tracking-widest text-center mt-3">
+                                        D3.js Visualization of Liquidity Zones detected by Quant Engine
+                                    </p>
+                                </div>
+                            )}
                           </div>
                         ) : (
                           <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-600 dark:text-slate-400 leading-relaxed">

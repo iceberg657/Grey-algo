@@ -362,10 +362,38 @@ export const HomePage: React.FC<HomePageProps> = ({
                 globalTrend
             };
 
-            const [data] = await Promise.all([
-                generateTradingSignal(fullRequest),
-                new Promise(resolve => setTimeout(resolve, 12000)) // Minimum 12s thorough analysis
-            ]);
+            let data;
+            // RPD Optimization (ALGORITHMIC VETO): Intercept and reject highly probable fakeouts directly locally
+            if (rcaData?.confluenceConfidence < 40 && rcaData?.quantMath?.fakeoutProbability > 0.8) {
+                console.log('[RCA] ALGORITHMIC VETO TRIGGERED: Skipping AI Execution to save RPD token limit.');
+                data = {
+                    id: Date.now().toString(),
+                    type: 'ai',
+                    signal: 'NEUTRAL',
+                    asset: requestData.asset,
+                    confidence: rcaData.confluenceConfidence,
+                    reasoning: [
+                        "Analysis auto-blocked locally by Quant Statistics Engine to save your daily AI limits.",
+                        "The mathematical footprint displays over 80% statistical probability of a trap/fakeout.",
+                        "Machine learning algorithms identified this zone as a statistically poor edge.",
+                        "We saved your core account margin. Stay flat."
+                    ],
+                    entryRange: { min: 0, max: 0 },
+                    stopLoss: 0,
+                    takeProfits: [0, 0],
+                    timestamp: Date.now(),
+                    insight: "Algorithmic safety net activated. Market conditions rejected.",
+                    recommendedPositions: '0',
+                    formattedLotSize: '0.00',
+                    grade: 'NO TRADE'
+                };
+            } else {
+                const resultsContext = await Promise.all([
+                    generateTradingSignal(fullRequest),
+                    new Promise(resolve => setTimeout(resolve, 12000)) // Minimum 12s thorough analysis
+                ]);
+                data = resultsContext[0];
+            }
             
             const newCount = incrementAnalysisCount();
             setAnalysisCount(newCount);

@@ -1,5 +1,9 @@
 import { calculateEMA, calculateRSI, findSwings } from './analyticsEngine';
 import { calculateMarkovRegime, MarkovRegimeResult } from './markovEngine';
+import { analyzeOrderflow, OrderflowMetrics } from './orderflowEngine';
+import { executeRiskOptimization, RiskOptimization } from './riskOptimizer';
+import { predictNextLiquiditySweep, LiquidityPrediction } from './liquidityPrediction';
+import { NeuralEngine, NeuralAnalysis } from '../services/neuralEngine';
 export interface OHLC {
     epoch: number;
     open: number;
@@ -101,6 +105,63 @@ export interface OrderBlock {
 // --- ADVANCED SNIPER MODULES ---
 
 // 1. VOLUME PROFILE
+export interface QuantMathematics {
+    zScoreDispersion: number;
+    hurstExponentApproximation: number;
+    regimeProbability: 'TRENDING' | 'MEAN_REVERTING' | 'RANDOM_WALK';
+    fakeoutProbability: number; // 0 to 1
+    statisticalNoiseRatio: number;
+}
+
+export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => {
+    if (candles.length < 50) return {
+        zScoreDispersion: 0, hurstExponentApproximation: 0.5, regimeProbability: 'RANDOM_WALK', fakeoutProbability: 0.5, statisticalNoiseRatio: 1
+    };
+    
+    const closes = candles.map(c => c.close);
+    const returns = [];
+    for (let i = 1; i < closes.length; i++) {
+        returns.push(closes[i] - closes[i-1]);
+    }
+
+    const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+    let variance = returns.reduce((acc, val) => acc + Math.pow(val - meanReturn, 2), 0) / returns.length;
+    if (variance === 0) variance = 0.00000001;
+    const stdDev = Math.sqrt(variance);
+
+    const currentReturn = returns[returns.length - 1];
+    const zScoreDispersion = (currentReturn - meanReturn) / stdDev;
+
+    // Simplified Hurst Exponent Approximation (Rescaled Range approach subset)
+    let cumulativeDeviations = 0;
+    let maxCum = -Infinity;
+    let minCum = Infinity;
+    for (const r of returns) {
+        cumulativeDeviations += (r - meanReturn);
+        if (cumulativeDeviations > maxCum) maxCum = cumulativeDeviations;
+        if (cumulativeDeviations < minCum) minCum = cumulativeDeviations;
+    }
+    const R = Math.max(maxCum - minCum, 0.0001);
+    const hurstExponentApproximation = Math.log(R / stdDev) / Math.log(returns.length);
+    
+    let regimeProbability: 'TRENDING' | 'MEAN_REVERTING' | 'RANDOM_WALK' = 'RANDOM_WALK';
+    if (hurstExponentApproximation > 0.6) regimeProbability = 'TRENDING';
+    else if (hurstExponentApproximation < 0.4) regimeProbability = 'MEAN_REVERTING';
+
+    const atr = Math.abs(currentReturn) * 1.5; 
+    const statisticalNoiseRatio = stdDev === 0 ? 1 : Math.min(1.0, atr / (stdDev * 3));
+
+    // Fakeout probability increases when Z-Score is extremely high but Hurst shows Mean Reverting
+    let fakeoutProbability = 0.1;
+    if (Math.abs(zScoreDispersion) > 2.5 && regimeProbability === 'MEAN_REVERTING') {
+        fakeoutProbability = 0.85; // High trap probability
+    } else if (Math.abs(zScoreDispersion) > 2.0 && regimeProbability === 'RANDOM_WALK') {
+        fakeoutProbability = 0.65;
+    }
+
+    return { zScoreDispersion, hurstExponentApproximation, regimeProbability, fakeoutProbability, statisticalNoiseRatio };
+};
+
 export const calculateVolumeProfile = (
     candles: OHLC[],
     tickSize: number = 0.0001,
@@ -505,7 +566,8 @@ export const calculateWeightedScore = (
     correlationPenalty: number,
     newsRiskLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'CLEAR',
     killzoneScore: number,
-    liquiditySweptBonus: number
+    liquiditySweptBonus: number,
+    quantMath?: QuantMathematics
 ): WeightedScore => {
     const breakdown: string[] = [];
 
@@ -552,8 +614,31 @@ export const calculateWeightedScore = (
         breakdown.push(`Liquidity sweep bonus +${liquiditySweptBonus} 🎯`);
     }
 
+    // STATISTICAL & MATH PENALTIES (RPD Optimization Layer)
+    let quantPenalty = 0;
+    if (quantMath) {
+        if (quantMath.fakeoutProbability > 0.7) {
+            quantPenalty += 25;
+            breakdown.push(`STATISTICAL FAKEOUT WARNING: High probability of trap (-25)`);
+        }
+        if (quantMath.regimeProbability === 'MEAN_REVERTING' && smcFactors.htfBOS) {
+            quantPenalty += 10;
+            breakdown.push(`Mathematical Regime Conflict: Mean-Reverting market attempting breakout (-10)`);
+        }
+        if (quantMath.statisticalNoiseRatio > 0.8) {
+            quantPenalty += 15;
+            breakdown.push(`High Market Noise Ratio detected (-15)`);
+        }
+    }
+
     const rawTotal = smcScore + volScore + trendScore + newsScore + sessScore + liquiditySweptBonus;
-    const totalScore = Math.max(0, Math.min(rawTotal - correlationPenalty, 100));
+    let totalScore = Math.max(0, Math.min(rawTotal - correlationPenalty - quantPenalty, 100));
+
+    // Instant Reject if probability is too bad
+    if (quantMath && quantMath.fakeoutProbability >= 0.85) {
+        totalScore = Math.min(totalScore, 30); // Hard cap at C grade or lower to ban AI execution
+        breakdown.push(`ALGORITHMIC VETO: Trade Rejected by Quant Engine (Fakeout > 85%)`);
+    }
 
     const grade =
         totalScore >= 90 ? 'A+' :
@@ -937,6 +1022,8 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
     const liquidityBonus = (liquidityHeatmap.priceJustSweptSSL && trend === 'BULLISH') || 
                           (liquidityHeatmap.priceJustSweptBSL && trend === 'BEARISH') ? 15 : 0;
+                          
+    const quantMath = calculateQuantMathematics(candles);
 
     const weightedScore = calculateWeightedScore(
         smcFactors,
@@ -946,7 +1033,8 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         0, // Correlation Penalty
         'CLEAR', // News Sentiment (need API)
         killzone.score,
-        liquidityBonus
+        liquidityBonus,
+        quantMath
     );
 
     // Enforce direction based on HTF structure and Displacement
@@ -995,9 +1083,9 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const markovRegime = calculateMarkovRegime(candles, 20);
     if (markovRegime && signalValid) {
         // Boost score if markov aligns with the setup
-        if (explicitSignal === 'BUY' && markovRegime.signal === 'BUY') {
+        if (explicitSignal === 'BUY' && markovRegime.signal === 'BUY' && quantMath.regimeProbability !== 'MEAN_REVERTING') {
             weightedScore.totalScore = Math.min(100, weightedScore.totalScore + 15);
-        } else if (explicitSignal === 'SELL' && markovRegime.signal === 'SELL') {
+        } else if (explicitSignal === 'SELL' && markovRegime.signal === 'SELL' && quantMath.regimeProbability !== 'MEAN_REVERTING') {
             weightedScore.totalScore = Math.min(100, weightedScore.totalScore + 15);
         } else if (markovRegime.signal !== 'NEUTRAL' && explicitSignal !== markovRegime.signal) {
             // Penalize conflicting markov regime
@@ -1005,6 +1093,56 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
             weightedScore.breakdown.push(`Markov conflict penalization -10`);
         }
     }
+
+    // 6. Advanced Micro-Decisions
+    const orderflowMetrics = analyzeOrderflow(candles);
+    const liquidityPrediction = predictNextLiquiditySweep(liquidityHeatmap, markovRegime, quantMath, currentPrice, trend);
+    
+    // Normalize data for NeuralEngine
+    const normalizedMomentum = (rsi - 50) / 50; 
+    let volumeImbalance = orderflowMetrics.imbalanceRatio - 1; // Center around 0
+    volumeImbalance = Math.max(-1, Math.min(1, volumeImbalance));
+    
+    const timeOfDayWeight = killzone.active ? killzone.multiplier / 2 : 0.2;
+    
+    const returnsHistory = [];
+    for(let i=1; i<candles.length; i++){
+        returnsHistory.push( (candles[i].close - candles[i-1].close) / candles[i-1].close );
+    }
+
+    const neuralAnalysis = NeuralEngine.runReasoningCycle(
+        returnsHistory,
+        normalizedMomentum,
+        volumeImbalance,
+        timeOfDayWeight
+    );
+
+    // Filter signals using Neural Engine Anomaly Detection
+    if (neuralAnalysis.anomalyDetected && explicitSignal !== 'NEUTRAL') {
+        explicitSignal = 'NEUTRAL'; // Veto the trade
+        weightedScore.totalScore = Math.max(0, weightedScore.totalScore - 30);
+        weightedScore.breakdown.push(`Neural Engine VETO: Severe Anomaly / Chaos Detected`);
+    }
+
+    // Estimate reward to risk based on OTE and structural targets
+    let estimatedRewardToRisk = 2.0; // Default
+    if (explicitSignal === 'BUY' && ote.bullish && liquidityHeatmap.nearestBSL) {
+        const risk = currentPrice - mathematicalSL;
+        const reward = liquidityHeatmap.nearestBSL.price - currentPrice;
+        estimatedRewardToRisk = risk > 0 ? reward / risk : 2.0;
+    } else if (explicitSignal === 'SELL' && ote.bearish && liquidityHeatmap.nearestSSL) {
+        const risk = mathematicalSL - currentPrice;
+        const reward = currentPrice - liquidityHeatmap.nearestSSL.price;
+        estimatedRewardToRisk = risk > 0 ? reward / risk : 2.0;
+    }
+    
+    const riskOptimization = executeRiskOptimization(
+        (weightedScore.totalScore / 100) * 0.8, // estimated win rate
+        estimatedRewardToRisk,
+        1.0, // default account risk
+        weightedScore,
+        quantMath.statisticalNoiseRatio
+    );
 
     return {
         trend,
@@ -1042,6 +1180,11 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         liquidityHeatmap,
         weightedScore,
         obVolConfluence,
-        markovRegime
+        markovRegime,
+        quantMath,
+        orderflowMetrics,
+        liquidityPrediction,
+        riskOptimization,
+        neuralAnalysis
     };
 }

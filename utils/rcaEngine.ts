@@ -2,6 +2,7 @@
 import { detectFVG, detectOrderBlock } from './sharedEngine';
 import { calculateEMA, calculateRSI } from './analyticsEngine';
 import { calculateMarkovRegime, MarkovRegimeResult } from './markovEngine';
+import { calculateQuantMathematics, QuantMathematics } from './quantEngine';
 
 export interface FibonacciLevels {
     equilibrium: number;   // 0.50
@@ -41,6 +42,7 @@ export interface RCAMetrics {
     starvationPrevention: StarvationFilter;
     confluenceConfidence: number; // Out of 100
     markovRegime?: MarkovRegimeResult;
+    quantMath?: QuantMathematics;
     message: string;
 }
 
@@ -206,16 +208,23 @@ export function analyzeRCA(candles: any[]): RCAMetrics | null {
 
     // --- 5. MARKOV CHAIN REGIME ENGINE ---
     const markovRegime = calculateMarkovRegime(candles, 20);
+    const quantMath = calculateQuantMathematics(candles);
+
     if (markovRegime) {
-        if (trend === 'BULLISH' && markovRegime.signal === 'BUY') {
+        if (trend === 'BULLISH' && markovRegime.signal === 'BUY' && quantMath.regimeProbability !== 'MEAN_REVERTING') {
             score += 15; // Confidence boost for aligned buy
-        } else if (trend === 'BEARISH' && markovRegime.signal === 'SELL') {
+        } else if (trend === 'BEARISH' && markovRegime.signal === 'SELL' && quantMath.regimeProbability !== 'MEAN_REVERTING') {
             score += 15; // Confidence boost for aligned sell
         } else if (trend !== 'RANGING' && markovRegime.signal !== 'NEUTRAL' && 
                    ((trend === 'BULLISH' && markovRegime.signal === 'SELL') || 
                     (trend === 'BEARISH' && markovRegime.signal === 'BUY'))) {
             score -= 15; // Conflicting signals
         }
+    }
+    
+    // Penalize if statistics show a fakeout probability
+    if (quantMath.fakeoutProbability > 0.7) {
+        score -= 25;
     }
 
     return {
@@ -231,6 +240,7 @@ export function analyzeRCA(candles: any[]): RCAMetrics | null {
         starvationPrevention,
         confluenceConfidence: Math.min(100, score),
         markovRegime,
+        quantMath,
         message: "RCA Advanced Confluence & Target Analysis Complete (with Markov Hedge Fund Logic)"
     };
 }

@@ -168,16 +168,21 @@ export interface SignalData {
     takeProfits: number[];
     rrLevels?: {
         risk: number;
-        riskPips: number;
-        tp1: number;
-        tp2: number;
-        tp3: number;
-        rrRatios: { tp1: string; tp2: string; tp3: string };
-        breakeven: number;
-        partialClose: string;
+        reward1: number;
+        reward2: number;
+        reward3: number;
+        riskPips?: number;
+        tp1?: number;
+        tp2?: number;
+        tp3?: number;
+        rrRatios?: { tp1: string; tp2: string; tp3: string };
+        breakeven?: number;
+        partialClose?: string;
     };
+    heatmapData?: { price: number; volume: number; type: 'ask' | 'bid' }[];
     positionProtocol?: string;
     reasoning: string[];
+    insight: string;
     checklist?: string[];
     invalidationScenario?: string;
     counterArgumentRejection?: string;

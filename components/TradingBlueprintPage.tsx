@@ -77,6 +77,8 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
     const [blueprintStr, setBlueprintStr] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
 
+
+
     const parsedBlueprint = useMemo<BlueprintData | null>(() => {
         if (!blueprintStr) return null;
         try {

@@ -62,6 +62,19 @@ ${advancedQuantSignal ? `
 **WEIGHTED SCORE & GRADE:**
 - Total Score: ${quantData.weightedScore?.totalScore || 'N/A'}/100
 - Grade: ${quantData.weightedScore?.grade || 'N/A'}
+
+**QUANT MATH & STATISTICAL EDGE:**
+- Hurst Exponent: ${quantData.quantMath?.hurstExponentApproximation?.toFixed(3) || 'N/A'}
+- Regime Prob: ${quantData.quantMath?.regimeProbability || 'N/A'}
+- Trap Probability: ${((quantData.quantMath?.fakeoutProbability || 0) * 100).toFixed(1)}%
+- Market Noise Ratio: ${quantData.quantMath?.statisticalNoiseRatio?.toFixed(3) || 'N/A'}
+- Orderflow Imbalance: ${quantData.orderflowMetrics?.imbalanceRatio?.toFixed(2) || 'N/A'} (${quantData.orderflowMetrics?.institutionalFootprint || 'N/A'})
+- Liquidity Target Prediction: ${quantData.liquidityPrediction?.nextTarget || 'NONE'} (${quantData.liquidityPrediction?.probability || 0}%)
+
+**NEURAL REASONING ENGINE:**
+- Regime: ${quantData.neuralAnalysis?.classifiedRegime || 'UNKNOWN'}
+- Orderflow Direction: ${quantData.neuralAnalysis?.orderflowDirection || 'NEUTRAL'}
+- Chaos Detected: ${quantData.neuralAnalysis?.anomalyDetected ? 'YES 🚨' : 'NO'}
 `
         : `
 **RCA ENGINE DATA (REGULAR CHART ANALYSIS FACT SHEET):**
@@ -1553,6 +1566,23 @@ ${advancedQuantSignal ? `
 - ENGINE MANDATED SIGNAL: ${quantData.explicitSignal}
 - ENGINE MANDATED EXECUTION: ${quantData.recommendedExecution || 'MARKET'}
 
+**QUANT MATH & STATISTICAL EDGE (SNIPER):**
+- Hurst Exponent: ${quantData.quantMath?.hurstExponentApproximation?.toFixed(3) || 'N/A'}
+- Regime Prob: ${quantData.quantMath?.regimeProbability || 'N/A'}
+- Trap Probability: ${((quantData.quantMath?.fakeoutProbability || 0) * 100).toFixed(1)}%
+- Market Noise Ratio: ${quantData.quantMath?.statisticalNoiseRatio?.toFixed(3) || 'N/A'}
+- VETO STATUS: If Trap Probability is incredibly high, you MUST reject the trade and output NEUTRAL.
+- Orderflow Imbalance: ${quantData.orderflowMetrics?.imbalanceRatio?.toFixed(2) || 'N/A'} (${quantData.orderflowMetrics?.institutionalFootprint || 'N/A'})
+- Orderflow Exhaustion: ${quantData.orderflowMetrics?.exhaustionWarning ? 'WARN: WICK EXHAUSTION DETECTED' : 'CLEAN'}
+- Liquidity Sweep Prediction: Next Target: ${quantData.liquidityPrediction?.nextTarget || 'NONE'} | Probability: ${quantData.liquidityPrediction?.probability || 0}% | Imminent: ${quantData.liquidityPrediction?.imminentSweep ? 'YES' : 'NO'}
+- Risk Optimization: Kelly Exec: ${quantData.riskOptimization?.suggestedRiskPercentage?.toFixed(2)}% | Split Orders: ${quantData.riskOptimization?.splitOrders ? 'YES' : 'NO'} | Approval: ${quantData.riskOptimization?.approval ? 'APPROVED' : 'VETOED'}
+
+**NEURAL REASONING ENGINE:**
+- Classified Regime: ${quantData.neuralAnalysis?.classifiedRegime || 'UNKNOWN'} (Confidence: ${((quantData.neuralAnalysis?.confidence || 0) * 100).toFixed(1)}%)
+- Orderflow Direction: ${quantData.neuralAnalysis?.orderflowDirection || 'NEUTRAL'}
+- Neural Expected Move: ${quantData.neuralAnalysis?.expectedMove?.toFixed(4) || 'N/A'} relative units
+- Anomaly / Chaos Detected: ${quantData.neuralAnalysis?.anomalyDetected ? 'YES 🚨 (VETO APPLIED)' : 'NO (STABLE)'}
+
 *CRITICAL INSTRUCTIONS:*
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
@@ -1881,6 +1911,22 @@ Move SL to entry immediately after TP1.
         const riskPercent = userSettings?.riskPerTrade || 1;
         const lotInfo = calculateLotSize(accountBalance, riskPercent, midEntry, finalSL);
 
+        // Map quantData Liquidity Heatmap onto the sanitized signal
+        let heatmapMapping: { price: number; volume: number; type: 'ask' | 'bid' }[] | undefined = undefined;
+        if (quantData?.liquidityHeatmap) {
+            heatmapMapping = [];
+            if (quantData.liquidityHeatmap.bslLevels) {
+                quantData.liquidityHeatmap.bslLevels.forEach((level: any) => {
+                    heatmapMapping!.push({ price: level.price, volume: level.strength * 10, type: 'ask' });
+                });
+            }
+            if (quantData.liquidityHeatmap.sslLevels) {
+                quantData.liquidityHeatmap.sslLevels.forEach((level: any) => {
+                    heatmapMapping!.push({ price: level.price, volume: level.strength * 10, type: 'bid' });
+                });
+            }
+        }
+
         const sanitizedSignal: SignalData = {
           id: `sniper_${Date.now()}`,
           timestamp: Date.now(),
@@ -1896,6 +1942,7 @@ Move SL to entry immediately after TP1.
           takeProfits: finalTPs,
           rrLevels: rrLevels || undefined,
           positionProtocol: finalPositionProtocol || undefined,
+          heatmapData: heatmapMapping,
           formattedLotSize: lotInfo.lotSize > 0 ? lotInfo.lotSize.toString() : signal.formattedLotSize,
           riskAmount: lotInfo.riskAmount,
           positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
