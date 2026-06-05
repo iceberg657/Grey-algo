@@ -1583,7 +1583,15 @@ ${advancedQuantSignal ? `
 - Neural Expected Move: ${quantData.neuralAnalysis?.expectedMove?.toFixed(4) || 'N/A'} relative units
 - Anomaly / Chaos Detected: ${quantData.neuralAnalysis?.anomalyDetected ? 'YES 🚨 (VETO APPLIED)' : 'NO (STABLE)'}
 
-*CRITICAL INSTRUCTIONS:*
+**MATHEMATICAL PRICE PREDICTION (MONTE CARLO SIMULATION):**
+- Expected Median Price: ${quantData.monteCarloPrediction?.expectedPrice?.toFixed(5) || 'N/A'}
+- 68% Confidence Upper Bound (+1σ): ${quantData.monteCarloPrediction?.upperBound?.toFixed(5) || 'N/A'}
+- 68% Confidence Lower Bound (-1σ): ${quantData.monteCarloPrediction?.lowerBound?.toFixed(5) || 'N/A'}
+
+*CRITICAL MATH COMPLIANCE INSTRUCTIONS:*
+- **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 
+- You MUST anchor your Stop Loss EXACTLY using the engine mathematical SL or the Monte Carlo bounds (Lower Bound for BUY, Upper Bound for SELL). 
+- Your Take Profits MUST align with Expected Median Price and the structural Liquidity targets provided. If a user asks for statistical/mathematical projections, ONLY use the Monte Carlo bounds.
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
 - **EXECUTION COMPLIANCE:** If the ENGINE MANDATED EXECUTION is "LIMIT", you MUST use Pending Orders ("Buy Limit" or "Sell Limit") instead of Market Execution to protect against overextension traps.
@@ -1843,8 +1851,20 @@ JSON Structure:
         // }
 
         // --- FINAL SNIPER CONSTRAINTS ---
-        if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
-            if (signal.signal === 'BUY' || signal.signal === 'SELL') {
+        
+        let enforcedByEngine = false;
+
+        // Strict Math Engine Enforcement Override
+        if (quantData?.explicitSignal && quantData.explicitSignal !== 'NEUTRAL') {
+            finalSignal = quantData.explicitSignal;
+            enforcedByEngine = true;
+            finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Direction mathematically locked to ${finalSignal}. LLM guesses rejected.`);
+        } else if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
+            if (quantData?.explicitSignal === 'NEUTRAL') {
+                // If math says neutral, we STAY neutral. Do not force trades.
+                finalSignal = 'NEUTRAL';
+                finalReasoning.push(`⚙️ STRICT MATH ENGINE: Market in chaos. Neutrality enforced mathematically. No safe trade exists.`);
+            } else if (signal.signal === 'BUY' || signal.signal === 'SELL') {
                 finalSignal = signal.signal;
                 finalReasoning.push(`🎯 Retaining AI directional bias (${finalSignal}) despite price recalibration.`);
             } else {
@@ -1853,7 +1873,23 @@ JSON Structure:
                 } else {
                     finalSignal = 'BUY';
                 }
-                finalReasoning.push(`🎯 Sniper Mandate: Neutrality rejected. Trade forced in direction of structural bias (${finalSignal}).`);
+                finalReasoning.push(`🎯 Directional bias inferred from structural trend (${finalSignal}).`);
+            }
+        }
+
+        // Apply mathematical pricing bounds from Monte Carlo / QuantData if available
+        if (quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
+            const mc = quantData.monteCarloPrediction;
+            if (finalSignal === 'BUY') {
+                finalSL = quantData.mathematicalSL || mc.lowerBound;
+                finalTPs[0] = mc.expectedPrice > midEntry ? mc.expectedPrice : midEntry * 1.002;
+                finalTPs[1] = mc.upperBound > finalTPs[0] ? mc.upperBound : finalTPs[0] * 1.002; 
+                finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored BUY SL to Lower Bound (-1σ) and TPs to Monte Carlo Expected Median Price / Upper Bound (+1σ).`);
+            } else if (finalSignal === 'SELL') {
+                finalSL = quantData.mathematicalSL || mc.upperBound;
+                finalTPs[0] = mc.expectedPrice < midEntry ? mc.expectedPrice : midEntry * 0.998;
+                finalTPs[1] = mc.lowerBound < finalTPs[0] ? mc.lowerBound : finalTPs[0] * 0.998;
+                finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored SELL SL to Upper Bound (+1σ) and TPs to Monte Carlo Expected Median Price / Lower Bound (-1σ).`);
             }
         }
 

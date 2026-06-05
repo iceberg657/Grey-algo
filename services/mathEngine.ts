@@ -115,4 +115,58 @@ export class MathEngine {
 
         return sign * y;
     }
+
+    /**
+     * Generate standard normal random variable using Box-Muller transform
+     */
+    static randomNormal(): number {
+        let u = 0, v = 0;
+        while(u === 0) u = Math.random(); 
+        while(v === 0) v = Math.random();
+        return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v);
+    }
+
+    /**
+     * Monte Carlo Path Simulation for Price Prediction
+     * @param currentPrice Current asset price
+     * @param returns History of returns
+     * @param steps Number of future steps to predict
+     * @param simulations Number of paths to simulate
+     * @returns Object containing predicted mean, upper and lower bounds (1 standard deviation)
+     */
+    static monteCarloPredict(currentPrice: number, returns: number[], steps: number = 10, simulations: number = 1000): { expectedPrice: number; lowerBound: number; upperBound: number; confidenceInterval68: number } {
+        if (returns.length < 2) return { expectedPrice: currentPrice, lowerBound: currentPrice, upperBound: currentPrice, confidenceInterval68: 0 };
+        
+        const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
+        const volatility = this.calculateGARCHVolatility(returns) || this.calculateStdDev(returns);
+        
+        // Simulating Geometric Brownian Motion
+        // S_t = S_{t-1} * exp((mu - 0.5 * sigma^2) + sigma * Z)
+        
+        const drift = meanReturn - 0.5 * Math.pow(volatility, 2);
+        let finalPrices: number[] = [];
+        
+        for (let i = 0; i < simulations; i++) {
+            let price = currentPrice;
+            for (let j = 0; j < steps; j++) {
+                const z = this.randomNormal();
+                price = price * Math.exp(drift + volatility * z);
+            }
+            finalPrices.push(price);
+        }
+        
+        finalPrices.sort((a, b) => a - b);
+        
+        // Return 16th and 84th percentiles for ~68% confidence interval (1 std dev)
+        const p16 = finalPrices[Math.floor(simulations * 0.16)];
+        const p50 = finalPrices[Math.floor(simulations * 0.50)]; // median/expected
+        const p84 = finalPrices[Math.floor(simulations * 0.84)];
+        
+        return {
+            expectedPrice: p50,
+            lowerBound: p16,
+            upperBound: p84,
+            confidenceInterval68: p84 - p16
+        };
+    }
 }
