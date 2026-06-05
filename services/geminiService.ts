@@ -52,8 +52,8 @@ ${advancedQuantSignal ? `
 - Calculated Direction: ${quantData.markovRegime?.signal || 'N/A'} (Confidence: ${quantData.markovRegime?.confidence?.toFixed(1) || 0}%)
 
 **VOLUME PROFILE & VPVR (INSTITUTIONAL NODES):**
-- POC: ${quantData.volumeProfile?.poc.toFixed(5) || 'N/A'}
-- Value Area: ${quantData.volumeProfile?.val.toFixed(5) || 'N/A'} - ${quantData.volumeProfile?.vah.toFixed(5) || 'N/A'}
+- POC: ${quantData.volumeProfile?.poc?.toFixed(5) || 'N/A'}
+- Value Area: ${quantData.volumeProfile?.val?.toFixed(5) || 'N/A'} - ${quantData.volumeProfile?.vah?.toFixed(5) || 'N/A'}
 - OB-Volume Confluence: ${quantData.obVolConfluence?.aligned ? 'YES ✅' : 'NO ❌'}
 
 **LIQUIDITY HEATMAP:**
@@ -79,8 +79,8 @@ ${advancedQuantSignal ? `
         : `
 **RCA ENGINE DATA (REGULAR CHART ANALYSIS FACT SHEET):**
 - Trend Bias: ${quantData.trend}
-- EMA 50: ${quantData.ema50.toFixed(5)} | EMA 200: ${quantData.ema200.toFixed(5)}
-- Current RSI: ${quantData.rsi.toFixed(1)}
+- EMA 50: ${quantData.ema50?.toFixed(5) || 'N/A'} | EMA 200: ${quantData.ema200?.toFixed(5) || 'N/A'}
+- Current RSI: ${quantData.rsi?.toFixed(1) || 'N/A'}
 - BOS Detection: ${quantData.bos ? 'YES ✅' : 'NO ❌'}
 - FVG / Imbalance: ${quantData.fvg ? `DETECTED (${quantData.fvg.type})` : 'NONE'}
 - Order Block (OB): ${quantData.ob ? `DETECTED (${quantData.ob.type})` : 'NONE'}
@@ -1534,14 +1534,14 @@ ${advancedQuantSignal ? `
 - BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
 
 **VOLUME PROFILE & VPVR (INSTITUTIONAL NODES):**
-- POC (Target): ${quantData.volumeProfile?.poc.toFixed(5)}
-- Value Area: ${quantData.volumeProfile?.val.toFixed(5)} - ${quantData.volumeProfile?.vah.toFixed(5)}
-- High Volume Nodes: ${quantData.volumeProfile?.hvns.map((h: any) => h.priceLevel.toFixed(5)).join(', ')}
+- POC (Target): ${quantData.volumeProfile?.poc?.toFixed(5) || 'N/A'}
+- Value Area: ${quantData.volumeProfile?.val?.toFixed(5) || 'N/A'} - ${quantData.volumeProfile?.vah?.toFixed(5) || 'N/A'}
+- High Volume Nodes: ${quantData.volumeProfile?.hvns?.map((h: any) => h.priceLevel?.toFixed(5))?.join(', ') || 'NONE'}
 - OB-Volume Confluence: ${quantData.obVolConfluence?.aligned ? 'YES ✅' : 'NO ❌'} (${quantData.obVolConfluence?.reason})
 
 **LIQUIDITY HEATMAP (SMC BASIS):**
-- Nearest BSL (Sell-Stops): ${quantData.liquidityHeatmap?.nearestBSL?.price.toFixed(5) || 'NONE'}
-- Nearest SSL (Buy-Stops): ${quantData.liquidityHeatmap?.nearestSSL?.price.toFixed(5) || 'NONE'}
+- Nearest BSL (Sell-Stops): ${quantData.liquidityHeatmap?.nearestBSL?.price?.toFixed(5) || 'NONE'}
+- Nearest SSL (Buy-Stops): ${quantData.liquidityHeatmap?.nearestSSL?.price?.toFixed(5) || 'NONE'}
 - Just Swept Liquidity: ${quantData.liquidityHeatmap?.priceJustSweptBSL ? 'BSL SWEPT 🔴' : quantData.liquidityHeatmap?.priceJustSweptSSL ? 'SSL SWEPT 🟢' : 'NONE'}
 
 **INSTITUTIONAL DISPLACEMENT & FLOW:**
