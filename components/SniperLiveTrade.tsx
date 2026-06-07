@@ -597,10 +597,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
   const SUPPORTED_ASSETS = [
     { category: 'Global Indices', items: ['US 30 (OTC_DJI)', 'US 100 (OTC_NDX)', 'US 500 (OTC_SPC)', 'UK 100 (OTC_FTSE)', 'Germany 40 (OTC_GDAXI)', 'France 40 (OTC_FCHI)', 'Japan 225 (OTC_N225)', 'Australia 200 (OTC_AS51)'] },
-    { category: 'Forex', items: ['EURUSD', 'GBPUSD', 'GBPJPY', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'XAUUSD (Gold)'] },
+    { category: 'Forex', items: ['EURUSD', 'GBPUSD', 'GBPJPY', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'XAUUSD (Gold)', 'SILVER', 'BRENT', 'WTI'] },
+    { category: 'Crypto', items: ['BTCUSD', 'ETHUSD', 'LTCUSD'] },
     { category: 'Volatility Indices', items: ['V10', 'V25', 'V50', 'V75', 'V100', 'V10 (1s)', 'V25 (1s)', 'V50 (1s)', 'V75 (1s)', 'V100 (1s)'] },
     { category: 'Boom/Crash', items: ['Boom 1000/500/300', 'Boom 900/600/150/50', 'Crash 1000/500/300', 'Crash 900/600/150/50'] },
-    { category: 'Crypto', items: ['BTCUSD', 'ETHUSD', 'LTCUSD'] },
     { category: 'Other', items: ['Step Index', 'Jump Indices (10-100)', 'Range Break 100/200'] }
   ];
 

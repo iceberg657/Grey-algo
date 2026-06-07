@@ -114,15 +114,24 @@ export interface QuantMathematics {
     statisticalNoiseRatio: number;
 }
 
+/**
+ * Institutional Lead-Lag Context
+ */
+export interface LeadLagContext {
+    correlation: number;
+    divergenceDetected: boolean; // SMT Divergence
+    leadingBias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
+}
+
 export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => {
     if (candles.length < 50) return {
         zScoreDispersion: 0, hurstExponentApproximation: 0.5, regimeProbability: 'RANDOM_WALK', fakeoutProbability: 0.5, statisticalNoiseRatio: 1
     };
-    
+
     const closes = candles.map(c => c.close);
     const returns = [];
     for (let i = 1; i < closes.length; i++) {
-        returns.push(closes[i] - closes[i-1]);
+        returns.push(closes[i] - closes[i - 1]);
     }
 
     const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
@@ -144,12 +153,12 @@ export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => 
     }
     const R = Math.max(maxCum - minCum, 0.0001);
     const hurstExponentApproximation = Math.log(R / stdDev) / Math.log(returns.length);
-    
+
     let regimeProbability: 'TRENDING' | 'MEAN_REVERTING' | 'RANDOM_WALK' = 'RANDOM_WALK';
     if (hurstExponentApproximation > 0.6) regimeProbability = 'TRENDING';
     else if (hurstExponentApproximation < 0.4) regimeProbability = 'MEAN_REVERTING';
 
-    const atr = Math.abs(currentReturn) * 1.5; 
+    const atr = Math.abs(currentReturn) * 1.5;
     const statisticalNoiseRatio = stdDev === 0 ? 1 : Math.min(1.0, atr / (stdDev * 3));
 
     // Fakeout probability increases when Z-Score is extremely high but Hurst shows Mean Reverting
@@ -170,8 +179,8 @@ export const calculateVolumeProfile = (
 ): VolumeProfile => {
     // Step 1: Build price buckets
     const highest = Math.max(...candles.map(c => c.high));
-    const lowest  = Math.min(...candles.map(c => c.low));
-    const range   = highest - lowest;
+    const lowest = Math.min(...candles.map(c => c.low));
+    const range = highest - lowest;
 
     // Number of price levels (rows in profile)
     const numLevels = Math.min(Math.round(range / tickSize), 200);
@@ -195,8 +204,8 @@ export const calculateVolumeProfile = (
             if (priceLevel >= candle.low && priceLevel <= candle.high) {
                 // Weight: price proximity to candle body
                 const bodyHigh = Math.max(candle.open, candle.close);
-                const bodyLow  = Math.min(candle.open, candle.close);
-                const inBody   = priceLevel >= bodyLow && priceLevel <= bodyHigh;
+                const bodyLow = Math.min(candle.open, candle.close);
+                const inBody = priceLevel >= bodyLow && priceLevel <= bodyHigh;
 
                 // Body gets 70% of volume, wicks get 30%
                 const weight = inBody ? 0.7 : 0.3;
@@ -223,13 +232,13 @@ export const calculateVolumeProfile = (
 
     // Step 4: Value Area (70% of total volume around POC)
     const totalVolume = Array.from(buckets.values()).reduce((a, b) => a + b, 0);
-    const targetVol   = totalVolume * valueAreaPercent;
+    const targetVol = totalVolume * valueAreaPercent;
 
     let vaVol = buckets.get(poc) || 0;
-    let vah   = poc;
-    let val   = poc;
+    let vah = poc;
+    let val = poc;
     const sortedPrices = Array.from(buckets.keys()).sort((a, b) => a - b);
-    const pocIndex      = sortedPrices.indexOf(poc);
+    const pocIndex = sortedPrices.indexOf(poc);
 
     let upperIdx = pocIndex;
     let lowerIdx = pocIndex;
@@ -242,17 +251,17 @@ export const calculateVolumeProfile = (
 
         if (upperVol >= lowerVol && upperIdx + 1 < sortedPrices.length) {
             upperIdx++;
-            vah   = sortedPrices[upperIdx];
+            vah = sortedPrices[upperIdx];
             vaVol += upperVol;
         } else if (lowerIdx - 1 >= 0) {
             lowerIdx--;
-            val   = sortedPrices[lowerIdx];
+            val = sortedPrices[lowerIdx];
             vaVol += lowerVol;
         } else break;
     }
 
     // Step 5: Identify HVN and LVN
-    const avgVol  = totalVolume / (buckets.size || 1);
+    const avgVol = totalVolume / (buckets.size || 1);
     const hvns: VolumeNode[] = [];
     const lvns: VolumeNode[] = [];
 
@@ -284,7 +293,7 @@ export const checkOBVolumeConfluence = (
     const obTop = Math.max(orderBlock.upper, orderBlock.lower);
 
     const pocInOB = volumeProfile.poc >= obBottom - tolerance &&
-                    volumeProfile.poc <= obTop + tolerance;
+        volumeProfile.poc <= obTop + tolerance;
 
     // Check HVN alignment
     const hvnInOB = volumeProfile.hvns.some(hvn =>
@@ -295,12 +304,12 @@ export const checkOBVolumeConfluence = (
     // Check Value Area alignment
     const vaOverlap =
         obBottom <= volumeProfile.vah &&
-        obTop    >= volumeProfile.val;
+        obTop >= volumeProfile.val;
 
     if (pocInOB) {
         return {
             aligned: true,
-            score: 20, 
+            score: 20,
             reason: `POC (${volumeProfile.poc.toFixed(5)}) confirmed inside Order Block institutional volume cluster`
         };
     }
@@ -348,16 +357,16 @@ export const calculatePearsonCorrelation = (
     const meanA = sliceA.reduce((a, b) => a + b, 0) / n;
     const meanB = sliceB.reduce((a, b) => a + b, 0) / n;
 
-    let numerator   = 0;
-    let denomA      = 0;
-    let denomB      = 0;
+    let numerator = 0;
+    let denomA = 0;
+    let denomB = 0;
 
     for (let i = 0; i < n; i++) {
-        const diffA  = sliceA[i] - meanA;
-        const diffB  = sliceB[i] - meanB;
-        numerator   += diffA * diffB;
-        denomA      += diffA * diffA;
-        denomB      += diffB * diffB;
+        const diffA = sliceA[i] - meanA;
+        const diffB = sliceB[i] - meanB;
+        numerator += diffA * diffB;
+        denomA += diffA * diffA;
+        denomB += diffB * diffB;
     }
 
     const denominator = Math.sqrt(denomA * denomB);
@@ -449,7 +458,7 @@ export const getKillzoneScore = (): KillzoneResult => {
             minutesUntilOpen: minutesUntilLondon,
             multiplier: 0.5,
             score: 2,
-            allowEntry: false, 
+            allowEntry: false,
             reason: `Asian Session Low institutional volume. London opens in ${minutesUntilLondon}min.`
         };
     }
@@ -478,7 +487,7 @@ export const buildLiquidityHeatmap = (
     const sslLevels: LiquidityLevel[] = [];
 
     const highs = candles.map(c => c.high);
-    const lows  = candles.map(c => c.low);
+    const lows = candles.map(c => c.low);
 
     const groupLevels = (prices: number[], type: 'BSL' | 'SSL') => {
         const clusters: Map<number, number> = new Map();
@@ -497,8 +506,8 @@ export const buildLiquidityHeatmap = (
         clusters.forEach((strength, price) => {
             if (strength >= 2) {
                 const swept = type === 'BSL'
-                    ? currentPrice > price   
-                    : currentPrice < price;  
+                    ? currentPrice > price
+                    : currentPrice < price;
 
                 const level: LiquidityLevel = {
                     price,
@@ -509,7 +518,7 @@ export const buildLiquidityHeatmap = (
                 };
 
                 if (type === 'BSL') bslLevels.push(level);
-                else                sslLevels.push(level);
+                else sslLevels.push(level);
             }
         });
     };
@@ -520,10 +529,10 @@ export const buildLiquidityHeatmap = (
     bslLevels.sort((a, b) => a.distanceFromPrice - b.distanceFromPrice);
     sslLevels.sort((a, b) => a.distanceFromPrice - b.distanceFromPrice);
 
-    const recentCandles  = candles.slice(-3);
-    const recentHighs    = recentCandles.map(c => c.high);
-    const recentLows     = recentCandles.map(c => c.low);
-    const recentClose    = candles[candles.length - 1].close;
+    const recentCandles = candles.slice(-3);
+    const recentHighs = recentCandles.map(c => c.high);
+    const recentLows = recentCandles.map(c => c.low);
+    const recentClose = candles[candles.length - 1].close;
 
     const priceJustSweptBSL = bslLevels.some(level =>
         Math.max(...recentHighs) > level.price &&
@@ -539,17 +548,17 @@ export const buildLiquidityHeatmap = (
     const unsweptSSL = sslLevels.filter(l => !l.swept && l.price < currentPrice);
 
     return {
-        bslLevels:          bslLevels.slice(0, 5),
-        sslLevels:          sslLevels.slice(0, 5),
-        nearestBSL:         unsweptBSL[0] || null,
-        nearestSSL:         unsweptSSL[0] || null,
+        bslLevels: bslLevels.slice(0, 5),
+        sslLevels: sslLevels.slice(0, 5),
+        nearestBSL: unsweptBSL[0] || null,
+        nearestSSL: unsweptSSL[0] || null,
         priceJustSweptBSL,
         priceJustSweptSSL,
         nextLiquidityTarget: priceJustSweptSSL
-            ? unsweptBSL[0] || null  
+            ? unsweptBSL[0] || null
             : priceJustSweptBSL
-            ? unsweptSSL[0] || null  
-            : null
+                ? unsweptSSL[0] || null
+                : null
     };
 };
 
@@ -574,11 +583,11 @@ export const calculateWeightedScore = (
 
     // 1. SMC STRUCTURE (30 pts)
     let smcScore = 0;
-    if (smcFactors.htfBOS)          { smcScore += 10; breakdown.push('HTF BOS confirmed +10'); }
-    if (smcFactors.bosInstitutional){ smcScore += 8;  breakdown.push('Institutional displacement +8'); }
-    if (smcFactors.zoneValid)       { smcScore += 7;  breakdown.push('Correct Premium/Discount zone +7'); }
-    if (smcFactors.otePrecise)      { smcScore += 3;  breakdown.push('Price in OTE 70.5% zone +3'); }
-    if (smcFactors.obConfluence)    { smcScore += 2;  breakdown.push('OB confluence +2'); }
+    if (smcFactors.htfBOS) { smcScore += 10; breakdown.push('HTF BOS confirmed +10'); }
+    if (smcFactors.bosInstitutional) { smcScore += 8; breakdown.push('Institutional displacement +8'); }
+    if (smcFactors.zoneValid) { smcScore += 7; breakdown.push('Correct Premium/Discount zone +7'); }
+    if (smcFactors.otePrecise) { smcScore += 3; breakdown.push('Price in OTE 70.5% zone +3'); }
+    if (smcFactors.obConfluence) { smcScore += 2; breakdown.push('OB confluence +2'); }
     smcScore = Math.min(smcScore, 30);
 
     // 2. VOLUME PROFILE (20 pts)
@@ -595,10 +604,10 @@ export const calculateWeightedScore = (
     // 4. NEWS SENTIMENT (20 pts)
     let newsScore = 0;
     switch (newsRiskLevel) {
-        case 'CLEAR':  newsScore = 20; breakdown.push('No news risk +20'); break;
-        case 'LOW':    newsScore = 15; breakdown.push('Low news risk +15'); break;
-        case 'MEDIUM': newsScore = 8;  breakdown.push('Medium news risk +8'); break;
-        case 'HIGH':   newsScore = 0;  breakdown.push('HIGH NEWS RISK +0 ⚠️'); break;
+        case 'CLEAR': newsScore = 20; breakdown.push('No news risk +20'); break;
+        case 'LOW': newsScore = 15; breakdown.push('Low news risk +15'); break;
+        case 'MEDIUM': newsScore = 8; breakdown.push('Medium news risk +8'); break;
+        case 'HIGH': newsScore = 0; breakdown.push('HIGH NEWS RISK +0 ⚠️'); break;
     }
 
     // 5. SESSION TIMING (10 pts)
@@ -643,30 +652,30 @@ export const calculateWeightedScore = (
 
     const grade =
         totalScore >= 90 ? 'A+' :
-        totalScore >= 80 ? 'A'  :
-        totalScore >= 75 ? 'B+' :
-        totalScore >= 65 ? 'B'  :
-        totalScore >= 50 ? 'C'  : 'NO TRADE';
+            totalScore >= 80 ? 'A' :
+                totalScore >= 75 ? 'B+' :
+                    totalScore >= 65 ? 'B' :
+                        totalScore >= 50 ? 'C' : 'NO TRADE';
 
     const riskTier =
-        grade === 'A+' ? 'FULL'    :
-        grade === 'A'  ? 'FULL'    :
-        grade === 'B+' ? 'HALF'    :
-        grade === 'B'  ? 'QUARTER' : 'SKIP';
+        grade === 'A+' ? 'FULL' :
+            grade === 'A' ? 'FULL' :
+                grade === 'B+' ? 'HALF' :
+                    grade === 'B' ? 'QUARTER' : 'SKIP';
 
     const suggestedRiskPercent =
-        grade === 'A+' ? 2.0  :
-        grade === 'A'  ? 1.0  :
-        grade === 'B+' ? 0.5  :
-        grade === 'B'  ? 0.25 :
-        grade === 'C'  ? 0.1  : 0;
+        grade === 'A+' ? 2.0 :
+            grade === 'A' ? 1.0 :
+                grade === 'B+' ? 0.5 :
+                    grade === 'B' ? 0.25 :
+                        grade === 'C' ? 0.1 : 0;
 
     return {
-        smcStructure:        smcScore,
-        volumeProfile:       volScore,
-        globalTrend:         trendScore,
-        newsSentiment:       newsScore,
-        sessionTiming:       sessScore,
+        smcStructure: smcScore,
+        volumeProfile: volScore,
+        globalTrend: trendScore,
+        newsSentiment: newsScore,
+        sessionTiming: sessScore,
         correlationPenalty,
         liquiditySweepBonus: liquiditySweptBonus,
         totalScore,
@@ -675,6 +684,40 @@ export const calculateWeightedScore = (
         suggestedRiskPercent,
         breakdown
     };
+};
+
+/**
+ * ADVANCED: Lead-Lag Divergence (SMT)
+ * Institutions use this to find traps between correlated assets (e.g. EURUSD vs GBPUSD)
+ */
+export const detectSMTDivergence = (
+    assetA: OHLC[],
+    assetB: OHLC[],
+    trend: 'BULLISH' | 'BEARISH'
+): { divergence: boolean, reasoning: string } => {
+    const lastA = assetA.slice(-10);
+    const lastB = assetB.slice(-10);
+
+    const highA = Math.max(...lastA.map(c => c.high));
+    const lowA = Math.min(...lastA.map(c => c.low));
+    const highB = Math.max(...lastB.map(c => c.high));
+    const lowB = Math.min(...lastB.map(c => c.low));
+
+    if (trend === 'BULLISH') {
+        // If Asset A made a Lower Low but Asset B failed to (Higher Low)
+        const aMadeLL = lastA[lastA.length - 1].low <= lowA;
+        const bMadeHL = lastB[lastB.length - 1].low > lowB;
+        if (aMadeLL && bMadeHL) return { divergence: true, reasoning: 'SMT Divergence: Bullish Accumulation detected.' };
+    }
+
+    if (trend === 'BEARISH') {
+        // If Asset A made a Higher High but Asset B failed to (Lower High)
+        const aMadeHH = lastA[lastA.length - 1].high >= highA;
+        const bMadeLH = lastB[lastB.length - 1].high < highB;
+        if (aMadeHH && bMadeLH) return { divergence: true, reasoning: 'SMT Divergence: Bearish Distribution detected.' };
+    }
+
+    return { divergence: false, reasoning: 'Correlated assets are structurally aligned.' };
 };
 
 // Master SMC Analysis
@@ -697,12 +740,12 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
     // Trend
     const trend = ema50 > ema200 && currentPrice > ema50 ? 'BULLISH' :
-                  ema50 < ema200 && currentPrice < ema50 ? 'BEARISH' : 'RANGING';
+        ema50 < ema200 && currentPrice < ema50 ? 'BEARISH' : 'RANGING';
 
     // BOS and CHoCH
     const prevHigh = Math.max(...highs.slice(-12, -1));
     const prevLow = Math.min(...lows.slice(-12, -1));
-    
+
     let bos = false;
     let choch = false;
     if (trend === 'BULLISH') {
@@ -725,8 +768,8 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         liquiditySweep = lastCandle.high > prevHigh && lastCandle.close < prevHigh;
     } else {
         // In RANGING: Check both sides for sweeps
-        liquiditySweep = (lastCandle.low < prevLow && lastCandle.close > prevLow) || 
-                         (lastCandle.high > prevHigh && lastCandle.close < prevHigh);
+        liquiditySweep = (lastCandle.low < prevLow && lastCandle.close > prevLow) ||
+            (lastCandle.high > prevHigh && lastCandle.close < prevHigh);
     }
 
     // ✅ NEW: Premium/Discount Zone Calculation
@@ -751,7 +794,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         zoneValid = currentZone === 'PREMIUM';
     } else {
         // Ranging: Valid if price is at the edges (outer 30%)
-        zoneValid = rangeExtremity > 0.4; 
+        zoneValid = rangeExtremity > 0.4;
     }
 
     // ✅ NEW: 3 Timeframe Confirmation
@@ -769,7 +812,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         const confirmPrice = confirmCloses[confirmCloses.length - 1];
         tfConfirmation.confirmTrend = confirmEma50[confirmEma50.length - 1] > confirmEma200[confirmEma200.length - 1] && confirmPrice > confirmEma50[confirmEma50.length - 1]
             ? 'BULLISH' : confirmEma50[confirmEma50.length - 1] < confirmEma200[confirmEma200.length - 1] && confirmPrice < confirmEma50[confirmEma50.length - 1]
-            ? 'BEARISH' : 'RANGING';
+                ? 'BEARISH' : 'RANGING';
     }
 
     if (htfCandles && htfCandles.length >= 50) {
@@ -779,7 +822,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         const htfPrice = htfCloses[htfCloses.length - 1];
         tfConfirmation.htfTrend = htfEma50[htfEma50.length - 1] > htfEma200[htfEma200.length - 1] && htfPrice > htfEma50[htfEma50.length - 1]
             ? 'BULLISH' : htfEma50[htfEma50.length - 1] < htfEma200[htfEma200.length - 1] && htfPrice < htfEma50[htfEma50.length - 1]
-            ? 'BEARISH' : 'RANGING';
+                ? 'BEARISH' : 'RANGING';
     }
 
     // If HTF data insufficient, don't penalize — just skip TF alignment check
@@ -788,13 +831,13 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         (
             // Full 3TF alignment
             (tfConfirmation.entryTrend === tfConfirmation.confirmTrend &&
-             tfConfirmation.confirmTrend === tfConfirmation.htfTrend) ||
+                tfConfirmation.confirmTrend === tfConfirmation.htfTrend) ||
             // Partial — only entry + confirm available
             (tfConfirmation.htfTrend === 'UNKNOWN' &&
-             tfConfirmation.entryTrend === tfConfirmation.confirmTrend) ||
+                tfConfirmation.entryTrend === tfConfirmation.confirmTrend) ||
             // Only entry TF available
             (tfConfirmation.confirmTrend === 'UNKNOWN' &&
-             tfConfirmation.htfTrend === 'UNKNOWN')
+                tfConfirmation.htfTrend === 'UNKNOWN')
         )
     );
 
@@ -839,7 +882,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const htfHighest = Math.max(...htfHighs);
     const htfLowest = Math.min(...htfLows);
     const htfRange = htfHighest - htfLowest;
-    
+
     // OTE is calculated based on direction (Bullish uses Low to High, Bearish uses High to Low)
     const ote = {
         bullish: {
@@ -853,11 +896,11 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
             deep: htfLowest + (htfRange * 0.79)
         }
     };
-    const isInOTE = tfConfirmation.htfTrend === 'BULLISH' 
+    const isInOTE = tfConfirmation.htfTrend === 'BULLISH'
         ? currentPrice <= ote.bullish.start && currentPrice >= ote.bullish.deep
         : tfConfirmation.htfTrend === 'BEARISH'
-        ? currentPrice >= ote.bearish.start && currentPrice <= ote.bearish.deep
-        : false;
+            ? currentPrice >= ote.bearish.start && currentPrice <= ote.bearish.deep
+            : false;
 
     // FVG Detection
     const detectFVG = (c: any[]) => {
@@ -907,7 +950,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
                 const isBearish = recent[i].close < recent[i].open;
                 const nextIsBullish = recent[i + 1].close > recent[i + 1].open;
                 const strongMove = (recent[i + 1].close - recent[i + 1].open) >
-                                   (recent[i].open - recent[i].close) * 1.5;
+                    (recent[i].open - recent[i].close) * 1.5;
 
                 if (isBearish && nextIsBullish && strongMove) {
                     return {
@@ -915,7 +958,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
                         upper: recent[i].open,
                         lower: recent[i].close,
                         mitigated: currentPrice >= recent[i].close &&
-                                   currentPrice <= recent[i].open
+                            currentPrice <= recent[i].open
                     };
                 }
             }
@@ -926,7 +969,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
                 const isBullish = recent[i].close > recent[i].open;
                 const nextIsBearish = recent[i + 1].close < recent[i + 1].open;
                 const strongMove = (recent[i + 1].open - recent[i + 1].close) >
-                                   (recent[i].close - recent[i].open) * 1.5;
+                    (recent[i].close - recent[i].open) * 1.5;
 
                 if (isBullish && nextIsBearish && strongMove) {
                     return {
@@ -934,7 +977,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
                         upper: recent[i].close,
                         lower: recent[i].open,
                         mitigated: currentPrice >= recent[i].open &&
-                                   currentPrice <= recent[i].close
+                            currentPrice <= recent[i].close
                     };
                 }
             }
@@ -970,21 +1013,21 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const stdDev = calculateStdDev(closes);
 
     // --- NEW SNIPER INTEGRATIONS ---
-    
+
     // 1. Volume Profile
     // Heuristic for tick size: 0.0001 for Forex, larger for indices/crypto
     let tickSize = 0.0001;
     if (currentPrice > 1000) tickSize = 0.1;
     else if (currentPrice > 100) tickSize = 0.01;
-    
+
     const volumeProfile = calculateVolumeProfile(candles, tickSize);
-    
+
     // 2. Liquidity Heatmap
     const liquidityHeatmap = buildLiquidityHeatmap(candles, currentPrice);
-    
+
     // 3. Session Killzone
     const killzone = getKillzoneScore();
-    
+
     // 4. OB Volume Confluence
     let obVolConfluence = { aligned: false, score: 0, reason: 'No OB detected' };
     if (orderBlock) {
@@ -997,33 +1040,34 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     let recommendedExecution: 'MARKET' | 'LIMIT' = 'MARKET';
 
     // Performance Optimization for UK100/EUR indices
-    const isLondonAsset = 
-        assetSymbol.includes('UK100') || 
-        assetSymbol.includes('FTSE') || 
-        assetSymbol.includes('GER40') || 
-        assetSymbol.includes('DAX') || 
+    const isLondonAsset =
+        assetSymbol.includes('UK100') ||
+        assetSymbol.includes('FTSE') ||
+        assetSymbol.includes('GER40') ||
+        assetSymbol.includes('DAX') ||
         assetSymbol.includes('EUR');
 
     // Advanced Institutional ATR Buffer & Trap Avoidance
     let baseSlBuffer = 1.5; // Starts at 1.5x ATR
     if (killzone.session === 'LONDON_NY_OVERLAP' || killzone.session === 'NEW_YORK') {
-        baseSlBuffer = 2.0; 
+        baseSlBuffer = 2.0;
     } else if (isLondonAsset && killzone.session === 'LONDON') {
-        baseSlBuffer = 2.5; 
+        baseSlBuffer = 2.5;
     }
 
     // --- WEIGHTED SCORING MODEL ---
     const smcFactors = {
-        htfBOS: tfConfirmation.allAligned && bos,
+        // Institutional Rule: BOS is only valid if backed by HTF Alignment or Leading Divergence
+        htfBOS: (tfConfirmation.allAligned && bos),
         bosInstitutional: displacement,
         zoneValid: zoneValid,
         otePrecise: isInOTE,
         obConfluence: !!orderBlock
     };
 
-    const liquidityBonus = (liquidityHeatmap.priceJustSweptSSL && trend === 'BULLISH') || 
-                          (liquidityHeatmap.priceJustSweptBSL && trend === 'BEARISH') ? 15 : 0;
-                          
+    const liquidityBonus = (liquidityHeatmap.priceJustSweptSSL && trend === 'BULLISH') ||
+        (liquidityHeatmap.priceJustSweptBSL && trend === 'BEARISH') ? 15 : 0;
+
     const quantMath = calculateQuantMathematics(candles);
 
     const weightedScore = calculateWeightedScore(
@@ -1040,19 +1084,25 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
     // Enforce direction based on HTF structure and Displacement
     const isBullishSetup = (tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
-                           (!displacementDirection || displacementDirection === 'BULLISH');
+        (!displacementDirection || displacementDirection === 'BULLISH');
     const isBearishSetup = (tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
-                           (!displacementDirection || displacementDirection === 'BEARISH');
+        (!displacementDirection || displacementDirection === 'BEARISH');
 
     const signalValid = weightedScore.totalScore >= 50;
 
     if (signalValid) {
         // Evaluate if market execution is safe or if limit order is required
+
+        // RULE: If Market is in "MEAN_REVERTING" regime, FORBID Market Execution
+        if (quantMath.regimeProbability === 'MEAN_REVERTING') {
+            recommendedExecution = 'LIMIT';
+        }
+
         // Avoid market execution during dead zones or overextended bands
         if (killzone.session === 'OFF_SESSION' || killzone.session === 'ASIAN') {
             recommendedExecution = 'LIMIT';
         }
-        
+
         if (isBullishSetup && currentZone === 'DISCOUNT') {
             explicitSignal = 'BUY';
             if (stdDev.overextended && currentPrice > stdDev.upperBand) {
@@ -1063,7 +1113,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
             // Ensure SL is securely below standard deviation noise floor
             mathematicalSL = Math.min(bufferedSL, stdDev.lowerBand - (atr * 0.5));
             if (liquidityHeatmap.priceJustSweptSSL && liquidityHeatmap.nearestSSL) {
-                 mathematicalSL = Math.min(mathematicalSL, liquidityHeatmap.nearestSSL.price - atr);
+                mathematicalSL = Math.min(mathematicalSL, liquidityHeatmap.nearestSSL.price - atr);
             }
         } else if (isBearishSetup && currentZone === 'PREMIUM') {
             explicitSignal = 'SELL';
@@ -1075,7 +1125,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
             // Ensure SL is securely above standard deviation noise ceiling
             mathematicalSL = Math.max(bufferedSL, stdDev.upperBand + (atr * 0.5));
             if (liquidityHeatmap.priceJustSweptBSL && liquidityHeatmap.nearestBSL) {
-                 mathematicalSL = Math.max(mathematicalSL, liquidityHeatmap.nearestBSL.price + atr);
+                mathematicalSL = Math.max(mathematicalSL, liquidityHeatmap.nearestBSL.price + atr);
             }
         }
     }
@@ -1098,17 +1148,17 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     // 6. Advanced Micro-Decisions
     const orderflowMetrics = analyzeOrderflow(candles);
     const liquidityPrediction = predictNextLiquiditySweep(liquidityHeatmap, markovRegime, quantMath, currentPrice, trend);
-    
+
     // Normalize data for NeuralEngine
-    const normalizedMomentum = (rsi - 50) / 50; 
+    const normalizedMomentum = (rsi - 50) / 50;
     let volumeImbalance = orderflowMetrics.imbalanceRatio - 1; // Center around 0
     volumeImbalance = Math.max(-1, Math.min(1, volumeImbalance));
-    
+
     const timeOfDayWeight = killzone.active ? killzone.multiplier / 2 : 0.2;
-    
+
     const returnsHistory = [];
-    for(let i=1; i<candles.length; i++){
-        returnsHistory.push( (candles[i].close - candles[i-1].close) / candles[i-1].close );
+    for (let i = 1; i < candles.length; i++) {
+        returnsHistory.push((candles[i].close - candles[i - 1].close) / candles[i - 1].close);
     }
 
     const neuralAnalysis = NeuralEngine.runReasoningCycle(
@@ -1136,7 +1186,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         const reward = currentPrice - liquidityHeatmap.nearestSSL.price;
         estimatedRewardToRisk = risk > 0 ? reward / risk : 2.0;
     }
-    
+
     const riskOptimization = executeRiskOptimization(
         (weightedScore.totalScore / 100) * 0.8, // estimated win rate
         estimatedRewardToRisk,

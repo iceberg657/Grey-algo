@@ -13,12 +13,12 @@ import { detectMarketRegime, MarketRegime } from '../utils/marketRegime';
 import { GREYALPHA_IDENTITY } from './identity';
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime, advancedQuantSignal?: any) => {
-  const date = currentDate || new Date();
-  const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
-  const isTraditionalMarket = !asset.toUpperCase().includes('BTC') && !asset.toUpperCase().includes('ETH') && !asset.toUpperCase().includes('CRYPTO') && !asset.toUpperCase().includes('DERIV');
-  const language = userSettings?.language || 'English';
+    const date = currentDate || new Date();
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
+    const isTraditionalMarket = !asset.toUpperCase().includes('BTC') && !asset.toUpperCase().includes('ETH') && !asset.toUpperCase().includes('CRYPTO') && !asset.toUpperCase().includes('DERIV');
+    const language = userSettings?.language || 'English';
 
-  const regimeContext = regime ? `
+    const regimeContext = regime ? `
 🚨 **AI PILOT MODE: MARKET REGIME ACTIVE (${regime.type})**
 - **Regime Description:** ${regime.description}
 - **Suggested Protocol:** ${regime.protocol}
@@ -27,9 +27,9 @@ const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], s
 - **Strategic Mandate:** You MUST adjust your TP targets and SL buffers to match this regime. If the regime suggests "Mean Reversion", do not look for 1:5 RR expansion trades.
 ` : "";
 
-  const quantContext = (quantData || {}).trend 
-     ? (quantData.weightedScore 
-        ? `
+    const quantContext = (quantData || {}).trend
+        ? (quantData.weightedScore
+            ? `
 **ADVANCED MULTI-ASSET ENGINE SIGNAL:**
 ${advancedQuantSignal ? `
 - **Signal**: ${advancedQuantSignal.signal}
@@ -76,7 +76,7 @@ ${advancedQuantSignal ? `
 - Orderflow Direction: ${quantData.neuralAnalysis?.orderflowDirection || 'NEUTRAL'}
 - Chaos Detected: ${quantData.neuralAnalysis?.anomalyDetected ? 'YES 🚨' : 'NO'}
 `
-        : `
+            : `
 **RCA ENGINE DATA (REGULAR CHART ANALYSIS FACT SHEET):**
 - Trend Bias: ${quantData.trend}
 - EMA 50: ${quantData.ema50?.toFixed(5) || 'N/A'} | EMA 200: ${quantData.ema200?.toFixed(5) || 'N/A'}
@@ -97,7 +97,7 @@ ${advancedQuantSignal ? `
 **RCA SCORE:**
 - Confluence Confidence: ${quantData.confluenceConfidence}/100
 `)
-     : `
+        : `
 **CRITICAL: REAL-TIME QUANT DATA IS MISSING. YOU MUST ANALYZE THE CHART IMAGE TO CALCULATE THE FOLLOWING "MATHEMATICAL TRUTH":**
 - **Trend Bias:** Analyze the structural Highs and Lows (HH, HL, LH, LL).
 - **Market Structure Bias:** BOS/CHoCH identification.
@@ -107,7 +107,7 @@ ${advancedQuantSignal ? `
 - **Final Result:** Output this analysis in the same structured format as if Deriv data was provided.
 `;
 
-  const weekendInstruction = (isWeekend && isTraditionalMarket) ? `
+    const weekendInstruction = (isWeekend && isTraditionalMarket) ? `
 **MARKET CLOSED / WEEKEND DETECTED:**
 You are analyzing a traditional financial asset (${asset}) on a weekend. The market is currently CLOSED.
 - You MUST explicitly state in the analysis (summary and reasoning) that the market is closed.
@@ -116,17 +116,17 @@ You are analyzing a traditional financial asset (${asset}) on a weekend. The mar
 - Do not output a live execution signal, as execution is impossible right now.
 ` : '';
 
-  const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k => 
-    asset.toUpperCase().includes(k)
-  );
-  const marketConfig = marketConfigKey 
-    ? MARKET_CONFIGS[marketConfigKey] 
-    : MARKET_CONFIGS['EURUSD'];
+    const marketConfigKey = Object.keys(MARKET_CONFIGS).find(k =>
+        asset.toUpperCase().includes(k)
+    );
+    const marketConfig = marketConfigKey
+        ? MARKET_CONFIGS[marketConfigKey]
+        : MARKET_CONFIGS['EURUSD'];
 
-  const tradeMode = userSettings?.tradeMode || 'Aggressive';
+    const tradeMode = userSettings?.tradeMode || 'Aggressive';
 
-  // PROTOCOL ZERO: TREND ALIGNMENT (PRE-PROMPT INJECTION)
-  const trendAlignmentMandate = globalTrend ? `
+    // PROTOCOL ZERO: TREND ALIGNMENT (PRE-PROMPT INJECTION)
+    const trendAlignmentMandate = globalTrend ? `
 🚨 **PROTOCOL ZERO: HTF TREND ALIGNMENT (ABSOLUTE MANDATE)**
 You are strictly FORBIDDEN from trading against the Global HTF Bias provided below. Align or Decline.
 - **Global Bias Symbol:** ${globalTrend.symbol}
@@ -141,7 +141,7 @@ You are strictly FORBIDDEN from trading against the Global HTF Bias provided bel
 4. You are FORBIDDEN from being NEUTRAL for any reason OTHER than extreme trend misalignment or high-impact news.
 ` : "";
 
-  const globalTrendContext = globalTrend ? `
+    const globalTrendContext = globalTrend ? `
 🌍 **GLOBAL MARKET CONTEXT (HTF BIAS):**
 Use this higher timeframe data to anchor your decision. You MUST NOT trade against this global trend unless a clear reversal structure (CHoCH + Displacement) is visible.
 - Symbol: ${globalTrend.symbol}
@@ -150,28 +150,29 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
 - 4-Hour Trend: ${globalTrend.trend4Hr}
 - Context Reason: ${globalTrend.reason}
 ` : "";
-  
-  const institutionalMath = `
+
+    const institutionalMath = `
 **INSTITUTIONAL ANALYSIS & MATHEMATICAL THEORIES (REQUIRED):**
 - **Displacement Filter:** You MUST calculate or estimate Displacement. An institutional move is proven if a structural break candle is > 1.5x the Average True Range (ATR).
 - **Optimal Trade Entry (OTE):** You MUST wait for the "Return to Impulse". Identify the swing range and calculate the OTE:
   - OTE Start: 0.62 retracement
   - OTE Mid (Sweet Spot): 0.705 retracement
   - OTE Deep: 0.79 retracement
+- **Turtle Soup & SMT Reversal (CRITICAL):** If the Quant Data or Advanced Signal indicates **SMT Divergence** (e.g., Asset A makes a Lower Low but Asset B fails to), you MUST prioritize a "Turtle Soup" entry. This is a counter-trend reversal play where you enter LONG after a liquidity sweep of a major low (or SHORT after a sweep of a high) assuming the move is a fake-out hunt. Target the nearest internal range liquidity (opposing FVG or OB).
 - **Stop Loss System (Hard Floor):** Your SL MUST be strictly mathematical. Set it below the OTE Deep level, or below the Lowest Wick of the Displacement candle minus a volatility buffer (e.g., 0.5x ATR).
 - **SURGICAL STOP DISCIPLINE (CRITICAL):** For Scalping and Day Trading, you are STRICTLY FORBIDDEN from using swing points from H4 or Daily charts as your Stop Loss. You MUST use the *local* structure invalidation (the high/low of the candle that swept liquidity on the M1/M5/M15 timeframe). If your calculated SL exceeds 30 pips for Forex pairs, your setup is INVALID. Re-evaluate or tighten the entry.
 - **Take Profit System:** TP1 targets the first liquidity pool (1:1.5 to 1:2 RR). TP2 targets the main external liquidity sweep.
 - **Time-Based Liquidity (Killzones):** Focus trades during London (07:00-10:00 UTC) and NY (12:00-15:00 UTC). Outside these hours, moves are often retail noise.
 `;
 
-  const tradeModeInstructions = tradeMode === 'Sniper' 
-    ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
+    const tradeModeInstructions = tradeMode === 'Sniper'
+        ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
 - You MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
 - If confluence is not 100%, you MUST choose the side with the highest institutional probability. However, if the USER REQUEST explicitly asks for a specific bias or pair setup (BUY/SELL, BULLISH/BEARISH), you MUST follow their requested direction.
 - **IMMEDIATE EXECUTION:** Every setup MUST be for immediate market execution based on the live data provided.
 - **ULTRA-TIGHT LEVELS:** SL and TP MUST be very close to each other. Visible on the current timeframe. TP1 must be hit quickly.
 - Your goal is A+ precision entries. TP1 MUST target the first logical friction point with guaranteed 1:1.5 RR.`
-    : `\n🔥 **AGGRESSIVE MODE ENABLED:**
+        : `\n🔥 **AGGRESSIVE MODE ENABLED:**
 - Take all valid trades based on market structure and adjust risk accordingly.
 - **NEUTRAL IS FORBIDDEN:** Even in aggressive mode, you MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL or "No Trade" signal.
 - **FORCE DIRECTION (DECISIVE BIAS):** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST fulfill that request and pick that side. Otherwise, look at the trend bias (UP or DOWN), map the institutional liquidity, and pick a side.
@@ -180,14 +181,14 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
     - If Trend is DOWN -> Issue 'WEAK BEARISH' (labeled as SELL).
 - **DOMINANT SIGNAL OVERRIDE:** If a 'BOS' or 'CHoCH' exists in the direction of the trend, this OVERRIDES any minor lack of confluence. Issue the signal.\n`;
 
-  const learnedContext = strategies.length > 0 
-    ? `\n🧠 **NEURAL LEARNING & HISTORICAL LESSONS (CRITICAL):**
+    const learnedContext = strategies.length > 0
+        ? `\n🧠 **NEURAL LEARNING & HISTORICAL LESSONS (CRITICAL):**
 The following rules and historical lessons have been derived from your past performance and global market analysis. 
 You MUST prioritize these lessons to avoid repeating past mistakes and to replicate successful setups.
-${strategies.map(s => `- ${s}`).join('\n')}\n` 
-    : "";
+${strategies.map(s => `- ${s}`).join('\n')}\n`
+        : "";
 
-  const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
+    const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
 📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
 Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
 - Symbol: ${twelveDataQuote.symbol}
@@ -240,7 +241,7 @@ You have been unprofitable for 7 months. This ends NOW.
 - Flag the missing Twelve Data in your reasoning as a high-risk factor.
 `;
 
-  const accountInfo = userSettings ? `
+    const accountInfo = userSettings ? `
 **USER TRADING ACCOUNT PROFILE:**
 - Account Type: ${userSettings.accountType || 'Standard'}
 - Account Balance: $${userSettings.accountBalance || 'N/A'}
@@ -256,9 +257,9 @@ If this is a Funded Account or Prop Firm account, you MUST prioritize capital pr
 3. **Avoid News:** If high-impact news is within 5 minutes, DO NOT TRADE (but output BUY or SELL with extremely low lot size or clearly explain the risk).
 ` : "";
 
-  const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
+    const aggressiveness = "INSTITUTIONAL HUNTER. Align with Smart Money Concepts (SMC) and Inner Circle Trader (ICT) logic.";
 
-  const ALGO_LOGIC = `
+    const ALGO_LOGIC = `
 // -----------------------------
 // ALGORITHMIC ENTRY LOGIC (MENTAL MODEL)
 // -----------------------------
@@ -347,7 +348,7 @@ function detectEntries(candles) {
 }
 `;
 
-  return `
+    return `
 ${GREYALPHA_IDENTITY}
 
 ⚠️ **SYSTEM OVERRIDE: IGNORE ALL PREVIOUS CONTEXT. THIS IS A NEW, INDEPENDENT ANALYSIS.**
@@ -724,46 +725,46 @@ If all align, the trade is significantly stronger. Do not issue a signal if thes
 
 **STYLE-SPECIFIC FOCUS:**
 ${(() => {
-    switch (style) {
-        case 'scalping(1 to 15mins)':
-            return `- **Timeframes:** M1, M5.
+            switch (style) {
+                case 'scalping(1 to 15mins)':
+                    return `- **Timeframes:** M1, M5.
 - **Objective:** HYPER-SCALPING. In and out within 15-45 minutes max.
 - **Strict Rule:** ONLY trade with the M15/H1 Trend.
 - **Philosophy:** "No Loss". Only issue a clear, high-probability signal.
 - **Invalidation:** Immediate exit if M1 structure shifts against entry or price stalls. Do not wait for SL.
 - **SL/TP Logic:** Very tight SL (5-10 pips), quick TP (1:1.5 - 1:3 RR). Focus on immediate momentum.`;
-        case 'scalping(15 to 30mins)':
-            return `- **Timeframes:** M5, M15.
+                case 'scalping(15 to 30mins)':
+                    return `- **Timeframes:** M5, M15.
 - **Objective:** SESSION MOMENTUM. In and out within 45 minutes max.
 - **Strict Rule:** ONLY trade with the H1 Trend.
 - **Philosophy:** High probability only.
 - **Invalidation:** Immediate exit if M5 candle closes against bias.
 - **SL/TP Logic:** Tight SL (10-15 pips), TP (1:2 - 1:2.5 RR). Focus on session range.`;
-        case 'day trading(1 to 2hrs)':
-            return `- **Timeframes:** M15, H1.
+                case 'day trading(1 to 2hrs)':
+                    return `- **Timeframes:** M15, H1.
 - **Objective:** Capture intra-day moves within a single session.
 - **Duration:** 1 to 2 hours.
 - **Entry Logic:** Wait for M15/H1 structure shift. DO NOT use M1 for entry.
 - **SL/TP Logic:** Moderate SL (15-25 pips), TP (1:2.5 - 1:3 RR). Focus on intra-day structure.`;
-        case 'day trading(2 to 4hrs)':
-            return `- **Timeframes:** H1, H4.
+                case 'day trading(2 to 4hrs)':
+                    return `- **Timeframes:** H1, H4.
 - **Objective:** Capture larger intra-day or multi-session moves.
 - **Duration:** 2 to 4 hours.
 - **Entry Logic:** Wait for H1 structure shift. DO NOT use M1 or M5 for entry.
 - **SL/TP Logic:** Moderate SL (20-35 pips), TP (1:3 - 1:4 RR). Focus on H4 structure.`;
-        case 'swing trading':
-            return `- **Timeframes:** H4, Daily, Weekly.
+                case 'swing trading':
+                    return `- **Timeframes:** H4, Daily, Weekly.
 - **Objective:** Capture major trend shifts and long-term liquidity targets.
 - **Duration:** Days to weeks.
 - **Entry Logic:** Wait for H4 or Daily structure shift. DO NOT use M1, M5, or M15 for entry.
 - **SL/TP Logic:** Wide SL (50+ pips), TP (1:4 - 1:6+ RR). Focus on major liquidity pools and trend reversal.`;
-        default:
-            return `- **Timeframes:** Adapt based on market.
+                default:
+                    return `- **Timeframes:** Adapt based on market.
 - **Objective:** General market analysis.
 - **Duration:** Variable.
 - **SL/TP Logic:** Standard SL/TP based on market volatility and structure.`;
-    }
-})()}
+            }
+        })()}
 
 **CRITICAL: Calculate TP/SL based on ${rrRatio} RR.**
 - **Minimum SL Distance:** ${marketConfig.minStopLoss} points/pips.
@@ -964,7 +965,7 @@ You MUST localize the exact text outputs inside fields such as "reasoning", "bia
 async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<SignalData, 'id' | 'timestamp'>> {
     return await executeLaneCall<Omit<SignalData, 'id' | 'timestamp'>>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
-        
+
         const isDeepThinking = !!request.userSettings?.deepThinking;
         const models = isDeepThinking ? [
             'gemini-3.1-pro-preview',
@@ -976,19 +977,19 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }); // Or use a generic format
         let promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n[CURRENT LOCAL TIME: ${new Date().toISOString()}]\n` + AI_TRADING_PLAN(
-          request.riskRewardRatio, 
-          request.asset || "",
-          request.learnedStrategies || [],
-          request.tradingStyle,
-          request.userSettings,
-          request.twelveDataQuote,
-          request.globalTrend,
-          request.quantData,
-          new Date(),
-          undefined, // regime unsupported in generateTradingSignal
-          request.advancedQuantSignal
+            request.riskRewardRatio,
+            request.asset || "",
+            request.learnedStrategies || [],
+            request.tradingStyle,
+            request.userSettings,
+            request.twelveDataQuote,
+            request.globalTrend,
+            request.quantData,
+            new Date(),
+            undefined, // regime unsupported in generateTradingSignal
+            request.advancedQuantSignal
         );
-        
+
         if (isDeepThinking) {
             promptText += `
 \n🧠 **AI DEEP THINKING & ANTI-REVERSAL MANDATE ATTACHED (PRO MODE):**
@@ -1003,52 +1004,58 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         }
 
         const promptParts: any[] = [{ text: promptText }];
-        
+
         if (request.isMultiDimensional && request.images.higher) {
             promptParts.push(
-                { text: "HTF CHART (Higher Timeframe for Bias)" }, 
-                { inlineData: { 
-                    data: request.images.higher.data, 
-                    mimeType: request.images.higher.mimeType 
-                }}
+                { text: "HTF CHART (Higher Timeframe for Bias)" },
+                {
+                    inlineData: {
+                        data: request.images.higher.data,
+                        mimeType: request.images.higher.mimeType
+                    }
+                }
             );
         } else {
             promptParts.push({ text: "⚠️ SINGLE CHART MODE: You only have ONE chart. You MUST use the visible Y-axis price range to calibrate ALL your levels. Be extremely precise with SL and TP distances." });
         }
-        
+
         promptParts.push(
-            { text: "PRIMARY CHART (Main Analysis Timeframe)" }, 
-            { inlineData: { 
-                data: request.images.primary.data, 
-                mimeType: request.images.primary.mimeType 
-            }}
+            { text: "PRIMARY CHART (Main Analysis Timeframe)" },
+            {
+                inlineData: {
+                    data: request.images.primary.data,
+                    mimeType: request.images.primary.mimeType
+                }
+            }
         );
-        
+
         if (request.isMultiDimensional && (request.images as any).execution) {
             promptParts.push(
-                { text: "EXECUTION CHART (Lower Timeframe for Precise SL/TP and Entry)" }, 
-                { inlineData: { 
-                    data: (request.images as any).execution.data, 
-                    mimeType: (request.images as any).execution.mimeType 
-                }}
+                { text: "EXECUTION CHART (Lower Timeframe for Precise SL/TP and Entry)" },
+                {
+                    inlineData: {
+                        data: (request.images as any).execution.data,
+                        mimeType: (request.images as any).execution.mimeType
+                    }
+                }
             );
         }
 
         const response = await runWithModelFallback<any>(
-            models, 
+            models,
             async (modelId) => {
-                const config: any = { 
-                    tools: [{googleSearch: {}}], 
+                const config: any = {
+                    tools: [{ googleSearch: {} }],
                     temperature: 0,
                     maxOutputTokens: 8192
                 };
-                
+
                 if (isDeepThinking) {
                     config.thinkingConfig = {
                         thinkingLevel: "HIGH"
                     };
                 }
-                
+
                 let responseText = '';
                 let candidates = [];
                 let promptFeedback = null;
@@ -1087,10 +1094,10 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 } catch (proxyError: any) {
                     console.warn(`[Gemini] Proxy inference failed (${proxyError.message}), checking fallbacks...`);
                     const errorMsg = (proxyError.message || '').toLowerCase();
-                    
+
                     if (
-                        errorMsg.includes('quota') || 
-                        errorMsg.includes('429') || 
+                        errorMsg.includes('quota') ||
+                        errorMsg.includes('429') ||
                         errorMsg.includes('400') ||
                         errorMsg.includes('unexpected token') ||
                         errorMsg.includes('not valid json') ||
@@ -1098,14 +1105,14 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     ) {
                         throw proxyError;
                     }
-                    
+
                     console.log('[Gemini] Falling back to direct SDK call...');
                     const fallbackResponse = await ai.models.generateContent({
                         model: modelId,
                         contents: [{ parts: promptParts }],
                         config: config,
                     });
-                    
+
                     responseText = fallbackResponse.text || '';
                     candidates = fallbackResponse.response?.candidates || [];
                     promptFeedback = fallbackResponse.response?.promptFeedback;
@@ -1155,7 +1162,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 uri: chunk.web.uri,
                 title: chunk.web.title
             }));
-        
+
         const combinedSources = [...(data.sources || []), ...groundingSources];
         const uniqueSources = Array.from(new Map(combinedSources.map((s: any) => [s.uri, s])).values());
 
@@ -1165,13 +1172,13 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         } else if (data.confidence) {
             data.confidence = Math.round(data.confidence);
         }
-        
+
         if (data.sentiment?.score && data.sentiment.score > 0 && data.sentiment.score <= 1) {
             data.sentiment.score = Math.round(data.sentiment.score * 100);
         } else if (data.sentiment?.score) {
             data.sentiment.score = Math.round(data.sentiment.score);
         }
-        
+
         let safeEconomicEvents = [];
         if (Array.isArray(data.economicEvents)) {
             safeEconomicEvents = data.economicEvents.filter((e: any) => e.name && e.date);
@@ -1208,7 +1215,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             sentiment: data.sentiment || { score: 50, summary: "Neutral" },
             economicEvents: safeEconomicEvents,
             sources: uniqueSources,
-            
+
             priceAction: data.priceAction || {},
             oteLevels: data.priceAction?.oteLevels,
             visiblePriceRange: data.priceAction?.visiblePriceRange,
@@ -1228,7 +1235,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             tradeMode: request.userSettings?.tradeMode || 'Aggressive',
             twelveDataQuote: request.twelveDataQuote
         };
-        
+
         return validateAndFixTPSL(rawSignal, request.riskRewardRatio, request.tradingStyle, request.twelveDataQuote);
     }, getAnalysisPool());
 }
@@ -1293,7 +1300,7 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
 export async function generateTradingSignal(
     request: AnalysisRequest
 ): Promise<Omit<SignalData, 'id' | 'timestamp'>> {
-    
+
     console.log('🚀 Starting Analysis with:', {
         asset: request.asset,
         riskRewardRatio: request.riskRewardRatio,
@@ -1308,7 +1315,7 @@ export async function generateTradingSignal(
             asset = detected;
         }
     }
-    
+
     // 1. Fetch learned strategies (Global + Local)
     const learnedStrategies = await getLearnedStrategies();
     let twelveDataQuote = request.twelveDataQuote || null;
@@ -1319,7 +1326,7 @@ export async function generateTradingSignal(
         learnedStrategies: [...(request.learnedStrategies || []), ...learnedStrategies],
         twelveDataQuote
     };
-    
+
     // 2. Get comprehensive AI analysis
     const rawSignal = await callGeminiDirectly(updatedRequest);
 
@@ -1327,7 +1334,7 @@ export async function generateTradingSignal(
     if (rawSignal.neuralFilter && rawSignal.neuralFilter.confidenceBoost) {
         rawSignal.confidence = Math.max(0, Math.min(100, rawSignal.confidence + rawSignal.neuralFilter.confidenceBoost));
     }
-    
+
     // Log the trade automatically
     try {
         const tradeId = await logTrade(rawSignal as SignalData);
@@ -1337,7 +1344,7 @@ export async function generateTradingSignal(
     } catch (error) {
         console.error('Failed to log trade:', error);
     }
-    
+
     console.log('📊 Raw AI Signal:', {
         signal: rawSignal.signal,
         confidence: rawSignal.confidence,
@@ -1366,7 +1373,7 @@ export async function generateTradingSignal(
         0, // Track this in your app state
         0  // Track this in your app state
     );
-    
+
     return completeSetup;
 }
 
@@ -1377,8 +1384,8 @@ function getAssetPrecision(asset: string): number {
     }
     if (sym.includes('JPY')) return 3;
     if (sym.startsWith('BOOM') || sym.startsWith('CRAS') || sym.startsWith('STEP') || sym.startsWith('R_') || sym.startsWith('VOLATILITY')) {
-         if (sym.includes('STEP')) return 3;
-         return 2;
+        if (sym.includes('STEP')) return 3;
+        return 2;
     }
     return 5;
 }
@@ -1391,7 +1398,7 @@ export function calculateRRLevels(
 ) {
     const risk = Math.abs(entry - stopLoss);
     if (risk === 0) return null;
-    
+
     const precision = getAssetPrecision(asset);
 
     if (signal === 'BUY') {
@@ -1429,7 +1436,7 @@ export function validateSL(
     const slDistance = Math.abs(entry - sl);
     const minSL = atr * 1.5;
     const precision = getAssetPrecision(asset);
-    
+
     // SURGICAL CAP: Prevent "fucking wide" stops (Max 3.5x ATR or absolute pip limits)
     const maxSL = atr * 3.5;
     let finalSl = sl;
@@ -1494,28 +1501,28 @@ function calculateLocalLotSize(
  * Focused on Market Execution and Institutional logic.
  */
 export async function generateSniperLiveSignal(
-  query: string,
-  style: TradingStyle,
-  derivData: any,
-  learnedStrategies: string[] = [],
-  quantData?: any,
-  advancedQuantSignal?: any,
-  userSettings?: UserSettings,
-  regime?: MarketRegime
+    query: string,
+    style: TradingStyle,
+    derivData: any,
+    learnedStrategies: string[] = [],
+    quantData?: any,
+    advancedQuantSignal?: any,
+    userSettings?: UserSettings,
+    regime?: MarketRegime
 ): Promise<SignalData> {
-  const livePrice = derivData?.price || 0;
-  const assetName = derivData?.symbol || 'Asset';
-  const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+    const livePrice = derivData?.price || 0;
+    const assetName = derivData?.symbol || 'Asset';
+    const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
 
-  const isDeepThinking = !!userSettings?.deepThinking;
-  const models = isDeepThinking ? [
-    'gemini-3.1-pro-preview',
-    'gemini-3.5-flash',
-    'gemini-2.5-pro',
-    'gemini-3-flash'
-  ] : ANALYSIS_MODELS;
+    const isDeepThinking = !!userSettings?.deepThinking;
+    const models = isDeepThinking ? [
+        'gemini-3.1-pro-preview',
+        'gemini-3.5-flash',
+        'gemini-2.5-pro',
+        'gemini-3-flash'
+    ] : ANALYSIS_MODELS;
 
-  const quantContext = quantData ? `
+    const quantContext = quantData ? `
 **ADVANCED MULTI-ASSET ENGINE SIGNAL:**
 ${advancedQuantSignal ? `
 - **Signal**: ${advancedQuantSignal.signal}
@@ -1601,11 +1608,11 @@ ${advancedQuantSignal ? `
 - **UK100 PROFIT ACCELERATOR:** For UK100, TP1 should be set aggressively at the first local friction point to ensure profits are locked in during volatile London moves.
 ` : '';
 
-  const date = new Date();
-  const isWeekend = date.getDay() === 0 || date.getDay() === 6; // Sunday or Saturday
-  const isTraditionalMarket = !assetName.toUpperCase().includes('BTC') && !assetName.toUpperCase().includes('ETH') && !assetName.toUpperCase().includes('CRYPTO') && !assetName.toUpperCase().includes('DERIV');
-  
-  const weekendInstruction = (isWeekend && isTraditionalMarket) ? `
+    const date = new Date();
+    const isWeekend = date.getDay() === 0 || date.getDay() === 6; // Sunday or Saturday
+    const isTraditionalMarket = !assetName.toUpperCase().includes('BTC') && !assetName.toUpperCase().includes('ETH') && !assetName.toUpperCase().includes('CRYPTO') && !assetName.toUpperCase().includes('DERIV');
+
+    const weekendInstruction = (isWeekend && isTraditionalMarket) ? `
 **MARKET CLOSED / WEEKEND DETECTED:**
 You are analyzing a traditional financial asset (${assetName}) on a weekend. The market is currently CLOSED.
 - You MUST explicitly state in the reasoning that the market is closed.
@@ -1614,10 +1621,10 @@ You are analyzing a traditional financial asset (${assetName}) on a weekend. The
 - Do not output a live execution signal, as execution is impossible right now.
 ` : '';
 
-  const isMondayOrFriday = date.getDay() === 1 || date.getDay() === 5;
-  const currentRegime = regime || (derivData.candles ? detectMarketRegime(derivData.candles, assetName) : undefined);
-  
-  const unprofitableDayInstruction = (isMondayOrFriday || (currentRegime && currentRegime.type === 'YEAR_END_UNSTABLE')) ? `
+    const isMondayOrFriday = date.getDay() === 1 || date.getDay() === 5;
+    const currentRegime = regime || (derivData.candles ? detectMarketRegime(derivData.candles, assetName) : undefined);
+
+    const unprofitableDayInstruction = (isMondayOrFriday || (currentRegime && currentRegime.type === 'YEAR_END_UNSTABLE')) ? `
 🚨 **AI PILOT MODE: MARKET REGIME ADAPTATION ACTIVE (${currentRegime?.type || (date.getDay() === 1 ? 'MONDAY' : 'FRIDAY')})**
 Historical performance shows traditional models fail today. Activating **ADAPTIVE PILOT PROTOCOL**:
 - **Current Regime:** ${currentRegime?.description || 'Daily transition instability.'}
@@ -1628,15 +1635,15 @@ Historical performance shows traditional models fail today. Activating **ADAPTIV
 - **Confidence Calibration:** Do not penalize confidence to zero, but be realistic (60% - 75% max for A+ setups).
 ` : '';
 
-  const hasBrokerPrice = query.includes('@');
-  const brokerInstruction = hasBrokerPrice ? `
+    const hasBrokerPrice = query.includes('@');
+    const brokerInstruction = hasBrokerPrice ? `
 **BROKER PRICE DEVIATION DETECTED:**
 The user has provided their own broker's exact price inside the query (e.g. '@ 39550'). 
 - You MUST anchor your entire mathematical model (EntryRange, StopLoss, and TakeProfit levels) precisely around this USER-PROVIDED broker price, NOT strictly the Deriv Live Market Price.
 - Broker feeds differ across FTMO, Headway, or Prop Firms. The user's provided quoted price is the absolute structural anchor.
 ` : '';
 
-  const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
+    const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
 System Role: You are a High-Frequency Institutional Execution Bot.
 
 Data:
@@ -1650,11 +1657,11 @@ ${brokerInstruction}
 You MUST use the following timeframe hierarchy for this style:
 ${style.includes('scalping') ? `
 - ENTRY TIMEFRAMES: 1min, 5min (Prioritize for exact entry trigger)
-- STRUCTURE/CONTEXT: 15min, 30min (Use for trend and major levels)` : 
-style.includes('day trading') ? `
+- STRUCTURE/CONTEXT: 15min, 30min (Use for trend and major levels)` :
+            style.includes('day trading') ? `
 - ENTRY TIMEFRAMES: 15min, 30min, 1hr (Prioritize for entry confirmation)
-- STRUCTURE/CONTEXT: 4hrs (Use for daily bias and institutional zones)` : 
-`
+- STRUCTURE/CONTEXT: 4hrs (Use for daily bias and institutional zones)` :
+                `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
 
@@ -1662,7 +1669,10 @@ style.includes('day trading') ? `
 1. **HTF TREND ALIGNMENT:** You should generally identify the higher timeframe (HTF) trend.
     - **Rule:** If the USER REQUEST specifies a direction (e.g. asking for a bearish/sell setup or bullish/buy setup), you MUST provide a setup in that direction, even if it is counter-trend.
     - **Rule:** If the USER REQUEST is open-ended, follow the structural trend (BUY for Bullish, SELL for Bearish).
-2. **AUTONOMOUS REASONING:** You are authorized to identify definitive "Liquidity Traps" or "Black Swan Accumulation" within the trend context. Explain the "Structural Paradox" in your reasoning.
+**SMT DIVERGENCE & TURTLE SOUP:** 
+    - Identify SMT between correlated pairs (EURUSD/GBPUSD or US30/NAS100). 
+    - If one asset breaks structure but the other fails (Divergence), the break is a **FAKE MOVE**. 
+    - Execute a **Turtle Soup** reversal in the direction of the asset that failed to break the high/low.
 3. **IDENTIFY INDUCEMENT & STOP HUNTS:** Specifically look for "Inducement" (Retail "Trap" entries) and only enter AFTER their stop losses are cleared, ensuring the move aligns with the HTF bias.
 3. **DYNAMIC PREMIUM/DISCOUNT:** Do NOT use static levels. Use fractal supply/demand zones. Look for "Unmitigated Order Blocks" on higher timeframes overlapping with M5 FVG gaps.
 4. **MARKET STRUCTURE SHIFT (MSS):** Prioritize an aggressive shift in displacement (Volume Surge + Large Candle Body).
@@ -1757,163 +1767,163 @@ JSON Structure:
   }
 }`;
 
-  return await executeLaneCall<SignalData>(async (apiKey) => {
-    return await runWithModelFallback<SignalData>(
-      models,
-      async (modelId) => {
-        const config: any = { 
-          temperature: 0,
-          maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
-        };
-        
-        if (isDeepThinking) {
-          config.thinkingConfig = {
-            thinkingLevel: "HIGH"
-          };
-        }
-        
-        let text = '';
-        try {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 50000); // 50s timeout limit
+    return await executeLaneCall<SignalData>(async (apiKey) => {
+        return await runWithModelFallback<SignalData>(
+            models,
+            async (modelId) => {
+                const config: any = {
+                    temperature: 0,
+                    maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
+                };
 
-          const proxyRes = await fetch('/api/gemini/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              model: modelId,
-              contents: [{ parts: [{ text: prompt }] }],
-              config: config,
-              apiKey: apiKey
-            }),
-            signal: controller.signal
-          });
-          clearTimeout(timeoutId);
-
-          if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
-          const data = await proxyRes.json();
-          text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-          if (!text) {
-              const finishReason = data.candidates?.[0]?.finishReason;
-              throw new Error(`Empty response from model. Finish reason: ${finishReason || 'Unknown'}`);
-          }
-        } catch (e) {
-          // Fallback to direct SDK if proxy fails
-          const ai = new GoogleGenAI({ apiKey });
-          const result = await ai.models.generateContent({
-            model: modelId,
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            config: config
-          });
-          text = result.text || '';
-          if (!text) {
-              throw new Error('Empty response from direct SDK fallback.');
-          }
-        }
-
-        const signal = extractJson(text);
-        if (!signal || Object.keys(signal).length === 0 || !signal.signal) {
-            throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
-        }
-
-        // --- SNIPER PRECISION LAYER (Inside Fallback) ---
-        const entryRange = signal.entryRange || { min: livePrice * 0.999, max: livePrice * 1.001 };
-        const sl = signal.stopLoss || 0;
-        const midEntry = (entryRange.min + entryRange.max) / 2;
-        const diffPercent = livePrice > 0 ? Math.abs(midEntry - livePrice) / livePrice : 0;
-        
-        let finalSignal = signal.signal;
-        let finalEntryRange = entryRange;
-        let finalSL = sl;
-        let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0,0,0];
-        let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
-
-        // 1. Price Sanity Check
-        if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-            if (diffPercent > 0.05) {
-                finalSignal = 'NEUTRAL';
-                finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
-            } else {
-                const rangeWidth = entryRange.max - entryRange.min;
-                finalEntryRange = { min: livePrice - rangeWidth/2, max: livePrice + rangeWidth/2 };
-                finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
-            }
-        }
-
-        // // 2. Sniper SL Tightening (Surgical Precision)
-        // if (finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-        //     const slDistance = Math.abs(midEntry - finalSL);
-        //     const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
-        //     if (slPercent > 0.005) {
-        //         const adjustment = midEntry * 0.002; 
-        //         finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
-        //         finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
-        //     }
-        // }
-
-        // --- FINAL SNIPER CONSTRAINTS ---
-        
-        let enforcedByEngine = false;
-
-        // Strict Math Engine Enforcement Override
-        if (quantData?.explicitSignal && quantData.explicitSignal !== 'NEUTRAL') {
-            finalSignal = quantData.explicitSignal;
-            enforcedByEngine = true;
-            finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Direction mathematically locked to ${finalSignal}. LLM guesses rejected.`);
-        } else if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
-            if (quantData?.explicitSignal === 'NEUTRAL') {
-                // If math says neutral, we STAY neutral. Do not force trades.
-                finalSignal = 'NEUTRAL';
-                finalReasoning.push(`⚙️ STRICT MATH ENGINE: Market in chaos. Neutrality enforced mathematically. No safe trade exists.`);
-            } else if (signal.signal === 'BUY' || signal.signal === 'SELL') {
-                finalSignal = signal.signal;
-                finalReasoning.push(`🎯 Retaining AI directional bias (${finalSignal}) despite price recalibration.`);
-            } else {
-                if ((query?.toLowerCase().includes('sell') || query?.toLowerCase().includes('bearish')) || (quantData?.trend === 'BEARISH' || quantData?.currentZone === 'PREMIUM')) {
-                    finalSignal = 'SELL';
-                } else {
-                    finalSignal = 'BUY';
+                if (isDeepThinking) {
+                    config.thinkingConfig = {
+                        thinkingLevel: "HIGH"
+                    };
                 }
-                finalReasoning.push(`🎯 Directional bias inferred from structural trend (${finalSignal}).`);
-            }
-        }
 
-        // Apply mathematical pricing bounds from Monte Carlo / QuantData if available
-        if (quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
-            const mc = quantData.monteCarloPrediction;
-            if (finalSignal === 'BUY') {
-                finalSL = quantData.mathematicalSL || mc.lowerBound;
-                finalTPs[0] = mc.expectedPrice > midEntry ? mc.expectedPrice : midEntry * 1.002;
-                finalTPs[1] = mc.upperBound > finalTPs[0] ? mc.upperBound : finalTPs[0] * 1.002; 
-                finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored BUY SL to Lower Bound (-1σ) and TPs to Monte Carlo Expected Median Price / Upper Bound (+1σ).`);
-            } else if (finalSignal === 'SELL') {
-                finalSL = quantData.mathematicalSL || mc.upperBound;
-                finalTPs[0] = mc.expectedPrice < midEntry ? mc.expectedPrice : midEntry * 0.998;
-                finalTPs[1] = mc.lowerBound < finalTPs[0] ? mc.lowerBound : finalTPs[0] * 0.998;
-                finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored SELL SL to Upper Bound (+1σ) and TPs to Monte Carlo Expected Median Price / Lower Bound (-1σ).`);
-            }
-        }
+                let text = '';
+                try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 50000); // 50s timeout limit
 
-        const rawConf = signal.confidence || 50;
-        let finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
-        if (signal.neuralFilter && signal.neuralFilter.confidenceBoost) {
-            finalConfidence = Math.max(0, Math.min(100, finalConfidence + signal.neuralFilter.confidenceBoost));
-        }
+                    const proxyRes = await fetch('/api/gemini/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: modelId,
+                            contents: [{ parts: [{ text: prompt }] }],
+                            config: config,
+                            apiKey: apiKey
+                        }),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
 
-        // SL Validation against ATR if quantData is present
-        if (quantData?.atr) {
-            finalSL = validateSL(finalSignal as 'BUY'|'SELL', midEntry, finalSL, quantData.atr, signal.asset || assetName);
-            finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
-        }
+                    if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
+                    const data = await proxyRes.json();
+                    text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    if (!text) {
+                        const finishReason = data.candidates?.[0]?.finishReason;
+                        throw new Error(`Empty response from model. Finish reason: ${finishReason || 'Unknown'}`);
+                    }
+                } catch (e) {
+                    // Fallback to direct SDK if proxy fails
+                    const ai = new GoogleGenAI({ apiKey });
+                    const result = await ai.models.generateContent({
+                        model: modelId,
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        config: config
+                    });
+                    text = result.text || '';
+                    if (!text) {
+                        throw new Error('Empty response from direct SDK fallback.');
+                    }
+                }
 
-        // Apply mathematical RR overrides
-        const rrLevels = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL, signal.asset || assetName);
-        let finalPositionProtocol: string | undefined = undefined;
+                const signal = extractJson(text);
+                if (!signal || Object.keys(signal).length === 0 || !signal.signal) {
+                    throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
+                }
 
-        if (rrLevels) {
-            finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
-            finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2x, 3x risk distances.`);
-            finalPositionProtocol = `
+                // --- SNIPER PRECISION LAYER (Inside Fallback) ---
+                const entryRange = signal.entryRange || { min: livePrice * 0.999, max: livePrice * 1.001 };
+                const sl = signal.stopLoss || 0;
+                const midEntry = (entryRange.min + entryRange.max) / 2;
+                const diffPercent = livePrice > 0 ? Math.abs(midEntry - livePrice) / livePrice : 0;
+
+                let finalSignal = signal.signal;
+                let finalEntryRange = entryRange;
+                let finalSL = sl;
+                let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0, 0];
+                let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
+
+                // 1. Price Sanity Check
+                if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+                    if (diffPercent > 0.05) {
+                        finalSignal = 'NEUTRAL';
+                        finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
+                    } else {
+                        const rangeWidth = entryRange.max - entryRange.min;
+                        finalEntryRange = { min: livePrice - rangeWidth / 2, max: livePrice + rangeWidth / 2 };
+                        finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
+                    }
+                }
+
+                // // 2. Sniper SL Tightening (Surgical Precision)
+                // if (finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+                //     const slDistance = Math.abs(midEntry - finalSL);
+                //     const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
+                //     if (slPercent > 0.005) {
+                //         const adjustment = midEntry * 0.002; 
+                //         finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
+                //         finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
+                //     }
+                // }
+
+                // --- FINAL SNIPER CONSTRAINTS ---
+
+                let enforcedByEngine = false;
+
+                // Strict Math Engine Enforcement Override
+                if (quantData?.explicitSignal && quantData.explicitSignal !== 'NEUTRAL') {
+                    finalSignal = quantData.explicitSignal;
+                    enforcedByEngine = true;
+                    finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Direction mathematically locked to ${finalSignal}. LLM guesses rejected.`);
+                } else if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
+                    if (quantData?.explicitSignal === 'NEUTRAL') {
+                        // If math says neutral, we STAY neutral. Do not force trades.
+                        finalSignal = 'NEUTRAL';
+                        finalReasoning.push(`⚙️ STRICT MATH ENGINE: Market in chaos. Neutrality enforced mathematically. No safe trade exists.`);
+                    } else if (signal.signal === 'BUY' || signal.signal === 'SELL') {
+                        finalSignal = signal.signal;
+                        finalReasoning.push(`🎯 Retaining AI directional bias (${finalSignal}) despite price recalibration.`);
+                    } else {
+                        if ((query?.toLowerCase().includes('sell') || query?.toLowerCase().includes('bearish')) || (quantData?.trend === 'BEARISH' || quantData?.currentZone === 'PREMIUM')) {
+                            finalSignal = 'SELL';
+                        } else {
+                            finalSignal = 'BUY';
+                        }
+                        finalReasoning.push(`🎯 Directional bias inferred from structural trend (${finalSignal}).`);
+                    }
+                }
+
+                // Apply mathematical pricing bounds from Monte Carlo / QuantData if available
+                if (quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
+                    const mc = quantData.monteCarloPrediction;
+                    if (finalSignal === 'BUY') {
+                        finalSL = quantData.mathematicalSL || mc.lowerBound;
+                        finalTPs[0] = mc.expectedPrice > midEntry ? mc.expectedPrice : midEntry * 1.002;
+                        finalTPs[1] = mc.upperBound > finalTPs[0] ? mc.upperBound : finalTPs[0] * 1.002;
+                        finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored BUY SL to Lower Bound (-1σ) and TPs to Monte Carlo Expected Median Price / Upper Bound (+1σ).`);
+                    } else if (finalSignal === 'SELL') {
+                        finalSL = quantData.mathematicalSL || mc.upperBound;
+                        finalTPs[0] = mc.expectedPrice < midEntry ? mc.expectedPrice : midEntry * 0.998;
+                        finalTPs[1] = mc.lowerBound < finalTPs[0] ? mc.lowerBound : finalTPs[0] * 0.998;
+                        finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored SELL SL to Upper Bound (+1σ) and TPs to Monte Carlo Expected Median Price / Lower Bound (-1σ).`);
+                    }
+                }
+
+                const rawConf = signal.confidence || 50;
+                let finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
+                if (signal.neuralFilter && signal.neuralFilter.confidenceBoost) {
+                    finalConfidence = Math.max(0, Math.min(100, finalConfidence + signal.neuralFilter.confidenceBoost));
+                }
+
+                // SL Validation against ATR if quantData is present
+                if (quantData?.atr) {
+                    finalSL = validateSL(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, quantData.atr, signal.asset || assetName);
+                    finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
+                }
+
+                // Apply mathematical RR overrides
+                const rrLevels = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, signal.asset || assetName);
+                let finalPositionProtocol: string | undefined = undefined;
+
+                if (rrLevels) {
+                    finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
+                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2x, 3x risk distances.`);
+                    finalPositionProtocol = `
 **POSITION MANAGEMENT PROTOCOL:**
 - Entry: ${midEntry}
 - Stop Loss: ${finalSL} (Risk: ${rrLevels.risk.toFixed(5)})
@@ -1925,87 +1935,87 @@ JSON Structure:
 RULE: Once TP1 is hit you CANNOT lose on this trade.
 Move SL to entry immediately after TP1.
 `;
-        } else {
-            // Validate TPs are on correct side of entry just in case
-            const tpsValid = finalSignal === 'BUY'
-                ? finalTPs.every(tp => tp > midEntry)
-                : finalTPs.every(tp => tp < midEntry);
+                } else {
+                    // Validate TPs are on correct side of entry just in case
+                    const tpsValid = finalSignal === 'BUY'
+                        ? finalTPs.every(tp => tp > midEntry)
+                        : finalTPs.every(tp => tp < midEntry);
 
-            if (!tpsValid) {
-                console.warn('[RR] TP validation failed — recalculating');
-                const recalculated = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL);
-                if (recalculated) {
-                    finalTPs[0] = recalculated.tp1 || finalTPs[0] || 0;
-                    finalTPs[1] = recalculated.tp2 || finalTPs[1] || 0;
-                    finalTPs[2] = recalculated.tp3 || finalTPs[2] || 0;
+                    if (!tpsValid) {
+                        console.warn('[RR] TP validation failed — recalculating');
+                        const recalculated = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL);
+                        if (recalculated) {
+                            finalTPs[0] = recalculated.tp1 || finalTPs[0] || 0;
+                            finalTPs[1] = recalculated.tp2 || finalTPs[1] || 0;
+                            finalTPs[2] = recalculated.tp3 || finalTPs[2] || 0;
+                        }
+                    }
                 }
+
+                // Calculate Lot Size based on User Settings
+                const accountBalance = userSettings?.accountBalance || 10000;
+                const riskPercent = userSettings?.riskPerTrade || 1;
+                const lotInfo = calculateLocalLotSize(accountBalance, riskPercent, midEntry, finalSL);
+
+                // Map quantData Liquidity Heatmap onto the sanitized signal
+                let heatmapMapping: { price: number; volume: number; type: 'ask' | 'bid' }[] | undefined = undefined;
+                if (quantData?.liquidityHeatmap) {
+                    heatmapMapping = [];
+                    if (quantData.liquidityHeatmap.bslLevels) {
+                        quantData.liquidityHeatmap.bslLevels.forEach((level: any) => {
+                            heatmapMapping!.push({ price: level.price, volume: level.strength * 10, type: 'ask' });
+                        });
+                    }
+                    if (quantData.liquidityHeatmap.sslLevels) {
+                        quantData.liquidityHeatmap.sslLevels.forEach((level: any) => {
+                            heatmapMapping!.push({ price: level.price, volume: level.strength * 10, type: 'bid' });
+                        });
+                    }
+                }
+
+                const sanitizedSignal: SignalData = {
+                    id: `sniper_${Date.now()}`,
+                    timestamp: Date.now(),
+                    asset: signal.asset || assetName,
+                    signal: finalSignal,
+                    confidence: finalConfidence,
+                    priceAtSignal: livePrice,
+                    truthLayerUsed: !!derivData?.truthLayerUsed,
+                    timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
+                    entryPoints: [midEntry],
+                    entryRange: finalEntryRange || null,
+                    stopLoss: finalSL,
+                    takeProfits: finalTPs,
+                    rrLevels: rrLevels || undefined,
+                    positionProtocol: finalPositionProtocol || undefined,
+                    heatmapData: heatmapMapping,
+                    formattedLotSize: lotInfo.lotSize > 0 ? lotInfo.lotSize.toString() : signal.formattedLotSize,
+                    riskAmount: lotInfo.riskAmount,
+                    positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
+                    recommendedPositions: signal.recommendedPositions,
+                    reasoning: finalReasoning,
+                    checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
+                    neuralFilter: signal.neuralFilter,
+                    entryType: 'Market Execution',
+                    triggerConditions: signal.triggerConditions || undefined,
+                    contractSize: 100000,
+                    pipValue: 10
+                };
+
+                // Final deep sanitization to remove any remaining undefined fields
+                return JSON.parse(JSON.stringify(sanitizedSignal)) as SignalData;
             }
-        }
-
-        // Calculate Lot Size based on User Settings
-        const accountBalance = userSettings?.accountBalance || 10000;
-        const riskPercent = userSettings?.riskPerTrade || 1;
-        const lotInfo = calculateLocalLotSize(accountBalance, riskPercent, midEntry, finalSL);
-
-        // Map quantData Liquidity Heatmap onto the sanitized signal
-        let heatmapMapping: { price: number; volume: number; type: 'ask' | 'bid' }[] | undefined = undefined;
-        if (quantData?.liquidityHeatmap) {
-            heatmapMapping = [];
-            if (quantData.liquidityHeatmap.bslLevels) {
-                quantData.liquidityHeatmap.bslLevels.forEach((level: any) => {
-                    heatmapMapping!.push({ price: level.price, volume: level.strength * 10, type: 'ask' });
-                });
-            }
-            if (quantData.liquidityHeatmap.sslLevels) {
-                quantData.liquidityHeatmap.sslLevels.forEach((level: any) => {
-                    heatmapMapping!.push({ price: level.price, volume: level.strength * 10, type: 'bid' });
-                });
-            }
-        }
-
-        const sanitizedSignal: SignalData = {
-          id: `sniper_${Date.now()}`,
-          timestamp: Date.now(),
-          asset: signal.asset || assetName,
-          signal: finalSignal,
-          confidence: finalConfidence,
-          priceAtSignal: livePrice,
-          truthLayerUsed: !!derivData?.truthLayerUsed,
-          timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
-          entryPoints: [midEntry],
-          entryRange: finalEntryRange || null,
-          stopLoss: finalSL,
-          takeProfits: finalTPs,
-          rrLevels: rrLevels || undefined,
-          positionProtocol: finalPositionProtocol || undefined,
-          heatmapData: heatmapMapping,
-          formattedLotSize: lotInfo.lotSize > 0 ? lotInfo.lotSize.toString() : signal.formattedLotSize,
-          riskAmount: lotInfo.riskAmount,
-          positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
-          recommendedPositions: signal.recommendedPositions,
-          reasoning: finalReasoning,
-          checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
-          neuralFilter: signal.neuralFilter,
-          entryType: 'Market Execution',
-          triggerConditions: signal.triggerConditions || undefined,
-          contractSize: 100000,
-          pipValue: 10
-        };
-
-        // Final deep sanitization to remove any remaining undefined fields
-        return JSON.parse(JSON.stringify(sanitizedSignal)) as SignalData;
-      }
-    );
-  }, getAnalysisPool());
+        );
+    }, getAnalysisPool());
 }
 
 function extractJson(str: string): any {
     if (!str) return {};
-    
+
     // Helper to deeply repair truncated JSON
     const repairJson = (jsonStr: string) => {
         let repaired = jsonStr.trim();
-        
+
         // Count structural elements
         const openBraces = (repaired.match(/{/g) || []).length;
         const closeBraces = (repaired.match(/}/g) || []).length;
@@ -2043,7 +2053,7 @@ function extractJson(str: string): any {
         // 2. Isolate the FIRST and LAST structural braces in case of preceding/succeeding text
         const firstOpen = target.indexOf('{');
         const lastClose = target.lastIndexOf('}');
-        
+
         if (firstOpen !== -1) {
             if (lastClose !== -1 && lastClose > firstOpen) {
                 target = target.substring(firstOpen, lastClose + 1).trim();
@@ -2057,7 +2067,7 @@ function extractJson(str: string): any {
             return JSON.parse(target);
         } catch (firstPassError) {
             console.log("Initial JSON.parse failed, attempting sanitization...", firstPassError);
-            
+
             // 3. Sanitization: remove comments and line breaks that might break JSON.parse
             // Be careful to not break URLs starting with https://
             let sanitized = target
@@ -2076,8 +2086,8 @@ function extractJson(str: string): any {
                     console.warn('JSON Repair failed. Will not use hardcoded heuristic fallbacks as they corrupt price data. Throwing error to trigger model fallback.');
                     throw repairError;
                 }
+            }
         }
-    }
     } catch (e: any) {
         console.error('CRITICAL: Unified JSON Extraction Failure:', e.message || e);
         throw e;
@@ -2102,14 +2112,14 @@ export async function getGeminiAnalysis(prompt: string): Promise<string> {
 }
 
 export async function generateTradingBlueprint(
-  sessions: { name: string, assets: string[] }[],
-  userSettings?: UserSettings,
-  timezone: string = 'UTC'
+    sessions: { name: string, assets: string[] }[],
+    userSettings?: UserSettings,
+    timezone: string = 'UTC'
 ): Promise<string> {
     await initializeApiKey();
     return await executeLaneCall<string>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
-        
+
         const sessionInfo = sessions.filter(s => s.assets.length > 0)
             .map(s => `${s.name} Session: ${s.assets.join(', ')}`)
             .join('\n');
@@ -2152,7 +2162,7 @@ Target Language: ${language}
 }
 Return pure JSON only.`;
 
-        const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
+        const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) =>
             ai.models.generateContent({
                 model: modelId,
                 contents: promptText,
@@ -2162,7 +2172,7 @@ Return pure JSON only.`;
                 }
             })
         );
-        
+
         return response.text?.trim() || "Failed to generate Trading Blueprint.";
     }, getChatPool);
 }
