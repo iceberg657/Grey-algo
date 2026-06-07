@@ -1,8 +1,7 @@
 
-import { formatLotSize, detectAssetConfig } from './positionSizing';
+import { formatLotSize, detectAssetConfig, calculatePositionSize } from './positionSizing';
 import { validateTrade } from './tradeValidator';
 import type { SignalData, UserSettings } from '../types';
-import { calculateLotSize } from './lotSizeCalculator';
 import { estimatePotential } from './profitCalculator';
 
 export function buildCompleteTradeSetup(
@@ -66,14 +65,14 @@ export function buildCompleteTradeSetup(
   
   const accountSize = settings.accountSize || settings.accountBalance || 0;
   const riskPercentage = settings.riskPerTrade || 1;
-  
   const stopLossDistance = Math.abs(entryPrice - signal.stopLoss);
-  const riskAmount = accountSize * (riskPercentage / 100);
-
-  const lotSize = calculateLotSize(
-    settings,
-    stopLossDistance,
-    contractSize
+  
+  const { lotSize, riskAmount, contractSize: actualContractSize } = calculatePositionSize(
+      accountSize,
+      riskPercentage,
+      entryPrice,
+      signal.stopLoss,
+      signal.asset
   );
 
   if (lotSize === 0) {
@@ -104,7 +103,7 @@ export function buildCompleteTradeSetup(
       partialAmounts[index],
       entryPrice,
       tp,
-      contractSize
+      actualContractSize
     );
   });
   
@@ -119,20 +118,9 @@ export function buildCompleteTradeSetup(
       calculatedRR = settings.riskRewardRatio || '1:3';
   }
 
-  // Calculate Possible Pips if AI didn't provide it
-  let possiblePips = signal.possiblePips || 0;
-  if (possiblePips === 0 && entryPrice > 0 && signal.takeProfits[2] > 0 && pipValue > 0) {
-      // Pips = PriceDiff / PipValue (roughly, depends on asset class but good enough for display)
-      // Actually, for display "Possible Pips", we usually mean points or pips.
-      // Let's use the standard formula: Distance / PipSize (which we don't have directly, but pipValue helps)
-      // Wait, pipValue is $ value per pip per lot.
-      // We just want the raw distance in pips.
-      // Let's assume standard forex 0.0001 or 0.01 for JPY.
-      // Since we don't have the exact pip size (0.0001 vs 0.01) readily available in a generic way without config,
-      // we can try to infer or just use the raw price difference if it's an index, or normalize for FX.
-      
-      // Simpler approach: Use the raw price difference and let the user interpret, 
-      // OR try to use the `detectAssetConfig` to get decimals.
+  // Always calculate Possible Pips dynamically to ensure accurate presentation
+  let possiblePips = 0;
+  if (entryPrice > 0 && signal.takeProfits[2] > 0) {
       const config = detectAssetConfig(signal.asset);
       const diff = Math.abs(signal.takeProfits[2] - entryPrice);
       
@@ -140,10 +128,9 @@ export function buildCompleteTradeSetup(
           const pipSize = signal.asset.includes('JPY') ? 0.01 : 0.0001;
           possiblePips = Math.round(diff / pipSize);
       } else if (config.category === 'indices' || config.category === 'synthetics') {
-          // For indices/synthetics, "pips" usually means points.
-          possiblePips = Math.round(diff); // Points
+          possiblePips = diff; 
       } else {
-          possiblePips = Math.round(diff * 100) / 100; // Raw difference for others
+          possiblePips = Math.round(diff * 100) / 100;
       }
   }
   

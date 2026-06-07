@@ -1459,7 +1459,7 @@ export function validateSL(
     return parseFloat(finalSl.toFixed(precision));
 }
 
-export function calculateLotSize(
+function calculateLocalLotSize(
     accountBalance: number,
     riskPercent: number,
     entry: number,
@@ -1825,6 +1825,7 @@ JSON Structure:
         let finalSignal = signal.signal;
         let finalEntryRange = entryRange;
         let finalSL = sl;
+        let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0,0,0];
         let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
 
         // 1. Price Sanity Check
@@ -1906,7 +1907,6 @@ JSON Structure:
         }
 
         // Apply mathematical RR overrides
-        let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0,0,0];
         const rrLevels = calculateRRLevels(finalSignal as 'BUY'|'SELL', midEntry, finalSL, signal.asset || assetName);
         let finalPositionProtocol: string | undefined = undefined;
 
@@ -1945,7 +1945,7 @@ Move SL to entry immediately after TP1.
         // Calculate Lot Size based on User Settings
         const accountBalance = userSettings?.accountBalance || 10000;
         const riskPercent = userSettings?.riskPerTrade || 1;
-        const lotInfo = calculateLotSize(accountBalance, riskPercent, midEntry, finalSL);
+        const lotInfo = calculateLocalLotSize(accountBalance, riskPercent, midEntry, finalSL);
 
         // Map quantData Liquidity Heatmap onto the sanitized signal
         let heatmapMapping: { price: number; volume: number; type: 'ask' | 'bid' }[] | undefined = undefined;

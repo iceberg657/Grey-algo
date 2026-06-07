@@ -548,8 +548,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                     
                     <div className="mt-4 flex items-center gap-4 text-slate-400 dark:text-slate-500">
                         <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
-                        <p className="text-[9px] font-bold uppercase tracking-[0.6em] whitespace-nowrap">
-                            Autonomous Neural Systems
+                        <p 
+                            className="text-[9px] font-bold uppercase tracking-[0.6em] whitespace-nowrap"
+                            style={{ fontFamily: 'system-ui', fontStyle: 'normal', textDecorationLine: 'none' }}
+                        >
+                            Autonomous Trading Hub
                         </p>
                         <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
                     </div>

@@ -1,4 +1,4 @@
-import { OHLC } from './quantEngine';
+import type { OHLC } from './quantEngine';
 
 export interface OrderflowMetrics {
     buyingPressure: number;

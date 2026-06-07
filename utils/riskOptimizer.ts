@@ -1,4 +1,4 @@
-import { WeightedScore } from './quantEngine';
+import type { WeightedScore } from './quantEngine';
 
 export interface RiskOptimization {
     suggestedRiskPercentage: number; // dynamically scaled Kelly Criterion

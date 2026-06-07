@@ -1,4 +1,4 @@
-import { OHLC } from './quantEngine';
+import type { OHLC } from './quantEngine';
 
 // Represents the three market states defined by quant methods
 export type MarkovState = 'BULL' | 'BEAR' | 'SIDEWAYS';

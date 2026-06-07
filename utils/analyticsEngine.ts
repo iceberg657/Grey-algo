@@ -1,4 +1,4 @@
-import { OHLC } from './quantEngine';
+import type { OHLC } from './quantEngine';
 
 // Generic Technical Analysis Utils 
 export const calculateEMA = (data: number[], period: number): number[] => {

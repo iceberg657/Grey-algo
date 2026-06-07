@@ -585,7 +585,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
                             <span className="text-gray-800 dark:text-white font-bold">
-                                {data.signal === 'NEUTRAL' ? 'N/A' : (data.riskRewardRatio || (diffSL > 0 ? `1:${(diffTP3/diffSL).toFixed(1).replace(/\.0$/, '')}` : 'N/A'))}
+                                {data.signal === 'NEUTRAL' ? 'N/A' : (data.calculatedRR || (diffSL > 0 ? `1:${(diffTP3/diffSL).toFixed(1).replace(/\.0$/, '')}` : 'N/A'))}
                             </span>
                         </div>
 
@@ -629,7 +629,9 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         {data.possiblePips !== undefined && data.possiblePips > 0 && data.signal !== 'NEUTRAL' && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-orange-500 uppercase">Possible Pips</span>
-                                <span className="font-bold text-orange-500 dark:text-orange-400">{data.possiblePips} pips</span>
+                                <span className="font-bold text-orange-500 dark:text-orange-400">
+                                    {typeof data.possiblePips === 'number' ? Number(data.possiblePips.toFixed(2)) : data.possiblePips} pips
+                                </span>
                             </div>
                         )}
 

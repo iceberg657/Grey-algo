@@ -1,6 +1,6 @@
-import { LiquidityHeatmap } from './quantEngine';
-import { MarkovRegimeResult } from './markovEngine';
-import { QuantMathematics } from './quantEngine';
+import type { LiquidityHeatmap } from './quantEngine';
+import type { MarkovRegimeResult } from './markovEngine';
+import type { QuantMathematics } from './quantEngine';
 
 export interface LiquidityPrediction {
     nextTarget: 'BSL' | 'SSL' | 'NONE';
