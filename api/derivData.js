@@ -51,18 +51,22 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
         mappedSymbol = '1HZ75V';
     } else if (normalized === 'V1001S' || normalized === '1HZ100V') {
         mappedSymbol = '1HZ100V';
+    } else if (normalized === 'BOOM150') {
+        mappedSymbol = 'BOOM150N';
+    } else if (normalized === 'BOOM300') {
+        mappedSymbol = 'BOOM300N';
+    } else if (normalized === 'CRASH150') {
+        mappedSymbol = 'CRASH150N';
+    } else if (normalized === 'CRASH300') {
+        mappedSymbol = 'CRASH300N';
     } else if (normalized === 'BOOM1000') {
         mappedSymbol = 'BOOM1000';
     } else if (normalized === 'BOOM500') {
         mappedSymbol = 'BOOM500';
-    } else if (normalized === 'BOOM300') {
-        mappedSymbol = 'BOOM300';
     } else if (normalized === 'CRASH1000') {
         mappedSymbol = 'CRASH1000';
     } else if (normalized === 'CRASH500') {
         mappedSymbol = 'CRASH500';
-    } else if (normalized === 'CRASH300') {
-        mappedSymbol = 'CRASH300';
     } else if (normalized === 'STEP' || normalized === 'STEPINDEX' || normalized === 'STP') {
         mappedSymbol = 'STP';
     } else if (normalized.startsWith('JUMP')) {

@@ -166,7 +166,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const getDerivSymbol = (asset: string) => {
     const normalized = asset.toUpperCase().replace(/[^A-Z0-9]/g, '');
     
-    // 0. Crypto (Check FIRST to prevent any length-6 or prefix logic)
+    // 0. Crypto
     if (normalized === 'BTC' || normalized === 'BTCUSD' || normalized === 'CRYBTCUSD') return 'cryBTCUSD';
     if (normalized === 'ETH' || normalized === 'ETHUSD' || normalized === 'CRYETHUSD') return 'cryETHUSD';
     if (normalized === 'LTC' || normalized === 'LTCUSD' || normalized === 'CRYLTCUSD') return 'cryLTCUSD';
@@ -183,6 +183,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
     // 2. Forex
     if (normalized.includes('GOLD') || normalized.includes('XAUUSD')) return 'frxXAUUSD';
+    if (normalized.includes('SILVER') || normalized.includes('XAGUSD')) return 'frxXAGUSD';
+    if (normalized.includes('BRENT') || normalized.includes('XBRUSD')) return 'frxXBRUSD';
+    if (normalized.includes('WTI') || normalized.includes('XTIUSD')) return 'frxXTIUSD';
     if (normalized.includes('EURUSD')) return 'frxEURUSD';
     if (normalized.includes('GBPUSD')) return 'frxGBPUSD';
     if (normalized.includes('GBPJPY')) return 'frxGBPJPY';
@@ -192,26 +195,37 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     if (normalized.includes('USDCHF')) return 'frxUSDCHF';
     if (normalized.includes('NZDUSD')) return 'frxNZDUSD';
     
-    // Volatility Indices
+    // Volatility Indices (Robust Mapping)
+    if (normalized.match(/V(?:OLATILITY)?101S/)) return '1HZ10V';
+    if (normalized.match(/V(?:OLATILITY)?251S/)) return '1HZ25V';
+    if (normalized.match(/V(?:OLATILITY)?501S/)) return '1HZ50V';
+    if (normalized.match(/V(?:OLATILITY)?751S/)) return '1HZ75V';
+    if (normalized.match(/V(?:OLATILITY)?1001S/)) return '1HZ100V';
+    
     if (normalized === 'V10' || normalized === 'VOLATILITY10') return 'R_10';
     if (normalized === 'V25' || normalized === 'VOLATILITY25') return 'R_25';
     if (normalized === 'V50' || normalized === 'VOLATILITY50') return 'R_50';
     if (normalized === 'V75' || normalized === 'VOLATILITY75') return 'R_75';
     if (normalized === 'V100' || normalized === 'VOLATILITY100') return 'R_100';
-    if (normalized === 'V101S') return '1HZ10V';
-    if (normalized === 'V251S') return '1HZ25V';
-    if (normalized === 'V501S') return '1HZ50V';
-    if (normalized === 'V751S') return '1HZ75V';
-    if (normalized === 'V1001S') return '1HZ100V';
     
     // Boom/Crash Robust Mapping
-    if (normalized.startsWith('BOOM')) {
+    if (normalized.includes('BOOM')) {
       const match = normalized.match(/BOOM(\d+)/);
-      return match ? `BOOM${match[1]}` : 'BOOM1000';
+      if (match) {
+        const num = match[1];
+        if (num === '150' || num === '300') return `BOOM${num}N`;
+        return `BOOM${num}`;
+      }
+      return 'BOOM1000';
     }
-    if (normalized.startsWith('CRASH')) {
+    if (normalized.includes('CRASH')) {
       const match = normalized.match(/CRASH(\d+)/);
-      return match ? `CRASH${match[1]}` : 'CRASH1000';
+      if (match) {
+        const num = match[1];
+        if (num === '150' || num === '300') return `CRASH${num}N`;
+        return `CRASH${num}`;
+      }
+      return 'CRASH1000';
     }
     
     // Step
@@ -381,7 +395,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
     try {
       // 1. Extract asset from query
-      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|eurusd|gbpusd|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{0,4}|crash\s?\d{0,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
+      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
       const asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
 
       if (!asset) {
@@ -600,8 +614,13 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     { category: 'Forex', items: ['EURUSD', 'GBPUSD', 'GBPJPY', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'XAUUSD (Gold)', 'SILVER', 'BRENT', 'WTI'] },
     { category: 'Crypto', items: ['BTCUSD', 'ETHUSD', 'LTCUSD'] },
     { category: 'Volatility Indices', items: ['V10', 'V25', 'V50', 'V75', 'V100', 'V10 (1s)', 'V25 (1s)', 'V50 (1s)', 'V75 (1s)', 'V100 (1s)'] },
-    { category: 'Boom/Crash', items: ['Boom 1000/500/300', 'Boom 900/600/150/50', 'Crash 1000/500/300', 'Crash 900/600/150/50'] },
-    { category: 'Other', items: ['Step Index', 'Jump Indices (10-100)', 'Range Break 100/200'] }
+    { category: 'Boom/Crash', items: [
+      'Boom 1000, 500, 300', 
+      'Boom 900, 600, 150, 50', 
+      'Crash 1000, 500, 300', 
+      'Crash 900, 600, 150, 50'
+    ] },
+    { category: 'Other', items: ['Step Index', 'Jump 10, 25, 50, 100', 'Range Break 100, 200'] }
   ];
 
   const renderLocked = () => (

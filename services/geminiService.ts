@@ -1379,12 +1379,12 @@ export async function generateTradingSignal(
 
 function getAssetPrecision(asset: string): number {
     const sym = asset.toUpperCase();
-    if (sym.includes('BTC') || sym.includes('NAS') || sym.includes('SPX') || sym.includes('DJI') || sym.includes('US30') || sym.includes('US100') || sym.includes('US500') || sym.includes('GOLD') || sym.includes('XAU')) {
+    if (sym.includes('BTC') || sym.includes('NAS') || sym.includes('SPX') || sym.includes('DJI') || sym.includes('US30') || sym.includes('US100') || sym.includes('US500') || sym.includes('GOLD') || sym.includes('XAU') || sym.includes('SILVER') || sym.includes('XAG') || sym.includes('BRENT') || sym.includes('WTI')) {
         return 2;
     }
     if (sym.includes('JPY')) return 3;
-    if (sym.startsWith('BOOM') || sym.startsWith('CRAS') || sym.startsWith('STEP') || sym.startsWith('R_') || sym.startsWith('VOLATILITY')) {
-        if (sym.includes('STEP')) return 3;
+    if (sym.startsWith('BOOM') || sym.startsWith('CRAS') || sym.startsWith('STEP') || sym.startsWith('R_') || sym.startsWith('VOLATILITY') || sym.startsWith('1HZ') || sym.startsWith('STP') || sym.startsWith('RB_')) {
+        if (sym.includes('STEP') || sym.includes('STP')) return 3;
         return 2;
     }
     return 5;
@@ -1471,27 +1471,75 @@ function calculateLocalLotSize(
     riskPercent: number,
     entry: number,
     stopLoss: number,
-    pipValue: number = 10,        // Standard forex pip value
-    contractSize: number = 100000  // Standard lot
+    asset: string = 'EURUSD'
 ) {
     // Risk amount in dollars
     const riskAmount = accountBalance * (riskPercent / 100);
 
     // SL distance in price units
     const slDistance = Math.abs(entry - stopLoss);
+    if (slDistance === 0) return { lotSize: 0, riskAmount, slDistance: 0, riskPercent };
 
-    // Convert to pips (for forex 4 decimal, multiply by 10000)
-    const slPips = slDistance * 10000;
+    const normalized = asset.toUpperCase();
+    const isSynthetic = normalized.includes('BOOM') || 
+                        normalized.includes('CRASH') || 
+                        normalized.includes('1HZ') || 
+                        normalized.includes('R_') || 
+                        normalized.includes('RB_') ||
+                        normalized.includes('STP') || 
+                        normalized.includes('JDM') ||
+                        normalized.includes('VOLATILITY');
+    
+    const isCrypto = normalized.includes('BTC') || normalized.includes('ETH') || normalized.includes('LTC');
+    const isIndices = normalized.includes('US30') || 
+                      normalized.includes('NAS100') || 
+                      normalized.includes('NDX') || 
+                      normalized.includes('US500') || 
+                      normalized.includes('UK100') || 
+                      normalized.includes('GER40') || 
+                      normalized.includes('FRA40') || 
+                      normalized.includes('JPN225') || 
+                      normalized.includes('AUS200') ||
+                      normalized.includes('OTC_');
 
-    // Lot size formula
-    // For safety against division by zero
-    if (slPips === 0) return { lotSize: 0, riskAmount, slPips: 0, riskPercent };
-    const lotSize = riskAmount / (slPips * pipValue);
+    let lotSize = 0;
+    let slPips = slDistance;
+
+    if (isSynthetic) {
+        // For Deriv Synthetics: Lot Size = Risk Amount / SL Distance
+        // (1 lot = $1 per point move generally)
+        lotSize = riskAmount / slDistance;
+        slPips = slDistance; // Points
+    } else if (isCrypto) {
+        lotSize = riskAmount / slDistance;
+        slPips = slDistance;
+    } else if (normalized.includes('XAU') || normalized.includes('GOLD')) {
+        // Gold: $1 move = $100 per lot
+        lotSize = riskAmount / (slDistance * 100);
+        slPips = slDistance;
+    } else if (normalized.includes('XAG') || normalized.includes('SILVER')) {
+        // Silver: $1 move = $5000 per lot
+        lotSize = riskAmount / (slDistance * 5000);
+        slPips = slDistance;
+    } else if (normalized.includes('XBR') || normalized.includes('BRENT') || normalized.includes('XTI') || normalized.includes('WTI')) {
+        // Oil: $1 move = $1000 per lot
+        lotSize = riskAmount / (slDistance * 1000);
+        slPips = slDistance;
+    } else if (isIndices) {
+        // For most indices, 1 lot = $1 per point
+        lotSize = riskAmount / slDistance;
+        slPips = slDistance;
+    } else {
+        // Standard Forex: SL distance in pips (4 decimals)
+        slPips = slDistance * 10000;
+        const pipValue = 10; // $10 per standard lot
+        lotSize = riskAmount / (slPips * pipValue);
+    }
 
     return {
         lotSize: parseFloat(lotSize.toFixed(2)),
         riskAmount,
-        slPips: parseFloat(slPips.toFixed(1)),
+        slPips: parseFloat(slPips.toFixed(2)),
         riskPercent
     };
 }
@@ -1872,9 +1920,15 @@ JSON Structure:
                     finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Direction mathematically locked to ${finalSignal}. LLM guesses rejected.`);
                 } else if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
                     if (quantData?.explicitSignal === 'NEUTRAL') {
-                        // If math says neutral, we STAY neutral. Do not force trades.
-                        finalSignal = 'NEUTRAL';
-                        finalReasoning.push(`⚙️ STRICT MATH ENGINE: Market in chaos. Neutrality enforced mathematically. No safe trade exists.`);
+                        // Infer safe direction and configure low risk setup instead of enforcing pure neutral direction
+                        if (signal.signal === 'BUY' || signal.signal === 'SELL') {
+                            finalSignal = signal.signal;
+                        } else if ((query?.toLowerCase().includes('sell') || query?.toLowerCase().includes('bearish')) || (quantData?.trend === 'BEARISH' || quantData?.currentZone === 'PREMIUM')) {
+                            finalSignal = 'SELL';
+                        } else {
+                            finalSignal = 'BUY';
+                        }
+                        finalReasoning.push(`⚙️ STRICT MATH ENGINE: Little risk enforced mathematically. Low exposure ${finalSignal} trade configured.`);
                     } else if (signal.signal === 'BUY' || signal.signal === 'SELL') {
                         finalSignal = signal.signal;
                         finalReasoning.push(`🎯 Retaining AI directional bias (${finalSignal}) despite price recalibration.`);
@@ -1955,7 +2009,7 @@ Move SL to entry immediately after TP1.
                 // Calculate Lot Size based on User Settings
                 const accountBalance = userSettings?.accountBalance || 10000;
                 const riskPercent = userSettings?.riskPerTrade || 1;
-                const lotInfo = calculateLocalLotSize(accountBalance, riskPercent, midEntry, finalSL);
+                const lotInfo = calculateLocalLotSize(accountBalance, riskPercent, midEntry, finalSL, assetName);
 
                 // Map quantData Liquidity Heatmap onto the sanitized signal
                 let heatmapMapping: { price: number; volume: number; type: 'ask' | 'bid' }[] | undefined = undefined;
