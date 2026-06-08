@@ -665,14 +665,16 @@ If all align, the trade is significantly stronger. Do not issue a signal if thes
 
 1.  **BOOM INDICES (300/500/1000):**
     - **ALGO:** Slow bearish ticks, violent bullish spikes.
+    - **SCALPING (Short-term):** Target short-term moves. You can freely catch bearish candles (tick scalping) if the short-term trend allows it.
+    - **DAY TRADING (Long-term):** Focus mainly on catching bullish spikes (Buy). You can ONLY catch bearish candles if the dominant trend is strongly bearish. In a normal market state, stick to catching spikes.
     - **SMC SETUP:** Wait for SSL Sweep -> CHoCH -> Retrace to Discount OB/FVG -> Spike Catch.
-    - **DO NOT SELL (tick scalping is -EV).**
     - **INVALIDATION:** If price closes a full 1M candle below the zone.
 
 2.  **CRASH INDICES (300/500/1000):**
     - **ALGO:** Slow bullish ticks, violent bearish spikes.
+    - **SCALPING (Short-term):** Target short-term moves. You can freely catch bullish candles (tick scalping) if the short-term trend allows it.
+    - **DAY TRADING (Long-term):** Focus mainly on catching bearish spikes (Sell). You can ONLY catch bullish candles if the dominant trend is strongly bullish. In a normal market state, stick to catching spikes.
     - **SMC SETUP:** Wait for BSL Sweep -> CHoCH -> Retrace to Premium OB/FVG -> Spike Catch.
-    - **DO NOT BUY (tick scalping is -EV).**
 
 3.  **VOLATILITY INDICES (V75, V100, V50, etc.):**
     - **ALGO:** Pure fractal price action. No spikes/ticks bias.
@@ -712,8 +714,9 @@ If all align, the trade is significantly stronger. Do not issue a signal if thes
     - **Boom/Crash:** Use SD to find oversold/overbought tick conditions before a spike.
     - **Volatility:** Use SD for Mean Reversion trades.
 
-**2. TIMEFRAME:**
-- Determine Primary Direction. Boom/Crash Analysis MUST prioritize the Spike direction (Buy for Boom, Sell for Crash).
+**2. TIMEFRAME & TARGETING (BOOM/CRASH LOGIC):**
+- **Day Trading:** Determine Primary Direction. Boom/Crash Analysis MUST explicitly target the Spike direction (Buy for Boom, Sell for Crash).
+- **Scalping:** You can target quick candle movements against the spike IF the short-term trend is firmly established in that direction, otherwise default to catching spikes.
 
 **3. FUNDAMENTAL CONTEXT:**
 - **Synthetics:** Pure technicals. Check "News" field for "Simulated Volatility Events" or just state "Algorithm Normal".
