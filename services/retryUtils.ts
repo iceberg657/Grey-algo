@@ -130,20 +130,25 @@ const getUniqueKeys = (keys: string[]) => {
     return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));
 };
 
-// 1. CHART ANALYSIS (Strictly Prioritize Lane Rotation)
+// 1. CHART ANALYSIS (Keys 1-4, Always start with K1)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
-    'gemini-3.1-flash-lite',
     'gemini-3.1-pro-preview',
     'gemini-3-flash-preview',
+    'gemini-3.1-flash-lite',
     'gemini-2.5-pro',
     'gemini-2.5-flash',
     'gemini-3.5-flash'
 ];
 
-// 2. CHAT & NEWS (Key 5)
-// Note: Predictor has been removed, so K5 is repurposed for Chat/News
-export const getChatPool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Prioritize K2, then K5, then K1
+// 2. SNIPER PAGE (Keys 1-4, Strictly 3.1 Flash Lite)
+export const getSniperPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]);
+export const SNIPER_MODELS = [
+    'gemini-3.1-flash-lite'
+];
+
+// 3. CHAT & LIVE (Key 5, ALL Models)
+export const getChatPool = () => getUniqueKeys([K.K5()]); 
 export const CHAT_MODELS = [
     'gemini-3.0-flash-preview',
     'gemini-3.5-flash',
@@ -153,38 +158,44 @@ export const CHAT_MODELS = [
     'gemini-3.1-flash-lite'
 ];
 
-// 3. AI ASSETS SUGGESTION (Key 6)
-export const getSuggestionPool = () => getUniqueKeys([K.K2(), K.K6()]); // Prioritize K2
-export const SUGGESTION_MODELS = [
-    'gemini-3.0-flash-preview',
-    'gemini-3.5-flash'
-];
+// 4. FEATURE DISTRIBUTION (Keys 6-9)
 
-// 4. AUTO ML TRADE LOGGING
-export const getAutoMlPool = () => getUniqueKeys([K.K2()]); 
-export const AUTO_ML_MODELS = [
-    'gemini-3.0-flash-preview',
-    'gemini-3.5-flash'
-];
+// ALPHA (Key 6)
+export const getAlphaPool = () => getUniqueKeys([K.K6()]);
+// A: AI Pilot / Regime Tracker
+export const PILOT_MODELS = ['gemini-3.1-pro-preview'];
+// B: AI ASSETS SUGGESTION 
+export const SUGGESTION_MODELS = ['gemini-3.0-flash-preview'];
 
-// 5. AI PILOT / REGIME TRACKER (Key 8)
-export const getPilotPool = () => getUniqueKeys([K.K8(), K.K2()]); // Prioritize K8, fallback to K2
-export const PILOT_MODELS = [
-    'gemini-3.1-pro-preview',
-    'gemini-3.0-flash-preview'
-];
+// BETA (Key 7)
+export const getBetaPool = () => getUniqueKeys([K.K7()]);
+// A: Global Market Intelligence
+export const MARKET_MODELS = ['gemini-3.0-flash-preview'];
+// B: Neural Learning (Truth Layer)
+export const LEARNING_MODELS = ['gemini-3.5-flash'];
 
-// Shared Pools
-export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
-export const getSuggestionStructurePool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Global Market now prioritizes Key 2
+// GAMMA (Key 8)
+export const getGammaPool = () => getUniqueKeys([K.K8()]);
+// A: Session Summaries
+export const SUMMARY_MODELS = ['gemini-3.1-pro-preview'];
+// B: Neural TTS
+export const TTS_MODELS = ['gemini-2.0-flash']; 
 
-export const LANE_2_MODELS = [
-    'gemini-3.0-flash-preview',
-    'gemini-3.5-flash'
-];
+// DELTA (Key 9)
+export const getDeltaPool = () => getUniqueKeys([K.K9()]);
+// A: Embeddings & Pattern Recognition
+export const EMBEDDING_MODELS = ['gemini-1.5-flash'];
+// B: Prompt Optimization
+export const OPTIMIZATION_MODELS = ['gemini-3.1-flash-lite'];
 
-// Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
-export const getTtsKey = () => [K.K3()].filter(k => !!k);
+// Legacy Compatibility Exports (Update these to point to new logic)
+export const getSuggestionPool = getAlphaPool;
+export const getPilotPool = getAlphaPool;
+export const getAutoMlPool = getBetaPool;
+export const getServicePool = getChatPool; 
+export const getSuggestionStructurePool = getBetaPool; 
+export const getTtsPool = getGammaPool;
+export const getTtsKey = () => [K.K8()].filter(k => !!k); // Redirect to K8 (Gamma)
 
 // Global Penalty Box for exhausted keys
 const cooldownMap = new Map<string, number>();
@@ -250,9 +261,9 @@ export async function executeLaneCall<T>(
 
     let availableKeys = activePool.filter(k => !isThrottled(k));
     
-    // STRICT RULE: Begin every chart analysis with api key 1 always before moving down
+    // Ensure we start with K1 if available in activePool
     const k1 = K.K1();
-    if (k1 && activePool[0] === k1) { // Only force if it's the primary key (e.g. Chart Analysis Pool)
+    if (k1 && activePool.includes(k1)) { 
         cooldownMap.delete(k1);
         availableKeys = availableKeys.filter(k => k !== k1);
         availableKeys.unshift(k1);

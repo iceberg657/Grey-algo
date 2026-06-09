@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
-import { executeGeminiCall, runWithRetry, getTtsKey } from './retryUtils';
+import { executeGeminiCall, runWithRetry, getTtsPool, TTS_MODELS, runWithModelFallback } from './retryUtils';
 
 // Audio context for playback
 let audioContext: AudioContext | null = null;
@@ -48,22 +48,23 @@ export async function generateAndPlayAudio(text: string, onEnded: () => void): P
         const response = await executeGeminiCall<GenerateContentResponse>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            // Wrapped in runWithRetry to handle strict 3 RPM limits on specific model/key pair
-            return await runWithRetry(async () => {
-                return await ai.models.generateContent({
-                  model: "gemini-2.0-flash",
-                  contents: [{ parts: [{ text }] }],
-                  config: {
-                    responseModalities: [Modality.AUDIO],
-                    speechConfig: {
-                        voiceConfig: {
-                          prebuiltVoiceConfig: { voiceName: 'Kore' }, // A neutral, professional male voice
+            return await runWithModelFallback(TTS_MODELS, async (modelId) => {
+                return await runWithRetry(async () => {
+                    return await ai.models.generateContent({
+                      model: modelId,
+                      contents: [{ parts: [{ text }] }],
+                      config: {
+                        responseModalities: [Modality.AUDIO],
+                        speechConfig: {
+                            voiceConfig: {
+                              prebuiltVoiceConfig: { voiceName: 'Kore' }, 
+                            },
                         },
-                    },
-                  },
-                });
-            }, 3, 3000); 
-        }, getTtsKey());
+                      },
+                    });
+                }, 3, 3000); 
+            });
+        }, getTtsPool);
 
         const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
 

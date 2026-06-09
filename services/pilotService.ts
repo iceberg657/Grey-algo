@@ -1,7 +1,7 @@
 
 import { db } from '../firebase';
 import { collection, query, where, getDocs, setDoc, doc, limit } from 'firebase/firestore';
-import { executeLaneCall, getPilotPool, PILOT_MODELS } from './retryUtils';
+import { executeLaneCall, getPilotPool, PILOT_MODELS, runWithModelFallback } from './retryUtils';
 import { GoogleGenAI } from '@google/genai';
 import { fetchMarketData } from './twelveDataService';
 import { MarketRegime } from '../utils/marketRegime';
@@ -63,34 +63,37 @@ async function trackDailyRegime(id: string): Promise<DailyRegime | null> {
 
     const result = await executeLaneCall(async (apiKey) => {
         const genAI = new GoogleGenAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: 'gemini-1.5-pro' }); // Use Pro for macro synthesis
-
-        const prompt = `
-        ${GREYALPHA_IDENTITY}
-
-        System: You are the AI Pilot of GreyAlpha, an institutional trading system.
-        Task: Analyze the current market snapshots and determine the "Global Market Regime" for today.
         
-        Market Snapshots:
-        ${JSON.stringify(marketSnapshots, null, 2)}
+        return await runWithModelFallback<any>(PILOT_MODELS, async (modelId) => {
+            const model = genAI.getGenerativeModel({ model: modelId }); 
 
-        Current Date (PST): ${id.replace('regime-', '')}
+            const prompt = `
+            ${GREYALPHA_IDENTITY}
 
-        Output a JSON object exactly matching this structure:
-        {
-            "regimeType": "RETAIL_TRAP_MONDAY" | "TREND_CONTINUATION" | "FRIDAY_REVERSAL_RISK" | "LOW_VOLATILITY_CHOP" | "YEAR_END_UNSTABLE" | "MEAN_REVERSION_RANGE",
-            "description": "Short explanation of the regime bias.",
-            "protocol": "Strategic instructions (e.g., 'Avoid breakouts', 'Target OTE 0.705')",
-            "macroContext": "Detailed synthesis of institutional order flow across these assets.",
-            "riskMultiplier": number (0.5 to 1.2)
-        }
-        `;
+            System: You are the AI Pilot of GreyAlpha, an institutional trading system.
+            Task: Analyze the current market snapshots and determine the "Global Market Regime" for today.
+            
+            Market Snapshots:
+            ${JSON.stringify(marketSnapshots, null, 2)}
 
-        const response = await model.generateContent(prompt);
-        const text = response.response.text();
-        const jsonMatch = text.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) throw new Error("Invalid AI Pilot response");
-        return JSON.parse(jsonMatch[0]);
+            Current Date (PST): ${id.replace('regime-', '')}
+
+            Output a JSON object exactly matching this structure:
+            {
+                "regimeType": "RETAIL_TRAP_MONDAY" | "TREND_CONTINUATION" | "FRIDAY_REVERSAL_RISK" | "LOW_VOLATILITY_CHOP" | "YEAR_END_UNSTABLE" | "MEAN_REVERSION_RANGE",
+                "description": "Short explanation of the regime bias.",
+                "protocol": "Strategic instructions (e.g., 'Avoid breakouts', 'Target OTE 0.705')",
+                "macroContext": "Detailed synthesis of institutional order flow across these assets.",
+                "riskMultiplier": number (0.5 to 1.2)
+            }
+            `;
+
+            const response = await model.generateContent(prompt);
+            const text = response.response.text();
+            const jsonMatch = text.match(/\{[\s\S]*\}/);
+            if (!jsonMatch) throw new Error("Invalid AI Pilot response");
+            return JSON.parse(jsonMatch[0]);
+        });
     }, getPilotPool);
 
     const dailyRegime: DailyRegime = {

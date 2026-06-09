@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, getChatPool, CHAT_MODELS, getAutoMlPool, AUTO_ML_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
+import { executeLaneCall, getBetaPool, LEARNING_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
 import { db, auth } from '../firebase';
 import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection, where } from 'firebase/firestore';
 import { Trade } from '../types';
@@ -171,7 +171,7 @@ export const performAutoLearning = async (): Promise<string | null> => {
                 Output strictly the rule in one sentence.`;
             }
 
-            const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
+            const response = await runWithModelFallback<GenerateContentResponse>(LEARNING_MODELS, (modelId) => 
                 ai.models.generateContent({
                     model: modelId,
                     contents: prompt,
@@ -199,7 +199,7 @@ export const performAutoLearning = async (): Promise<string | null> => {
                 }
             }
             return strategy;
-        }, getChatPool);
+        }, getBetaPool);
     } catch (e) { 
         console.error("Global Learning Error:", e);
         return null; 
@@ -253,7 +253,7 @@ ${JSON.stringify(trades, null, 2)}
   ]
 }`;
 
-            const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
+            const response = await runWithModelFallback<GenerateContentResponse>(LEARNING_MODELS, (modelId) => 
                 ai.models.generateContent({
                     model: modelId,
                     contents: metaPrompt,
@@ -282,7 +282,7 @@ ${JSON.stringify(trades, null, 2)}
                 console.error("Failed to parse meta-analysis JSON:", err);
             }
             return null;
-        }, getChatPool);
+        }, getBetaPool);
 
     } catch (e) {
         console.error("Failed to generate lesson from trade log:", e);

@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback } from './retryUtils';
+import { executeLaneCall, getGammaPool, SUMMARY_MODELS, runWithModelFallback } from './retryUtils';
 
 export async function fetchSessionAnalysis(session: string) {
   return await executeLaneCall(async (apiKey) => {
@@ -12,7 +12,7 @@ export async function fetchSessionAnalysis(session: string) {
     "suggested_trading_assets": [{"asset": "string", "reasoning": "string"}]
     }`;
 
-    const response = await runWithModelFallback<GenerateContentResponse>(CHAT_MODELS, (modelId) => 
+    const response = await runWithModelFallback<GenerateContentResponse>(SUMMARY_MODELS, (modelId) => 
       ai.models.generateContent({
         model: modelId,
         contents: prompt,
@@ -28,5 +28,5 @@ export async function fetchSessionAnalysis(session: string) {
     }
 
     return JSON.parse(response.text);
-  }, getChatPool);
+  }, getGammaPool);
 }

@@ -1,7 +1,19 @@
 
 import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
 import type { AnalysisRequest, SignalData, UserSettings, TradingStyle } from '../types';
-import { runWithModelFallback, executeLaneCall, getAnalysisPool, getPilotPool, ANALYSIS_MODELS, PILOT_MODELS, initializeApiKey, getChatPool, CHAT_MODELS } from './retryUtils';
+import { 
+    runWithModelFallback, 
+    executeLaneCall, 
+    getAnalysisPool, 
+    getSniperPool,
+    getPilotPool, 
+    ANALYSIS_MODELS, 
+    SNIPER_MODELS,
+    PILOT_MODELS, 
+    initializeApiKey, 
+    getChatPool, 
+    CHAT_MODELS 
+} from './retryUtils';
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup';
 import { MARKET_CONFIGS } from '../utils/marketConfigs';
@@ -1579,8 +1591,8 @@ export async function generateSniperLiveSignal(
         'gemini-3.1-pro-preview',
         'gemini-3.5-flash',
         'gemini-2.5-pro',
-        'gemini-3-flash'
-    ] : ANALYSIS_MODELS;
+        'gemini-3-flash-preview'
+    ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses 3.1 Flash Lite only by default
 
     const quantContext = quantData ? `
 **ADVANCED MULTI-ASSET ENGINE SIGNAL:**
@@ -2072,7 +2084,7 @@ Move SL to entry immediately after TP1.
                 return JSON.parse(JSON.stringify(sanitizedSignal)) as SignalData;
             }
         );
-    }, getAnalysisPool());
+    }, getSniperPool);
 }
 
 function extractJson(str: string): any {

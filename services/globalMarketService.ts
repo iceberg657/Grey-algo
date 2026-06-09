@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithModelFallback, executeLaneCall, getSuggestionStructurePool, LANE_2_MODELS } from './retryUtils';
+import { runWithModelFallback, executeLaneCall, getBetaPool, MARKET_MODELS } from './retryUtils';
 import { GREYALPHA_IDENTITY } from './identity';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
@@ -43,7 +43,7 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
         return await executeLaneCall<GlobalMarketAnalysis>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });
             
-            const response = await runWithModelFallback<GenerateContentResponse>(LANE_2_MODELS, (modelId) => ai.models.generateContent({
+            const response = await runWithModelFallback<GenerateContentResponse>(MARKET_MODELS, (modelId) => ai.models.generateContent({
                 model: modelId,
                 contents: GLOBAL_MARKET_PROMPT,
                 config: {
@@ -74,7 +74,7 @@ export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis>
             localStorage.setItem(STORAGE_KEY, JSON.stringify(analysis));
             
             return analysis;
-        }, getSuggestionStructurePool);
+        }, getBetaPool);
 
     } catch (error) {
         console.error("Failed to fetch global market analysis:", error);

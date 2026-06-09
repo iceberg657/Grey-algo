@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { executeLaneCall, getAnalysisPool } from './retryUtils';
+import { executeLaneCall, getDeltaPool } from './retryUtils';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, getDocs, limit, orderBy } from 'firebase/firestore';
 
@@ -22,7 +22,7 @@ export async function generateEmbedding(text: string): Promise<number[]> {
         
         const result = await model.embedContent(text);
         return result.embedding.values;
-    }, getAnalysisPool);
+    }, getDeltaPool);
 }
 
 export async function storeStrategyKnowledge(content: string, metadata: any) {
