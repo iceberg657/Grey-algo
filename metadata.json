@@ -1,6 +1,9 @@
 {
   "name": "GreyAlpha",
   "description": "Your AI-powered suite for quantitative trading and market analysis, now featuring Sniper Live Trade for real-time market signals.",
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ],
   "requestFramePermissions": [
     "camera",
     "microphone",

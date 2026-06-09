@@ -214,7 +214,6 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
 interface SignalGeneratorFormProps {
     onSubmit: (request: AnalysisRequest, primaryImageFile: File) => void;
     isLoading: boolean;
-
 }
 
 export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {

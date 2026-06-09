@@ -18,11 +18,6 @@ const SYMBOLS_MAP = {
 };
 
 export async function fetchFromDeriv(token) {
-    if (!token) {
-        console.warn('[MarketData] Deriv Token missing, cannot fetch ticker data.');
-        return marketDataCache.data;
-    }
-
     console.log('[MarketData] Fetching ticker data from Deriv...');
     
     return new Promise((resolve) => {
@@ -40,27 +35,23 @@ export async function fetchFromDeriv(token) {
         }, 10000); // 10 seconds timeout for the whole batch
 
         ws.on('open', () => {
-            if (token) {
-                ws.send(JSON.stringify({ authorize: token }));
-            }
+            // Ticks API does not require authorization, so we request immediately
+            Object.entries(SYMBOLS_MAP).forEach(([displaySymbol, derivSymbol]) => {
+                ws.send(JSON.stringify({ 
+                    ticks_history: derivSymbol,
+                    adjust_start_time: 1,
+                    count: 2,
+                    end: 'latest',
+                    style: 'ticks',
+                    req_id: displaySymbol // use displaySymbol as req_id to track
+                }));
+            });
         });
 
         ws.on('message', (data) => {
             const response = JSON.parse(data);
             
-            if (response.msg_type === 'authorize' && !response.error) {
-                // Once authorized, request all symbols
-                Object.entries(SYMBOLS_MAP).forEach(([displaySymbol, derivSymbol]) => {
-                    ws.send(JSON.stringify({ 
-                        ticks_history: derivSymbol,
-                        adjust_start_time: 1,
-                        count: 2,
-                        end: 'latest',
-                        style: 'ticks',
-                        req_id: displaySymbol // use displaySymbol as req_id to track
-                    }));
-                });
-            } else if (response.msg_type === 'ticks_history') {
+            if (response.msg_type === 'ticks_history') {
                 receivedCount++;
                 const history = response.history;
                 const req_id = response.req_id;

@@ -592,6 +592,8 @@ export const HomePage: React.FC<HomePageProps> = ({
                        />
                    </motion.div>
 
+
+
                    <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -622,7 +624,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                                 <div className="relative z-10">
                                     <SignalGeneratorForm 
                                         onSubmit={(req, file) => handleGenerateSignal(req, file!)} 
-                                        isLoading={isLoading} 
+                                        isLoading={isLoading}
                                     />
                                 </div>
                             )}

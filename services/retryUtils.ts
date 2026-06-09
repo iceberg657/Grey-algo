@@ -133,54 +133,45 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Strictly Prioritize Lane Rotation)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
-    'gemini-3.5-flash',
-    'gemini-3-flash',
     'gemini-3.1-flash-lite',
     'gemini-3.1-pro-preview',
-    'gemini-2.5-flash',
+    'gemini-3-flash-preview',
     'gemini-2.5-pro',
-    'gemini-2.5-flash-lite'
+    'gemini-2.5-flash',
+    'gemini-3.5-flash'
 ];
 
 // 2. CHAT & NEWS (Key 5)
 // Note: Predictor has been removed, so K5 is repurposed for Chat/News
 export const getChatPool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Prioritize K2, then K5, then K1
 export const CHAT_MODELS = [
+    'gemini-3.0-flash-preview',
     'gemini-3.5-flash',
-    'gemini-3.1-flash',
     'gemini-3.1-pro-preview',
-    'gemini-3.1-flash-lite',
-    'gemini-2.5-flash',
     'gemini-2.5-pro',
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash'
+    'gemini-2.5-flash',
+    'gemini-3.1-flash-lite'
 ];
 
 // 3. AI ASSETS SUGGESTION (Key 6)
 export const getSuggestionPool = () => getUniqueKeys([K.K2(), K.K6()]); // Prioritize K2
 export const SUGGESTION_MODELS = [
-    'gemini-3.5-flash',
-    'gemini-3.1-flash',
-    'gemini-3.1-pro-preview',
-    'gemini-3.1-flash-lite',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash'
+    'gemini-3.0-flash-preview',
+    'gemini-3.5-flash'
 ];
 
 // 4. AUTO ML TRADE LOGGING
 export const getAutoMlPool = () => getUniqueKeys([K.K2()]); 
 export const AUTO_ML_MODELS = [
-    'gemini-3.5-flash',
-    'gemini-3.0-flash'
+    'gemini-3.0-flash-preview',
+    'gemini-3.5-flash'
 ];
 
 // 5. AI PILOT / REGIME TRACKER (Key 8)
 export const getPilotPool = () => getUniqueKeys([K.K8(), K.K2()]); // Prioritize K8, fallback to K2
 export const PILOT_MODELS = [
     'gemini-3.1-pro-preview',
-    'gemini-2.5-pro',
-    'gemini-3.5-flash'
+    'gemini-3.0-flash-preview'
 ];
 
 // Shared Pools
@@ -188,13 +179,8 @@ export const getServicePool = () => getChatPool(); // News uses Chat Pool (K5)
 export const getSuggestionStructurePool = () => getUniqueKeys([K.K2(), K.K5(), K.K1()]); // Global Market now prioritizes Key 2
 
 export const LANE_2_MODELS = [
-    'gemini-3.5-flash',
-    'gemini-3.1-flash',
-    'gemini-3.1-flash-lite',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash', 
-    'gemini-1.5-flash'
+    'gemini-3.0-flash-preview',
+    'gemini-3.5-flash'
 ];
 
 // Helper export for TTS (Prioritize Key 3 within Analysis pool logic or standalone)
@@ -262,7 +248,15 @@ export async function executeLaneCall<T>(
 
     let lastError: any = null;
 
-    const availableKeys = activePool.filter(k => !isThrottled(k));
+    let availableKeys = activePool.filter(k => !isThrottled(k));
+    
+    // STRICT RULE: Begin every chart analysis with api key 1 always before moving down
+    const k1 = K.K1();
+    if (k1 && activePool[0] === k1) { // Only force if it's the primary key (e.g. Chart Analysis Pool)
+        cooldownMap.delete(k1);
+        availableKeys = availableKeys.filter(k => k !== k1);
+        availableKeys.unshift(k1);
+    }
     
     // If all keys are throttled, we try them anyway as a last resort, 
     // but we should prioritize the one that was throttled longest ago.

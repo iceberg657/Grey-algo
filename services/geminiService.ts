@@ -165,6 +165,14 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
 - **Time-Based Liquidity (Killzones):** Focus trades during London (07:00-10:00 UTC) and NY (12:00-15:00 UTC). Outside these hours, moves are often retail noise.
 `;
 
+    const boomCrashLogic = asset.toUpperCase().includes('BOOM') || asset.toUpperCase().includes('CRASH') ? `
+🚨 **DERIV SYNTHETIC: BOOM & CRASH PROTOCOL (MANDATORY)**
+- **BOOM Assets:** Spikes are instantaneous upward moves. Buy spikes.
+- **CRASH Assets:** Spikes are instantaneous downward moves. Sell spikes.
+- **SCALPING (Short-term):** For scalping setups, your objective is to catch candles (regular price movement against the spike direction). You MUST focus on catching candles.
+- **DAY TRADING:** For day trading setups, your EXCLUSIVE objective is catching SPIKES in the dominant direction (Buy for Boom, Sell for Crash). You MUST NOT catch candles when day trading.
+` : "";
+
     const tradeModeInstructions = tradeMode === 'Sniper'
         ? `\n🎯 **SNIPER MODE ENABLED (ULTRA-STRICT FILTERING):**
 - You MUST ONLY issue a BUY or SELL signal. You are FORBIDDEN from issuing a NEUTRAL signal.
@@ -385,6 +393,7 @@ ${learnedContext}
 ${trendAlignmentMandate}
 ${globalTrendContext}
 ${twelveDataContext}
+${boomCrashLogic}
 ${accountInfo}
 ${tradeModeInstructions}
 ${institutionalMath}
@@ -665,15 +674,15 @@ If all align, the trade is significantly stronger. Do not issue a signal if thes
 
 1.  **BOOM INDICES (300/500/1000):**
     - **ALGO:** Slow bearish ticks, violent bullish spikes.
-    - **SCALPING (Short-term):** Target short-term moves. You can freely catch bearish candles (tick scalping) if the short-term trend allows it.
-    - **DAY TRADING (Long-term):** Focus mainly on catching bullish spikes (Buy). You can ONLY catch bearish candles if the dominant trend is strongly bearish. In a normal market state, stick to catching spikes.
+    - **SCALPING (Short-term):** Target catching bearish candles (tick scalping).
+    - **DAY TRADING (Long-term):** EXCLUSIVELY Buy bullish spikes. Do NOT catch candles.
     - **SMC SETUP:** Wait for SSL Sweep -> CHoCH -> Retrace to Discount OB/FVG -> Spike Catch.
     - **INVALIDATION:** If price closes a full 1M candle below the zone.
 
 2.  **CRASH INDICES (300/500/1000):**
     - **ALGO:** Slow bullish ticks, violent bearish spikes.
-    - **SCALPING (Short-term):** Target short-term moves. You can freely catch bullish candles (tick scalping) if the short-term trend allows it.
-    - **DAY TRADING (Long-term):** Focus mainly on catching bearish spikes (Sell). You can ONLY catch bullish candles if the dominant trend is strongly bullish. In a normal market state, stick to catching spikes.
+    - **SCALPING (Short-term):** Target catching bullish candles (tick scalping).
+    - **DAY TRADING (Long-term):** EXCLUSIVELY Sell bearish spikes. Do NOT catch candles.
     - **SMC SETUP:** Wait for BSL Sweep -> CHoCH -> Retrace to Premium OB/FVG -> Spike Catch.
 
 3.  **VOLATILITY INDICES (V75, V100, V50, etc.):**
