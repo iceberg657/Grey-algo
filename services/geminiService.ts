@@ -177,11 +177,21 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
 - **Time-Based Liquidity (Killzones):** Focus trades during London (07:00-10:00 UTC) and NY (12:00-15:00 UTC). Outside these hours, moves are often retail noise.
 `;
 
+    const isHighFreqBoomCrash = ['BOOM50', 'BOOM150', 'BOOM300', 'BOOM500', 'BOOM600', 'CRASH50', 'CRASH150', 'CRASH300', 'CRASH500', 'CRASH600'].some(sub => asset.toUpperCase().includes(sub));
+    const isLowFreqBoomCrash = ['BOOM900', 'BOOM1000', 'CRASH900', 'CRASH1000'].some(sub => asset.toUpperCase().includes(sub));
+
     const boomCrashLogic = asset.toUpperCase().includes('BOOM') || asset.toUpperCase().includes('CRASH') ? `
 🚨 **DERIV SYNTHETIC: BOOM & CRASH PROTOCOL (MANDATORY)**
-- **BOOM Assets:** Spikes are instantaneous upward moves. Buy spikes.
-- **CRASH Assets:** Spikes are instantaneous downward moves. Sell spikes.
-- **SCALPING (Short-term):** For scalping setups, your objective is to catch candles (regular price movement against the spike direction). You MUST focus on catching candles.
+- **BOOM Assets:** Spikes are instantaneous upward moves. PRIMARY: Buy spikes.
+- **CRASH Assets:** Spikes are instantaneous downward moves. PRIMARY: Sell spikes.
+- **SCALPING (Short-term) - SNIPER PAGE MANDATE:**
+    ${isHighFreqBoomCrash ? `
+    - **High Frequency Asset detected (${asset}):** You MUST focus **EXCLUSIVELY on SPIKE CATCHING** (Buy for Boom, Sell for Crash). You are FORBIDDEN from tick scalping (trading against the spike) on this asset.
+    ` : isLowFreqBoomCrash ? `
+    - **Low Frequency Asset detected (${asset}):** You may feature **BOTH Spike Catching and Tick Scalping**. However, Tick Scalping (trading against the spike direction) MUST be based on **RIGID ANALYSIS ONLY**. This means you need extreme overextension from SMA, clear institutional rejection on the M15 timeframe, and a high-probability SMC Liquidity Sweep.
+    ` : `
+    - For this asset, prioritize catching spikes in the dominant direction.
+    `}
 - **DAY TRADING:** For day trading setups, your EXCLUSIVE objective is catching SPIKES in the dominant direction (Buy for Boom, Sell for Crash). You MUST NOT catch candles when day trading.
 ` : "";
 
@@ -994,8 +1004,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const models = isDeepThinking ? [
             'gemini-3.1-pro-preview',
             'gemini-3.5-flash',
-            'gemini-2.5-pro',
-            'gemini-3-flash'
+            'gemini-3.1-flash-lite'
         ] : ANALYSIS_MODELS;
 
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -1074,9 +1083,9 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     maxOutputTokens: 8192
                 };
 
-                if (isDeepThinking) {
+                if (isDeepThinking && modelId !== 'gemini-3.1-pro-preview') {
                     config.thinkingConfig = {
-                        thinkingLevel: "HIGH"
+                        thinkingLevel: ThinkingLevel.HIGH
                     };
                 }
 
@@ -1590,8 +1599,7 @@ export async function generateSniperLiveSignal(
     const models = isDeepThinking ? [
         'gemini-3.1-pro-preview',
         'gemini-3.5-flash',
-        'gemini-2.5-pro',
-        'gemini-3-flash-preview'
+        'gemini-3.1-flash-lite'
     ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses 3.1 Flash Lite only by default
 
     const quantContext = quantData ? `
@@ -1715,12 +1723,31 @@ The user has provided their own broker's exact price inside the query (e.g. '@ 3
 - Broker feeds differ across FTMO, Headway, or Prop Firms. The user's provided quoted price is the absolute structural anchor.
 ` : '';
 
+    const isHighFreqBoomCrash = ['BOOM50', 'BOOM150', 'BOOM300', 'BOOM500', 'BOOM600', 'CRASH50', 'CRASH150', 'CRASH300', 'CRASH500', 'CRASH600'].some(sub => assetName.toUpperCase().includes(sub));
+    const isLowFreqBoomCrash = ['BOOM900', 'BOOM1000', 'CRASH900', 'CRASH1000'].some(sub => assetName.toUpperCase().includes(sub));
+
+    const boomCrashLogic = assetName.toUpperCase().includes('BOOM') || assetName.toUpperCase().includes('CRASH') ? `
+🚨 **DERIV SYNTHETIC: BOOM & CRASH PROTOCOL (MANDATORY)**
+- **BOOM Assets:** Spikes are instantaneous upward moves. PRIMARY: Buy spikes.
+- **CRASH Assets:** Spikes are instantaneous downward moves. PRIMARY: Sell spikes.
+- **SCALPING (Short-term) - SNIPER PAGE MANDATE:**
+    ${isHighFreqBoomCrash ? `
+    - **High Frequency Asset detected (${assetName}):** You MUST focus **EXCLUSIVELY on SPIKE CATCHING** (Buy for Boom, Sell for Crash). You are FORBIDDEN from tick scalping (trading against the spike) on this asset.
+    ` : isLowFreqBoomCrash ? `
+    - **Low Frequency Asset detected (${assetName}):** You may feature **BOTH Spike Catching and Tick Scalping**. However, Tick Scalping (trading against the spike direction) MUST be based on **RIGID ANALYSIS ONLY**. This means you need extreme overextension from SMA, clear institutional rejection on the M15 timeframe, and a high-probability SMC Liquidity Sweep.
+    ` : `
+    - For this asset, prioritize catching spikes in the dominant direction.
+    `}
+- **DAY TRADING:** For day trading setups, your EXCLUSIVE objective is catching SPIKES in the dominant direction (Buy for Boom, Sell for Crash). You MUST NOT catch candles when day trading.
+` : "";
+
     const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
 System Role: You are a High-Frequency Institutional Execution Bot.
 
 Data:
 ${quantContext}
 
+${boomCrashLogic}
 ${weekendInstruction}
 ${unprofitableDayInstruction}
 ${brokerInstruction}
@@ -1848,9 +1875,9 @@ JSON Structure:
                     maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
                 };
 
-                if (isDeepThinking) {
+                if (isDeepThinking && modelId !== 'gemini-3.1-pro-preview') {
                     config.thinkingConfig = {
-                        thinkingLevel: "HIGH"
+                        thinkingLevel: ThinkingLevel.HIGH
                     };
                 }
 

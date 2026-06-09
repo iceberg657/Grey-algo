@@ -134,11 +134,9 @@ const getUniqueKeys = (keys: string[]) => {
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
     'gemini-3.1-pro-preview',
-    'gemini-3-flash-preview',
+    'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-2.5-pro',
-    'gemini-2.5-flash',
-    'gemini-3.5-flash'
+    'gemini-flash-latest'
 ];
 
 // 2. SNIPER PAGE (Keys 1-4, Strictly 3.1 Flash Lite)
@@ -150,12 +148,10 @@ export const SNIPER_MODELS = [
 // 3. CHAT & LIVE (Key 5, ALL Models)
 export const getChatPool = () => getUniqueKeys([K.K5()]); 
 export const CHAT_MODELS = [
-    'gemini-3.0-flash-preview',
     'gemini-3.5-flash',
     'gemini-3.1-pro-preview',
-    'gemini-2.5-pro',
-    'gemini-2.5-flash',
-    'gemini-3.1-flash-lite'
+    'gemini-3.1-flash-lite',
+    'gemini-flash-latest'
 ];
 
 // 4. FEATURE DISTRIBUTION (Keys 6-9)
@@ -165,12 +161,12 @@ export const getAlphaPool = () => getUniqueKeys([K.K6()]);
 // A: AI Pilot / Regime Tracker
 export const PILOT_MODELS = ['gemini-3.1-pro-preview'];
 // B: AI ASSETS SUGGESTION 
-export const SUGGESTION_MODELS = ['gemini-3.0-flash-preview'];
+export const SUGGESTION_MODELS = ['gemini-3.5-flash'];
 
 // BETA (Key 7)
 export const getBetaPool = () => getUniqueKeys([K.K7()]);
 // A: Global Market Intelligence
-export const MARKET_MODELS = ['gemini-3.0-flash-preview'];
+export const MARKET_MODELS = ['gemini-3.5-flash'];
 // B: Neural Learning (Truth Layer)
 export const LEARNING_MODELS = ['gemini-3.5-flash'];
 
@@ -179,12 +175,12 @@ export const getGammaPool = () => getUniqueKeys([K.K8()]);
 // A: Session Summaries
 export const SUMMARY_MODELS = ['gemini-3.1-pro-preview'];
 // B: Neural TTS
-export const TTS_MODELS = ['gemini-2.0-flash']; 
+export const TTS_MODELS = ['gemini-3.1-flash-tts-preview']; 
 
 // DELTA (Key 9)
 export const getDeltaPool = () => getUniqueKeys([K.K9()]);
 // A: Embeddings & Pattern Recognition
-export const EMBEDDING_MODELS = ['gemini-1.5-flash'];
+export const EMBEDDING_MODELS = ['gemini-embedding-2-preview'];
 // B: Prompt Optimization
 export const OPTIMIZATION_MODELS = ['gemini-3.1-flash-lite'];
 

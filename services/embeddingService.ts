@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { executeLaneCall, getDeltaPool } from './retryUtils';
+import { executeLaneCall, getDeltaPool, EMBEDDING_MODELS } from './retryUtils';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, getDocs, limit, orderBy } from 'firebase/firestore';
 
@@ -17,11 +17,15 @@ export interface KnowledgeEntry {
 
 export async function generateEmbedding(text: string): Promise<number[]> {
     return await executeLaneCall<number[]>(async (apiKey) => {
-        const genAI = new GoogleGenAI({ apiKey });
-        const model = genAI.getGenerativeModel({ model: "gemini-embedding-2-preview" });
+        const ai = new GoogleGenAI({ apiKey });
         
-        const result = await model.embedContent(text);
-        return result.embedding.values;
+        // Use the new standard SDK pattern for embedding
+        const result = await ai.models.embedContent({
+            model: EMBEDDING_MODELS[0],
+            contents: [text]
+        });
+        
+        return result.embeddings[0].values;
     }, getDeltaPool);
 }
 
