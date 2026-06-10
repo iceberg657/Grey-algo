@@ -173,7 +173,7 @@ Use this higher timeframe data to anchor your decision. You MUST NOT trade again
 - **Turtle Soup & SMT Reversal (CRITICAL):** If the Quant Data or Advanced Signal indicates **SMT Divergence** (e.g., Asset A makes a Lower Low but Asset B fails to), you MUST prioritize a "Turtle Soup" entry. This is a counter-trend reversal play where you enter LONG after a liquidity sweep of a major low (or SHORT after a sweep of a high) assuming the move is a fake-out hunt. Target the nearest internal range liquidity (opposing FVG or OB).
 - **Stop Loss System (Hard Floor):** Your SL MUST be strictly mathematical. Set it below the OTE Deep level, or below the Lowest Wick of the Displacement candle minus a volatility buffer (e.g., 0.5x ATR).
 - **SURGICAL STOP DISCIPLINE (CRITICAL):** For Scalping and Day Trading, you are STRICTLY FORBIDDEN from using swing points from H4 or Daily charts as your Stop Loss. You MUST use the *local* structure invalidation (the high/low of the candle that swept liquidity on the M1/M5/M15 timeframe). If your calculated SL exceeds 30 pips for Forex pairs, your setup is INVALID. Re-evaluate or tighten the entry.
-- **Take Profit System:** TP1 targets the first liquidity pool (1:1.5 to 1:2 RR). TP2 targets the main external liquidity sweep.
+- **Take Profit System:** TP1 MUST be exactly 1.5R. TP2 MUST be 2.5R. TP3 MUST target major structural liquidity at 4.0R or higher.
 - **Time-Based Liquidity (Killzones):** Focus trades during London (07:00-10:00 UTC) and NY (12:00-15:00 UTC). Outside these hours, moves are often retail noise.
 `;
 
@@ -458,48 +458,34 @@ Here is a complete breakdown of how you operate, calculate lot sizes, and formul
    - **Phase 1: Strategic Analysis (HTF Chart):** Determine the macro trend, major Supply/Demand zones, and overall market structure.
    - **Phase 2: Tactical Analysis (Primary Chart):** Identify the trade setup, patterns, and refined levels within the strategic context. This is your primary source for entry bias.
    - **Phase 3: Execution Analysis (Execution Chart):** Pinpoint the exact entry, Stop Loss (SL), and Take Profit (TP) levels for trade execution. You MUST use the Execution View for precise SL and TP placements.
-   - **Phase 4: Fundamental Context (Search Grounding):** Use the googleSearch tool to fetch real-time macroeconomic news and sentiment to ensure a sudden news event won't invalidate the setup.
+   - **Phase 4: Fundamental Context (Search Grounding):** Use the googleSearch tool to fetch real-time macroeconomic news and sentiment.
 
 2. **Risk Management & Lot Size Calculation:**
-   - Capital preservation is your highest priority, especially for Funded Accounts (Prop Firms). Calculate risk parameters strictly based on the User Trading Account Profile.
-   - **Standard Risk:** Default to a strict 1% risk per trade based on total account balance.
-   - **Cross-Asset Correlation Analysis (MANDATORY):** Before issuing a signal, you MUST check the correlation of the asset with its primary drivers (e.g., DXY for EURUSD, Gold for XAUUSD, Oil for USDCAD). If the asset's move is contradicted by its primary driver (e.g., EURUSD BUY signal while DXY is showing extreme bullish strength), DO NOT issue the signal.
-   - **ATR-Based Stop Loss (MANDATORY):** You MUST calculate the Stop Loss using an ATR multiplier (e.g., 1.5x or 2x ATR) to ensure the stop is placed outside of normal market noise.
-   - **PRECISION ENTRY:** Use BOTH the Primary and Execution charts to find the most precise entry point. Do not be a day trader for a scalp trade; aim for sniper precision.
-   - **Session-Specific Risk:** Adjust your risk aggressiveness based on the current trading session. Be more conservative (e.g., 0.5% risk) during low-volume Asian sessions and more aggressive (up to 1% risk) during high-volume London/New York sessions.
+   - Capital preservation is your highest priority.
+   - **Standard Risk:** Default to a strict 1% risk per trade.
    - **The Formula:**
      * Risk Amount = Account Balance * (Risk Percentage / 100)
      * Lot Size = Risk Amount / (Stop Loss in Pips * Pip Value per Standard Lot)
-   - **Drawdown Protection:** If a Daily Drawdown Limit (e.g., 4% or 5%) is specified, factor this into your reasoning. Advise against taking a trade if the required stop loss is too wide and threatens the daily limit, ensuring survival to trade another day.
 
 3. **PRE-TRADE MANDATORY FILTERS (MANDATORY):**
-    - You MUST perform these checks before issuing any trade signal. If any condition fails, you MUST issue a "HOLD" signal.
-    - **Raw API Data Confluence (MANDATORY):** If Twelve Data is available, you MUST verify that the current price is within your expected entry zone. If the visual chart looks like a BUY but the Raw API Data shows price is already at a major resistance or has moved too far, you MUST adjust your signal.
-    - **News Filter:** Check for high-impact news (CPI, NFP, FOMC, GDP). If news is within 1 hour, DO NOT trade.
-    - **Volatility Filter (ATR):** If ATR is < 30% or > 200% of the 14-period average, DO NOT trade.
-    - **Correlation Filter:** If you are already tracking or trading a correlated pair (e.g., EURUSD and GBPUSD, or EURUSD and Gold) in the same direction, DO NOT trade.
-    - **Intermarket Logic:** Check correlation with primary drivers (DXY for EURUSD, Gold for XAUUSD, Oil for USDCAD). If the asset's move is contradicted by its primary driver, DO NOT trade.
-    - **Demand/Supply Zone Confirmation:** If no Demand/Supply zone is identified, or if no confirmation pattern is detected within the zone, DO NOT trade.
+    - **Raw API Data Confluence (MANDATORY):** Verify price is within entry zone using Twelve Data if available.
+    - **News Filter:** Check for high-impact news. If within 1 hour, DO NOT trade.
 
 4. **Institutional & Fundamental Key Drivers (MANDATORY):**
-    - You MUST analyze the "Smart Money" footprints and the real-world catalysts moving price.
-    - **Institutional Drivers:** Look for large institutional positioning (COT reports), accumulation/distribution zones, funding rates/open interest spikes, and interbank/hedge fund flows.
-    - **Fundamental Drivers:** Analyze the macro backdrop (interest rates, inflation, GDP, central bank speeches), sector-specific fundamentals (earnings, oil inventories), and upcoming high-impact news.
-    - **Market Story:** Synthesize the technicals, institutional behavior, and fundamentals into a cohesive narrative that explains WHY price is moving and what is likely to happen next.
+    - Analyze "Smart Money" footprints and real-world catalysts.
 
 5. **Trade Execution (The Output):**
-   - When delivering a setup, do not guess. Provide a definitive, actionable plan:
-     * **Signal:** A clear BUY or SELL directive. (If the market is choppy or the setup is low-quality, do not issue a trade signal).
-     * **Entry Zone:** Provide a distributed entry price range rather than a single pip, allowing scaling in or catching pullbacks.
-     * **Invalidation Point (Stop Loss):** A hard price level where the trade thesis is completely invalidated. This is non-negotiable.
-     * **Take Profits (High-Probability Guaranteed Rules - CONSERVATIVE):** 
-      - **TP1 (1:1.5 RR - MANDATORY):** TP1 MUST be set at exactly 1:1.5 Risk-to-Reward ratio relative to the Stop Loss. This is non-negotiable and designed to guarantee immediate profit security.
-      - **Nearest Internal Liquidity (CONSERVATIVE):** TP1 MUST target the *closest* internal liquidity point (e.g., nearest 15m FVG, order block, or minor swing high/low) that is *before* the main structural target. Do not reach for distant targets for TP1.
-      - **ATR-Based Limits (CONSERVATIVE):** TP1 MUST be placed within 0.5x to 0.8x of the current Average True Range (ATR) to ensure it is achievable within a single, normal market move, avoiding reliance on high-volatility spikes.
-      - **TP2/TP3 (Runners):** Only after TP1 is hit and SL is moved to Breakeven (BE) should you target further structural liquidity points for TP2 (1:2.5 or 1:3 RR) and TP3.
-    * **Risk-Free Protocol:** You MUST instruct the user to move Stop Loss to Breakeven (BE) immediately after TP1 is hit and close 50%-80% of the position.
-     * **10-Point Reasoning:** A detailed breakdown of exactly why the trade is valid, including the technical case, the lot size calculation, and how it aligns with specific profit targets and drawdown limits.
-   - **In short:** Combine institutional-grade technical analysis with strict, mathematical risk management tailored to exact account size and goals.
+   - Provide a definitive, actionable plan:
+     * **Signal:** A clear BUY or SELL directive.
+     * **Entry Zone:** Provide a distributed entry price range.
+     * **Invalidation Point (Stop Loss):** A hard price level.
+     * **Take Profits (High-Probability Institutional Rules):** 
+      - **TP1 (1:1.5 RR - MANDATORY):** Set at exactly 1:1.5 RR.
+      - **TP2 (1:2.5 RR - MANDATORY):** Set at exactly 1:2.5 RR.
+      - **TP3 (1:4.0 RR - OPTIONAL):** Target major structural liquidity at 1:4.0 RR or higher.
+    * **Risk-Free Protocol:** Move SL to BE after TP1 is hit.
+     * **10-Point Reasoning:** Detailed technical breakdown.
+   - **In short:** Combine institutional-grade technical analysis with mathematical risk management.
 
 🔟 **PRECISION ROUNDING PROTOCOL (MANDATORY):**
 You MUST round all price levels (entryPoints, stopLoss, takeProfits) according to the asset type:
@@ -1082,7 +1068,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             async (modelId) => {
                 const config: any = {
                     tools: [{ googleSearch: {} }],
-                    temperature: 0,
+                    temperature: isDeepThinking ? 0.2 : 0.0,
                     maxOutputTokens: 8192
                 };
 
@@ -1876,7 +1862,7 @@ JSON Structure:
             models,
             async (modelId) => {
                 const config: any = {
-                    temperature: 0,
+                    temperature: isDeepThinking ? 0.2 : 0.0,
                     maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
                 };
 
@@ -2032,14 +2018,14 @@ JSON Structure:
 
                 if (rrLevels) {
                     finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
-                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2x, 3x risk distances.`);
+                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2.5x, 4.0x risk distances.`);
                     finalPositionProtocol = `
 **POSITION MANAGEMENT PROTOCOL:**
 - Entry: ${midEntry}
 - Stop Loss: ${finalSL} (Risk: ${rrLevels.risk.toFixed(5)})
 - TP1 (1:1.5 RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
-- TP2 (1:2.0 RR): ${rrLevels.tp2} → Close 30%
-- TP3 (1:3.0 RR): ${rrLevels.tp3} → Close remaining 20%
+- TP2 (1:2.5 RR): ${rrLevels.tp2} → Close 30%
+- TP3 (1:4.0 RR): ${rrLevels.tp3} → Close remaining 20%
 - Breakeven Level: ${rrLevels.breakeven}
 
 RULE: Once TP1 is hit you CANNOT lose on this trade.

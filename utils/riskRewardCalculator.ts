@@ -77,34 +77,12 @@ export function calculateTPSL(
   const isSlValid = stopLoss > 0 && currentSlDist >= configMinDist;
   const isSlCorrectSide = signal === 'BUY' ? stopLoss < baseEntry : stopLoss > baseEntry;
 
-  // 2.5 ENFORCE MAXIMUM SL DISTANCE (Surgical Cap)
-  let maxSlDist = configMinDist * 25; // Much wider cap so we don't accidentally force a bad stop
-  if (isScalping) {
-      maxSlDist = configMinDist * 8; 
-  } else if (tradingStyle?.toLowerCase().includes('day trading')) {
-      maxSlDist = configMinDist * 15;
-  }
-  
-  // Asset-specific overrides for Max SL
-  if (asset.toUpperCase().includes('XAU') || asset.toUpperCase().includes('GOLD')) {
-      maxSlDist = isScalping ? 6.0 : 15.0;
-  } else if (asset.toUpperCase().includes('BTC')) {
-      maxSlDist = isScalping ? 1000 : 3000;
-  }
-
-  const isSlTooFar = currentSlDist > maxSlDist;
-
-  if (!isSlValid || !isSlCorrectSide || isSlTooFar) {
+  if (!isSlValid || !isSlCorrectSide) {
       // Create safer SL based on ATR-like logic or config minimum
       const bufferMultiplier = isScalping ? 1.5 : 2.0;
       
       // Give it breathing room, don't just snap to the bare minimum
       let buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist * bufferMultiplier : currentSlDist * 1.1); 
-      
-      // If it was too far, we force it to the maxSlDist
-      if (isSlTooFar) {
-          buffer = maxSlDist;
-      }
       
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
@@ -134,7 +112,8 @@ export function calculateTPSL(
   const tpDistances: [number, number, number] = [0, 0, 0];
   
   const rUnit = currentSlDist; 
-  const ratios = [1.0, targetRatio, targetRatio + 2.0]; 
+  // Restore institutional standard ratios: TP1 at 1.5x, TP2 at 2.5x, TP3 at 4x or user target
+  const ratios = [1.5, 2.5, Math.max(4.0, targetRatio)]; 
 
   ratios.forEach((r, idx) => {
       const dist = rUnit * r;

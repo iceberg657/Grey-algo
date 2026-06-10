@@ -1002,7 +1002,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                           {/* TP2 */}
                                           <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
                                               <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
-                                                  TP2 • 1:2
+                                                  TP2 • 1:2.5
                                               </div>
                                               <div className="text-sm font-black text-emerald-500">
                                                   {msg.signal.takeProfits[1]}
@@ -1015,7 +1015,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                           {/* TP3 */}
                                           <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
                                               <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
-                                                  TP3 • 1:3
+                                                  TP3 • 1:4.0
                                               </div>
                                               <div className="text-sm font-black text-emerald-500">
                                                   {msg.signal.takeProfits[2] || 'N/A'}

@@ -145,9 +145,11 @@ export const ANALYSIS_MODELS = [
 // 2. SNIPER PAGE (STABLE MODELS - No change to live logic)
 export const getSniperPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]);
 export const SNIPER_MODELS = [
-    'gemini-2.0-flash-lite-preview-02-05',
-    'gemini-1.5-flash-8b',
-    'gemini-1.5-flash'
+    'gemini-3.5-flash',
+    'gemini-3.1-flash-lite',
+    'gemini-3-flash',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite'
 ];
 
 // 3. CHAT & LIVE (Keys 1-9, Resilience Pool)
