@@ -1002,9 +1002,12 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         const isDeepThinking = !!request.userSettings?.deepThinking;
         const models = isDeepThinking ? [
-            'gemini-3.1-pro-preview',
             'gemini-3.5-flash',
-            'gemini-3.1-flash-lite'
+            'gemini-3.1-flash-lite',
+            'gemini-3-flash',
+            'gemini-2.5-flash',
+            'gemini-2.0-flash',
+            'gemini-1.5-pro'
         ] : ANALYSIS_MODELS;
 
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
@@ -1083,7 +1086,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     maxOutputTokens: 8192
                 };
 
-                if (isDeepThinking && modelId !== 'gemini-3.1-pro-preview') {
+                if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
                     config.thinkingConfig = {
                         thinkingLevel: ThinkingLevel.HIGH
                     };
@@ -1597,10 +1600,12 @@ export async function generateSniperLiveSignal(
 
     const isDeepThinking = !!userSettings?.deepThinking;
     const models = isDeepThinking ? [
-        'gemini-3.1-pro-preview',
         'gemini-3.5-flash',
-        'gemini-3.1-flash-lite'
-    ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses 3.1 Flash Lite only by default
+        'gemini-3.1-flash-lite',
+        'gemini-3-flash',
+        'gemini-2.5-flash',
+        'gemini-2.0-flash'
+    ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default
 
     const quantContext = quantData ? `
 **ADVANCED MULTI-ASSET ENGINE SIGNAL:**
@@ -1875,7 +1880,7 @@ JSON Structure:
                     maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
                 };
 
-                if (isDeepThinking && modelId !== 'gemini-3.1-pro-preview') {
+                if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
                     config.thinkingConfig = {
                         thinkingLevel: ThinkingLevel.HIGH
                     };

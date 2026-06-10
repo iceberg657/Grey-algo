@@ -130,59 +130,67 @@ const getUniqueKeys = (keys: string[]) => {
     return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));
 };
 
-// 1. CHART ANALYSIS (Keys 1-4, Always start with K1)
-export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
+// 1. CHART ANALYSIS (Keys 1-9, Fully Integrated Pool)
+export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]); 
 export const ANALYSIS_MODELS = [
-    'gemini-3.1-pro-preview',
     'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest'
+    'gemini-3-flash',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
 ];
 
-// 2. SNIPER PAGE (Keys 1-4, Strictly 3.1 Flash Lite)
-export const getSniperPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]);
+// 2. SNIPER PAGE (STABLE MODELS - No change to live logic)
+export const getSniperPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]);
 export const SNIPER_MODELS = [
-    'gemini-3.1-flash-lite'
+    'gemini-2.0-flash-lite-preview-02-05',
+    'gemini-1.5-flash-8b',
+    'gemini-1.5-flash'
 ];
 
-// 3. CHAT & LIVE (Key 5, ALL Models)
-export const getChatPool = () => getUniqueKeys([K.K5()]); 
+// 3. CHAT & LIVE (Keys 1-9, Resilience Pool)
+export const getChatPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]); 
 export const CHAT_MODELS = [
     'gemini-3.5-flash',
-    'gemini-3.1-pro-preview',
     'gemini-3.1-flash-lite',
-    'gemini-flash-latest'
+    'gemini-3-flash',
+    'gemini-2.5-flash',
+    'gemini-2.5-flash-lite',
+    'gemini-2.0-flash',
+    'gemini-1.5-flash'
 ];
 
 // 4. FEATURE DISTRIBUTION (Keys 6-9)
 
 // ALPHA (Key 6)
-export const getAlphaPool = () => getUniqueKeys([K.K6()]);
+export const getAlphaPool = () => getUniqueKeys([K.K6(), K.K1(), K.K2()]);
 // A: AI Pilot / Regime Tracker
-export const PILOT_MODELS = ['gemini-3.1-pro-preview'];
+export const PILOT_MODELS = ['gemini-3.1-pro-preview', 'gemini-2.0-flash'];
 // B: AI ASSETS SUGGESTION 
-export const SUGGESTION_MODELS = ['gemini-3.5-flash'];
+export const SUGGESTION_MODELS = ['gemini-3.5-flash', 'gemini-1.5-flash'];
 
 // BETA (Key 7)
-export const getBetaPool = () => getUniqueKeys([K.K7()]);
+export const getBetaPool = () => getUniqueKeys([K.K7(), K.K3(), K.K4()]);
 // A: Global Market Intelligence
-export const MARKET_MODELS = ['gemini-3.5-flash'];
+export const MARKET_MODELS = ['gemini-3.5-flash', 'gemini-2.0-flash'];
 // B: Neural Learning (Truth Layer)
-export const LEARNING_MODELS = ['gemini-3.5-flash'];
+export const LEARNING_MODELS = ['gemini-3.5-flash', 'gemini-1.5-flash'];
 
 // GAMMA (Key 8)
-export const getGammaPool = () => getUniqueKeys([K.K8()]);
+export const getGammaPool = () => getUniqueKeys([K.K8(), K.K5()]);
 // A: Session Summaries
-export const SUMMARY_MODELS = ['gemini-3.1-pro-preview'];
+export const SUMMARY_MODELS = ['gemini-3.1-pro-preview', 'gemini-2.0-flash'];
 // B: Neural TTS
-export const TTS_MODELS = ['gemini-3.1-flash-tts-preview']; 
+export const TTS_MODELS = ['gemini-3.1-flash-tts-preview', 'gemini-1.5-flash']; 
 
 // DELTA (Key 9)
-export const getDeltaPool = () => getUniqueKeys([K.K9()]);
+export const getDeltaPool = () => getUniqueKeys([K.K9(), K.K1()]);
 // A: Embeddings & Pattern Recognition
 export const EMBEDDING_MODELS = ['gemini-embedding-2-preview'];
 // B: Prompt Optimization
-export const OPTIMIZATION_MODELS = ['gemini-3.1-flash-lite'];
+export const OPTIMIZATION_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.0-flash'];
 
 // Legacy Compatibility Exports (Update these to point to new logic)
 export const getSuggestionPool = getAlphaPool;
@@ -257,14 +265,6 @@ export async function executeLaneCall<T>(
 
     let availableKeys = activePool.filter(k => !isThrottled(k));
     
-    // Ensure we start with K1 if available in activePool
-    const k1 = K.K1();
-    if (k1 && activePool.includes(k1)) { 
-        cooldownMap.delete(k1);
-        availableKeys = availableKeys.filter(k => k !== k1);
-        availableKeys.unshift(k1);
-    }
-    
     // If all keys are throttled, we try them anyway as a last resort, 
     // but we should prioritize the one that was throttled longest ago.
     const keysToTry = availableKeys.length > 0 ? availableKeys : activePool;
@@ -277,12 +277,14 @@ export async function executeLaneCall<T>(
             return await operationFactory(apiKey);
         } catch (error: any) {
             lastError = error;
-            const errorMsg = String(error.message || error || '').toLowerCase();
+            const errorMsg = String(error.message || (typeof error === 'object' ? JSON.stringify(error) : error) || '').toLowerCase();
             const isQuota = errorMsg.includes('429') || 
                            error.status === 429 || 
                            errorMsg.includes('quota') || 
                            errorMsg.includes('resource_exhausted') ||
-                           errorMsg.includes('limit reached');
+                           errorMsg.includes('limit reached') ||
+                           errorMsg.includes('exhausted') ||
+                           errorMsg.includes('too many requests');
             
             if (isQuota) {
                 console.warn(`[LaneOrchestrator] Quota hit for key ending in ...${apiKey.slice(-4)}. Throttling for ${COOLDOWN_DURATION/1000}s.`);
