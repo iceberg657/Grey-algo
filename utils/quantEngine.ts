@@ -5,6 +5,7 @@ import { executeRiskOptimization, RiskOptimization } from './riskOptimizer';
 import { predictNextLiquiditySweep, LiquidityPrediction } from './liquidityPrediction';
 import { NeuralEngine, NeuralAnalysis } from '../services/neuralEngine';
 import { MathEngine } from '../services/mathEngine';
+import { calculateInstitutionalExecution, InstitutionalExecutionData } from './institutionalEngine';
 export interface OHLC {
     epoch: number;
     open: number;
@@ -1196,7 +1197,9 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     );
 
     // Run Monte Carlo Simulation to find price targets
-    const monteCarloPrediction = MathEngine.monteCarloPredict(currentPrice, returnsHistory, 10, 2000);
+    const monteCarloPrediction = MathEngine.monteCarloPredict(currentPrice, returnsHistory, 10, 10000);
+
+    const institutionalExecution = calculateInstitutionalExecution(candles, currentPrice, atr);
 
     return {
         trend,
@@ -1240,6 +1243,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         liquidityPrediction,
         riskOptimization,
         neuralAnalysis,
-        monteCarloPrediction
+        monteCarloPrediction,
+        institutionalExecution
     };
 }

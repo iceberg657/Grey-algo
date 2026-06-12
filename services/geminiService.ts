@@ -1593,6 +1593,24 @@ export async function generateSniperLiveSignal(
         'gemini-2.0-flash'
     ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default
 
+    // CRITICAL DATA STARVATION CHECK
+    if (livePrice === 0 && (!marketData || marketData.error || Object.keys(marketData).length === 0)) {
+        console.warn(`[GEMINI] Data starvation detected for ${assetName}. Rejecting to prevent hallucination.`);
+        return {
+             id: Date.now().toString(),
+             asset: assetName || "UNKNOWN",
+             timeframe: 'M15',
+             signal: 'NEUTRAL',
+             entryPoints: [0],
+             stopLoss: 0,
+             takeProfits: [0, 0],
+             confidence: 0,
+             confluenceMatrix: {
+                 reasoning: `⚠️ DATA STARVATION ERROR: The quant engine was unable to fetch any live pricing or historical data for ticker symbol "${assetName}". (TwelveData Status: ${marketData?.error || 'N/A'}). Because the Engine had a true price of 0.00, we forcefully veto the setup rather than allowing hallucinated coordinates.`
+             }
+        } as SignalData;
+    }
+
     const quantContext = quantData ? `
 **ADVANCED MULTI-ASSET ENGINE SIGNAL:**
 ${advancedQuantSignal ? `
@@ -1665,6 +1683,13 @@ ${advancedQuantSignal ? `
 - Expected Median Price: ${quantData.monteCarloPrediction?.expectedPrice?.toFixed(5) || 'N/A'}
 - 68% Confidence Upper Bound (+1σ): ${quantData.monteCarloPrediction?.upperBound?.toFixed(5) || 'N/A'}
 - 68% Confidence Lower Bound (-1σ): ${quantData.monteCarloPrediction?.lowerBound?.toFixed(5) || 'N/A'}
+
+**INSTITUTIONAL EXECUTION PARAMETERS (HFT):**
+- VWAP Estimation: ${quantData.institutionalExecution?.vwap?.toFixed(5) || 'N/A'}
+- Recommended Order Routing Strategy: ${quantData.institutionalExecution?.oms?.recommendedRouting || 'N/A'}
+- Microstructure Spoofing Detected: ${quantData.institutionalExecution?.microstructure?.spoofingDetected ? 'YES 🛡️' : 'NO'}
+- Pre-Trade Volatility Circuit Breaker Active: ${quantData.institutionalExecution?.preTradeRisk?.volatilityCircuitBreaker ? 'YES 🛑' : 'NO'}
+- Estimated Execution Slippage (TCA): ${quantData.institutionalExecution?.tca?.estimatedSlippage?.toFixed(3) || '0'}%
 
 *CRITICAL MATH COMPLIANCE INSTRUCTIONS:*
 - **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 

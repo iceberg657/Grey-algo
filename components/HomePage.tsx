@@ -277,13 +277,12 @@ export const HomePage: React.FC<HomePageProps> = ({
                 else if (requestData.tradingStyle === 'Swing Trading') { interval = '4h'; derivGranularity = 14400; }
                 
                 // Clean asset name for Twelve Data
-                let symbol = requestData.asset.toUpperCase();
-                if (symbol === 'GOLD') symbol = 'XAU/USD';
-                else if (symbol === 'XAUUSD') symbol = 'XAU/USD';
+                let symbol = requestData.asset.toUpperCase().replace(/\s/g, '');
+                if (symbol === 'GOLD' || symbol === 'XAUUSD') symbol = 'XAU/USD';
                 else if (symbol === 'US30' || symbol === 'DJI') symbol = 'DJI';
                 else if (symbol === 'NAS100' || symbol === 'NDX') symbol = 'NDX';
                 else if (symbol === 'SPX500' || symbol === 'SPX') symbol = 'SPX';
-                else if (symbol === 'UK100' || symbol === 'FTSE') symbol = 'FTSE';
+                else if (symbol === 'UK100' || symbol === 'FTSE' || symbol === 'FTSE100') symbol = 'FTSE';
                 else if (symbol === 'GER40' || symbol === 'DAX') symbol = 'DAX';
                 else if (symbol === 'USOIL' || symbol === 'WTI') symbol = 'WTI';
                 else if (symbol === 'UKOIL' || symbol === 'BRENT') symbol = 'BRENT';
@@ -295,7 +294,11 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                 // Try to fetch Deriv data for RCA Markov Engine evaluation
                 try {
-                    const derivSymbol = requestData.asset.toUpperCase();
+                    // Try to use a Deriv compatible symbol format
+                    let derivSymbol = requestData.asset.toUpperCase().replace(/\s|-|\//g, '');
+                    if (derivSymbol === 'GOLD' || derivSymbol === 'XAUUSD') derivSymbol = 'frxXAUUSD';
+                    else if (derivSymbol === 'FTSE100' || derivSymbol === 'FTSE' || derivSymbol === 'UK100') derivSymbol = 'OTC_FTSE'; // Deriv notation for FTSE
+                    
                     const tokenParam = userSettings?.derivApiToken ? `&token=${encodeURIComponent(userSettings.derivApiToken)}` : '';
                     const derivRes = await fetch(`/api/derivData?symbol=${derivSymbol}&history=true&granularity=${derivGranularity}&count=200${tokenParam}`);
                     if (derivRes.ok) {
