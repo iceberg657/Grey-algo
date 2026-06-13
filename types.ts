@@ -43,6 +43,7 @@ export interface UserSettings extends Partial<AccountSettings> {
     riskRewardRatio?: string;
     partialClose?: PartialCloseConfig;
     tradeMode?: 'Aggressive' | 'Sniper';
+    executionAlgorithm?: 'Standard' | 'TWAP' | 'VWAP' | 'Smart Order Router (SOR)' | 'Implementation Shortfall';
     twelveDataApiKey?: string;
     derivApiToken?: string;
     geminiApiKey?: string;

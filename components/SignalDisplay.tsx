@@ -175,6 +175,7 @@ const VerificationStepCard: React.FC<{ title: string; step: VerificationStep }> 
 export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
     const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
+    const [executionAlgorithm, setExecutionAlgorithm] = useState<string>('Standard');
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Determine unit and precision for display
@@ -246,6 +247,18 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
         
         copyToClipboard(signalText, 'Full Signal');
     };
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('greyquant_user_settings');
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (parsed.executionAlgorithm) {
+                    setExecutionAlgorithm(parsed.executionAlgorithm);
+                }
+            }
+        } catch (e) {}
+    }, []);
 
     useEffect(() => {
         return () => {
@@ -428,6 +441,12 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                     {data.expirationTime && (
                                         <div className="text-[10px] font-bold text-amber-600/80 dark:text-amber-500/80 bg-amber-500/10 dark:bg-amber-500/10 border border-amber-500/20 px-3 py-1.5 rounded items-center justify-center flex max-w-[90%] text-center leading-tight shadow-md">
                                             <span className="mr-1.5 mb-px opacity-70">⏱️</span> {data.expirationTime}
+                                        </div>
+                                    )}
+                                    {executionAlgorithm && executionAlgorithm !== 'Standard' && (
+                                        <div className="mt-2 text-[10px] uppercase font-black tracking-widest text-indigo-700 dark:text-indigo-400 bg-indigo-500/10 border border-indigo-500/20 px-4 py-1.5 rounded-lg flex items-center justify-center text-center shadow-inner">
+                                            <span className="mr-2 opacity-80 backdrop-blur-sm">⚡ Algorithmic Execution:</span> 
+                                            {executionAlgorithm}
                                         </div>
                                     )}
                                 </div>

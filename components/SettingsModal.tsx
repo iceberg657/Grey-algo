@@ -144,6 +144,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 </button>
                             </div>
 
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 mt-4 flex items-center justify-between">
+                                Institutional Execution Algorithm
+                                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded ml-2 uppercase tracking-wider">Premium Quant</span>
+                            </label>
+                            <select 
+                                value={settings.executionAlgorithm || 'Standard'}
+                                onChange={(e) => handleChange('executionAlgorithm', e.target.value)}
+                                className="w-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-xl px-4 py-3 text-gray-900 dark:text-white mb-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-inner"
+                            >
+                                <option value="Standard">Standard Routing</option>
+                                <option value="TWAP">Time-Weighted Average Price (TWAP)</option>
+                                <option value="VWAP">Volume-Weighted Average Price (VWAP)</option>
+                                <option value="Smart Order Router (SOR)">Smart Order Router (SOR)</option>
+                                <option value="Implementation Shortfall">Implementation Shortfall</option>
+                            </select>
+
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Type</label>
                             <div className="grid grid-cols-2 gap-3">
                                 <button

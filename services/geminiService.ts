@@ -265,9 +265,10 @@ You have been unprofitable for 7 months. This ends NOW.
 
 **MARKET EXECUTION PREFERENCE:** Since you have real-time price data from Twelve Data, you should strongly prefer **'Market Execution'** for your orders. Limit and Stop orders should be used EXTREMELY sparingly, ONLY if the price is far from your calculated OTE (Optimal Trade Entry). If price is near or within your OTE, you MUST provide an entry range for immediate market execution.
 **EXECUTION CHECKLIST:** You MUST evaluate the 10-point checklist in the 'confluenceMatrix'. Ensure all 10 points are addressed.
-` : `📡 **TWELVE DATA API (CRITICAL FAILURE):** No real-time data available for this asset. This is a HUGE PROBLEM for the 90% Profitability Mandate.
-- You MUST be extremely conservative. 
-- Without Twelve Data, your confidence score MUST NOT exceed 70%.
+` : `📡 **TWELVE DATA API (CRITICAL FAILURE):** No real-time data available for this asset. 
+- You MUST rely ENTIRELY on the visual chart to determine the entry coordinate. 
+- Look closely at the Y-axis of the chart to find the numerical price level. 
+- You MUST provide realistic numerical values for 'entryPoints', 'stopLoss', and 'take Profits' based on your visual estimation. DO NOT OUTPUT 0.00.
 - Flag the missing Twelve Data in your reasoning as a high-risk factor.
 `;
 
@@ -893,7 +894,7 @@ You MUST localize the exact text outputs inside fields such as "reasoning", "bia
   ],
   "marketStory": "A cohesive narrative synthesizing technicals, institutional activity, and fundamentals to explain the current market state and probable next move.",
   
-  "entryPoints": [Aggressive_Entry, Optimal_SD_Entry, Safe_Deep_Entry], // CRITICAL: If entryType is "Market Execution", ALL entry points MUST encapsulate the current live market price (e.g., from Twelve Data if available, or visual chart). Do NOT use past levels.
+  "entryPoints": [number, number, number], // CRITICAL: You MUST provide EXACT number values. If entryType is "Market Execution", ALL 3 entry points MUST be numbers and encapsulate the live market price exactly as stated in the Twelve Data block. Do NOT use 0.00. Do NOT use past levels.
   "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
   "expirationTime": "string if entryType is Limit/Stop based on Expiration Time Logic, or null if Market Execution",
   "triggerConditions": { // CRITICAL: If entryType is "Market Execution", triggers must be ALREADY MET (e.g., "Bearish Engulfing confirmed"). You cannot wait for 'retest' or 'candle close' on Market Execution. Use Pending Orders if waiting.
@@ -1342,6 +1343,28 @@ export async function generateTradingSignal(
     const learnedStrategies = await getLearnedStrategies();
     let twelveDataQuote = request.twelveDataQuote || null;
 
+    // CRITICAL DATA STARVATION CHECK
+    const livePrice = parseFloat(twelveDataQuote?.close || twelveDataQuote?.price || '0');
+    const hasImages = request.images && request.images.primary;
+    if (livePrice === 0 && (!twelveDataQuote || twelveDataQuote.error || Object.keys(twelveDataQuote).length === 0) && !hasImages) {
+        console.warn(`[GEMINI] Data starvation detected for ${asset}. No numerical price and no images provided. Rejecting to prevent 0.00 hallucination trap.`);
+        return {
+             asset: asset || "UNKNOWN",
+             timeframe: request.tradingStyle === 'Scalping' ? 'M5' : 'H1',
+             signal: 'NEUTRAL',
+             entryPoints: [0],
+             stopLoss: 0,
+             takeProfits: [0, 0],
+             confidence: 0,
+             reasoning: [
+                 `⚠️ DATA STARVATION ERROR: The engine has no TwelveData prices and no visual chart to analyze. We forcefully veto the setup rather than allowing hallucinated coordinates.`
+             ],
+             confluenceMatrix: {
+                executionChecklist: ["FAIL: Data Starvation"]
+             } as any
+        } as unknown as Omit<SignalData, 'id' | 'timestamp'>;
+    }
+
     const updatedRequest = {
         ...request,
         asset,
@@ -1594,7 +1617,7 @@ export async function generateSniperLiveSignal(
     ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default
 
     // CRITICAL DATA STARVATION CHECK
-    if (livePrice === 0 && (!marketData || marketData.error || Object.keys(marketData).length === 0)) {
+    if (livePrice === 0 && (!quantData || Object.keys(quantData).length === 0)) {
         console.warn(`[GEMINI] Data starvation detected for ${assetName}. Rejecting to prevent hallucination.`);
         return {
              id: Date.now().toString(),
@@ -1606,7 +1629,7 @@ export async function generateSniperLiveSignal(
              takeProfits: [0, 0],
              confidence: 0,
              confluenceMatrix: {
-                 reasoning: `⚠️ DATA STARVATION ERROR: The quant engine was unable to fetch any live pricing or historical data for ticker symbol "${assetName}". (TwelveData Status: ${marketData?.error || 'N/A'}). Because the Engine had a true price of 0.00, we forcefully veto the setup rather than allowing hallucinated coordinates.`
+                 reasoning: `⚠️ DATA STARVATION ERROR: The quant engine was unable to fetch any live pricing or historical data for ticker symbol "${assetName}". Because the Engine had a true price of 0.00, we forcefully veto the setup rather than allowing hallucinated coordinates.`
              }
         } as SignalData;
     }
