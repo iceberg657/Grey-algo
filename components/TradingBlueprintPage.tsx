@@ -72,6 +72,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
     const [londonAssets, setLondonAssets] = useState<string[]>([]);
     const [nyAssets, setNyAssets] = useState<string[]>([]);
     const [timezone, setTimezone] = useState<string>(Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC');
+    const [tradesPerDay, setTradesPerDay] = useState<number>(3);
     
     const [isGenerating, setIsGenerating] = useState(false);
     const [blueprintStr, setBlueprintStr] = useState<string | null>(null);
@@ -117,6 +118,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                     if (docSnap.data().londonAssets) setLondonAssets(docSnap.data().londonAssets);
                     if (docSnap.data().nyAssets) setNyAssets(docSnap.data().nyAssets);
                     if (docSnap.data().timezone) setTimezone(docSnap.data().timezone);
+                    if (docSnap.data().tradesPerDay) setTradesPerDay(docSnap.data().tradesPerDay);
                 }
             } catch (err) {
                 console.error("Failed to load blueprint", err);
@@ -160,7 +162,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 console.error("Failed to parse user settings", e);
             }
             
-            const result = await generateTradingBlueprint(sessions, userSettings, timezone);
+            const result = await generateTradingBlueprint(sessions, userSettings, timezone, tradesPerDay);
             setBlueprintStr(result);
             
             const user = auth.currentUser;
@@ -171,6 +173,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                     londonAssets,
                     nyAssets,
                     timezone,
+                    tradesPerDay,
                     updatedAt: Date.now()
                 });
             }
@@ -298,6 +301,27 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                                     );
                                 })}
                             </div>
+                        </div>
+
+                        {/* Trades Per Day Selection */}
+                        <div className="mb-6">
+                            <h3 className="text-sm font-bold uppercase tracking-widest text-indigo-500 mb-3 flex items-center gap-2">
+                                <RefreshCcw size={14} /> Daily Trade Frequency
+                            </h3>
+                            <div className="flex items-center gap-4">
+                                <input 
+                                    type="range" 
+                                    min="3" 
+                                    max="10" 
+                                    value={tradesPerDay} 
+                                    onChange={(e) => setTradesPerDay(parseInt(e.target.value))}
+                                    className="w-full accent-indigo-500"
+                                />
+                                <span className="text-sm font-bold w-12 text-center bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 py-1 rounded">
+                                    {tradesPerDay}
+                                </span>
+                            </div>
+                            <p className="text-[10px] uppercase tracking-wider text-slate-400 mt-2">Target Trades Per Day (Min 3, Max 10)</p>
                         </div>
 
                         {/* Timezone Selection */}

@@ -2258,7 +2258,8 @@ export async function getGeminiAnalysis(prompt: string): Promise<string> {
 export async function generateTradingBlueprint(
     sessions: { name: string, assets: string[] }[],
     userSettings?: UserSettings,
-    timezone: string = 'UTC'
+    timezone: string = 'UTC',
+    tradesPerDay: number = 3
 ): Promise<string> {
     await initializeApiKey();
     return await executeLaneCall<string>(async (apiKey) => {
@@ -2278,16 +2279,18 @@ Here are the sessions and assets the trader has selected:
 ${sessionInfo}
 The trader's local timezone is: ${timezone}
 Target Language: ${language}
+Trades per day target: ${tradesPerDay} (distribute exactly this many trading entries per day across the active sessions)
 
 ### INSTRUCTIONS:
 1. Create a structured, day-by-day (Monday to Friday) trading blueprint.
 2. For each day, assign a focus based on typical institutional market dynamics (e.g., Monday liquidity building).
 3. Specify EXACT optimal time windows to trade their selected assets formatted strictly in their specified timezone (${timezone}).
-4. Keep it strictly focused on risk management, daily setups, and optimal entry windows.
-5. Limit the assets array for each time window to EXACTLY 1 high-probability asset. If you need to suggest multiple assets for a session (e.g., London), create multiple separate entries in the 'sessions' array with non-overlapping time windows to prevent trader indecision.
-6. Localize the content: The values for \`day\`, \`focus\`, \`timeWindow\`, and \`notes\` MUST be in ${language}.
-7. IMPORTANT: The \`name\` field of each session MUST remain in English (it must contain either "Asian", "London", or "New York") so the internal system can map them to the correct columns.
-8. Provide your output strictly as a JSON object matching this schema:
+4. Ensure the total number of trade setups/sessions per day matches the exact Trades per day target (${tradesPerDay}). You must split and arrange the time tables accordingly so there are ${tradesPerDay} clear, distinct entries for each day.
+5. Keep it strictly focused on risk management, daily setups, and optimal entry windows.
+6. Limit the assets array for each time window to EXACTLY 1 high-probability asset. If you need to suggest multiple assets for a session (e.g., London), create multiple separate entries in the 'sessions' array with non-overlapping time windows to prevent trader indecision.
+7. Localize the content: The values for \`day\`, \`focus\`, \`timeWindow\`, and \`notes\` MUST be in ${language}.
+8. IMPORTANT: The \`name\` field of each session MUST remain in English (it must contain either "Asian", "London", or "New York") so the internal system can map them to the correct columns.
+9. Provide your output strictly as a JSON object matching this schema:
 {
   "schedule": [
     {
