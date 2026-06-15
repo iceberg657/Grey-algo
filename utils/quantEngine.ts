@@ -6,6 +6,9 @@ import { predictNextLiquiditySweep, LiquidityPrediction } from './liquidityPredi
 import { NeuralEngine, NeuralAnalysis } from '../services/neuralEngine';
 import { MathEngine } from '../services/mathEngine';
 import { calculateInstitutionalExecution, InstitutionalExecutionData } from './institutionalEngine';
+import { KalmanFilter } from './kalmanFilter';
+import { GaussianMixtureModel, LSTMMath, MarkovDecisionProcess, MSGARCH } from './advancedMath';
+
 export interface OHLC {
     epoch: number;
     open: number;
@@ -113,6 +116,10 @@ export interface QuantMathematics {
     regimeProbability: 'TRENDING' | 'MEAN_REVERTING' | 'RANDOM_WALK';
     fakeoutProbability: number; // 0 to 1
     statisticalNoiseRatio: number;
+    kalmanEstimate?: number;
+    gmmRegime?: number;
+    msGarchVol?: number;
+    lstmState?: number;
 }
 
 /**
@@ -134,6 +141,29 @@ export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => 
     for (let i = 1; i < closes.length; i++) {
         returns.push(closes[i] - closes[i - 1]);
     }
+
+    // 1. Kalman Filter implementation applied to price
+    const kalman = new KalmanFilter(0.01, 0.001, 1, 1);
+    let kalmanEstimate = closes[0];
+    closes.forEach((price, i) => {
+        kalmanEstimate = kalman.filter(price, i === 0);
+    });
+
+    // 2. Gaussian Mixture Model for Returns Clustering
+    const gmm = new GaussianMixtureModel(2);
+    gmm.fit(returns);
+    const gmmRegime = gmm.predict(returns[returns.length - 1]);
+
+    // 3. LSTM mock step (Sequential memory on returns)
+    const lstm = new LSTMMath();
+    let lstmState = 0;
+    returns.slice(-20).forEach(r => {
+        lstmState = lstm.step(r);
+    });
+
+    // 4. MS-GARCH Volatility
+    const msGarch = new MSGARCH();
+    const msGarchVol = msGarch.predictVolatility(returns, gmmRegime as 0 | 1);
 
     const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
     let variance = returns.reduce((acc, val) => acc + Math.pow(val - meanReturn, 2), 0) / returns.length;
@@ -170,7 +200,17 @@ export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => 
         fakeoutProbability = 0.65;
     }
 
-    return { zScoreDispersion, hurstExponentApproximation, regimeProbability, fakeoutProbability, statisticalNoiseRatio };
+    return { 
+        zScoreDispersion, 
+        hurstExponentApproximation, 
+        regimeProbability, 
+        fakeoutProbability, 
+        statisticalNoiseRatio,
+        kalmanEstimate,
+        gmmRegime,
+        msGarchVol,
+        lstmState
+    };
 };
 
 export const calculateVolumeProfile = (
@@ -640,10 +680,31 @@ export const calculateWeightedScore = (
             quantPenalty += 15;
             breakdown.push(`High Market Noise Ratio detected (-15)`);
         }
+
+        // Advanced Math Integration
+        if (quantMath.msGarchVol !== undefined && quantMath.msGarchVol > 0.05) {
+            quantPenalty += 15; // High volatility crash regime penalizes scores
+            breakdown.push(`MS-GARCH Volatility Regime indicates erratic tail risk (-15)`);
+        }
     }
 
     const rawTotal = smcScore + volScore + trendScore + newsScore + sessScore + liquiditySweptBonus;
     let totalScore = Math.max(0, Math.min(rawTotal - correlationPenalty - quantPenalty, 100));
+
+    if (quantMath && quantMath.lstmState !== undefined) {
+        if (quantMath.lstmState > 0.8) {
+            breakdown.push(`LSTM Recurrent Sequence confirms strong bullish continuation (+5)`);
+            totalScore += 5; 
+        } else if (quantMath.lstmState < -0.8) {
+            breakdown.push(`LSTM Recurrent Sequence confirms strong bearish continuation (+5)`);
+            totalScore += 5;
+        }
+    }
+
+    // Handle any additional bonus that brought it over 100
+    if (quantMath && quantMath.lstmState && Math.abs(quantMath.lstmState) > 0.8) {
+        totalScore = Math.min(100, Math.max(0, totalScore));
+    }
 
     // Instant Reject if probability is too bad
     if (quantMath && quantMath.fakeoutProbability >= 0.85) {
@@ -1091,10 +1152,24 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
     const signalValid = weightedScore.totalScore >= 50;
 
+    const mdp = new MarkovDecisionProcess();
+    // Pass momentum state (-1 to 1 based on zScore and lstm) and zScore directly
+    const mdpState = (quantMath.lstmState || 0) * 0.5 + (quantMath.hurstExponentApproximation > 0.5 ? 0.5 : -0.5);
+    const mdpAction = mdp.evaluatePolicy(mdpState, quantMath.zScoreDispersion);
+
     if (signalValid) {
         // Evaluate if market execution is safe or if limit order is required
 
+        // RULE: MDP Veto overrules SMC if excessive tail risk is detected
+        if (mdpAction === 'REDUCE') {
+            weightedScore.breakdown.push(`MDP Policy Violation: Extreme tail risk out-of-bounds. Execution downgraded to LIMIT.`);
+            recommendedExecution = 'LIMIT';
+            weightedScore.suggestedRiskPercent = Math.max(0.1, weightedScore.suggestedRiskPercent * 0.5); // Chop risk
+            explicitSignal = 'NEUTRAL'; // Temporarily neutralize market orders
+        }
+
         // RULE: If Market is in "MEAN_REVERTING" regime, FORBID Market Execution
+
         if (quantMath.regimeProbability === 'MEAN_REVERTING') {
             recommendedExecution = 'LIMIT';
         }
