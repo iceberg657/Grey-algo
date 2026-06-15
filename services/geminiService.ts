@@ -1084,6 +1084,9 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 let promptFeedback = null;
 
                 try {
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 50000); // 50s timeout limit
+
                     console.log(`[Gemini] Calling proxy for model ${modelId}...`);
                     const proxyRes = await fetch('/api/gemini/analyze', {
                         method: 'POST',
@@ -1094,7 +1097,17 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                             config: config,
                             apiKey: apiKey
                         }),
+                        signal: controller.signal
+                    }).catch(err => {
+                        if (err.name === 'AbortError' || err.message === 'timeout') {
+                            throw new Error('Timeout: Proxy took too long (>50s). The model might be overloaded. Try again.');
+                        }
+                        if (err.message === 'Failed to fetch' || err.message.includes('fetch')) {
+                            throw new Error(`Network Error: Failed to fetch from proxy. VPN or firewall may be blocking the request, or payload is too large.`);
+                        }
+                        throw err;
                     });
+                    clearTimeout(timeoutId);
 
                     if (!proxyRes.ok) {
                         let errorMsg = 'Proxy analysis failed';
@@ -1277,6 +1290,9 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
                 async (modelId) => {
                     const config = { temperature: 0.1 };
                     try {
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 50000); // 50s limit
+
                         const proxyRes = await fetch('/api/gemini/analyze', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -1286,7 +1302,17 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
                                 config: config,
                                 apiKey: apiKey
                             }),
+                            signal: controller.signal
+                        }).catch(err => {
+                            if (err.name === 'AbortError' || err.message === 'timeout') {
+                                throw new Error('Timeout: Proxy took too long (>50s). The model might be overloaded. Try again.');
+                            }
+                            if (err.message === 'Failed to fetch' || err.message.includes('fetch')) {
+                                throw new Error(`Network Error: Failed to fetch from proxy. VPN or firewall may be blocking the request, or payload is too large.`);
+                            }
+                            throw err;
                         });
+                        clearTimeout(timeoutId);
                         if (!proxyRes.ok) {
                             let errorMsg = 'Asset detection failed';
                             try {
@@ -1935,6 +1961,14 @@ JSON Structure:
                             apiKey: apiKey
                         }),
                         signal: controller.signal
+                    }).catch(err => {
+                        if (err.name === 'AbortError' || err.message === 'timeout') {
+                            throw new Error('Timeout: Proxy took too long (>50s). The model might be overloaded. Try again.');
+                        }
+                        if (err.message === 'Failed to fetch' || err.message.includes('fetch')) {
+                            throw new Error(`Network Error: Failed to fetch from proxy. VPN or firewall may be blocking the request, or payload is too large.`);
+                        }
+                        throw err;
                     });
                     clearTimeout(timeoutId);
 
@@ -1977,7 +2011,10 @@ JSON Structure:
                 let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
 
                 // 1. Price Sanity Check
-                if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+                if (midEntry === 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+                    finalSignal = 'NEUTRAL';
+                    finalReasoning.push(`⚠️ Signal invalidated: AI failed to identify a numerical price level, and no external price data was available. Cannot proceed with a 0.00 entry.`);
+                } else if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
                     if (diffPercent > 0.05) {
                         finalSignal = 'NEUTRAL';
                         finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);

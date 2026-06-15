@@ -378,7 +378,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
             </div>
 
             {/* Neural Assets Queue - Always Visible, Syncs on hit */}
-             <div className={`p-6 rounded-2xl border-2 relative overflow-hidden backdrop-blur-md transition-all duration-500 ${isReady ? 'bg-green-500/5 dark:bg-green-500/10 border-green-500/20 dark:border-green-500/40' : 'bg-white/90 dark:bg-slate-800/40 border-gray-200 dark:border-white/10'}`}>
+             <div className={`p-6 rounded-3xl border-2 relative overflow-hidden backdrop-blur-3xl shadow-xl transition-all duration-500 ${isReady ? 'bg-green-500/10 dark:bg-green-500/10 border-green-500/30 dark:border-green-500/40' : 'bg-white/60 dark:bg-slate-800/40 border-slate-200/50 dark:border-white/10'}`}>
                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-shimmer pointer-events-none"></div>
                 
                 <div className="flex flex-wrap justify-between items-center mb-6 relative z-10 gap-4">
@@ -420,7 +420,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                         <div 
                                             key={idx} 
                                             onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-green-500/5 dark:hover:bg-green-500/10 border-gray-200 dark:border-white/10`}
+                                            className={`p-5 rounded-3xl border cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-white/50 dark:bg-slate-900/40 backdrop-blur-3xl shadow-lg border-slate-200/50 hover:bg-white/80 dark:hover:bg-green-500/10 border-gray-200/50 dark:border-white/10`}
                                         >
                                             <div className="flex justify-between items-center">
                                                 <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>
@@ -446,7 +446,7 @@ export const MarketOverview: React.FC<MarketOverviewProps> = ({
                                         <div 
                                             key={idx} 
                                             onClick={() => onAssetSelect && onAssetSelect(asset.symbol)}
-                                            className={`p-5 rounded-xl border-2 cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-white/90 dark:bg-slate-900/40 backdrop-blur-sm hover:bg-red-500/5 dark:hover:bg-red-500/10 border-gray-200 dark:border-white/10`}
+                                            className={`p-5 rounded-3xl border cursor-pointer transition-all hover:scale-[1.05] active:scale-95 flex flex-col gap-4 group bg-white/50 dark:bg-slate-900/40 backdrop-blur-3xl shadow-lg border-slate-200/50 hover:bg-white/80 dark:hover:bg-red-500/10 border-gray-200/50 dark:border-white/10`}
                                         >
                                             <div className="flex justify-between items-center">
                                                 <span className="font-black text-slate-900 dark:text-white text-xl tracking-tighter group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">{asset.symbol}</span>

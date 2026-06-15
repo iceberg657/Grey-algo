@@ -44,7 +44,10 @@ export function calculateTPSL(
 
   // 1. Validate & Fix Entries
   let validEntries = [...entryPoints];
-  if (validEntries.length === 0 || !validEntries[0]) validEntries = [0, 0, 0]; 
+  if (validEntries.length === 0 || validEntries[0] === 0 || !validEntries[0]) {
+      const fallbackPrice = twelveDataQuote?.close ? parseFloat(twelveDataQuote.close) : 0;
+      validEntries = fallbackPrice > 0 ? [fallbackPrice, fallbackPrice, fallbackPrice] : [0, 0, 0];
+  }
   if (validEntries.length < 3) {
       while (validEntries.length < 3) validEntries.push(validEntries[0]);
   }

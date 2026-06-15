@@ -73,10 +73,10 @@ const NavButton: React.FC<{
         transition={{ delay: index * 0.03, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
         onClick={onClick}
         aria-label={ariaLabel}
-        className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-2xl transition-all duration-500 border backdrop-blur-xl hover:scale-105 active:scale-95 shadow-lg ${
+        className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-3xl transition-all duration-500 border backdrop-blur-3xl hover:-translate-y-1 hover:scale-105 active:scale-95 shadow-xl ${
             highlight 
-                ? 'bg-emerald-600 text-white border-emerald-500/50 hover:bg-emerald-500 shadow-emerald-500/20' 
-                : 'text-slate-600 dark:text-slate-400 bg-white/40 dark:bg-slate-900/40 border-white/20 dark:border-white/5 hover:bg-white dark:hover:bg-slate-800/60 hover:text-emerald-500 dark:hover:text-emerald-400'
+                ? 'bg-emerald-500/80 text-white border-emerald-400/50 hover:bg-emerald-500/90 shadow-emerald-500/30' 
+                : 'text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-slate-800/50 border-white/40 dark:border-white/10 hover:bg-white/80 dark:hover:bg-slate-700/60 hover:text-emerald-500 dark:hover:text-emerald-400'
         }`}
     >
         {isLocked && (
