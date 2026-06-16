@@ -678,6 +678,7 @@ const App: React.FC = () => {
             </AnimatePresence>
 
             {userMetadata?.role === 'admin' && <AutoLearningManager />}
+            <NeuralBackground />
             <div style={{ minHeight: '100vh', position: 'relative', zIndex: 1 }}>
                 <div>
                     <AnimatePresence mode="wait">

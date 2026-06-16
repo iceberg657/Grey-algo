@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Compass, Calculator, BookOpen, Clock, Globe, RefreshCcw } from 'lucide-react';
+import { ChevronLeft, Compass, Calculator, BookOpen, Clock, Globe, RefreshCcw, Download } from 'lucide-react';
 import { RiskCalculator } from './RiskCalculator';
 import { CheatSheet } from './CheatSheet';
 import { generateTradingBlueprint } from '../services/geminiService';
@@ -77,6 +77,66 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
     const [isGenerating, setIsGenerating] = useState(false);
     const [blueprintStr, setBlueprintStr] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    const downloadBlueprintAsMarkdown = () => {
+        if (!blueprintStr) return;
+        const blob = new Blob([blueprintStr], { type: 'text/markdown;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `greyquant_trading_blueprint_${timezone.replace(/\//g, '_')}.md`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const downloadBlueprintAsJSON = () => {
+        if (!parsedBlueprint) return;
+        const blob = new Blob([JSON.stringify(parsedBlueprint, null, 2)], { type: 'application/json;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `greyquant_trading_blueprint_${timezone.replace(/\//g, '_')}.json`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
+    const downloadBlueprintAsCSV = () => {
+        if (!parsedBlueprint) return;
+        let csvContent = "\ufeffDay,Focus,Asian Assets,Asian Hours,Asian Notes,London Assets,London Hours,London Notes,New York Assets,New York Hours,New York Notes\n";
+        parsedBlueprint.schedule.forEach(dayPlan => {
+            const asian = dayPlan.sessions.find(s => s.name.toLowerCase().includes('asian'));
+            const london = dayPlan.sessions.find(s => s.name.toLowerCase().includes('london'));
+            const ny = dayPlan.sessions.find(s => s.name.toLowerCase().includes('new york') || s.name.toLowerCase().includes('ny'));
+            
+            const day = `"${dayPlan.day.replace(/"/g, '""')}"`;
+            const focus = `"${dayPlan.focus.replace(/"/g, '""')}"`;
+            
+            const asianAssetsStr = asian && asian.assets ? `"${asian.assets.join(', ').replace(/"/g, '""')}"` : '""';
+            const asianHoursStr = asian ? `"${asian.timeWindow.replace(/"/g, '""')}"` : '""';
+            const asianNotesStr = asian && asian.notes ? `"${asian.notes.replace(/"/g, '""')}"` : '""';
+            
+            const londonAssetsStr = london && london.assets ? `"${london.assets.join(', ').replace(/"/g, '""')}"` : '""';
+            const londonHoursStr = london ? `"${london.timeWindow.replace(/"/g, '""')}"` : '""';
+            const londonNotesStr = london && london.notes ? `"${london.notes.replace(/"/g, '""')}"` : '""';
+            
+            const nyAssetsStr = ny && ny.assets ? `"${ny.assets.join(', ').replace(/"/g, '""')}"` : '""';
+            const nyHoursStr = ny ? `"${ny.timeWindow.replace(/"/g, '""')}"` : '""';
+            const nyNotesStr = ny && ny.notes ? `"${ny.notes.replace(/"/g, '""')}"` : '""';
+            
+            csvContent += `${day},${focus},${asianAssetsStr},${asianHoursStr},${asianNotesStr},${londonAssetsStr},${londonHoursStr},${londonNotesStr},${nyAssetsStr},${nyHoursStr},${nyNotesStr}\n`;
+        });
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `greyquant_trading_timetable_${timezone.replace(/\//g, '_')}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
 
 
@@ -186,7 +246,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 p-6 flex flex-col relative">
+        <div className="min-h-screen bg-slate-50/10 dark:bg-slate-950/10 text-slate-800 dark:text-slate-200 p-6 flex flex-col relative backdrop-blur-3xl">
             <header className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                     <button onClick={onBack} className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
@@ -215,7 +275,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Configuration Sidebar */}
                 <div className="w-full lg:w-1/3 flex flex-col gap-6">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                    <div className="bg-white/40 dark:bg-slate-900/45 border border-white/50 dark:border-white/5 rounded-3xl p-6 shadow-xl backdrop-blur-3xl">
                         <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                             <Globe className="text-blue-500" size={18} /> Configure Sessions
                         </h2>
@@ -356,49 +416,90 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
 
                 {/* Blueprint Display */}
                 <div className="w-full lg:w-2/3">
-                    <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-8 min-h-[600px] shadow-sm">
+                    <div className="bg-white/40 dark:bg-slate-900/45 border border-white/50 dark:border-white/5 rounded-3xl p-8 min-h-[600px] shadow-xl backdrop-blur-3xl flex flex-col">
                         {isGenerating ? (
                             <div className="flex flex-col items-center justify-center h-[500px] text-slate-500">
                                 <Loader />
                                 <p className="mt-4 font-bold uppercase tracking-widest text-xs">Synthesizing Everyday Plan...</p>
                             </div>
-                        ) : parsedBlueprint ? (
-                            <div className="overflow-x-auto">
-                                <table className="w-full text-left border-collapse min-w-[800px]">
-                                    <thead>
-                                        <tr>
-                                            <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-slate-500 w-1/4">Day</th>
-                                            <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-amber-500 w-1/4">Asian Session</th>
-                                            <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-blue-500 w-1/4">London Session</th>
-                                            <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-emerald-500 w-1/4">New York Session</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                      {parsedBlueprint.schedule.map((dayPlan, i) => (
-                                         <tr key={i} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                             <td className="p-4 align-top">
-                                                 <div className="font-black text-lg text-slate-900 dark:text-white uppercase tracking-widest">{dayPlan.day}</div>
-                                                 <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mt-2">{dayPlan.focus}</div>
-                                             </td>
-                                             <td className="p-4 align-top">
-                                                  <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('asian'))} />
-                                             </td>
-                                             <td className="p-4 align-top border-l border-slate-100 dark:border-slate-800/50">
-                                                  <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('london'))} />
-                                             </td>
-                                             <td className="p-4 align-top border-l border-slate-100 dark:border-slate-800/50">
-                                                  <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('new york') || s.name.toLowerCase().includes('ny'))} />
-                                             </td>
-                                         </tr>
-                                      ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        ) : blueprintStr ? (
-                            <div className="prose prose-slate dark:prose-invert max-w-none">
-                                <div className="markdown-body">
-                                    <ReactMarkdown>{blueprintStr}</ReactMarkdown>
+                        ) : parsedBlueprint || blueprintStr ? (
+                            <div className="flex flex-col gap-6">
+                                {/* Download Timetable Header Section */}
+                                <div className="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-dashed border-slate-200 dark:border-slate-800">
+                                    <div>
+                                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-900 dark:text-white">Active Blueprint</h3>
+                                        <p className="text-xs text-slate-500">Formulated in {timezone.replace(/_/g, ' ')}</p>
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {parsedBlueprint && (
+                                            <>
+                                                <button 
+                                                    onClick={downloadBlueprintAsCSV}
+                                                    title="Download schedule as Excel/CSV table"
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-sky-50 dark:bg-sky-500/10 text-sky-600 dark:text-sky-400 rounded-xl hover:bg-sky-100 dark:hover:bg-sky-500/20 transition-all border border-sky-200 dark:border-sky-500/30 text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                                                >
+                                                    <Download size={12} /> export csv
+                                                </button>
+                                                <button 
+                                                    onClick={downloadBlueprintAsJSON}
+                                                    title="Download structured JSON blueprint file"
+                                                    className="flex items-center gap-2 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-all border border-indigo-200 dark:border-indigo-500/30 text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                                                >
+                                                    <Download size={12} /> export json
+                                                </button>
+                                            </>
+                                        )}
+                                        {blueprintStr && (
+                                            <button 
+                                                onClick={downloadBlueprintAsMarkdown}
+                                                title="Download human-readable Markdown blueprint report"
+                                                className="flex items-center gap-2 px-3 py-1.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-all border border-emerald-200 dark:border-emerald-500/30 text-[10px] font-black uppercase tracking-wider cursor-pointer shadow-sm hover:scale-105 active:scale-95"
+                                            >
+                                                <Download size={12} /> export markdown
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+
+                                {parsedBlueprint ? (
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left border-collapse min-w-[800px]">
+                                            <thead>
+                                                <tr>
+                                                    <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-slate-500 w-1/4">Day</th>
+                                                    <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-amber-500 w-1/4">Asian Session</th>
+                                                    <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-blue-500 w-1/4">London Session</th>
+                                                    <th className="p-4 border-b border-slate-200 dark:border-slate-800 text-sm font-black uppercase tracking-widest text-emerald-500 w-1/4">New York Session</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                              {parsedBlueprint.schedule.map((dayPlan, i) => (
+                                                 <tr key={i} className="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
+                                                     <td className="p-4 align-top">
+                                                         <div className="font-black text-lg text-slate-900 dark:text-white uppercase tracking-widest">{dayPlan.day}</div>
+                                                         <div className="text-xs font-bold uppercase tracking-wider text-slate-500 mt-2">{dayPlan.focus}</div>
+                                                     </td>
+                                                     <td className="p-4 align-top">
+                                                          <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('asian'))} />
+                                                     </td>
+                                                     <td className="p-4 align-top border-l border-slate-100 dark:border-slate-800/50">
+                                                          <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('london'))} />
+                                                     </td>
+                                                     <td className="p-4 align-top border-l border-slate-100 dark:border-slate-800/50">
+                                                          <SessionColumn sessions={dayPlan.sessions.filter(s => s.name.toLowerCase().includes('new york') || s.name.toLowerCase().includes('ny'))} />
+                                                     </td>
+                                                 </tr>
+                                              ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                ) : (
+                                    <div className="prose prose-slate dark:prose-invert max-w-none">
+                                        <div className="markdown-body">
+                                            <ReactMarkdown>{blueprintStr}</ReactMarkdown>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="flex flex-col items-center justify-center h-[500px] text-center text-slate-400">

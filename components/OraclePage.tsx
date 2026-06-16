@@ -447,7 +447,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
           </motion.button>
         ) : null
       ) : (
-        <div className={`min-h-screen w-full flex-grow bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white flex flex-col p-6 transition-all duration-700 relative overflow-hidden`}>
+        <div className={`min-h-screen w-full flex-grow bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-900 dark:text-white flex flex-col p-6 transition-all duration-700 relative overflow-hidden backdrop-blur-xl`}>
           <div className="absolute inset-0 z-0 opacity-40 dark:opacity-100">
             <NeuralBackground />
           </div>

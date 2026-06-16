@@ -481,7 +481,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans flex flex-col transition-colors duration-500 pb-20 overflow-x-hidden">
+        <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-800 dark:text-slate-200 font-sans flex flex-col transition-colors duration-500 pb-20 overflow-x-hidden backdrop-blur-xl">
             <PacificTimeClock />
             
             {/* Broadcast Banner */}

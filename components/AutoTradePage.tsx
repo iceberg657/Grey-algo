@@ -167,7 +167,7 @@ export const AutoTradePage: React.FC<AutoTradePageProps> = ({ onBack, userMetada
     );
 
     return (
-        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in bg-slate-50 dark:bg-[#0f172a]">
+        <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in bg-slate-50/15 dark:bg-[#070b14]/50 backdrop-blur-xl">
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
                 <header className="relative mb-8 flex justify-between items-center">
                     <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">

@@ -331,7 +331,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
     if (isLoading) return <div className="flex items-center justify-center h-screen bg-slate-950"><Loader /></div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4 md:p-8">
+        <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-900 dark:text-slate-100 p-4 md:p-8 backdrop-blur-xl">
             <div className="max-w-7xl mx-auto">
                 {statusMsg && (
                     <motion.div 
