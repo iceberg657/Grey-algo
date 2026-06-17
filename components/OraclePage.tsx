@@ -38,6 +38,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
   const frameIntervalRef = useRef<number | null>(null);
   const nextPlayTimeRef = useRef<number>(0);
   const activeNodesRef = useRef<AudioBufferSourceNode[]>([]);
+  const discardTurnRef = useRef<boolean>(false);
 
   const inputModeRef = useRef<'voice' | 'text'>('voice');
   const isMutedRef = useRef<boolean>(false);
@@ -60,11 +61,10 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
 
   const sendText = () => {
       if (sessionRef.current && textInput.trim()) {
-          sessionRef.current.send({ 
-              clientContent: { 
-                  turns: [{ role: 'user', parts: [{ text: textInput }] }], 
-                  turnComplete: true 
-              } 
+          discardTurnRef.current = false;
+          sessionRef.current.sendClientContent({ 
+              turns: [{ role: 'user', parts: [{ text: textInput }] }], 
+              turnComplete: true 
           });
           setModelMessage(prev => prev + "\nUser: " + textInput); // Show user text
           setTextInput('');
@@ -87,26 +87,22 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
               const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
               const mimeType = isHeic ? 'image/heic' : (file.type || 'image/jpeg');
               
-              sessionRef.current.send({
-                  realtimeInput: {
-                      mediaChunks: [{ mimeType: mimeType, data: base64Data }]
-                  }
-              });
+              discardTurnRef.current = false;
+              if (sessionRef.current) {
+                  sessionRef.current.sendClientContent({
+                      turns: [{
+                          role: 'user',
+                          parts: [
+                              { inlineData: { data: base64Data, mimeType } },
+                              { text: 'I have just uploaded this image. Please reply with only "Image received, awaiting your command." and wait for my next instructions.' }
+                          ]
+                      }],
+                      turnComplete: true
+                  });
+              }
           };
           reader.readAsDataURL(file);
       });
-      
-      // We instruct the model shortly after passing the image
-      setTimeout(() => {
-          if (sessionRef.current) {
-              sessionRef.current.send({ 
-                  clientContent: { 
-                      turns: [{ role: 'user', parts: [{ text: 'I have just uploaded an image. Please reply with only "Image received, awaiting your command." and wait for my next instructions.' }] }], 
-                      turnComplete: true 
-                  } 
-              });
-          }
-      }, 500);
       
       // Reset input
       if (fileInputRef.current) {
@@ -168,8 +164,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
       let displayStream: MediaStream | null = null;
       if (includeCamera) {
           try {
-            const isDesktop = window.innerWidth > 768;
-            if (isDesktop && navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
+            if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
                 displayStream = await navigator.mediaDevices.getDisplayMedia({ video: { displaySurface: 'monitor' } });
             } else {
                 displayStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
@@ -251,10 +246,10 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                     binary += String.fromCharCode.apply(null, Array.from(uint8.subarray(i, i + chunkSize)));
                   }
                   
-                  const base64Data = btoa(binary);
+                   const base64Data = btoa(binary);
                   sessionPromise.then(s => {
-                    s.send({
-                      realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: base64Data }] }
+                    s.sendRealtimeInput({
+                      audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
                     });
                   });
                 };
@@ -281,8 +276,8 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                           const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // Professional quality compression
                           const base64Data = dataUrl.split(',')[1];
                           sessionPromise.then(s => {
-                            s.send({
-                              realtimeInput: { mediaChunks: [{ mimeType: 'image/jpeg', data: base64Data }] }
+                            s.sendRealtimeInput({
+                              video: { data: base64Data, mimeType: 'image/jpeg' }
                             });
                           });
                         }
@@ -291,6 +286,16 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                 }
           },
           onmessage: async (message: LiveServerMessage) => {
+            if (message.voiceActivity?.voiceActivityType === 'ACTIVITY_START') {
+              // User has started speaking. Cut off the model's playback immediately.
+              discardTurnRef.current = true;
+              nextPlayTimeRef.current = 0;
+              activeNodesRef.current.forEach(node => {
+                  try { node.stop(); } catch(e) {}
+              });
+              activeNodesRef.current = [];
+            }
+
             if (message.toolCall) {
               const functionCalls = message.toolCall.functionCalls;
               if (functionCalls && functionCalls.length > 0) {
@@ -317,8 +322,22 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
             }
 
             if (message.serverContent) {
+              if (message.serverContent.interrupted) {
+                // Clear state if user interrupts
+                discardTurnRef.current = true;
+                nextPlayTimeRef.current = 0;
+                activeNodesRef.current.forEach(node => {
+                    try { node.stop(); } catch(e) {}
+                });
+                activeNodesRef.current = [];
+              }
+
+              if (message.serverContent.turnComplete) {
+                discardTurnRef.current = false;
+              }
+
               const parts = message.serverContent.modelTurn?.parts;
-              if (parts && parts.length > 0) {
+              if (parts && parts.length > 0 && !discardTurnRef.current) {
                 for (const part of parts) {
                   // Handle raw PCM audio
                   if (part.inlineData?.data) {
@@ -361,15 +380,6 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                     setModelMessage(prev => prev + part.text);
                   }
                 }
-              }
-              
-              if (message.serverContent.interrupted) {
-                // Clear state if user interrupts
-                nextPlayTimeRef.current = 0;
-                activeNodesRef.current.forEach(node => {
-                    try { node.stop(); } catch(e) {}
-                });
-                activeNodesRef.current = [];
               }
             }
           },
