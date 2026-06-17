@@ -31,7 +31,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
   
   const streamRef = useRef<MediaStream | null>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
-  const scriptProcessorRef = useRef<ScriptProcessorNode | null>(null);
+  const audioWorkletNodeRef = useRef<AudioWorkletNode | null>(null);
   const mediaStreamSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const sessionRef = useRef<any>(null);
@@ -60,7 +60,12 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
 
   const sendText = () => {
       if (sessionRef.current && textInput.trim()) {
-          sessionRef.current.sendRealtimeInput([{ text: textInput }]);
+          sessionRef.current.send({ 
+              clientContent: { 
+                  turns: [{ role: 'user', parts: [{ text: textInput }] }], 
+                  turnComplete: true 
+              } 
+          });
           setModelMessage(prev => prev + "\nUser: " + textInput); // Show user text
           setTextInput('');
       }
@@ -82,13 +87,26 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
               const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
               const mimeType = isHeic ? 'image/heic' : (file.type || 'image/jpeg');
               
-              sessionRef.current.sendRealtimeInput([
-                  { video: { data: base64Data, mimeType } },
-                  { text: 'I have just uploaded this image. Please reply with only "Image received, awaiting your command." and wait for my next instructions.' }
-              ]);
+              sessionRef.current.send({
+                  realtimeInput: {
+                      mediaChunks: [{ mimeType: mimeType, data: base64Data }]
+                  }
+              });
           };
           reader.readAsDataURL(file);
       });
+      
+      // We instruct the model shortly after passing the image
+      setTimeout(() => {
+          if (sessionRef.current) {
+              sessionRef.current.send({ 
+                  clientContent: { 
+                      turns: [{ role: 'user', parts: [{ text: 'I have just uploaded an image. Please reply with only "Image received, awaiting your command." and wait for my next instructions.' }] }], 
+                      turnComplete: true 
+                  } 
+              });
+          }
+      }, 500);
       
       // Reset input
       if (fileInputRef.current) {
@@ -101,9 +119,9 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
       sessionRef.current.close();
       sessionRef.current = null;
     }
-    if (scriptProcessorRef.current) {
-      scriptProcessorRef.current.disconnect();
-      scriptProcessorRef.current = null;
+    if (audioWorkletNodeRef.current) {
+      audioWorkletNodeRef.current.disconnect();
+      audioWorkletNodeRef.current = null;
     }
     if (analyserRef.current) {
       analyserRef.current.disconnect();
@@ -187,7 +205,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
       audioContextRef.current = audioCtx;
       nextPlayTimeRef.current = audioCtx.currentTime;
       
-      let processor: ScriptProcessorNode | null = null;
+      let workletNode: AudioWorkletNode | null = null;
       
       if (audioStream) {
         const source = audioCtx.createMediaStreamSource(audioStream);
@@ -198,11 +216,17 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
         source.connect(analyser);
         analyserRef.current = analyser;
         
-        processor = audioCtx.createScriptProcessor(4096, 1, 1);
-        scriptProcessorRef.current = processor;
-        
-        source.connect(processor);
-        processor.connect(audioCtx.destination);
+        try {
+            await audioCtx.audioWorklet.addModule('/audio-processor.js');
+            workletNode = new AudioWorkletNode(audioCtx, 'audio-input-processor');
+            audioWorkletNodeRef.current = workletNode;
+            
+            source.connect(workletNode);
+            workletNode.connect(audioCtx.destination);
+        } catch (workletError) {
+            console.error("Failed to setup AudioWorklet:", workletError);
+            console.warn("Audio processing will be disabled.");
+        }
       }
 
       // 3. Connect to Live API
@@ -213,25 +237,24 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
             setIsActive(true);
             setIsInitializing(false);
             
-            if (processor && audioStream) {
-              // Audio input loop
-                processor.onaudioprocess = (e) => {
+            if (workletNode && audioStream) {
+              // Audio input loop using AudioWorklet
+                workletNode.port.onmessage = (e) => {
                   if (isMutedRef.current || inputModeRef.current === 'text') return;
-                  const inputData = e.inputBuffer.getChannelData(0);
-                  const pcm16 = new Int16Array(inputData.length);
-                  for (let i = 0; i < inputData.length; i++) {
-                    const s = Math.max(-1, Math.min(1, inputData[i]));
-                    pcm16[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                  }
+                  
+                  const pcm16 = e.data; // Int16Array from processor
                   const uint8 = new Uint8Array(pcm16.buffer);
                   let binary = '';
-                  for (let i = 0; i < uint8.length; i++) {
-                    binary += String.fromCharCode(uint8[i]);
+                  // Use chunks to avoid Maximum call stack size exceeded natively
+                  const chunkSize = 8192;
+                  for (let i = 0; i < uint8.length; i += chunkSize) {
+                    binary += String.fromCharCode.apply(null, Array.from(uint8.subarray(i, i + chunkSize)));
                   }
+                  
                   const base64Data = btoa(binary);
                   sessionPromise.then(s => {
-                    s.sendRealtimeInput({
-                      audio: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
+                    s.send({
+                      realtimeInput: { mediaChunks: [{ mimeType: 'audio/pcm;rate=16000', data: base64Data }] }
                     });
                   });
                 };
@@ -258,8 +281,8 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                           const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // Professional quality compression
                           const base64Data = dataUrl.split(',')[1];
                           sessionPromise.then(s => {
-                            s.sendRealtimeInput({
-                              video: { data: base64Data, mimeType: 'image/jpeg' }
+                            s.send({
+                              realtimeInput: { mediaChunks: [{ mimeType: 'image/jpeg', data: base64Data }] }
                             });
                           });
                         }
