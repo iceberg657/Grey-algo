@@ -145,23 +145,21 @@ export const ANALYSIS_MODELS = [
 // 2. SNIPER PAGE (STABLE MODELS - No change to live logic)
 export const getSniperPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]);
 export const SNIPER_MODELS = [
-    'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
+    'gemini-2.5-flash-lite',
+    'gemini-3.5-flash',
     'gemini-3-flash',
-    'gemini-2.5-flash',
-    'gemini-2.5-flash-lite'
+    'gemini-2.5-flash'
 ];
 
 // 3. CHAT & LIVE (Keys 1-9, Resilience Pool)
 export const getChatPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]); 
 export const CHAT_MODELS = [
-    'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-3-flash',
-    'gemini-2.5-flash',
     'gemini-2.5-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash'
+    'gemini-3.5-flash',
+    'gemini-3-flash',
+    'gemini-2.5-flash'
 ];
 
 // 4. FEATURE DISTRIBUTION (Keys 6-9)
@@ -169,30 +167,30 @@ export const CHAT_MODELS = [
 // ALPHA (Key 6)
 export const getAlphaPool = () => getUniqueKeys([K.K6(), K.K1(), K.K2()]);
 // A: AI Pilot / Regime Tracker
-export const PILOT_MODELS = ['gemini-3.1-pro-preview', 'gemini-2.0-flash'];
+export const PILOT_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 // B: AI ASSETS SUGGESTION 
-export const SUGGESTION_MODELS = ['gemini-3.5-flash', 'gemini-1.5-flash'];
+export const SUGGESTION_MODELS = ['gemini-2.5-flash-lite', 'gemini-3-flash'];
 
 // BETA (Key 7)
 export const getBetaPool = () => getUniqueKeys([K.K7(), K.K3(), K.K4()]);
 // A: Global Market Intelligence
-export const MARKET_MODELS = ['gemini-3.5-flash', 'gemini-2.0-flash'];
+export const MARKET_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash'];
 // B: Neural Learning (Truth Layer)
-export const LEARNING_MODELS = ['gemini-3.5-flash', 'gemini-1.5-flash'];
+export const LEARNING_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 
 // GAMMA (Key 8)
 export const getGammaPool = () => getUniqueKeys([K.K8(), K.K5()]);
 // A: Session Summaries
-export const SUMMARY_MODELS = ['gemini-3.1-pro-preview', 'gemini-2.0-flash'];
+export const SUMMARY_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'];
 // B: Neural TTS
-export const TTS_MODELS = ['gemini-3.1-flash-tts-preview', 'gemini-1.5-flash']; 
+export const TTS_MODELS = ['gemini-3.1-flash-tts', 'gemini-2.5-flash-tts']; 
 
 // DELTA (Key 9)
 export const getDeltaPool = () => getUniqueKeys([K.K9(), K.K1()]);
 // A: Embeddings & Pattern Recognition
-export const EMBEDDING_MODELS = ['gemini-embedding-2-preview'];
+export const EMBEDDING_MODELS = ['gemini-embedding-2'];
 // B: Prompt Optimization
-export const OPTIMIZATION_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.0-flash'];
+export const OPTIMIZATION_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'];
 
 // Legacy Compatibility Exports (Update these to point to new logic)
 export const getSuggestionPool = getAlphaPool;

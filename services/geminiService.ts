@@ -1567,7 +1567,7 @@ export function validateSL(
     }
 
     // Asset-specific absolute caps for Forensic precision
-    const isForex = asset.length === 6 || asset.startsWith('FRX');
+    const isForex = asset.length === 6 || asset.toUpperCase().startsWith('FRX') || asset.toUpperCase().endsWith('USD') || asset.toUpperCase().endsWith('JPY');
     if (isForex) {
         const pips = Math.abs(entry - finalSl) * 10000;
         if (pips > 50) { // Aggressive 50 pip cap for sniper
@@ -1677,11 +1677,11 @@ export async function generateSniperLiveSignal(
 
     const isDeepThinking = !!userSettings?.deepThinking;
     const models = isDeepThinking ? [
-        'gemini-3.5-flash',
         'gemini-3.1-flash-lite',
+        'gemini-2.5-flash-lite',
+        'gemini-3.5-flash',
         'gemini-3-flash',
-        'gemini-2.5-flash',
-        'gemini-2.0-flash'
+        'gemini-2.5-flash'
     ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default
 
     // CRITICAL DATA STARVATION CHECK
@@ -2071,10 +2071,10 @@ JSON Structure:
                     }
                     
                     // If AI provided relative deltas instead of absolute prices, fix the Stop Loss
-                    if (finalSL <= 0 || (finalSignal === 'BUY' && finalSL < midEntry * 0.5) || (finalSignal === 'SELL' && finalSL < midEntry * 0.5)) {
+                    if (finalSL <= 0 || Math.abs(midEntry - finalSL) > midEntry * 0.05 || (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry)) {
                          const atrFallback = quantData?.atr ? quantData.atr * 2 : midEntry * 0.002;
                          finalSL = finalSignal === 'BUY' ? midEntry - atrFallback : midEntry + atrFallback;
-                         finalReasoning.push(`🎯 Relative pip stop-loss overridden with absolute mathematical pricing bounds.`);
+                         finalReasoning.push(`🎯 Invalid stop-loss distance or direction overridden with absolute mathematical pricing bounds.`);
                     }
                 }
 
@@ -2335,12 +2335,13 @@ function extractJson(str: string): any {
             console.log("Initial JSON.parse failed, attempting sanitization...", firstPassError);
 
             // 3. Sanitization: remove comments and line breaks that might break JSON.parse
-            // Be careful to not break URLs starting with https://
             let sanitized = target
                 .replace(/(?<!https?:)\/\/.*$/gm, '') // Remove single-line comments (but NOT in URLs)
                 .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-                .replace(/[\u0000-\u0019\u007F-\u009F]/g, ''); // Remove most control characters except normal whitespace
-
+                .replace(/[\n\r\t]/g, ' ') // Replace newlines and tabs with spaces to prevent control char issues
+                .replace(/[\u0000-\u0019\u007F-\u009F]/g, '') // Remove control chars
+                .replace(/,\s*([}\]])/g, '$1'); // Remove trailing commas
+                
             try {
                 return JSON.parse(sanitized);
             } catch (initialError) {
