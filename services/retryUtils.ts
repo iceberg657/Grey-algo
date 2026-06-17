@@ -139,7 +139,7 @@ export const ANALYSIS_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
     'gemini-3.5-flash',
-    'gemini-3-flash',
+    'gemini-3-flash-preview',
     'gemini-2.5-flash'
 ];
 
@@ -149,7 +149,7 @@ export const SNIPER_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
     'gemini-3.5-flash',
-    'gemini-3-flash',
+    'gemini-3-flash-preview',
     'gemini-2.5-flash'
 ];
 
@@ -159,7 +159,7 @@ export const CHAT_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
     'gemini-3.5-flash',
-    'gemini-3-flash',
+    'gemini-3-flash-preview',
     'gemini-2.5-flash'
 ];
 
@@ -170,7 +170,7 @@ export const getAlphaPool = () => getUniqueKeys([K.K6()]);
 // A: AI Pilot / Regime Tracker
 export const PILOT_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 // B: AI ASSETS SUGGESTION 
-export const SUGGESTION_MODELS = ['gemini-2.5-flash-lite', 'gemini-3-flash'];
+export const SUGGESTION_MODELS = ['gemini-2.5-flash-lite', 'gemini-3-flash-preview'];
 
 // BETA (Key 7)
 export const getBetaPool = () => getUniqueKeys([K.K7()]);

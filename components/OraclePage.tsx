@@ -37,6 +37,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
   const sessionRef = useRef<any>(null);
   const frameIntervalRef = useRef<number | null>(null);
   const nextPlayTimeRef = useRef<number>(0);
+  const activeNodesRef = useRef<AudioBufferSourceNode[]>([]);
 
   const inputModeRef = useRef<'voice' | 'text'>('voice');
   const isMutedRef = useRef<boolean>(false);
@@ -59,7 +60,7 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
 
   const sendText = () => {
       if (sessionRef.current && textInput.trim()) {
-          sessionRef.current.sendRealtimeInput({ text: textInput });
+          sessionRef.current.sendRealtimeInput([{ text: textInput }]);
           setModelMessage(prev => prev + "\nUser: " + textInput); // Show user text
           setTextInput('');
       }
@@ -81,9 +82,10 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
               const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
               const mimeType = isHeic ? 'image/heic' : (file.type || 'image/jpeg');
               
-              sessionRef.current.sendRealtimeInput({
-                  video: { data: base64Data, mimeType }
-              });
+              sessionRef.current.sendRealtimeInput([
+                  { video: { data: base64Data, mimeType } },
+                  { text: 'I have just uploaded this image. Please reply with only "Image received, awaiting your command." and wait for my next instructions.' }
+              ]);
           };
           reader.readAsDataURL(file);
       });
@@ -319,10 +321,15 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                       let playTime = nextPlayTimeRef.current;
                       if (playTime < aCtx.currentTime) {
                           // Buffer underrun occurred, add a delay to build up buffer to prevent stutters
-                          playTime = aCtx.currentTime + 0.3;
+                          playTime = aCtx.currentTime + 0.1;
                       }
                       sourceNode.start(playTime);
                       nextPlayTimeRef.current = playTime + audioBuffer.duration;
+                      
+                      sourceNode.onended = () => {
+                          activeNodesRef.current = activeNodesRef.current.filter(n => n !== sourceNode);
+                      };
+                      activeNodesRef.current.push(sourceNode);
                     }
                   }
                   
@@ -336,6 +343,10 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
               if (message.serverContent.interrupted) {
                 // Clear state if user interrupts
                 nextPlayTimeRef.current = 0;
+                activeNodesRef.current.forEach(node => {
+                    try { node.stop(); } catch(e) {}
+                });
+                activeNodesRef.current = [];
               }
             }
           },
@@ -360,6 +371,8 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
 If the user enables vision, you can see their entire screen or camera. If asked to analyze a chart and give a signal, you MUST act as an elite Institutional ICT/SMC trader. 
 Analyze the market structure, give the exact bias (Buy/Sell), calculate safest Stop Loss (SL) using local liquidity points, and dictate Take Profit (TP) levels. 
 Be concise, assertive, and brilliant. Describe what you see mathematically.
+
+When the user uploads or shares an image without a spoken or text command, simply say "Image received, awaiting your command" and wait until they instruct you on what to do.
 
 You also have the ability to navigate the user to different pages in the app if they ask you to open a specific page.
 Use the tool 'navigate_to_page' with the correct 'page' argument. Available pages are: 'interactive-chart', 'home', 'chat', 'history', 'products', 'journal', 'admin', 'autotrade', 'sniper'`,

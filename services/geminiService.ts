@@ -1000,7 +1000,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             'gemini-3.1-flash-lite',
             'gemini-2.5-flash-lite',
             'gemini-3.5-flash',
-            'gemini-3-flash',
+            'gemini-3-flash-preview',
             'gemini-2.5-flash'
         ] : ANALYSIS_MODELS;
 
@@ -1679,7 +1679,7 @@ export async function generateSniperLiveSignal(
         'gemini-3.1-flash-lite',
         'gemini-2.5-flash-lite',
         'gemini-3.5-flash',
-        'gemini-3-flash',
+        'gemini-3-flash-preview',
         'gemini-2.5-flash'
     ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default
 
@@ -2315,9 +2315,25 @@ function extractJson(str: string): any {
         const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
         let target = jsonMatch ? jsonMatch[1].trim() : str.trim();
 
-        // 2. Isolate the FIRST and LAST structural braces in case of preceding/succeeding text
-        const firstOpen = target.indexOf('{');
-        const lastClose = target.lastIndexOf('}');
+        // 2. Isolate the FIRST and LAST structural braces/brackets in case of preceding/succeeding text
+        const firstBrace = target.indexOf('{');
+        const lastBrace = target.lastIndexOf('}');
+        const firstBracket = target.indexOf('[');
+        const lastBracket = target.lastIndexOf(']');
+
+        // we want the earliest of { or [
+        let firstOpen = -1;
+        if (firstBrace !== -1 && firstBracket !== -1) {
+            firstOpen = Math.min(firstBrace, firstBracket);
+        } else if (firstBrace !== -1) {
+            firstOpen = firstBrace;
+        } else {
+            firstOpen = firstBracket;
+        }
+
+        let lastClose = -1;
+        if (firstOpen === firstBrace) lastClose = lastBrace;
+        if (firstOpen === firstBracket) lastClose = lastBracket;
 
         if (firstOpen !== -1) {
             if (lastClose !== -1 && lastClose > firstOpen) {
@@ -2325,6 +2341,8 @@ function extractJson(str: string): any {
             } else {
                 target = target.substring(firstOpen).trim();
             }
+        } else {
+            throw new Error("Model output contains no structural JSON elements ({ or [).");
         }
 
         // Try parsing immediately before doing any destructive operations

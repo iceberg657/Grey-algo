@@ -60,8 +60,14 @@ const SessionColumn = ({ sessions }: { sessions: BlueprintSession[] }) => {
 };
 
 const AVAILABLE_ASSETS = [
-    'EURUSD', 'GBPUSD', 'AUDUSD', 'NZDUSD', 'USDCAD', 'USDJPY', 'USDCHF', 
-    'XAUUSD', 'US30', 'NAS100', 'SPX500', 'UK100', 'BTCUSD', 'ETHUSD'
+    // Global Indices
+    'US30', 'NAS100', 'SPX500', 'Europe50', 'Germany40', 'France40', 'Japan225', 'Australia200', 'UK100',
+    // Forex
+    'EURUSD', 'GBPUSD', 'GBPJPY', 'EURGBP', 'EURJPY', 'GBPCHF', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD',
+    // Commodities
+    'XAUUSD', 'SILVER', 'BRENT', 'WTI',
+    // Crypto
+    'BTCUSD', 'ETHUSD', 'LTCUSD'
 ];
 
 export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBack }) => {

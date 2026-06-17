@@ -21,6 +21,8 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
         mappedSymbol = 'OTC_NDX';
     } else if (normalized === 'US500' || normalized === 'SP500' || normalized.includes('SPX500') || normalized.includes('US500')) {
         mappedSymbol = 'OTC_SPC';
+    } else if (normalized === 'EUROPE50' || normalized === 'STOXX50' || normalized.includes('STOXX50E')) {
+        mappedSymbol = 'OTC_STOXX50E';
     } else if (normalized === 'UK100' || normalized === 'FTSE' || normalized.includes('FTSE100') || normalized.includes('UK100')) {
         mappedSymbol = 'OTC_FTSE';
     } else if (normalized === 'FRANCE40' || normalized === 'CAC' || normalized === 'OTCFCHI' || normalized.includes('FCHI')) {

@@ -133,7 +133,7 @@ service cloud.firestore {
 
       // Trades subcollection
       match /trades/{tradeId} {
-        allow read: if isOwner(userId) || isAdmin();
+        allow read: if isSignedIn();
         allow create: if isOwner(userId) && isValidTrade(incoming());
         allow update: if (isOwner(userId) && isValidTrade(incoming())) || isAdmin();
         allow delete: if isOwner(userId) || isAdmin();
@@ -188,8 +188,8 @@ service cloud.firestore {
 
     // --- Learned Rules ---
     match /learned_rules/{ruleId} {
-      allow get: if isValidId(ruleId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow get: if isValidId(ruleId) && isSignedIn();
+      allow list: if isSignedIn();
       allow create: if isValidId(ruleId) && isSignedIn() && isValidLearnedRule(incoming()) && incoming().userId == request.auth.uid;
       allow delete: if isValidId(ruleId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }

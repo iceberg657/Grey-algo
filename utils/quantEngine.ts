@@ -1107,7 +1107,10 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         assetSymbol.includes('FTSE') ||
         assetSymbol.includes('GER40') ||
         assetSymbol.includes('DAX') ||
-        assetSymbol.includes('EUR');
+        assetSymbol.includes('STOXX') ||
+        assetSymbol.includes('EUR') ||
+        assetSymbol.includes('GBP') ||
+        assetSymbol.includes('CHF');
 
     // Advanced Institutional ATR Buffer & Trap Avoidance
     let baseSlBuffer = 1.5; // Starts at 1.5x ATR
