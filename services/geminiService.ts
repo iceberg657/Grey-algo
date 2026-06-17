@@ -997,12 +997,11 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         const isDeepThinking = !!request.userSettings?.deepThinking;
         const models = isDeepThinking ? [
-            'gemini-3.5-flash',
             'gemini-3.1-flash-lite',
+            'gemini-2.5-flash-lite',
+            'gemini-3.5-flash',
             'gemini-3-flash',
-            'gemini-2.5-flash',
-            'gemini-2.0-flash',
-            'gemini-1.5-pro'
+            'gemini-2.5-flash'
         ] : ANALYSIS_MODELS;
 
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;

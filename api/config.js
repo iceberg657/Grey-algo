@@ -12,6 +12,7 @@ export default function handler(req, res) {
       k7: process.env.API_KEY_7,
       k8: process.env.API_KEY_8,
       k9: process.env.API_KEY_9,
+      k10: process.env.API_KEY_10,
     }
   });
 }

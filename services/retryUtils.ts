@@ -6,7 +6,7 @@
 let API_KEY: string | null = null;
 let USE_STRICT_MODE = false;
 const KEYS: Record<string, string | null> = {
-    k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null, k8: null, k9: null
+    k1: null, k2: null, k3: null, k4: null, k5: null, k6: null, k7: null, k8: null, k9: null, k10: null
 };
 
 let initializationPromise: Promise<void> | null = null;
@@ -47,6 +47,7 @@ export async function initializeApiKey() {
             k7: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_7 : undefined,
             k8: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_8 : undefined,
             k9: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_9 : undefined,
+            k10: (typeof window !== 'undefined') ? import.meta.env.VITE_API_KEY_10 : undefined,
         };
 
         const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
@@ -95,6 +96,7 @@ export async function initializeApiKey() {
                     if (isValid(pEnv.API_KEY_7)) KEYS.k7 = pEnv.API_KEY_7.trim();
                     if (isValid(pEnv.API_KEY_8)) KEYS.k8 = pEnv.API_KEY_8.trim();
                     if (isValid(pEnv.API_KEY_9)) KEYS.k9 = pEnv.API_KEY_9.trim();
+                    if (isValid(pEnv.API_KEY_10)) KEYS.k10 = pEnv.API_KEY_10.trim();
                 }
             }
         } catch (e) {}
@@ -117,7 +119,8 @@ const K = {
     K6: () => KEYS.k6 || '',
     K7: () => KEYS.k7 || '',
     K8: () => KEYS.k8 || '',
-    K9: () => KEYS.k9 || ''
+    K9: () => KEYS.k9 || '',
+    K10: () => KEYS.k10 || ''
 };
 
 export async function getApiKey() {
@@ -130,20 +133,18 @@ const getUniqueKeys = (keys: string[]) => {
     return Array.from(new Set(keys.filter(k => !!k && k.length > 5)));
 };
 
-// 1. CHART ANALYSIS (Keys 1-9, Fully Integrated Pool)
-export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]); 
+// 1. CHART ANALYSIS (Keys 1-4)
+export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
-    'gemini-3.5-flash',
     'gemini-3.1-flash-lite',
-    'gemini-3-flash',
-    'gemini-2.5-flash',
     'gemini-2.5-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-1.5-flash'
+    'gemini-3.5-flash',
+    'gemini-3-flash',
+    'gemini-2.5-flash'
 ];
 
-// 2. SNIPER PAGE (STABLE MODELS - No change to live logic)
-export const getSniperPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]);
+// 2. SNIPER PAGE
+export const getSniperPool = () => getUniqueKeys([K.K10()]);
 export const SNIPER_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
@@ -152,8 +153,8 @@ export const SNIPER_MODELS = [
     'gemini-2.5-flash'
 ];
 
-// 3. CHAT & LIVE (Keys 1-9, Resilience Pool)
-export const getChatPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4(), K.K5(), K.K6(), K.K7(), K.K8(), K.K9()]); 
+// 3. CHAT & LIVE (Key 5)
+export const getChatPool = () => getUniqueKeys([K.K5()]); 
 export const CHAT_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
@@ -165,28 +166,28 @@ export const CHAT_MODELS = [
 // 4. FEATURE DISTRIBUTION (Keys 6-9)
 
 // ALPHA (Key 6)
-export const getAlphaPool = () => getUniqueKeys([K.K6(), K.K1(), K.K2()]);
+export const getAlphaPool = () => getUniqueKeys([K.K6()]);
 // A: AI Pilot / Regime Tracker
 export const PILOT_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 // B: AI ASSETS SUGGESTION 
 export const SUGGESTION_MODELS = ['gemini-2.5-flash-lite', 'gemini-3-flash'];
 
 // BETA (Key 7)
-export const getBetaPool = () => getUniqueKeys([K.K7(), K.K3(), K.K4()]);
+export const getBetaPool = () => getUniqueKeys([K.K7()]);
 // A: Global Market Intelligence
 export const MARKET_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash'];
 // B: Neural Learning (Truth Layer)
-export const LEARNING_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
+export const LEARNING_MODELS = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
 
 // GAMMA (Key 8)
-export const getGammaPool = () => getUniqueKeys([K.K8(), K.K5()]);
+export const getGammaPool = () => getUniqueKeys([K.K8()]);
 // A: Session Summaries
 export const SUMMARY_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'];
 // B: Neural TTS
 export const TTS_MODELS = ['gemini-3.1-flash-tts', 'gemini-2.5-flash-tts']; 
 
 // DELTA (Key 9)
-export const getDeltaPool = () => getUniqueKeys([K.K9(), K.K1()]);
+export const getDeltaPool = () => getUniqueKeys([K.K9()]);
 // A: Embeddings & Pattern Recognition
 export const EMBEDDING_MODELS = ['gemini-embedding-2'];
 // B: Prompt Optimization
