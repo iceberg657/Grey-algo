@@ -176,6 +176,9 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [ttsState, setTtsState] = useState<'idle' | 'waiting' | 'speaking'>('idle');
     const [copiedLabel, setCopiedLabel] = useState<string | null>(null);
     const [executionAlgorithm, setExecutionAlgorithm] = useState<string>('Standard');
+    const [activeTab, setActiveTab] = useState<'signal' | 'confluences' | 'sentiment' | 'sources'>('signal');
+    const [calcBalance, setCalcBalance] = useState<number>(10000);
+    const [calcRiskPercent, setCalcRiskPercent] = useState<number>(1);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     // Determine unit and precision for display
@@ -221,6 +224,24 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const tp3Display = (diffTP3 * scalar).toFixed(precision);
     
     const formatCurrency = (val?: number) => val != null ? `$${val.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}` : '$0.00';
+
+    // Interactive custom calculations
+    const dynamicRiskAmount = calcBalance * (calcRiskPercent / 100);
+    let calculatedLots = 0;
+    const normAsset = data.asset.toUpperCase();
+    if (diffSL > 0) {
+        if (normAsset.includes('BTC') || normAsset.includes('ETH') || normAsset.includes('CRYPTO')) {
+            calculatedLots = dynamicRiskAmount / diffSL;
+        } else if (['EUR','GBP','AUD','NZD','USD','CAD','CHF'].some(c => normAsset.includes(c)) && !normAsset.includes('XAU')) {
+            calculatedLots = dynamicRiskAmount / (diffSL * scalar * 10);
+        } else if (normAsset.includes('XAU') || normAsset.includes('GOLD')) {
+            calculatedLots = dynamicRiskAmount / (diffSL * 100);
+        } else {
+            calculatedLots = dynamicRiskAmount / (diffSL * 10);
+        }
+    }
+    const dynamicLots = isNaN(calculatedLots) || calculatedLots <= 0 ? 0.01 : parseFloat(Math.max(0.01, calculatedLots).toFixed(2));
+    const dynamicPotentialProfit = dynamicRiskAmount * (diffSL > 0 ? (diffTP3 / diffSL) : 3);
 
     const copyToClipboard = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
@@ -407,7 +428,31 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                  )}
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Sliding Tab Triggers */}
+            <div className="flex bg-slate-200/50 dark:bg-slate-900/60 p-1.5 rounded-2xl gap-1 mb-8 border border-slate-300/30 dark:border-white/5 backdrop-blur-3xl overflow-x-auto scroller-none max-w-full">
+                {[
+                    { id: 'signal', name: 'Execution & Calculator', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 11h.01M12 7h.01M15 11h.01M12 14h.01M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" /></svg> },
+                    { id: 'confluences', name: 'Technical Confluences', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" /></svg> },
+                    { id: 'sentiment', name: 'Macro Bias & Catalysts', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg> },
+                    { id: 'sources', name: 'Intelligence Sources', icon: <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg> }
+                ].map((tab) => (
+                    <button
+                        key={tab.id}
+                        onClick={() => setActiveTab(tab.id as any)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-300 whitespace-nowrap cursor-pointer ${activeTab === tab.id ? 'bg-white/80 dark:bg-slate-800/80 text-blue-600 dark:text-blue-400 shadow-md scale-[1.02]' : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white'}`}
+                    >
+                        {tab.icon}
+                        {tab.name}
+                        {tab.id === 'sources' && data.sources && (
+                            <span className="bg-blue-500/10 text-blue-500 rounded-md px-1.5 py-0.5 text-[9px] font-mono">{data.sources.length}</span>
+                        )}
+                    </button>
+                ))}
+            </div>
+
+            {activeTab === 'signal' && (
+                <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '500ms' }}>
                     <TiltCard>
                         <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
@@ -582,6 +627,84 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 </Section>
             )}
 
+            {/* INTERACTIVE REAL-TIME POSITION CALCULATOR CARD */}
+            {data.signal !== 'NEUTRAL' && (
+                <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl rounded-3xl p-6 border border-blue-500/20 shadow-2xl relative overflow-hidden group mb-8">
+                    <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full -mr-20 -mt-20 blur-3xl" />
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white font-black shadow-lg shadow-blue-500/30 font-mono">%</div>
+                        <div>
+                            <h3 className="text-base font-black uppercase tracking-tight text-blue-600 dark:text-blue-400 font-sans">Interactive Position & Prop Risk Calculator</h3>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Simulate exact execution lot size live</p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                        {/* Left Side Fields */}
+                        <div className="space-y-5">
+                            <div>
+                                <div className="flex justify-between text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+                                    <span>Account Size</span>
+                                    <span className="text-blue-500 font-mono">${calcBalance.toLocaleString()} USD</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    min="1000" 
+                                    max="200000" 
+                                    step="1000"
+                                    value={calcBalance}
+                                    onChange={(e) => setCalcBalance(Number(e.target.value))}
+                                    className="w-full h-2 bg-slate-300 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                                <div className="flex justify-between text-[10px] font-bold text-gray-500 mt-1 uppercase font-mono">
+                                    <span>$1,000</span>
+                                    <span>Prop Scale ($100k)</span>
+                                    <span>$200,000</span>
+                                </div>
+                            </div>
+                            <div>
+                                <div className="flex justify-between text-xs font-black text-slate-700 dark:text-gray-300 uppercase tracking-wider mb-2">
+                                    <span>Risk Allocation</span>
+                                    <span className="text-red-500 font-mono">{calcRiskPercent.toFixed(2)}%</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    min="0.25" 
+                                    max="5" 
+                                    step="0.25"
+                                    value={calcRiskPercent}
+                                    onChange={(e) => setCalcRiskPercent(Number(e.target.value))}
+                                    className="w-full h-2 bg-slate-300 dark:bg-slate-800 rounded-lg appearance-none cursor-pointer accent-blue-500"
+                                />
+                                <div className="flex justify-between text-[10px] font-bold text-gray-500 mt-1 uppercase font-mono">
+                                    <span>Conservative (0.5%)</span>
+                                    <span>Aggressive (3%)</span>
+                                </div>
+                            </div>
+                        </div>
+                        {/* Right Side Computed Metrics Outputs */}
+                        <div className="bg-slate-100/60 dark:bg-[#0c1220]/40 p-5 rounded-2xl border border-slate-200 dark:border-white/5 flex flex-col justify-between">
+                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                <div className="p-3 bg-white/40 dark:bg-white/5 rounded-xl text-center">
+                                    <span className="text-[9px] font-black text-gray-500 uppercase block mb-1">Max Capital Loss</span>
+                                    <span className="text-base font-black text-red-500 font-mono">{formatCurrency(dynamicRiskAmount)}</span>
+                                </div>
+                                <div className="p-3 bg-white/40 dark:bg-white/5 rounded-xl text-center">
+                                    <span className="text-[9px] font-black text-gray-500 uppercase block mb-1">Est. Target Profit</span>
+                                    <span className="text-base font-black text-green-500 font-mono">{formatCurrency(dynamicPotentialProfit)}</span>
+                                </div>
+                            </div>
+                            <div className="bg-blue-500/10 dark:bg-blue-500/5 p-4 rounded-xl border border-blue-500/20 text-center">
+                                <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest block mb-1">SMC CALCULATED POSITION SIZE</span>
+                                <span className="text-3xl font-black text-blue-600 dark:text-blue-400 font-mono block mb-1">{dynamicLots.toFixed(2)} LOTS</span>
+                                <p className="text-[9px] font-bold text-slate-600 dark:text-gray-400 leading-tight uppercase tracking-wider">
+                                    Calculated based on a surgical Stop Loss distance of {slDisplay} {unit}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* INTEGRATED QUANT METRICS SECTION */}
             <Section title="Quant Execution Metrics" delay="1000ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" /></svg>}>
                 <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden font-mono">
@@ -663,8 +786,12 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     </div>
                 </div>
             </Section>
+                </div>
+            )}
 
-            {/* TRIGGER CONDITIONS SECTION */}
+            {activeTab === 'confluences' && (
+                <div className="space-y-6">
+                    {/* TRIGGER CONDITIONS SECTION */}
             {data.triggerConditions && (
                 <Section title="Trigger Conditions" delay="1150ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}>
                     <div className="bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl rounded-2xl border border-gray-200 dark:border-white/10 p-6 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative overflow-hidden">
@@ -1042,8 +1169,12 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     </Section>
                 </div>
             )}
+                </div>
+            )}
 
-            {(hasSentiment || hasEconomicEvents) && (
+            {activeTab === 'sentiment' && (
+                <div className="space-y-6">
+                    {(hasSentiment || hasEconomicEvents) && (
                  <div className={`grid grid-cols-1 ${hasSentiment && hasEconomicEvents ? 'md:grid-cols-2' : ''} gap-6 mt-4`}>
                     {hasSentiment && (
                          <Section title="HTF Macro Bias" delay="1400ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 22v-4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M22 12h-4"/><path d="m19.07 4.93-2.83 2.83"/><path d="M12 12m-4 0a4 4 0 1 0 8 0a4 4 0 1 0 -8 0"/></svg>}>
@@ -1061,7 +1192,12 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                      )}
                 </div>
             )}
-            {Array.isArray(data.sources) && data.sources.length > 0 && (
+                </div>
+            )}
+
+            {activeTab === 'sources' && (
+                <div className="space-y-6">
+                    {Array.isArray(data.sources) && data.sources.length > 0 && (
                  <Section title="Intelligence Sources" delay="1600ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M9 4.804A7.937 7.937 0 0112 4c1.232 0 2.403.28 3.444.782l1.556-1.556a1 1 0 011.414 1.414l-1.556 1.556c.496 1.056.782 2.227.782 3.444 0 1.241-.3 2.413-.834 3.443L19.293 17.707a1 1 0 01-1.414 1.414l-3.483-3.484A7.935 7.935 0 0112 16a7.937 7.937 0 01-3-4.804l-1.556 1.556a1 1 0 01-1.414-1.414l1.556-1.556A7.935 7.935 0 014 12a7.937 7.937 0 013-4.804L5.444 5.64a1 1 0 011.414-1.414l1.556 1.556C9.403 5.084 10.574 4.804 12 4.804z" /></svg>}>
                     <ul className="space-y-3">
                         {data.sources.map((source, i) => (
@@ -1079,6 +1215,8 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         ))}
                     </ul>
                 </Section>
+            )}
+                </div>
             )}
 
             {/* Post-Mortem Section */}

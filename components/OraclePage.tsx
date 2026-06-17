@@ -242,10 +242,18 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                 if (includeCamera && videoRef.current && canvasRef.current) {
                     frameIntervalRef.current = window.setInterval(() => {
                       if (videoRef.current && canvasRef.current) {
-                        const ctx = canvasRef.current.getContext('2d');
+                        const video = videoRef.current;
+                        const canvas = canvasRef.current;
+                        const ctx = canvas.getContext('2d');
                         if (ctx) {
-                          ctx.drawImage(videoRef.current, 0, 0, 640, 480);
-                          const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.5);
+                          const width = video.videoWidth || 1280;
+                          const height = video.videoHeight || 720;
+                          // Use high resolution capped at Full HD (1920x1080) to maintain high performance and avoid API payload constraints
+                          canvas.width = Math.min(width, 1920);
+                          canvas.height = Math.min(height, 1080);
+                          
+                          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                          const dataUrl = canvas.toDataURL('image/jpeg', 0.85); // Professional quality compression
                           const base64Data = dataUrl.split(',')[1];
                           sessionPromise.then(s => {
                             s.sendRealtimeInput({

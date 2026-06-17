@@ -22,74 +22,108 @@ export const NeuralBackground: React.FC = () => {
 
         let animationFrameId: number;
 
-        interface Particle {
+        interface GradientBlob {
             x: number;
             y: number;
             vx: number;
             vy: number;
-            size: number;
+            radius: number;
+            colorLight: string;
+            colorDark: string;
         }
 
-        const particles: Particle[] = [];
-        // Calculate particle count based on screen area to maintain density
-        const particleCount = Math.floor((window.innerWidth * window.innerHeight) / 12000);
-
-        const initParticles = () => {
-            particles.length = 0;
-            for (let i = 0; i < particleCount; i++) {
-                particles.push({
-                    x: Math.random() * canvas.width,
-                    y: Math.random() * canvas.height,
-                    vx: (Math.random() - 0.5) * 1.5, // Increased speed from 0.5 to 1.5
-                    vy: (Math.random() - 0.5) * 1.5, // Increased speed from 0.5 to 1.5
-                    size: Math.random() * 2 + 1
-                });
+        // Initialize 5 thick color blobs mimicking premium fluid gradient flows
+        const blobs: GradientBlob[] = [
+            { 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height, 
+                vx: 0.6, 
+                vy: 0.4, 
+                radius: Math.min(canvas.width, canvas.height) * 0.55, 
+                colorLight: 'rgba(99, 102, 241, 0.16)', // Indigo
+                colorDark: 'rgba(79, 70, 229, 0.22)' 
+            },
+            { 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height, 
+                vx: -0.5, 
+                vy: 0.4, 
+                radius: Math.min(canvas.width, canvas.height) * 0.60, 
+                colorLight: 'rgba(6, 182, 212, 0.15)', // Cyan
+                colorDark: 'rgba(8, 145, 178, 0.18)' 
+            },
+            { 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height, 
+                vx: 0.4, 
+                vy: -0.5, 
+                radius: Math.min(canvas.width, canvas.height) * 0.50, 
+                colorLight: 'rgba(236, 72, 153, 0.14)', // Rose
+                colorDark: 'rgba(219, 39, 119, 0.18)' 
+            },
+            { 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height, 
+                vx: -0.4, 
+                vy: -0.4, 
+                radius: Math.min(canvas.width, canvas.height) * 0.52, 
+                colorLight: 'rgba(16, 185, 129, 0.14)', // Emerald
+                colorDark: 'rgba(5, 150, 105, 0.15)' 
+            },
+            { 
+                x: Math.random() * canvas.width, 
+                y: Math.random() * canvas.height, 
+                vx: 0.3, 
+                vy: 0.5, 
+                radius: Math.min(canvas.width, canvas.height) * 0.48, 
+                colorLight: 'rgba(245, 158, 11, 0.13)', // Amber
+                colorDark: 'rgba(217, 119, 6, 0.14)' 
             }
-        };
-
-        initParticles();
+        ];
 
         const animate = () => {
             if (!ctx || !canvas) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const isDark = theme === 'dark';
-            // Brighter particles for dark mode
-            const particleFill = isDark ? 'rgba(34, 211, 238, 0.8)' : 'rgba(14, 165, 233, 0.8)'; // Cyan
-            const lineBase = isDark ? '34, 211, 238' : '14, 165, 233';
+            
+            // Replicate dynamic liquid overlay blending using the screen composite mode
+            ctx.globalCompositeOperation = isDark ? 'screen' : 'multiply';
 
-            particles.forEach((p, i) => {
-                p.x += p.vx;
-                p.y += p.vy;
+            blobs.forEach((b) => {
+                b.x += b.vx;
+                b.y += b.vy;
 
-                // Wrap around edges
-                if (p.x < 0) p.x = canvas.width;
-                if (p.x > canvas.width) p.x = 0;
-                if (p.y < 0) p.y = canvas.height;
-                if (p.y > canvas.height) p.y = 0;
+                // Handle soft edge boundaries
+                if (b.x - b.radius < -100 || b.x + b.radius > canvas.width + 100) b.vx *= -1;
+                if (b.y - b.radius < -100 || b.y + b.radius > canvas.height + 100) b.vy *= -1;
+
+                b.x = Math.max(-b.radius, Math.min(canvas.width + b.radius, b.x));
+                b.y = Math.max(-b.radius, Math.min(canvas.height + b.radius, b.y));
+
+                const color = isDark ? b.colorDark : b.colorLight;
+                const grad = ctx.createRadialGradient(b.x, b.y, b.radius * 0.05, b.x, b.y, b.radius);
+                grad.addColorStop(0, color);
+                grad.addColorStop(0.5, color.replace(/[\d\.]+\)$/, '0.06)'));
+                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
                 ctx.beginPath();
-                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-                ctx.fillStyle = particleFill;
+                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                ctx.fillStyle = grad;
                 ctx.fill();
-
-                // Connections
-                for (let j = i + 1; j < particles.length; j++) {
-                    const p2 = particles[j];
-                    const dx = p.x - p2.x;
-                    const dy = p.y - p2.y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-
-                    if (dist < 150) {
-                        ctx.beginPath();
-                        ctx.strokeStyle = `rgba(${lineBase}, ${0.2 * (1 - dist / 150)})`;
-                        ctx.lineWidth = 1;
-                        ctx.moveTo(p.x, p.y);
-                        ctx.lineTo(p2.x, p2.y);
-                        ctx.stroke();
-                    }
-                }
             });
+
+            // Subtle micro-sparkles shimmering over the liquid glass to represent fine grains of high-end frosted screens
+            ctx.globalCompositeOperation = 'source-over';
+            const sparkleColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.03)';
+            ctx.fillStyle = sparkleColor;
+            for (let i = 0; i < 12; i++) {
+                const sx = (Math.sin(Date.now() * 0.0006 * (i + 1)) * 0.5 + 0.5) * canvas.width;
+                const sy = (Math.cos(Date.now() * 0.0005 * (i + 1)) * 0.5 + 0.5) * canvas.height;
+                ctx.beginPath();
+                ctx.arc(sx, sy, 1, 0, Math.PI * 2);
+                ctx.fill();
+            }
 
             animationFrameId = requestAnimationFrame(animate);
         };
@@ -119,8 +153,8 @@ export const NeuralBackground: React.FC = () => {
                 <div className="absolute top-[10%] left-[35%] w-[45vw] h-[45vw] rounded-full bg-rose-200/25 dark:bg-pink-950/15 blur-[140px] md:blur-[200px] animate-blob-2" />
             </div>
 
-            {/* Neural Net Layer */}
-            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-50 dark:opacity-75" />
+            {/* Moving Liquid Gradient Canvas Layer */}
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-60 dark:opacity-85 mix-blend-color-dodge" />
         </div>
     );
 };
