@@ -189,6 +189,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     if (normalized.includes('EURUSD')) return 'frxEURUSD';
     if (normalized.includes('GBPUSD')) return 'frxGBPUSD';
     if (normalized.includes('GBPJPY')) return 'frxGBPJPY';
+    if (normalized.includes('EURGBP')) return 'frxEURGBP';
+    if (normalized.includes('EURJPY')) return 'frxEURJPY';
+    if (normalized.includes('GBPCHF')) return 'frxGBPCHF';
     if (normalized.includes('USDJPY')) return 'frxUSDJPY';
     if (normalized.includes('AUDUSD')) return 'frxAUDUSD';
     if (normalized.includes('USDCAD')) return 'frxUSDCAD';
@@ -395,7 +398,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
     try {
       // 1. Extract asset from query
-      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
+      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|eurjpy|eurgbp|gbpchf|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
       const asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
 
       if (!asset) {
