@@ -1538,6 +1538,105 @@ export function calculateRRLevels(
     }
 }
 
+export interface ParsedBrokerInfo {
+    brokerName?: string;
+    brokerPrice?: number;
+    brokerMinPrice?: number;
+    brokerMaxPrice?: number;
+}
+
+export function parseBrokerInfo(query: string): ParsedBrokerInfo | null {
+    const info: ParsedBrokerInfo = {};
+    const lowerQuery = query.toLowerCase();
+
+    // 1. Identify common brokers
+    const brokers = ['exness', 'ftmo', 'headway', 'xm', 'octafx', 'deriv', 'fxtm', 'roboforex', 'ic markets', 'hfm', 'pepperstone', 'tportal', 'myforexfunds', 'fundednext'];
+    for (const b of brokers) {
+        if (lowerQuery.includes(b)) {
+            info.brokerName = b.charAt(0).toUpperCase() + b.slice(1);
+            break;
+        }
+    }
+    // General broker match: "on [Broker]" or "broker [Broker]"
+    if (!info.brokerName) {
+        const brokerMatch = query.match(/(?:on|with|broker)\s+([a-zA-Z0-9_-]{2,15})/i);
+        if (brokerMatch) {
+            info.brokerName = brokerMatch[1];
+        }
+    }
+
+    // 2. Parse price range: "123.45 - 123.80" or "123.45 to 123.80"
+    const rangeMatch = query.match(/(\d+(?:\.\d+)?)\s*(?:-|to|\.\.)\s*(\d+(?:\.\d+)?)/);
+    if (rangeMatch) {
+        const p1 = parseFloat(rangeMatch[1]);
+        const p2 = parseFloat(rangeMatch[2]);
+        info.brokerMinPrice = Math.min(p1, p2);
+        info.brokerMaxPrice = Math.max(p1, p2);
+        info.brokerPrice = (p1 + p2) / 2;
+        return info;
+    }
+
+    // 3. Parse specific price: "@ 39550" or "at 39550" or "= 39550" or "price 39550"
+    const priceMatch = query.match(/(?:@|at|=|price)\s*(\d+(?:\.\d+)?)/i);
+    if (priceMatch) {
+        info.brokerPrice = parseFloat(priceMatch[1]);
+        return info;
+    }
+
+    // 4. Fallback: Parse any number that is different from the asset's standard ticker name
+    const numbers = query.match(/\b\d+(?:\.\d+)?\b/g);
+    if (numbers) {
+        for (const numStr of numbers) {
+            const num = parseFloat(numStr);
+            // Ignore common numbers like 30 (US30), 100 (US100), 500 (US500), 1, 2, 5, 10, 15, 30, 60 (timeframes)
+            if ([30, 100, 500, 1000, 150, 300, 10, 25, 50, 75, 4, 1, 5, 15, 30, 60].includes(num)) continue;
+            if (num > 0.00001) {
+                info.brokerPrice = num;
+                break;
+            }
+        }
+    }
+
+    return Object.keys(info).length > 0 ? info : null;
+}
+
+export function cleanBrokerQuery(query: string): string {
+    let clean = query;
+
+    // 1. Remove range: "num - num" or "num to num" or "num .. num" first
+    clean = clean.replace(/\b\d+(?:\.\d+)?\s*(?:-|to|\.\.)\s*\d+(?:\.\d+)?\b/gi, '');
+
+    // 2. Remove "@ price", "at price", "= price", "price price"
+    clean = clean.replace(/(?:@|at|=|price)\s*\d+(?:\.\d+)?/gi, '');
+
+    // 3. Remove common broker words
+    const brokers = ['exness', 'ftmo', 'headway', 'xm', 'octafx', 'deriv', 'fxtm', 'roboforex', 'ic markets', 'hfm', 'pepperstone', 'tportal', 'myforexfunds', 'fundednext'];
+    for (const b of brokers) {
+        const regex = new RegExp('\\b' + b + '\\b', 'gi');
+        clean = clean.replace(regex, '');
+    }
+
+    // 4. Remove standalone large integers or decimals that are likely broker price feed artifacts
+    clean = clean.replace(/\b\d+\.\d+\b/g, '');
+    clean = clean.replace(/\b\d{4,}\b/gi, '');
+
+    // Clean up extra spaces/symbols
+    clean = clean.replace(/[^a-zA-Z0-9\s]/g, ' ');
+    clean = clean.replace(/\s+/g, ' ');
+    clean = clean.replace(/^\s*(?:on|with|broker|at)\s+/gi, '');
+    clean = clean.trim();
+
+    // If cleaned query is too short or empty, fall back to safe clean version
+    if (!clean || clean.length < 2) {
+        const match = query.match(/[a-zA-Z]+/g);
+        if (match) {
+            clean = match.join(' ');
+        }
+    }
+
+    return clean || query;
+}
+
 export function validateSL(
     signal: 'BUY' | 'SELL',
     entry: number,
@@ -1673,6 +1772,7 @@ export async function generateSniperLiveSignal(
     const livePrice = derivData?.price || 0;
     const assetName = derivData?.symbol || 'Asset';
     const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
+    const cleanQueryForLLM = cleanBrokerQuery(query);
 
     const isDeepThinking = !!userSettings?.deepThinking;
     const models = isDeepThinking ? [
@@ -1821,13 +1921,9 @@ Historical performance shows traditional models fail today. Activating **ADAPTIV
 - **Confidence Calibration:** Do not penalize confidence to zero, but be realistic (60% - 75% max for A+ setups).
 ` : '';
 
-    const hasBrokerPrice = query.includes('@');
-    const brokerInstruction = hasBrokerPrice ? `
-**BROKER PRICE DEVIATION DETECTED:**
-The user has provided their own broker's exact price inside the query (e.g. '@ 39550'). 
-- You MUST anchor your entire mathematical model (EntryRange, StopLoss, and TakeProfit levels) precisely around this USER-PROVIDED broker price, NOT strictly the Deriv Live Market Price.
-- Broker feeds differ across FTMO, Headway, or Prop Firms. The user's provided quoted price is the absolute structural anchor.
-` : '';
+    const brokerInfo = parseBrokerInfo(query);
+    const hasBrokerPrice = !!brokerInfo?.brokerPrice;
+    const brokerInstruction = ''; // Hiding broker noise entirely from LLM to prevent signal drift/hallucination
 
     const isHighFreqBoomCrash = ['BOOM50', 'BOOM150', 'BOOM300', 'BOOM500', 'BOOM600', 'CRASH50', 'CRASH150', 'CRASH300', 'CRASH500', 'CRASH600'].some(sub => assetName.toUpperCase().includes(sub));
     const isLowFreqBoomCrash = ['BOOM900', 'BOOM1000', 'CRASH900', 'CRASH1000'].some(sub => assetName.toUpperCase().includes(sub));
@@ -1895,7 +1991,7 @@ ${style.includes('scalping') ? `
 - ASSET: ${assetName}
 - LIVE MARKET PRICE: ${livePrice}
 
-USER REQUEST: "${query}"
+USER REQUEST: "${cleanQueryForLLM}"
 
 **LOCALIZATION REQUIREMENT:**
 You MUST localize the exact text outputs inside fields such as "reasoning", "biasMotivation", "tradeIdea", and any other descriptive text into ${userSettings?.language || 'English'}. Do NOT translate reserved keywords like "BUY", "SELL", or the JSON structure itself.
@@ -2041,52 +2137,78 @@ JSON Structure:
                 }
 
                 // --- SNIPER PRECISION LAYER (Inside Fallback) ---
-                const entryRange = signal.entryRange || { min: livePrice * 0.999, max: livePrice * 1.001 };
-                const sl = signal.stopLoss || 0;
+                const brokerInfo = parseBrokerInfo(query);
+                const hasBrokerPrice = !!brokerInfo?.brokerPrice && livePrice > 0;
+                const scaleMultiplier = hasBrokerPrice ? brokerInfo.brokerPrice! / livePrice : 1;
+
+                // Scale quantData atr to match the broker feed
+                const scaledAtr = quantData?.atr ? quantData.atr * scaleMultiplier : undefined;
+
+                let originalEntryMin = signal.entryRange?.min || livePrice * 0.999;
+                let originalEntryMax = signal.entryRange?.max || livePrice * 1.001;
+                let originalSL = signal.stopLoss || 0;
+                let originalTPs = Array.isArray(signal.takeProfits) ? [...signal.takeProfits] : [0, 0, 0];
+
+                // Detect if the model already translated coordinates to the user's broker price internally
+                let isAlreadyTranslated = false;
+                if (hasBrokerPrice) {
+                    const midOriginal = (originalEntryMin + originalEntryMax) / 2;
+                    const diffToBroker = Math.abs(midOriginal - brokerInfo.brokerPrice!) / brokerInfo.brokerPrice!;
+                    const diffToDP = Math.abs(midOriginal - livePrice) / livePrice;
+                    if (diffToBroker < 0.02 && diffToDP > 0.05) {
+                        isAlreadyTranslated = true;
+                    }
+                }
+
+                const finalScale = isAlreadyTranslated ? 1 : scaleMultiplier;
+                const translateValue = (p: number) => {
+                    const val = p * finalScale;
+                    const decimals = livePrice > 1000 ? 2 : livePrice > 10 ? 4 : 5;
+                    return parseFloat(val.toFixed(decimals));
+                };
+
+                const entryRange = {
+                    min: translateValue(originalEntryMin),
+                    max: translateValue(originalEntryMax)
+                };
+                let finalSL = translateValue(originalSL);
+                let finalTPs = originalTPs.map(translateValue);
                 let midEntry = (entryRange.min + entryRange.max) / 2;
-                const diffPercent = livePrice > 0 ? Math.abs(midEntry - livePrice) / livePrice : 0;
+
+                const targetReferencePrice = hasBrokerPrice ? brokerInfo.brokerPrice! : livePrice;
+                const diffPercent = targetReferencePrice > 0 ? Math.abs(midEntry - targetReferencePrice) / targetReferencePrice : 0;
 
                 let finalSignal = signal.signal;
                 let finalEntryRange = entryRange;
-                let finalSL = sl;
-                let finalTPs = Array.isArray(signal.takeProfits) ? signal.takeProfits : [0, 0, 0];
                 let finalReasoning = Array.isArray(signal.reasoning) ? [...signal.reasoning] : [];
 
                 // 1. Price Sanity Check
                 if (midEntry === 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
                     finalSignal = 'NEUTRAL';
                     finalReasoning.push(`⚠️ Signal invalidated: AI failed to identify a numerical price level, and no external price data was available. Cannot proceed with a 0.00 entry.`);
-                } else if (diffPercent > 0.01 && livePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-                    if (diffPercent > 0.05) {
+                } else if (diffPercent > 0.02 && targetReferencePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+                    if (diffPercent > 0.10) {
                         finalSignal = 'NEUTRAL';
-                        finalReasoning.push(`⚠️ Signal invalidated: AI price hallucination detected.`);
-                        finalEntryRange = { min: livePrice * 0.999, max: livePrice * 1.001 };
-                        midEntry = livePrice;
+                        finalReasoning.push(`⚠️ Signal invalidated: AI price coordinate mismatch too extreme compared to broker value.`);
+                        finalEntryRange = { min: targetReferencePrice * 0.999, max: targetReferencePrice * 1.001 };
+                        midEntry = targetReferencePrice;
                     } else {
                         const rangeWidth = entryRange.max - entryRange.min;
-                        finalEntryRange = { min: livePrice - rangeWidth / 2, max: livePrice + rangeWidth / 2 };
-                        midEntry = livePrice;
-                        finalReasoning.push(`🎯 Entry range recalibrated to live market price for immediate execution.`);
+                        finalEntryRange = { min: targetReferencePrice - rangeWidth / 2, max: targetReferencePrice + rangeWidth / 2 };
+                        midEntry = targetReferencePrice;
+                        finalReasoning.push(hasBrokerPrice
+                            ? `🎯 Entry range recalibrated to match your broker price (${brokerInfo.brokerPrice}) for execution precision.`
+                            : `🎯 Entry range recalibrated to live market price for immediate execution.`
+                        );
                     }
                     
                     // If AI provided relative deltas instead of absolute prices, fix the Stop Loss
-                    if (finalSL <= 0 || Math.abs(midEntry - finalSL) > midEntry * 0.05 || (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry)) {
-                         const atrFallback = quantData?.atr ? quantData.atr * 2 : midEntry * 0.002;
+                    if (finalSL <= 0 || Math.abs(midEntry - finalSL) > midEntry * 0.10 || (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry)) {
+                         const atrFallback = scaledAtr ? scaledAtr * 2 : midEntry * 0.002;
                          finalSL = finalSignal === 'BUY' ? midEntry - atrFallback : midEntry + atrFallback;
                          finalReasoning.push(`🎯 Invalid stop-loss distance or direction overridden with absolute mathematical pricing bounds.`);
                     }
                 }
-
-                // // 2. Sniper SL Tightening (Surgical Precision)
-                // if (finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-                //     const slDistance = Math.abs(midEntry - finalSL);
-                //     const slPercent = livePrice > 0 ? slDistance / livePrice : 0;
-                //     if (slPercent > 0.005) {
-                //         const adjustment = midEntry * 0.002; 
-                //         finalSL = finalSignal === 'BUY' ? midEntry - adjustment : midEntry + adjustment;
-                //         finalReasoning.push(`🛡️ Stop Loss tightened for surgical precision (0.2% risk zone).`);
-                //     }
-                // }
 
                 // --- FINAL SNIPER CONSTRAINTS ---
 
@@ -2124,16 +2246,28 @@ JSON Structure:
                 // Apply mathematical pricing bounds from Monte Carlo / QuantData if available
                 if (quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
                     const mc = quantData.monteCarloPrediction;
+                    
+                    const scaledMathematicalSL = quantData.mathematicalSL ? quantData.mathematicalSL * finalScale : undefined;
+                    const scaledExpectedPrice = mc.expectedPrice ? mc.expectedPrice * finalScale : undefined;
+                    const scaledLowerBound = mc.lowerBound ? mc.lowerBound * finalScale : undefined;
+                    const scaledUpperBound = mc.upperBound ? mc.upperBound * finalScale : undefined;
+
                     if (finalSignal === 'BUY') {
-                        finalSL = quantData.mathematicalSL || mc.lowerBound;
-                        finalTPs[0] = mc.expectedPrice > midEntry ? mc.expectedPrice : midEntry * 1.002;
-                        finalTPs[1] = mc.upperBound > finalTPs[0] ? mc.upperBound : finalTPs[0] * 1.002;
-                        finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored BUY SL to Lower Bound (-1σ) and TPs to Monte Carlo Expected Median Price / Upper Bound (+1σ).`);
+                        finalSL = scaledMathematicalSL || scaledLowerBound || (midEntry - (scaledAtr ? scaledAtr * 1.5 : midEntry * 0.002));
+                        finalTPs[0] = (scaledExpectedPrice && scaledExpectedPrice > midEntry) ? scaledExpectedPrice : midEntry * 1.002;
+                        finalTPs[1] = (scaledUpperBound && scaledUpperBound > finalTPs[0]) ? scaledUpperBound : finalTPs[0] * 1.002;
+                        finalReasoning.push(hasBrokerPrice
+                            ? `⚙️ STRICT MATH ENGINE: Anchored BUY SL and TPs exactly to scaled Monte Carlo bounds matching your broker feed.`
+                            : `⚙️ STRICT MATH ENGINE OVERRIDE: Anchored BUY SL to Lower Bound (-1σ) and TPs to Monte Carlo Expected Median Price / Upper Bound (+1σ).`
+                        );
                     } else if (finalSignal === 'SELL') {
-                        finalSL = quantData.mathematicalSL || mc.upperBound;
-                        finalTPs[0] = mc.expectedPrice < midEntry ? mc.expectedPrice : midEntry * 0.998;
-                        finalTPs[1] = mc.lowerBound < finalTPs[0] ? mc.lowerBound : finalTPs[0] * 0.998;
-                        finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Anchored SELL SL to Upper Bound (+1σ) and TPs to Monte Carlo Expected Median Price / Lower Bound (-1σ).`);
+                        finalSL = scaledMathematicalSL || scaledUpperBound || (midEntry + (scaledAtr ? scaledAtr * 1.5 : midEntry * 0.002));
+                        finalTPs[0] = (scaledExpectedPrice && scaledExpectedPrice < midEntry) ? scaledExpectedPrice : midEntry * 0.998;
+                        finalTPs[1] = (scaledLowerBound && scaledLowerBound < finalTPs[0]) ? scaledLowerBound : finalTPs[0] * 0.998;
+                        finalReasoning.push(hasBrokerPrice
+                            ? `⚙️ STRICT MATH ENGINE: Anchored SELL SL and TPs exactly to scaled Monte Carlo bounds matching your broker feed.`
+                            : `⚙️ STRICT MATH ENGINE OVERRIDE: Anchored SELL SL to Upper Bound (+1σ) and TPs to Monte Carlo Expected Median Price / Lower Bound (-1σ).`
+                        );
                     }
                 }
 
@@ -2145,7 +2279,7 @@ JSON Structure:
 
                 // SL Validation against ATR if quantData is present
                 if (quantData?.atr) {
-                    finalSL = validateSL(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, quantData.atr, signal.asset || assetName);
+                    finalSL = validateSL(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, scaledAtr || quantData.atr, signal.asset || assetName);
                     finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
                 }
 
