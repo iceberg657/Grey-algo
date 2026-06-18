@@ -44,7 +44,6 @@ export interface UserSettings extends Partial<AccountSettings> {
     partialClose?: PartialCloseConfig;
     tradeMode?: 'Aggressive' | 'Sniper';
     executionAlgorithm?: 'Standard' | 'TWAP' | 'VWAP' | 'Smart Order Router (SOR)' | 'Implementation Shortfall';
-    tpMappingMode?: 'Standard' | 'PipsToTP1Shift';
     twelveDataApiKey?: string;
     derivApiToken?: string;
     geminiApiKey?: string;

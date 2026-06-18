@@ -506,7 +506,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                 <div className="absolute top-0 left-0 w-full h-1 bg-green-500/30 group-hover:bg-green-500 transition-colors"></div>
                                 <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">Liquidation Array</span>
                                 <div className="flex flex-wrap justify-center items-center gap-4">
-                                    {data.takeProfits.slice(0, (data.takeProfits[2] && data.takeProfits[2] > 0) ? 3 : 2).map((tp, i) => (
+                                    {data.takeProfits.slice(0, 2).map((tp, i) => (
                                         <div key={i} className="text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border border-gray-200 dark:border-white/10 min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)]">
                                             <span className="font-mono text-xl font-black text-green-600 dark:text-green-400 block">{formatPrice(tp)}</span>
                                             <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">TARGET 0{i + 1}</span>

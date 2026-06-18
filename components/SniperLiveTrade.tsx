@@ -189,9 +189,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     if (normalized.includes('EURUSD')) return 'frxEURUSD';
     if (normalized.includes('GBPUSD')) return 'frxGBPUSD';
     if (normalized.includes('GBPJPY')) return 'frxGBPJPY';
-    if (normalized.includes('EURGBP')) return 'frxEURGBP';
-    if (normalized.includes('EURJPY')) return 'frxEURJPY';
-    if (normalized.includes('GBPCHF')) return 'frxGBPCHF';
     if (normalized.includes('USDJPY')) return 'frxUSDJPY';
     if (normalized.includes('AUDUSD')) return 'frxAUDUSD';
     if (normalized.includes('USDCAD')) return 'frxUSDCAD';
@@ -398,7 +395,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
     try {
       // 1. Extract asset from query
-      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|eurjpy|eurgbp|gbpchf|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
+      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
       const asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
 
       if (!asset) {
@@ -980,19 +977,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                   </div>
                                   <div className="text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{msg.signal.takeProfits[1]}</div>
                                 </div>
-
-                                {/* Take Profit 3 */}
-                                {msg.signal?.takeProfits?.[2] && msg.signal.takeProfits[2] > 0 ? (
-                                  <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
-                                    <div className="flex justify-between items-center mb-2">
-                                      <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70 flex items-center gap-1">Take Profit 3 <span className="bg-emerald-500/10 text-emerald-500 text-[8px] px-1 rounded font-bold uppercase tracking-tight">Optional</span></span>
-                                      <button onClick={() => copyToClipboard(msg.signal!.takeProfits[2]!.toString(), `TP3-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
-                                        {copied === `TP3-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
-                                      </button>
-                                    </div>
-                                    <div className="text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{msg.signal.takeProfits[2]}</div>
-                                  </div>
-                                ) : null}
                               </div>
 
                               {/* RR Levels */}

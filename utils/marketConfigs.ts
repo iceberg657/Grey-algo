@@ -21,9 +21,6 @@ export const MARKET_CONFIGS: Record<string, MarketConfig> = {
     'USDCAD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
     'USDCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
     'NZDUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
-    'EURGBP': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
-    'EURJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.08, tp1Distance: 0.20 },
-    'GBPCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0008, tp1Distance: 0.0022 },
     
     // --- COMMODITIES & CRYPTO ---
     'XAUUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 2.0, tp1Distance: 5.0 }, // Gold $2 move
