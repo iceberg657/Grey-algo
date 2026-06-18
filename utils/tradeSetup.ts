@@ -63,16 +63,61 @@ export function buildCompleteTradeSetup(
     };
   }
   
+  // Apply manual TP shifting option if enabled
+  let updatedTakeProfits = [...signal.takeProfits];
+  let recommendedPositions = signal.recommendedPositions || 2;
+  
+  if (settings.tpMappingMode === 'PipsToTP1Shift' && signal.signal !== 'NEUTRAL') {
+      const config = detectAssetConfig(signal.asset);
+      let pipSize = 1;
+      if (config.category === 'forex') {
+          pipSize = signal.asset.toUpperCase().includes('JPY') ? 0.01 : 0.0001;
+      } else if (config.category === 'metals') {
+          pipSize = 0.1;
+      } else {
+          pipSize = 1;
+      }
+      
+      const rawPips = signal.possiblePips || 20;
+      const pipsOffset = rawPips * pipSize;
+      
+      let calculatedTP1 = entryPrice;
+      if (signal.signal === 'BUY') {
+          calculatedTP1 = entryPrice + pipsOffset;
+      } else if (signal.signal === 'SELL') {
+          calculatedTP1 = entryPrice - pipsOffset;
+      }
+      
+      const decimals = config.decimals || 5;
+      calculatedTP1 = Math.round(calculatedTP1 * Math.pow(10, decimals)) / Math.pow(10, decimals);
+      
+      const originalTP1 = signal.takeProfits[0] || 0;
+      const originalTP2 = signal.takeProfits[1] || 0;
+      
+      updatedTakeProfits = [
+          calculatedTP1,
+          originalTP1,
+          originalTP2
+      ];
+      recommendedPositions = 3;
+  }
+
+  const updatedSignal = {
+      ...signal,
+      takeProfits: updatedTakeProfits,
+      recommendedPositions
+  };
+  
   const accountSize = settings.accountSize || settings.accountBalance || 0;
   const riskPercentage = settings.riskPerTrade || 1;
-  const stopLossDistance = Math.abs(entryPrice - signal.stopLoss);
+  const stopLossDistance = Math.abs(entryPrice - updatedSignal.stopLoss);
   
   const { lotSize, riskAmount, contractSize: actualContractSize } = calculatePositionSize(
       accountSize,
       riskPercentage,
       entryPrice,
-      signal.stopLoss,
-      signal.asset
+      updatedSignal.stopLoss,
+      updatedSignal.asset
   );
 
   if (lotSize === 0) {
@@ -96,7 +141,7 @@ export function buildCompleteTradeSetup(
   
   const partialAmounts = [tp1Lots, tp2Lots, tp3Lots];
   
-  const potentialProfit = signal.takeProfits.map((tp, index) => {
+  const potentialProfit = updatedSignal.takeProfits.map((tp, index) => {
     if (tp === 0) return 0;
     
     return estimatePotential(
@@ -120,12 +165,12 @@ export function buildCompleteTradeSetup(
 
   // Always calculate Possible Pips dynamically to ensure accurate presentation
   let possiblePips = 0;
-  if (entryPrice > 0 && signal.takeProfits[2] > 0) {
-      const config = detectAssetConfig(signal.asset);
-      const diff = Math.abs(signal.takeProfits[2] - entryPrice);
+  if (entryPrice > 0 && updatedSignal.takeProfits[2] > 0) {
+      const config = detectAssetConfig(updatedSignal.asset);
+      const diff = Math.abs(updatedSignal.takeProfits[2] - entryPrice);
       
       if (config.category === 'forex') {
-          const pipSize = signal.asset.includes('JPY') ? 0.01 : 0.0001;
+          const pipSize = updatedSignal.asset.includes('JPY') ? 0.01 : 0.0001;
           possiblePips = Math.round(diff / pipSize);
       } else if (config.category === 'indices' || config.category === 'synthetics') {
           possiblePips = diff; 
@@ -135,14 +180,13 @@ export function buildCompleteTradeSetup(
   }
   
   // Calculate position splitting
-  const recommendedPositions = signal.recommendedPositions || 2;
   const positionLotSizeRaw = lotSize / recommendedPositions;
-  const positionLotSize = formatLotSize(positionLotSizeRaw, signal.asset);
+  const positionLotSize = formatLotSize(positionLotSizeRaw, updatedSignal.asset);
 
   return {
-    ...signal,
+    ...updatedSignal,
     lotSize: lotSize,
-    formattedLotSize: formatLotSize(lotSize, signal.asset),
+    formattedLotSize: formatLotSize(lotSize, updatedSignal.asset),
     riskAmount: riskAmount,
     potentialProfit,
     totalPotentialProfit,
@@ -150,11 +194,11 @@ export function buildCompleteTradeSetup(
     recommendedPositions,
     positionLotSize,
     partialCloseAmounts: partialAmounts,
-    partialCloseSizes: partialAmounts.map(lots => formatLotSize(lots, signal.asset)),
+    partialCloseSizes: partialAmounts.map(lots => formatLotSize(lots, updatedSignal.asset)),
     moveToBreakeven: partialClose.moveToBreakeven,
     isValid: true,
     validationMessage: "Setup Optimal",
-    assetCategory: detectAssetConfig(signal.asset).category,
+    assetCategory: detectAssetConfig(updatedSignal.asset).category,
     contractSize: contractSize,
     pipValue: pipValue,
     riskRewardRatio: settings.riskRewardRatio || '1:3', 

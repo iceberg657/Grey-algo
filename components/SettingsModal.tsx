@@ -15,7 +15,8 @@ const DEFAULT_SETTINGS: UserSettings = {
     maxDrawdown: 10,
     timeLimit: 30,
     twelveDataApiKey: '',
-    deepThinking: true
+    deepThinking: true,
+    tpMappingMode: 'Standard'
 };
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
@@ -149,16 +150,34 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded ml-2 uppercase tracking-wider">Premium Quant</span>
                             </label>
                             <select 
-                                value={settings.executionAlgorithm || 'Standard'}
-                                onChange={(e) => handleChange('executionAlgorithm', e.target.value)}
-                                className="w-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-xl px-4 py-3 text-gray-900 dark:text-white mb-4 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-inner"
+                                value="Standard"
+                                disabled
+                                className="w-full bg-gray-100/50 dark:bg-slate-800/20 backdrop-blur-sm border border-gray-300 dark:border-slate-700 rounded-xl px-4 py-3 text-gray-500 dark:text-gray-400 mb-4 cursor-not-allowed opacity-75 shadow-inner"
                             >
                                 <option value="Standard">Standard Routing</option>
-                                <option value="TWAP">Time-Weighted Average Price (TWAP)</option>
-                                <option value="VWAP">Volume-Weighted Average Price (VWAP)</option>
-                                <option value="Smart Order Router (SOR)">Smart Order Router (SOR)</option>
-                                <option value="Implementation Shortfall">Implementation Shortfall</option>
+                                <option value="TWAP">Time-Weighted Average Price (TWAP) 🔒</option>
+                                <option value="VWAP">Volume-Weighted Average Price (VWAP) 🔒</option>
+                                <option value="Smart Order Router (SOR)">Smart Order Router (SOR) 🔒</option>
+                                <option value="Implementation Shortfall">Implementation Shortfall 🔒</option>
                             </select>
+
+                            <div className="mb-4">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center justify-between">
+                                    Take Profit Target Mapping (Manual Style)
+                                    <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded ml-2 uppercase tracking-wider">Manual Scalper</span>
+                                </label>
+                                <select 
+                                    value={settings.tpMappingMode || 'Standard'}
+                                    onChange={(e) => handleChange('tpMappingMode', e.target.value)}
+                                    className="w-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-xl px-4 py-3 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500/50 transition-all shadow-inner"
+                                >
+                                    <option value="Standard">Standard Multi-Targets (TP1 & TP2)</option>
+                                    <option value="PipsToTP1Shift">Pips-to-TP1 Shift Setup (TP1=Pips, TP2=TP1, Optional TP3=TP2)</option>
+                                </select>
+                                <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1.5 leading-normal">
+                                    Converts calculated Possible Pips into TP1, shifts previous TP1 to TP2, and lists previous TP2 as optional TP3 for manual trade executions.
+                                </p>
+                            </div>
 
                             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Account Type</label>
                             <div className="grid grid-cols-2 gap-3">
