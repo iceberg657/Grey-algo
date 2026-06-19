@@ -1546,8 +1546,10 @@ export interface ParsedBrokerInfo {
 }
 
 export function parseBrokerInfo(query: string): ParsedBrokerInfo | null {
+    // Standardize commas in numbers first: e.g. "42,260.16" -> "42260.16"
+    const normalizedQuery = query.replace(/(\d),(\d)/g, '$1$2');
     const info: ParsedBrokerInfo = {};
-    const lowerQuery = query.toLowerCase();
+    const lowerQuery = normalizedQuery.toLowerCase();
 
     // 1. Identify common brokers
     const brokers = ['exness', 'ftmo', 'headway', 'xm', 'octafx', 'deriv', 'fxtm', 'roboforex', 'ic markets', 'hfm', 'pepperstone', 'tportal', 'myforexfunds', 'fundednext'];
@@ -1559,14 +1561,14 @@ export function parseBrokerInfo(query: string): ParsedBrokerInfo | null {
     }
     // General broker match: "on [Broker]" or "broker [Broker]"
     if (!info.brokerName) {
-        const brokerMatch = query.match(/(?:on|with|broker)\s+([a-zA-Z0-9_-]{2,15})/i);
+        const brokerMatch = normalizedQuery.match(/(?:on|with|broker)\s+([a-zA-Z0-9_-]{2,15})/i);
         if (brokerMatch) {
             info.brokerName = brokerMatch[1];
         }
     }
 
     // 2. Parse price range: "123.45 - 123.80" or "123.45 to 123.80"
-    const rangeMatch = query.match(/(\d+(?:\.\d+)?)\s*(?:-|to|\.\.)\s*(\d+(?:\.\d+)?)/);
+    const rangeMatch = normalizedQuery.match(/(\d+(?:\.\d+)?)\s*(?:-|to|\.\.)\s*(\d+(?:\.\d+)?)/);
     if (rangeMatch) {
         const p1 = parseFloat(rangeMatch[1]);
         const p2 = parseFloat(rangeMatch[2]);
@@ -1577,14 +1579,14 @@ export function parseBrokerInfo(query: string): ParsedBrokerInfo | null {
     }
 
     // 3. Parse specific price: "@ 39550" or "at 39550" or "= 39550" or "price 39550"
-    const priceMatch = query.match(/(?:@|at|=|price)\s*(\d+(?:\.\d+)?)/i);
+    const priceMatch = normalizedQuery.match(/(?:@|at|=|price)\s*(\d+(?:\.\d+)?)/i);
     if (priceMatch) {
         info.brokerPrice = parseFloat(priceMatch[1]);
         return info;
     }
 
     // 4. Fallback: Parse any number that is different from the asset's standard ticker name
-    const numbers = query.match(/\b\d+(?:\.\d+)?\b/g);
+    const numbers = normalizedQuery.match(/\b\d+(?:\.\d+)?\b/g);
     if (numbers) {
         for (const numStr of numbers) {
             const num = parseFloat(numStr);
@@ -1601,7 +1603,8 @@ export function parseBrokerInfo(query: string): ParsedBrokerInfo | null {
 }
 
 export function cleanBrokerQuery(query: string): string {
-    let clean = query;
+    // Standardize commas in numbers first: e.g. "42,260.16" -> "42260.16"
+    let clean = query.replace(/(\d),(\d)/g, '$1$2');
 
     // 1. Remove range: "num - num" or "num to num" or "num .. num" first
     clean = clean.replace(/\b\d+(?:\.\d+)?\s*(?:-|to|\.\.)\s*\d+(?:\.\d+)?\b/gi, '');
@@ -1986,6 +1989,7 @@ ${style.includes('scalping') ? `
     - Liquidity Pools (Equal Highs/Lows)
 8. **DECISIVE BIAS MANDATE:** You are STRICTLY FORBIDDEN from issuing a 'NEUTRAL' signal. You MUST choose a side (BUY or SELL) based on the dominant market structure and institutional flow.
 9. **SHORT INTRADAY MOVES (15m/1H):** You are actively encouraged to capture short, highly-probable momentum shifts and reaction bounces on the 15-minute and 1-hour timeframes. You do not need to wait for macro shifts. A clean liquidity sweep, order block tap, or FVG fill on the 15m/1H is a highly valid setup for a short, surgical trade with tight Risk/Reward (using tighter Stop Loss and conservative Take Profits reflecting the intraday structural swing).
+10. **CANDLESTICK PATTERN RECOGNITION & CONFIRMATION:** You MUST perform candlestick pattern recognition on the chart structure and include identified patterns (e.g. Bullish Engulfing, Hammer, Shooting Star, etc.) in the 'candlestickPatterns' array. You MUST also identify and specify a key confirmation pattern (e.g., Wick rejection, Engulfing candle, MSS, or Order Block tap) in the 'confirmationPattern' string.
 
 **CRITICAL DATA (SMC BASIS):**
 - ASSET: ${assetName}
@@ -2062,6 +2066,8 @@ JSON Structure:
     "reasoning": "Explain how this trade setup aligns with or violates the NEURAL LEARNING & HISTORICAL LESSONS"
   },
   "checklist": ["HTF Trend Alignment", "Liquidity Sweep", "Order Block Tap", "FVG Fill"],
+  "candlestickPatterns": ["Detected pattern names (e.g. Bullish Engulfing, Hammer, Shooting Star)"],
+  "confirmationPattern": "e.g., Wick rejection, Engulfing candle, MSS, Orderblock tap",
   "triggerConditions": { 
     "breakoutLevel": number,
     "retestLogic": string,
@@ -2187,20 +2193,15 @@ JSON Structure:
                     finalSignal = 'NEUTRAL';
                     finalReasoning.push(`⚠️ Signal invalidated: AI failed to identify a numerical price level, and no external price data was available. Cannot proceed with a 0.00 entry.`);
                 } else if (diffPercent > 0.02 && targetReferencePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-                    if (diffPercent > 0.10) {
-                        finalSignal = 'NEUTRAL';
-                        finalReasoning.push(`⚠️ Signal invalidated: AI price coordinate mismatch too extreme compared to broker value.`);
-                        finalEntryRange = { min: targetReferencePrice * 0.999, max: targetReferencePrice * 1.001 };
-                        midEntry = targetReferencePrice;
-                    } else {
-                        const rangeWidth = entryRange.max - entryRange.min;
-                        finalEntryRange = { min: targetReferencePrice - rangeWidth / 2, max: targetReferencePrice + rangeWidth / 2 };
-                        midEntry = targetReferencePrice;
-                        finalReasoning.push(hasBrokerPrice
-                            ? `🎯 Entry range recalibrated to match your broker price (${brokerInfo.brokerPrice}) for execution precision.`
-                            : `🎯 Entry range recalibrated to live market price for immediate execution.`
-                        );
-                    }
+                    // Do not invalidate signal to NEUTRAL just because of price/broker differences.
+                    // Preserve the AI/engine signal bias (BUY/SELL) and recalibrate the entry range to center around the target reference price.
+                    const rangeWidth = entryRange.max - entryRange.min;
+                    finalEntryRange = { min: targetReferencePrice - rangeWidth / 2, max: targetReferencePrice + rangeWidth / 2 };
+                    midEntry = targetReferencePrice;
+                    finalReasoning.push(hasBrokerPrice
+                        ? `🎯 Entry range recalibrated to match your broker price (${brokerInfo.brokerPrice}) for execution precision.`
+                        : `🎯 Entry range recalibrated to live market price for immediate execution.`
+                    );
                     
                     // If AI provided relative deltas instead of absolute prices, fix the Stop Loss
                     if (finalSL <= 0 || Math.abs(midEntry - finalSL) > midEntry * 0.10 || (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry)) {
@@ -2281,6 +2282,20 @@ JSON Structure:
                 if (quantData?.atr) {
                     finalSL = validateSL(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, scaledAtr || quantData.atr, signal.asset || assetName);
                     finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
+                }
+
+                // Final safety valve for Stop Loss (ensure it is on the correct side and not too wide/faulty)
+                const isSlWrongDirection = (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry);
+                const isSlTooFar = Math.abs(midEntry - finalSL) > midEntry * 0.35; // Cap stop loss to 35% of price max to prevent extreme wide stops
+                if (finalSL <= 0 || isSlWrongDirection || isSlTooFar) {
+                    const atrFallback = (scaledAtr && scaledAtr > 0) ? scaledAtr * 2 : midEntry * 0.02;
+                    finalSL = finalSignal === 'BUY' ? midEntry - atrFallback : midEntry + atrFallback;
+                    if (finalSL <= 0 || (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry)) {
+                        finalSL = finalSignal === 'BUY' ? midEntry * 0.98 : midEntry * 1.02; // absolute 2% stop as final resort
+                    }
+                    const decimals = livePrice > 1000 ? 2 : livePrice > 10 ? 4 : 5;
+                    finalSL = parseFloat(finalSL.toFixed(decimals));
+                    finalReasoning.push(`🛡️ Stop loss safely realigned and constrained because the math engine calculated an out-of-bounds risk level.`);
                 }
 
                 // Apply mathematical RR overrides
@@ -2393,6 +2408,8 @@ Move SL to entry immediately after TP1.
                     recommendedPositions: signal.recommendedPositions,
                     reasoning: finalReasoning,
                     checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
+                    candlestickPatterns: Array.isArray(signal.candlestickPatterns) ? signal.candlestickPatterns : [],
+                    confirmationPattern: signal.confirmationPattern || "None",
                     neuralFilter: signal.neuralFilter,
                     entryType: 'Market Execution',
                     triggerConditions: signal.triggerConditions || undefined,

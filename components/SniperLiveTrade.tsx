@@ -1108,6 +1108,47 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 ))}
                               </div>
                             </div>
+
+                            {/* Pattern Recognition Layer */}
+                            {((msg.signal.candlestickPatterns && msg.signal.candlestickPatterns.length > 0) || msg.signal.confirmationPattern) && (
+                              <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                                  <Activity className="w-3 h-3 text-emerald-500" /> Neural Pattern Recognition
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                  {/* Candlestick Patterns */}
+                                  <div>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Detected Candlestick Patterns</span>
+                                    {msg.signal.candlestickPatterns && msg.signal.candlestickPatterns.length > 0 ? (
+                                      <div className="flex flex-wrap gap-2">
+                                        {msg.signal.candlestickPatterns.map((pattern, idx) => (
+                                          <span 
+                                            key={idx} 
+                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15"
+                                          >
+                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                            {pattern}
+                                          </span>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <span className="text-xs text-slate-400 font-medium italic">No distinct candlestick patterns detected in the current micro-session.</span>
+                                    )}
+                                  </div>
+
+                                  {/* Confirmation Pattern */}
+                                  {msg.signal.confirmationPattern && (
+                                    <div>
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Trigger Confirmation</span>
+                                      <div className="bg-white/40 dark:bg-slate-900/40 p-3 rounded-2xl border border-slate-200/50 dark:border-slate-800/50 text-xs font-black text-emerald-500 flex items-center gap-2">
+                                        <Zap className="w-3.5 h-3.5 text-emerald-500" />
+                                        <span>{msg.signal.confirmationPattern}</span>
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                             
                             {/* Demand Zones / Liquidity Heatmap */}
                             {msg.signal.heatmapData && msg.signal.heatmapData.length > 0 && (
