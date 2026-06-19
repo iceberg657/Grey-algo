@@ -23,6 +23,7 @@ import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService';
 import { detectMarketRegime, MarketRegime } from '../utils/marketRegime';
 import { GREYALPHA_IDENTITY } from './identity';
+import { SignalDataSchema, SniperDataSchema } from './schema';
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime, advancedQuantSignal?: any) => {
     const date = currentDate || new Date();
@@ -903,7 +904,7 @@ You MUST localize the exact text outputs inside fields such as "reasoning", "bia
   "marketStory": "A cohesive narrative synthesizing technicals, institutional activity, and fundamentals to explain the current market state and probable next move.",
   
   "entryPoints": [number, number, number], // CRITICAL: You MUST provide EXACT number values. If entryType is "Market Execution", ALL 3 entry points MUST be numbers and encapsulate the live market price exactly as stated in the Twelve Data block. Do NOT use 0.00. Do NOT use past levels.
-  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", 
+  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop" | "Buy Stop Limit" | "Sell Stop Limit", // CRITICAL HALLUCINATION PREVENTION: If "signal" is "BUY", this MUST be a "Buy" type or "Market Execution". If "signal" is "SELL", this MUST be a "Sell" type or "Market Execution". NEVER mix them.
   "expirationTime": "string if entryType is Limit/Stop based on Expiration Time Logic, or null if Market Execution",
   "triggerConditions": { // CRITICAL: If entryType is "Market Execution", triggers must be ALREADY MET (e.g., "Bearish Engulfing confirmed"). You cannot wait for 'retest' or 'candle close' on Market Execution. Use Pending Orders if waiting.
     "breakoutLevel": number | null, 
@@ -1076,8 +1077,10 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             async (modelId) => {
                 const config: any = {
                     tools: [{ googleSearch: {} }],
-                    temperature: isDeepThinking ? 0.2 : 0.0,
-                    maxOutputTokens: 8192
+                    temperature: 0.0,
+                    maxOutputTokens: 8192,
+                    responseMimeType: "application/json",
+                    responseSchema: SignalDataSchema
                 };
 
                 if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
@@ -2048,7 +2051,7 @@ JSON Structure:
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
   "entryRange": {"min": number, "max": number}, // If Market Execution, encapsulate live price ${livePrice}. If Pending, set exactly at the intended entry zone.
-  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop", 
+  "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop", // CRITICAL HALLUCINATION PREVENTION: If "signal" is "BUY", this MUST be a "Buy" type or "Market Execution". If "signal" is "SELL", this MUST be a "Sell" type or "Market Execution". NEVER mix them.
   "expirationTime": "string if entryType is Limit/Stop based on Time Window/Session, or null",
   "stopLoss": number, // Explicit price level
   "takeProfits": [number, number], // CRITICAL: MUST provide two explicit price targets
@@ -2080,8 +2083,10 @@ JSON Structure:
             models,
             async (modelId) => {
                 const config: any = {
-                    temperature: isDeepThinking ? 0.2 : 0.0,
-                    maxOutputTokens: 8192 // Maximize to prevent any JSON truncation
+                    temperature: 0.0,
+                    maxOutputTokens: 8192,
+                    responseMimeType: "application/json",
+                    responseSchema: SniperDataSchema
                 };
 
                 if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
@@ -2411,7 +2416,7 @@ Move SL to entry immediately after TP1.
                     candlestickPatterns: Array.isArray(signal.candlestickPatterns) ? signal.candlestickPatterns : [],
                     confirmationPattern: signal.confirmationPattern || "None",
                     neuralFilter: signal.neuralFilter,
-                    entryType: 'Market Execution',
+                    entryType: signal.entryType || 'Market Execution',
                     triggerConditions: signal.triggerConditions || undefined,
                     contractSize: 100000,
                     pipValue: 10,
