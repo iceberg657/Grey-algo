@@ -832,7 +832,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                             {data.demandSupplyZones.map((zone, i) => (
                                 <div key={i} className="flex justify-between items-center bg-white/60 dark:bg-slate-900/40 p-3 rounded-lg border border-gray-200 dark:border-white/10">
                                     <span className={`font-black uppercase text-xs ${zone.type === 'demand' ? 'text-green-500' : 'text-red-500'}`}>{zone.type}</span>
-                                    <span className="text-xs text-gray-800 dark:text-gray-200">{zone.priceRange.lower} - {zone.priceRange.upper}</span>
+                                    <span className="text-xs text-gray-800 dark:text-gray-200">{zone.priceRange?.lower ?? 'N/A'} - {zone.priceRange?.upper ?? 'N/A'}</span>
                                     <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${zone.confirmed ? 'bg-green-500/20 text-green-500' : 'bg-yellow-500/20 text-yellow-500'}`}>
                                         {zone.confirmed ? 'Confirmed' : 'Unconfirmed'}
                                     </span>
@@ -851,7 +851,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">FVG Detected</span>
                                 <span className={`font-bold ${data.confluenceMatrix.fvg ? 'text-green-500' : 'text-gray-600'}`}>
-                                    {data.confluenceMatrix.fvg ? `${data.confluenceMatrix.fvg.type.toUpperCase()} (${data.confluenceMatrix.fvg.lower} - ${data.confluenceMatrix.fvg.upper})` : 'NONE'}
+                                    {data.confluenceMatrix.fvg ? `${(data.confluenceMatrix.fvg.type || '').toUpperCase()} (${data.confluenceMatrix.fvg.lower ?? 'N/A'} - ${data.confluenceMatrix.fvg.upper ?? 'N/A'})` : 'NONE'}
                                 </span>
                             </div>
                             
