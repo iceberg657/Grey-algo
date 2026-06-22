@@ -77,6 +77,20 @@ export const SignalDataSchema = {
             executionChecklist: { type: Type.ARRAY, items: { type: Type.STRING } }
         }
     },
+    candlestickPatterns: { type: Type.ARRAY, items: { type: Type.STRING } },
+    confirmationPattern: { type: Type.STRING },
+    demandSupplyZones: {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                type: { type: Type.STRING, enum: ["demand", "supply"] },
+                priceRange: { type: Type.OBJECT, properties: { lower: { type: Type.NUMBER }, upper: { type: Type.NUMBER } } },
+                confirmed: { type: Type.BOOLEAN },
+                strength: { type: Type.STRING, enum: ["weak", "medium", "strong"] }
+            }
+        }
+    },
     verificationProtocol: {
         type: Type.OBJECT,
         properties: {
@@ -117,7 +131,10 @@ export const SignalDataSchema = {
   },
   required: [
     "signal", "confidence", "asset", "timeframe", "entryPoints", "entryType", 
-    "stopLoss", "takeProfits", "possiblePips", "winProbability", "triggerConditions"
+    "stopLoss", "takeProfits", "possiblePips", "winProbability", "triggerConditions", "reasoning", "confluenceMatrix",
+    "verificationProtocol", "invalidationScenario", "counterArgumentRejection", "marketStory", "neuralFilter",
+    "candlestickPatterns", "confirmationPattern", "demandSupplyZones", "fundamentalContext", "institutionalDrivers",
+    "fundamentalDrivers", "sentiment", "timeframeRationale"
   ]
 };
 

@@ -908,7 +908,7 @@ You MUST localize the exact text outputs inside fields such as "reasoning", "bia
   "expirationTime": "string if entryType is Limit/Stop based on Expiration Time Logic, or null if Market Execution",
   "triggerConditions": { // CRITICAL: If entryType is "Market Execution", triggers must be ALREADY MET (e.g., "Bearish Engulfing confirmed"). You cannot wait for 'retest' or 'candle close' on Market Execution. Use Pending Orders if waiting.
     "breakoutLevel": number | null, 
-    "retestLogic": "string", 
+    "retestLogic": "string (keep to 10 words max)", 
     "entryTriggerCandle": "string" 
   },
   "stopLoss": number,
@@ -1323,9 +1323,9 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         
         let safeReasoning = originalReasoning;
         
-        // Append math engine verification messages for Chart Analysis
-        safeReasoning.push(`🛡️ Stop loss validated and bounded dynamically using live market metrics.`);
-        safeReasoning.push(`🎯 Mathematically calibrated Take Profits adjusted strictly for algorithmic risk management.`);
+        // Prepend math engine verification messages for Chart Analysis
+        safeReasoning.unshift(`🛡️ Stop loss validated and bounded dynamically using live market metrics.`);
+        safeReasoning.unshift(`🎯 Mathematically calibrated Take Profits adjusted strictly for algorithmic risk management.`);
 
         if (safeReasoning.length > 15) {
             safeReasoning = safeReasoning.slice(0, 15);
@@ -1366,6 +1366,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             timeframeRationale: data.timeframeRationale || "",
             confluenceMatrix: data.confluenceMatrix,
             verificationProtocol: data.verificationProtocol,
+            neuralFilter: data.neuralFilter,
             contractSize: data.contractSize,
             pipValue: data.pipValue,
             tradeMode: request.userSettings?.tradeMode || 'Aggressive',
