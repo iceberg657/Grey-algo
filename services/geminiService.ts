@@ -1076,7 +1076,6 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             models,
             async (modelId) => {
                 const config: any = {
-                    tools: [{ googleSearch: {} }],
                     temperature: 0.0,
                     maxOutputTokens: 8192,
                     responseMimeType: "application/json",

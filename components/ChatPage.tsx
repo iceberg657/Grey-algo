@@ -61,12 +61,101 @@ const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
     return <div className="break-words leading-relaxed text-slate-700 dark:text-slate-300" dangerouslySetInnerHTML={formatText(text)} />;
 };
 
+const detectSignalFromText = (text: string): 'BUY' | 'SELL' | null => {
+    if (!text) return null;
+    
+    // Normalize text: uppercase and strip out markdown asterisks / underscores to make it formatting-independent
+    const textUpper = text.toUpperCase().replace(/\*/g, '').replace(/_/g, '');
+    
+    // Explicit exact phrases first (highest priority)
+    const matchesBuy = [
+        'BIAS IS STRICTLY BUY',
+        'OPERATIONAL BIAS: BUY',
+        'OPERATIONAL BIAS BUY',
+        'DIRECTION: BUY',
+        'RECOMMENDATION: BUY',
+        'ORDER: BUY',
+        'SIGNAL: BUY',
+        'TRADE IDEA: BUY',
+        'ALERT: BUY',
+        'BUY RESPONSE',
+        'BUY SETUP',
+        'BUY SIGNAL'
+    ];
+
+    const matchesSell = [
+        'BIAS IS STRICTLY SELL',
+        'OPERATIONAL BIAS: SELL',
+        'OPERATIONAL BIAS SELL',
+        'DIRECTION: SELL',
+        'RECOMMENDATION: SELL',
+        'ORDER: SELL',
+        'SIGNAL: SELL',
+        'TRADE IDEA: SELL',
+        'ALERT: SELL',
+        'SELL RESPONSE',
+        'SELL SETUP',
+        'SELL SIGNAL'
+    ];
+
+    for (const match of matchesBuy) {
+        if (textUpper.includes(match)) return 'BUY';
+    }
+    for (const match of matchesSell) {
+        if (textUpper.includes(match)) return 'SELL';
+    }
+
+    // Secondary indicators when the bias/strictly keyword is used with a side
+    if (textUpper.includes('STRICTLY SELL') || textUpper.includes('MUST SELL') || textUpper.includes('BIAS: SELL') || textUpper.includes('BIAS IS SELL')) {
+        return 'SELL';
+    }
+    if (textUpper.includes('STRICTLY BUY') || textUpper.includes('MUST BUY') || textUpper.includes('BIAS: BUY') || textUpper.includes('BIAS IS BUY')) {
+        return 'BUY';
+    }
+
+    // Checking check-list indicators or specific trading targets (limit/stop instructions)
+    const hasBuyWords = textUpper.includes('BUY LIMIT') || textUpper.includes('BUY STOP') || textUpper.includes('BULLISH ENGULFING') || textUpper.includes('GO LONG') || textUpper.includes('LONG SETUP');
+    const hasSellWords = textUpper.includes('SELL LIMIT') || textUpper.includes('SELL STOP') || textUpper.includes('BEARISH ENGULFING') || textUpper.includes('GO SHORT') || textUpper.includes('SHORT SETUP');
+
+    if (hasBuyWords && !hasSellWords) return 'BUY';
+    if (hasSellWords && !hasBuyWords) return 'SELL';
+
+    // Last resort: ONLY if one keyword is present in the entire message
+    const hasBuyKeyword = textUpper.includes('BUY');
+    const hasSellKeyword = textUpper.includes('SELL');
+    if (hasBuyKeyword && !hasSellKeyword) return 'BUY';
+    if (hasSellKeyword && !hasBuyKeyword) return 'SELL';
+
+    return null;
+};
+
 const ChatBubble: React.FC<{
     message: ChatMessage;
     isBusy: boolean;
     onToggleSpeech: (message: ChatMessage) => void;
 }> = ({ message, isBusy, onToggleSpeech }) => {
     const isUser = message.role === 'user';
+    const signalType = !isUser ? detectSignalFromText(message.text) : null;
+    const isBuy = signalType === 'BUY';
+    const isSell = signalType === 'SELL';
+
+    // Bubble styles
+    let bubbleClass = '';
+    let avatarClass = '';
+    
+    if (isUser) {
+        bubbleClass = 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-none shadow-lg shadow-blue-500/10 border border-blue-400/20';
+        avatarClass = 'bg-blue-600 border-blue-500/50 text-white mt-1';
+    } else if (isBuy) {
+        bubbleClass = 'bg-white dark:bg-slate-900/80 text-gray-800 dark:text-slate-200 rounded-tl-none shadow-md border-y border-r border-gray-100 dark:border-white/5 border-l-4 border-l-emerald-500 dark:border-l-emerald-400 backdrop-blur-md bg-emerald-500/[0.02] dark:bg-emerald-500/[0.04]';
+        avatarClass = 'bg-emerald-500/20 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 mt-1 animate-pulse';
+    } else if (isSell) {
+        bubbleClass = 'bg-white dark:bg-slate-900/80 text-gray-800 dark:text-slate-200 rounded-tl-none shadow-md border-y border-r border-gray-100 dark:border-white/5 border-l-4 border-l-rose-500 dark:border-l-rose-400 backdrop-blur-md bg-rose-500/[0.02] dark:bg-rose-500/[0.04]';
+        avatarClass = 'bg-rose-500/20 border-rose-500/30 text-rose-600 dark:text-rose-400 mt-1 animate-pulse';
+    } else {
+        bubbleClass = 'bg-white dark:bg-slate-900/60 text-gray-800 dark:text-slate-200 rounded-tl-none shadow-sm border border-gray-100 dark:border-white/5 backdrop-blur-md';
+        avatarClass = 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 mt-1';
+    }
     
     return (
         <motion.div 
@@ -75,20 +164,30 @@ const ChatBubble: React.FC<{
             transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
             className={`flex items-start gap-3 ${isUser ? 'flex-row-reverse' : 'flex-row'} w-full group mb-4`}
         >
-            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border transition-all duration-300 ${
-                isUser 
-                ? 'bg-blue-600 border-blue-500/50 text-white mt-1' 
-                : 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/20 text-emerald-600 dark:text-emerald-400 mt-1'
-            }`}>
+            <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm border transition-all duration-300 ${avatarClass}`}>
                 {isUser ? <User size={16} /> : <Eye size={16} />}
             </div>
-
+ 
             <div className={`flex flex-col ${isUser ? 'items-end' : 'items-start'} max-w-[85%] lg:max-w-[75%]`}>
-                <div className={`relative px-4 py-3 rounded-2xl text-sm transition-all duration-300 ${
-                    isUser 
-                    ? 'bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-none shadow-lg shadow-blue-500/10 border border-blue-400/20' 
-                    : 'bg-white dark:bg-slate-900/60 text-gray-800 dark:text-slate-200 rounded-tl-none shadow-sm border border-gray-100 dark:border-white/5 backdrop-blur-md'
-                }`}>
+                <div className={`relative px-4 py-3 rounded-2xl text-sm transition-all duration-300 ${bubbleClass}`}>
+                    {isBuy && (
+                        <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-emerald-500/10 text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 font-mono">
+                            <span className="flex h-2.5 w-2.5 relative">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                            </span>
+                            Neural Buy Signal Calibrated
+                        </div>
+                    )}
+                    {isSell && (
+                        <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-rose-500/10 text-xs font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 font-mono">
+                            <span className="flex h-2.5 w-2.5 relative">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-rose-500"></span>
+                            </span>
+                            Neural Sell Signal Calibrated
+                        </div>
+                    )}
                     {message.images && message.images.length > 0 && (
                         <div className={`grid gap-2 mb-3 ${message.images.length === 3 ? 'grid-cols-3' : message.images.length === 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                             {message.images.map((imgSrc, index) => (
