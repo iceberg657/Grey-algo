@@ -140,7 +140,7 @@ export const SniperDataSchema = {
     formattedLotSize: { type: Type.STRING },
     recommendedPositions: { type: Type.NUMBER },
     positionLotSize: { type: Type.STRING },
-    reasoning: { type: Type.STRING },
+    reasoning: { type: Type.ARRAY, items: { type: Type.STRING } },
     checklist: { type: Type.ARRAY, items: { type: Type.STRING } },
     candlestickPatterns: { type: Type.ARRAY, items: { type: Type.STRING } },
     confirmationPattern: { type: Type.STRING },
