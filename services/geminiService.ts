@@ -1169,9 +1169,51 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 }
 
                 const data = extractJson(responseText);
-                if (!data || Object.keys(data).length === 0 || !data.signal) {
+                if (!data || Object.keys(data).length === 0) {
                     throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
                 }
+                
+                // --- ROBUST JSON VALIDATION LAYER ---
+                const requiredFields = ['signal', 'confidence', 'stopLoss', 'takeProfits'];
+                for (const field of requiredFields) {
+                    if (data[field] === undefined || data[field] === null) {
+                        throw new Error(`Invalid JSON schema: Missing required field "${field}".`);
+                    }
+                }
+
+                const sigString = String(data.signal || '').toUpperCase();
+                if (!['BUY', 'SELL', 'NEUTRAL'].includes(sigString)) {
+                     throw new Error(`Invalid or hallucinated signal direction. Found: ${data.signal}`);
+                }
+
+                if (sigString !== 'NEUTRAL') {
+                    if (!Array.isArray(data.entryPoints) || data.entryPoints.length === 0 || isNaN(Number(data.entryPoints[0]))) {
+                        throw new Error(`Invalid entry points format. Expected array of numbers.`);
+                    }
+                    if (isNaN(Number(data.stopLoss))) {
+                        throw new Error(`Invalid stop loss format.`);
+                    }
+                    if (!Array.isArray(data.takeProfits) || data.takeProfits.length === 0 || isNaN(Number(data.takeProfits[0]))) {
+                        throw new Error(`Invalid take profits format. Expected array of numbers.`);
+                    }
+                    
+                    const ep = Number(data.entryPoints[0]);
+                    const sl = Number(data.stopLoss);
+                    const tp1 = Number(data.takeProfits[0]);
+                    
+                    // Basic sanity bounds
+                    if (ep <= 0 || sl <= 0 || tp1 <= 0) {
+                        throw new Error("Zero values not allowed for prices.");
+                    }
+                    
+                    // Validate basic math logic directionality to prevent completely upside-down signals
+                    if (sigString === 'BUY') {
+                        if (tp1 <= ep || sl >= ep) throw new Error("BUY Signal invalid TP/SL directionality.");
+                    } else if (sigString === 'SELL') {
+                        if (tp1 >= ep || sl <= ep) throw new Error("SELL Signal invalid TP/SL directionality.");
+                    }
+                }
+                // --- END VALIDATION LAYER ---
 
                 return {
                     data,
@@ -2143,9 +2185,43 @@ JSON Structure:
                 }
 
                 const signal = extractJson(text);
-                if (!signal || Object.keys(signal).length === 0 || !signal.signal) {
+                if (!signal || Object.keys(signal).length === 0) {
                     throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
                 }
+                
+                // --- ROBUST JSON VALIDATION LAYER ---
+                if (!['BUY', 'SELL', 'NEUTRAL'].includes(String(signal.signal || '').toUpperCase())) {
+                     throw new Error(`Invalid or hallucinated signal direction. Found: ${signal.signal}`);
+                }
+                
+                if (String(signal.signal).toUpperCase() !== 'NEUTRAL') {
+                    if (!signal.entryRange || isNaN(Number(signal.entryRange.min)) || isNaN(Number(signal.entryRange.max))) {
+                        throw new Error(`Invalid entryRange format. Missing min/max bounds.`);
+                    }
+                    if (isNaN(Number(signal.stopLoss))) {
+                        throw new Error(`Invalid stop loss format. Got: ${signal.stopLoss}`);
+                    }
+                    if (!Array.isArray(signal.takeProfits) || signal.takeProfits.length === 0 || isNaN(Number(signal.takeProfits[0]))) {
+                        throw new Error(`Invalid take profits format. Expected an array of numbers. Got: ${JSON.stringify(signal.takeProfits)}`);
+                    }
+                    
+                    const ep = Number(signal.entryRange.min);
+                    const sl = Number(signal.stopLoss);
+                    const tp1 = Number(signal.takeProfits[0]);
+                    
+                    if (ep <= 0 || sl <= 0 || tp1 <= 0) {
+                        throw new Error("Zero values not allowed for prices.");
+                    }
+                    
+                    // Directional math bounds validation to catch upside-down signals
+                    const isBuy = String(signal.signal).toUpperCase() === 'BUY';
+                    if (isBuy) {
+                        if (tp1 <= ep || sl >= ep) throw new Error("BUY Signal invalid TP/SL directionality.");
+                    } else {
+                        if (tp1 >= ep || sl <= ep) throw new Error("SELL Signal invalid TP/SL directionality.");
+                    }
+                }
+                // --- END VALIDATION LAYER ---
 
                 // --- SNIPER PRECISION LAYER (Inside Fallback) ---
                 const brokerInfo = parseBrokerInfo(query);
@@ -2289,18 +2365,20 @@ JSON Structure:
                     finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
                 }
 
-                // Final safety valve for Stop Loss (ensure it is on the correct side and not too wide/faulty)
+                // Final safety valve for Stop Loss (ensure it is on the correct side and not too wide/faulty/tight)
                 const isSlWrongDirection = (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry);
                 const isSlTooFar = Math.abs(midEntry - finalSL) > midEntry * 0.35; // Cap stop loss to 35% of price max to prevent extreme wide stops
-                if (finalSL <= 0 || isSlWrongDirection || isSlTooFar) {
-                    const atrFallback = (scaledAtr && scaledAtr > 0) ? scaledAtr * 2 : midEntry * 0.02;
+                const isSlTooTight = Math.abs(midEntry - finalSL) <= (midEntry * 0.0005); // Force a minimum distance (e.g. 0.05% of price)
+                
+                if (finalSL <= 0 || isSlWrongDirection || isSlTooFar || isSlTooTight) {
+                    const atrFallback = (scaledAtr && scaledAtr > 0) ? scaledAtr * 1.5 : Math.max(midEntry * 0.002, 0.01);
                     finalSL = finalSignal === 'BUY' ? midEntry - atrFallback : midEntry + atrFallback;
                     if (finalSL <= 0 || (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry)) {
                         finalSL = finalSignal === 'BUY' ? midEntry * 0.98 : midEntry * 1.02; // absolute 2% stop as final resort
                     }
                     const decimals = livePrice > 1000 ? 2 : livePrice > 10 ? 4 : 5;
                     finalSL = parseFloat(finalSL.toFixed(decimals));
-                    finalReasoning.push(`🛡️ Stop loss safely realigned and constrained because the math engine calculated an out-of-bounds risk level.`);
+                    finalReasoning.push(`🛡️ Stop loss safely realigned and constrained because the math engine calculated an out-of-bounds (or too tight) risk level.`);
                 }
 
                 // Apply mathematical RR overrides

@@ -72,8 +72,21 @@ export function calculateTPSL(
   if (isScalping && !atr) {
       configMinDist = configMinDist * 0.6; // Not as tight
   }
+
+  // ABSOLUTE FLOORS FOR VOLATILE ASSETS TO PREVENT TINY STOP LOSSES
+  const upperAsset = asset.toUpperCase();
+  if (upperAsset.includes('XAU') || upperAsset.includes('GOLD')) {
+      configMinDist = Math.max(configMinDist, 2.0); // At least $2 move for Gold
+  } else if (upperAsset.includes('BTC')) {
+      configMinDist = Math.max(configMinDist, 150);
+  } else if (upperAsset.includes('US30') || upperAsset.includes('DJI') || upperAsset.includes('NAS')) {
+      configMinDist = Math.max(configMinDist, 20);
+  } else if (upperAsset.includes('BOOM') || upperAsset.includes('CRASH')) {
+      configMinDist = Math.max(configMinDist, 3.0);
+  }
   
   let currentSlDist = Math.abs(baseEntry - stopLoss);
+
 
   // If SL is invalid, too close, or on wrong side, Recalculate
   // Increase strictness for when AI gives us a tiny stop loss
