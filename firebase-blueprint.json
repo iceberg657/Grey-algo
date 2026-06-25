@@ -39,7 +39,7 @@
         "timestamp": { "type": "integer" },
         "asset": { "type": "string" },
         "timeframe": { "type": "string" },
-        "signal": { "type": "string", "enum": ["BUY", "SELL", "NEUTRAL"] },
+        "signal": { "type": "string", "enum": ["BUY", "SELL"] },
         "confidence": { "type": "number" },
         "entryPoints": { "type": "array", "items": { "type": "number" } },
         "entryType": { "type": "string" },
@@ -58,7 +58,7 @@
         "id": { "type": "string" },
         "uid": { "type": "string" },
         "asset": { "type": "string" },
-        "signal": { "type": "string", "enum": ["BUY", "SELL", "NEUTRAL"] },
+        "signal": { "type": "string", "enum": ["BUY", "SELL"] },
         "timestamp": { "type": "integer" },
         "outcome": { "type": "string", "enum": ["Win", "Loss", "No Trade", "Pending"] },
         "notes": { "type": "string" }

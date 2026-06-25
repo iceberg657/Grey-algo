@@ -3,7 +3,7 @@ import { Type } from '@google/genai';
 export const SignalDataSchema = {
   type: Type.OBJECT,
   properties: {
-    signal: { type: Type.STRING, enum: ["BUY", "SELL", "NEUTRAL"] },
+    signal: { type: Type.STRING, enum: ["BUY", "SELL"] },
     confidence: { type: Type.NUMBER },
     asset: { type: Type.STRING },
     timeframe: { type: Type.STRING },
@@ -127,14 +127,27 @@ export const SignalDataSchema = {
     },
     economicEvents: { type: Type.ARRAY, items: { type: Type.STRING } },
     sources: { type: Type.ARRAY, items: { type: Type.STRING } },
-    recommendedPositions: { type: Type.NUMBER }
+    recommendedPositions: { type: Type.NUMBER },
+    timingCalibration: {
+        type: Type.OBJECT,
+        properties: {
+            optimalSession: { type: Type.STRING },
+            timeBasedEntryScore: { type: Type.NUMBER },
+            interestWindow: { type: Type.STRING },
+            hftActivityLevel: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] },
+            institutionalVolumeExpected: { type: Type.BOOLEAN },
+            setupValidityDuration: { type: Type.STRING },
+            triggerHour: { type: Type.STRING }
+        },
+        required: ["optimalSession", "timeBasedEntryScore", "interestWindow", "hftActivityLevel", "institutionalVolumeExpected", "setupValidityDuration", "triggerHour"]
+    }
   },
   required: [
     "signal", "confidence", "asset", "timeframe", "entryPoints", "entryType", 
     "stopLoss", "takeProfits", "possiblePips", "winProbability", "triggerConditions", "reasoning", "confluenceMatrix",
     "verificationProtocol", "invalidationScenario", "counterArgumentRejection", "marketStory", "neuralFilter",
     "candlestickPatterns", "confirmationPattern", "demandSupplyZones", "fundamentalContext", "institutionalDrivers",
-    "fundamentalDrivers", "sentiment", "timeframeRationale"
+    "fundamentalDrivers", "sentiment", "timeframeRationale", "timingCalibration"
   ]
 };
 
@@ -176,10 +189,23 @@ export const SniperDataSchema = {
             retestLogic: { type: Type.STRING },
             entryTriggerCandle: { type: Type.STRING }
         }
+    },
+    timingCalibration: {
+        type: Type.OBJECT,
+        properties: {
+            optimalSession: { type: Type.STRING },
+            timeBasedEntryScore: { type: Type.NUMBER },
+            interestWindow: { type: Type.STRING },
+            hftActivityLevel: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] },
+            institutionalVolumeExpected: { type: Type.BOOLEAN },
+            setupValidityDuration: { type: Type.STRING },
+            triggerHour: { type: Type.STRING }
+        },
+        required: ["optimalSession", "timeBasedEntryScore", "interestWindow", "hftActivityLevel", "institutionalVolumeExpected", "setupValidityDuration", "triggerHour"]
     }
   },
   required: [
     "signal", "confidence", "asset", "timeframe", "entryRange", "entryType", 
-    "stopLoss", "takeProfits", "formattedLotSize", "recommendedPositions", "positionLotSize", "reasoning", "checklist", "triggerConditions"
+    "stopLoss", "takeProfits", "formattedLotSize", "recommendedPositions", "positionLotSize", "reasoning", "checklist", "triggerConditions", "timingCalibration"
   ]
 };

@@ -239,8 +239,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             </div>
                         </div>
 
-                        {/* Language / Localization */}
-                        <div className="grid grid-cols-1 gap-4">
+                        {/* Language / Localization / Timezone */}
+                        <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Language</label>
                                 <select
@@ -253,6 +253,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <option value="Arabic">Arabic</option>
                                     <option value="Spanish">Spanish</option>
                                     <option value="Persian">Persian (Farsi)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Timezone</label>
+                                <select
+                                    value={settings.timezone || 'UTC'}
+                                    onChange={(e) => handleChange('timezone', e.target.value)}
+                                    className="w-full px-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                >
+                                    <option value="UTC">UTC</option>
+                                    {Intl.supportedValuesOf('timeZone').map(tz => (
+                                        <option key={tz} value={tz}>{tz}</option>
+                                    ))}
                                 </select>
                             </div>
                         </div>

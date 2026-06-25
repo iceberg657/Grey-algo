@@ -6,6 +6,7 @@ import { updateTradeOutcome } from '../services/historyService';
 import { generateLessonFromTradeLog } from '../services/learningService';
 import { TiltCard } from './TiltCard';
 import { motion } from 'motion/react';
+import { TimingCalibrationWidget } from './TimingCalibrationWidget';
 
 interface InfoCardProps {
     label: string;
@@ -23,7 +24,6 @@ const getSignalTextClasses = (signal: SignalData['signal']) => {
     switch(signal) {
         case 'BUY': return 'text-green-400 animate-glowing-text-green';
         case 'SELL': return 'text-red-400 animate-glowing-text-red';
-        case 'NEUTRAL': return 'text-yellow-400 animate-glowing-text-yellow';
         default: return 'text-gray-800 dark:text-dark-text';
     }
 };
@@ -410,9 +410,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                  <InfoCard 
                     label="Signal" 
                     value={
-                        data.signal === 'BUY' ? 'BUY on a buy setup' : 
-                        data.signal === 'SELL' ? 'SELL on a sell setup' : 
-                        'NEUTRAL (NO TRADE)'
+                        data.signal === 'BUY' ? 'BUY on a buy setup' : 'SELL on a sell setup'
                     } 
                     isSignal 
                     signalType={data.signal} 
@@ -420,12 +418,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                     delay="100ms" 
                 />
                  <InfoCard label="Confluence Score" value={`${data.confidence}%`} subValue={confidenceDetails.label} subValueClassName={confidenceDetails.color} delay="200ms" />
-                 {data.signal !== 'NEUTRAL' && (
-                    <InfoCard label="Hard Stop" value={formatPrice(data.stopLoss)} valueClassName="text-red-500 font-black" delay="300ms" />
-                 )}
-                 {data.signal === 'NEUTRAL' && (
-                    <InfoCard label="Status" value="WAITING" valueClassName="text-yellow-500 font-black" subValue="No Confluence" delay="300ms" />
-                 )}
+                 <InfoCard label="Hard Stop" value={formatPrice(data.stopLoss)} valueClassName="text-red-500 font-black" delay="300ms" />
             </div>
 
             {/* Sliding Tab Triggers */}
@@ -458,11 +451,11 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
                              <div className="absolute top-0 left-0 w-full h-1 bg-blue-500/30 group-hover:bg-blue-500 transition-colors"></div>
                              <span className="text-xs font-black text-gray-600 dark:text-dark-text/70 uppercase tracking-[0.2em] block text-center mb-6">
-                                {data.signal === 'NEUTRAL' ? 'Levels to Watch' : 'Entry Cluster'}
+                                {'Entry Cluster'}
                              </span>
                              <div className="flex flex-wrap justify-center items-center gap-4">
-                                {data.entryPoints.slice(0, data.signal === 'NEUTRAL' ? 3 : 1).map((ep, i) => {
-                                    const isRecommended = data.signal !== 'NEUTRAL';
+                                {data.entryPoints.slice(0, 1).map((ep, i) => {
+                                    const isRecommended = true;
                                     return (
                                         <div key={i} className={`text-center bg-white/60 dark:bg-slate-900/40 backdrop-blur-md px-4 py-3 rounded-xl border min-w-[100px] shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] relative ${isRecommended ? 'border-green-500/50 shadow-green-500/20' : 'border-gray-200 dark:border-white/10'}`}>
                                             {isRecommended && (
@@ -472,13 +465,13 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                                             )}
                                             <span className={`font-mono text-xl font-black block ${isRecommended ? 'text-green-400' : 'text-gray-800 dark:text-white'}`}>{formatPrice(ep)}</span>
                                             <span className="block text-[10px] text-gray-600 uppercase font-black mt-1">
-                                                {data.signal === 'NEUTRAL' ? 'LEVEL' : 'ENTRY'}
+                                                {'ENTRY'}
                                             </span>
                                         </div>
                                     );
                                 })}
                              </div>
-                             {data.entryType && data.signal !== 'NEUTRAL' && (
+                             {data.entryType  && (
                                 <div className="flex flex-col items-center gap-2 mt-6">
                                     <div className={`inline-flex items-center px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.25em] shadow-2xl border border-white/10 ${getEntryTypeBadgeColor(data.entryType)}`}>
                                         {data.entryType}
@@ -499,7 +492,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         </div>
                     </TiltCard>
                 </div>
-                {data.signal !== 'NEUTRAL' && (
+                {true && (
                     <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '600ms' }}>
                         <TiltCard>
                             <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
@@ -521,7 +514,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         </TiltCard>
                     </div>
                 )}
-                {data.signal === 'NEUTRAL' && (
+                {false && (
                     <div className="opacity-0 animate-flip-3d" style={{ animationDelay: '600ms' }}>
                         <TiltCard>
                             <div className="p-6 rounded-2xl bg-white/60 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 h-full flex flex-col items-center shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] group overflow-hidden relative">
@@ -542,7 +535,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                 )}
             </div>
 
-            {data.signal === 'NEUTRAL' && data.neutralConditions && (
+            {false && data.neutralConditions && (
                 <Section title="Conditional Setups" delay="800ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" /></svg>}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* BUY CONDITIONS */}
@@ -628,7 +621,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
             )}
 
             {/* INTERACTIVE REAL-TIME POSITION CALCULATOR CARD */}
-            {data.signal !== 'NEUTRAL' && (
+            {true && (
                 <div className="bg-white/70 dark:bg-slate-900/40 backdrop-blur-2xl rounded-3xl p-6 border border-blue-500/20 shadow-2xl relative overflow-hidden group mb-8">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full -mr-20 -mt-20 blur-3xl" />
                     <div className="flex items-center gap-3 mb-6">
@@ -713,39 +706,39 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-red-500 uppercase">Risk Bound</span>
                             <span className="text-gray-800 dark:text-white font-bold">
-                                {data.signal === 'NEUTRAL' ? 'N/A' : <>{slDisplay} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></>}
+                                {<>{slDisplay} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></>}
                             </span>
                         </div>
                         
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-green-500 uppercase">Reward Bound</span>
                             <span className="text-gray-800 dark:text-white font-bold">
-                                {data.signal === 'NEUTRAL' ? 'N/A' : <>{tp3Display} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></>}
+                                {<>{tp3Display} <span className="text-[10px] text-gray-500 dark:text-gray-400">{unit}</span></>}
                             </span>
                         </div>
                         
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-blue-500 uppercase">Target Ratio</span>
                             <span className="text-gray-800 dark:text-white font-bold">
-                                {data.signal === 'NEUTRAL' ? 'N/A' : (data.calculatedRR || (diffSL > 0 ? `1:${(diffTP3/diffSL).toFixed(1).replace(/\.0$/, '')}` : 'N/A'))}
+                                {(data.calculatedRR || (diffSL > 0 ? `1:${(diffTP3/diffSL).toFixed(1).replace(/\.0$/, '')}` : 'N/A'))}
                             </span>
                         </div>
 
                         <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                             <span className="text-sm font-bold text-purple-500 uppercase">Entry Style</span>
                             <span className="text-gray-800 dark:text-white font-bold">
-                                {data.signal === 'NEUTRAL' ? 'Awaiting Setup' : data.entryType}
+                                {data.entryType}
                             </span>
                         </div>
                         
-                        {data.lotSize && data.lotSize > 0 && data.signal !== 'NEUTRAL' && (
+                        {data.lotSize && data.lotSize > 0  && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-cyan-500 uppercase">Total Lot Size</span>
                                 <span className="font-bold text-cyan-500 dark:text-cyan-400">{data.formattedLotSize}</span>
                             </div>
                         )}
 
-                        {data.recommendedPositions && data.recommendedPositions > 0 && data.positionLotSize && data.signal !== 'NEUTRAL' && (
+                        {data.recommendedPositions && data.recommendedPositions > 0 && data.positionLotSize  && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3 bg-cyan-500/5 px-2 rounded-lg">
                                 <span className="text-sm font-bold text-cyan-600 dark:text-cyan-400 uppercase">Positions</span>
                                 <div className="text-right">
@@ -754,21 +747,21 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                             </div>
                         )}
                         
-                        {data.riskAmount && data.riskAmount > 0 && data.signal !== 'NEUTRAL' && (
+                        {data.riskAmount && data.riskAmount > 0  && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Risk</span>
                                 <span className="font-bold text-red-500 dark:text-red-400">{formatCurrency(data.riskAmount)}</span>
                             </div>
                         )}
                         
-                        {data.totalPotentialProfit && data.totalPotentialProfit > 0 && data.signal !== 'NEUTRAL' && (
+                        {data.totalPotentialProfit && data.totalPotentialProfit > 0  && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-gray-600 dark:text-gray-400 uppercase">Est. Potential</span>
                                 <span className="font-bold text-green-500 dark:text-green-400">{formatCurrency(data.totalPotentialProfit)}</span>
                             </div>
                         )}
 
-                        {data.possiblePips !== undefined && data.possiblePips > 0 && data.signal !== 'NEUTRAL' && (
+                        {data.possiblePips !== undefined && data.possiblePips > 0  && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-orange-500 uppercase">Possible Pips</span>
                                 <span className="font-bold text-orange-500 dark:text-orange-400">
@@ -777,7 +770,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                             </div>
                         )}
 
-                        {data.winProbability !== undefined && data.winProbability > 0 && data.signal !== 'NEUTRAL' && (
+                        {data.winProbability !== undefined && data.winProbability > 0  && (
                             <div className="flex justify-between items-center border-b border-gray-200 dark:border-white/10 py-3">
                                 <span className="text-sm font-bold text-pink-500 uppercase">Win Probability</span>
                                 <span className="font-bold text-pink-500 dark:text-pink-400">{data.winProbability}%</span>
@@ -791,6 +784,11 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
 
             {activeTab === 'confluences' && (
                 <div className="space-y-6">
+                    {/* TIMING CALIBRATION SECTION */}
+                    {data.timingCalibration && (
+                        <TimingCalibrationWidget data={data.timingCalibration} />
+                    )}
+
                     {/* TRIGGER CONDITIONS SECTION */}
             {data.triggerConditions && (
                 <Section title="Trigger Conditions" delay="1150ms" icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-orange-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>}>

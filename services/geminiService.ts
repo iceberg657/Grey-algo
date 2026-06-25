@@ -219,6 +219,11 @@ You MUST prioritize these lessons to avoid repeating past mistakes and to replic
 ${strategies.map(s => `- ${s}`).join('\n')}\n`
         : "";
 
+    const userTimezoneContext = `
+⏰ **USER TIMEZONE (${userSettings?.timezone || 'UTC'}):**
+Any time-based parameters, such as 'triggerHour', MUST be provided in the user's timezone (${userSettings?.timezone || 'UTC'}). Convert from UTC if necessary.
+`;
+
     const twelveDataContext = twelveDataQuote && !twelveDataQuote.error ? `
 📡 **TWELVE DATA API (RAW MATHEMATICAL TRUTH):**
 Use this real-time data as your primary "Mathematical Truth" to verify your visual chart analysis. You MUST use this data for EVERY analysis to ensure confluence.
@@ -427,6 +432,7 @@ ${globalTrendContext}
 ${twelveDataContext}
 ${boomCrashLogic}
 ${accountInfo}
+${userTimezoneContext}
 ${tradeModeInstructions}
 ${institutionalMath}
 ${weekendInstruction}
@@ -964,6 +970,15 @@ You MUST localize the exact text outputs inside fields such as "reasoning", "bia
     "confidenceBoost": number, // Amount to add/subtract from confidence (-20 to +20)
     "reasoning": "Explain how this trade setup aligns with or violates the NEURAL LEARNING & HISTORICAL LESSONS"
   },
+  "timingCalibration": {
+    "optimalSession": "string (e.g., London Open, New York AM, Asian Mid-Session)",
+    "timeBasedEntryScore": number, // 0-100 rating of the current clock/session alignment for perfect entry timing
+    "interestWindow": "string (e.g., 08:00 - 10:30 UTC or NY Session Open)",
+    "hftActivityLevel": "HIGH" | "MEDIUM" | "LOW",
+    "institutionalVolumeExpected": boolean,
+    "setupValidityDuration": "string (e.g., Valid for the next 45 minutes)",
+    "triggerHour": "string (e.g., 13:45 in User Timezone)"
+  },
 
   "reasoning": [
     "1. HTF Trend Alignment: [Explain how this trade respects the Global HTF Bias]",
@@ -1181,18 +1196,17 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 }
 
                 const sigString = String(data.signal || '').toUpperCase();
-                if (!['BUY', 'SELL', 'NEUTRAL'].includes(sigString)) {
+                if (!['BUY', 'SELL'].includes(sigString)) {
                      throw new Error(`Invalid or hallucinated signal direction. Found: ${data.signal}`);
                 }
 
-                if (sigString !== 'NEUTRAL') {
-                    if (!Array.isArray(data.entryPoints) || data.entryPoints.length === 0 || isNaN(Number(data.entryPoints[0]))) {
-                        throw new Error(`Invalid entry points format. Expected array of numbers.`);
-                    }
-                    if (isNaN(Number(data.stopLoss))) {
-                        throw new Error(`Invalid stop loss format.`);
-                    }
-                    if (!Array.isArray(data.takeProfits) || data.takeProfits.length === 0 || isNaN(Number(data.takeProfits[0]))) {
+                if (!Array.isArray(data.entryPoints) || data.entryPoints.length === 0 || isNaN(Number(data.entryPoints[0]))) {
+                    throw new Error(`Invalid entry points format. Expected array of numbers.`);
+                }
+                if (isNaN(Number(data.stopLoss))) {
+                    throw new Error(`Invalid stop loss format.`);
+                }
+                if (!Array.isArray(data.takeProfits) || data.takeProfits.length === 0 || isNaN(Number(data.takeProfits[0]))) {
                         throw new Error(`Invalid take profits format. Expected array of numbers.`);
                     }
                     
@@ -1211,7 +1225,6 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     } else if (sigString === 'SELL') {
                         if (tp1 >= ep || sl <= ep) throw new Error("SELL Signal invalid TP/SL directionality.");
                     }
-                }
                 // --- END VALIDATION LAYER ---
 
                 return {
@@ -1335,7 +1348,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
-            signal: (data.signal === 'NEUTRAL' ? ((request.query?.toLowerCase().includes('sell') || request.query?.toLowerCase().includes('bearish')) ? 'SELL' : 'BUY') : data.signal) as 'BUY' | 'SELL',
+            signal: data.signal as 'BUY' | 'SELL',
             confidence: finalConfidence,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
@@ -1367,6 +1380,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             confluenceMatrix: data.confluenceMatrix,
             verificationProtocol: data.verificationProtocol,
             neuralFilter: data.neuralFilter,
+            timingCalibration: data.timingCalibration,
             contractSize: data.contractSize,
             pipValue: data.pipValue,
             tradeMode: request.userSettings?.tradeMode || 'Aggressive',
@@ -1475,21 +1489,7 @@ export async function generateTradingSignal(
     const hasImages = request.images && request.images.primary;
     if (livePrice === 0 && (!twelveDataQuote || twelveDataQuote.error || Object.keys(twelveDataQuote).length === 0) && !hasImages) {
         console.warn(`[GEMINI] Data starvation detected for ${asset}. No numerical price and no images provided. Rejecting to prevent 0.00 hallucination trap.`);
-        return {
-             asset: asset || "UNKNOWN",
-             timeframe: request.tradingStyle === 'Scalping' ? 'M5' : 'H1',
-             signal: 'NEUTRAL',
-             entryPoints: [0],
-             stopLoss: 0,
-             takeProfits: [0, 0],
-             confidence: 0,
-             reasoning: [
-                 `⚠️ DATA STARVATION ERROR: The engine has no TwelveData prices and no visual chart to analyze. We forcefully veto the setup rather than allowing hallucinated coordinates.`
-             ],
-             confluenceMatrix: {
-                executionChecklist: ["FAIL: Data Starvation"]
-             } as any
-        } as unknown as Omit<SignalData, 'id' | 'timestamp'>;
+        throw new Error(`⚠️ DATA STARVATION ERROR: The engine has no TwelveData prices and no visual chart to analyze for ${asset}. We forcefully veto the setup rather than allowing hallucinated coordinates.`);
     }
 
     const updatedRequest = {
@@ -1849,19 +1849,7 @@ export async function generateSniperLiveSignal(
     // CRITICAL DATA STARVATION CHECK
     if (livePrice === 0 && (!quantData || Object.keys(quantData).length === 0)) {
         console.warn(`[GEMINI] Data starvation detected for ${assetName}. Rejecting to prevent hallucination.`);
-        return {
-             id: Date.now().toString(),
-             asset: assetName || "UNKNOWN",
-             timeframe: 'M15',
-             signal: 'NEUTRAL',
-             entryPoints: [0],
-             stopLoss: 0,
-             takeProfits: [0, 0],
-             confidence: 0,
-             confluenceMatrix: {
-                 reasoning: `⚠️ DATA STARVATION ERROR: The quant engine was unable to fetch any live pricing or historical data for ticker symbol "${assetName}". Because the Engine had a true price of 0.00, we forcefully veto the setup rather than allowing hallucinated coordinates.`
-             }
-        } as SignalData;
+        throw new Error(`⚠️ DATA STARVATION ERROR: The quant engine was unable to fetch any live pricing or historical data for ticker symbol "${assetName}". Because the Engine had a true price of 0.00, we forcefully veto the setup rather than allowing hallucinated coordinates.`);
     }
 
     const quantContext = quantData ? `
@@ -2006,6 +1994,11 @@ Historical performance shows traditional models fail today. Activating **ADAPTIV
 - **DAY TRADING:** For day trading setups, your EXCLUSIVE objective is catching SPIKES in the dominant direction (Buy for Boom, Sell for Crash). You MUST NOT catch candles when day trading.
 ` : "";
 
+    const userTimezoneContext = `
+⏰ **USER TIMEZONE (${userSettings?.timezone || 'UTC'}):**
+Any time-based parameters, such as 'triggerHour', MUST be provided in the user's timezone (${userSettings?.timezone || 'UTC'}). Convert from UTC if necessary.
+`;
+
     const prompt = `[SYSTEM: NEW SNIPER SESSION. CURRENT LOCAL TIME: ${currentTime}]
 System Role: You are a High-Frequency Institutional Execution Bot.
 
@@ -2013,6 +2006,7 @@ Data:
 ${quantContext}
 
 ${boomCrashLogic}
+${userTimezoneContext}
 ${weekendInstruction}
 ${unprofitableDayInstruction}
 ${brokerInstruction}
@@ -2125,12 +2119,21 @@ JSON Structure:
     "confidenceBoost": number, // Amount to add/subtract from confidence (-20 to +20)
     "reasoning": "Explain how this trade setup aligns with or violates the NEURAL LEARNING & HISTORICAL LESSONS"
   },
+  "timingCalibration": {
+    "optimalSession": "string (e.g., London Open, New York AM, Asian Mid-Session)",
+    "timeBasedEntryScore": number, // 0-100 rating of the current clock/session alignment for perfect entry timing
+    "interestWindow": "string (e.g., 08:00 - 10:30 UTC or NY Session Open)",
+    "hftActivityLevel": "HIGH" | "MEDIUM" | "LOW",
+    "institutionalVolumeExpected": boolean,
+    "setupValidityDuration": "string (e.g., Valid for the next 45 minutes)",
+    "triggerHour": "string (e.g., 13:45 in User Timezone)"
+  },
   "checklist": ["HTF Trend Alignment", "Liquidity Sweep", "Order Block Tap", "FVG Fill"],
   "candlestickPatterns": ["Detected pattern names (e.g. Bullish Engulfing, Hammer, Shooting Star)"],
   "confirmationPattern": "e.g., Wick rejection, Engulfing candle, MSS, Orderblock tap",
   "triggerConditions": { 
     "breakoutLevel": number,
-    "retestLogic": string,
+    "retestLogic": "string (keep to 10 words max)",
     "entryTriggerCandle": string
   }
 }`;
@@ -2205,16 +2208,15 @@ JSON Structure:
                 }
                 
                 // --- ROBUST JSON VALIDATION LAYER ---
-                if (!['BUY', 'SELL', 'NEUTRAL'].includes(String(signal.signal || '').toUpperCase())) {
+                if (!['BUY', 'SELL'].includes(String(signal.signal || '').toUpperCase())) {
                      throw new Error(`Invalid or hallucinated signal direction. Found: ${signal.signal}`);
                 }
                 
-                if (String(signal.signal).toUpperCase() !== 'NEUTRAL') {
-                    if (!signal.entryRange || isNaN(Number(signal.entryRange.min)) || isNaN(Number(signal.entryRange.max))) {
-                        throw new Error(`Invalid entryRange format. Missing min/max bounds.`);
-                    }
-                    if (isNaN(Number(signal.stopLoss))) {
-                        throw new Error(`Invalid stop loss format. Got: ${signal.stopLoss}`);
+                if (!signal.entryRange || isNaN(Number(signal.entryRange.min)) || isNaN(Number(signal.entryRange.max))) {
+                    throw new Error(`Invalid entryRange format. Missing min/max bounds.`);
+                }
+                if (isNaN(Number(signal.stopLoss))) {
+                    throw new Error(`Invalid stop loss format. Got: ${signal.stopLoss}`);
                     }
                     if (!Array.isArray(signal.takeProfits) || signal.takeProfits.length === 0 || isNaN(Number(signal.takeProfits[0]))) {
                         throw new Error(`Invalid take profits format. Expected an array of numbers. Got: ${JSON.stringify(signal.takeProfits)}`);
@@ -2235,7 +2237,6 @@ JSON Structure:
                     } else {
                         if (tp1 >= ep || sl <= ep) throw new Error("SELL Signal invalid TP/SL directionality.");
                     }
-                }
                 // --- END VALIDATION LAYER ---
 
                 // --- SNIPER PRECISION LAYER (Inside Fallback) ---
@@ -2298,10 +2299,9 @@ JSON Structure:
                 let finalReasoning = originalReasoning;
 
                 // 1. Price Sanity Check
-                if (midEntry === 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
-                    finalSignal = 'NEUTRAL';
-                    finalReasoning.push(`⚠️ Signal invalidated: AI failed to identify a numerical price level, and no external price data was available. Cannot proceed with a 0.00 entry.`);
-                } else if (diffPercent > 0.02 && targetReferencePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+                if (midEntry === 0 && finalSignal !== 'HOLD') {
+                    throw new Error(`⚠️ Signal invalidated: AI failed to identify a numerical price level, and no external price data was available. Cannot proceed with a 0.00 entry.`);
+                } else if (diffPercent > 0.02 && targetReferencePrice > 0 && finalSignal !== 'HOLD') {
                     // Do not invalidate signal to NEUTRAL just because of price/broker differences.
                     // Preserve the AI/engine signal bias (BUY/SELL) and recalibrate the entry range to center around the target reference price.
                     const rangeWidth = entryRange.max - entryRange.min;
@@ -2329,7 +2329,7 @@ JSON Structure:
                     finalSignal = quantData.explicitSignal;
                     enforcedByEngine = true;
                     finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Direction mathematically locked to ${finalSignal}. LLM guesses rejected.`);
-                } else if (finalSignal === 'NEUTRAL' || finalSignal === 'HOLD') {
+                } else if (finalSignal === 'HOLD') {
                     if (quantData?.explicitSignal === 'NEUTRAL') {
                         // Infer safe direction and configure low risk setup instead of enforcing pure neutral direction
                         if (signal.signal === 'BUY' || signal.signal === 'SELL') {
@@ -2354,7 +2354,7 @@ JSON Structure:
                 }
 
                 // Apply mathematical pricing bounds from Monte Carlo / QuantData if available
-                if (quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
+                if (quantData?.monteCarloPrediction) {
                     const mc = quantData.monteCarloPrediction;
                     
                     const scaledMathematicalSL = quantData.mathematicalSL ? quantData.mathematicalSL * finalScale : undefined;
@@ -2522,6 +2522,7 @@ Move SL to entry immediately after TP1.
                     candlestickPatterns: Array.isArray(signal.candlestickPatterns) ? signal.candlestickPatterns : [],
                     confirmationPattern: signal.confirmationPattern || "None",
                     neuralFilter: signal.neuralFilter,
+                    timingCalibration: signal.timingCalibration,
                     entryType: signal.entryType || 'Market Execution',
                     triggerConditions: signal.triggerConditions || undefined,
                     contractSize: 100000,

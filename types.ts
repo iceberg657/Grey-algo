@@ -50,6 +50,7 @@ export interface UserSettings extends Partial<AccountSettings> {
     useStrictKeyMode?: boolean;
     deepThinking?: boolean;
     language?: string;
+    timezone?: string;
 }
 
 export interface GlobalTrendInfo {
@@ -141,7 +142,7 @@ export interface Trade {
     id?: string;
     uid: string;
     asset: string;
-    signal: 'BUY' | 'SELL' | 'NEUTRAL';
+    signal: 'BUY' | 'SELL';
     timestamp: number;
     outcome: 'Win' | 'Loss' | 'No Trade' | 'Pending';
     notes?: string;
@@ -153,7 +154,7 @@ export interface SignalData {
     timestamp: number;
     asset: string;
     timeframe: string;
-    signal: 'BUY' | 'SELL' | 'NEUTRAL';
+    signal: 'BUY' | 'SELL';
     confidence: number;
     priceAtSignal?: number;
     entryPoints: number[];
@@ -290,6 +291,15 @@ export interface SignalData {
     fundamentalDrivers?: FundamentalDriver[];
     marketStory?: string;
     twelveDataQuote?: any;
+    timingCalibration?: {
+        optimalSession: string;
+        timeBasedEntryScore: number;
+        interestWindow: string;
+        hftActivityLevel: 'HIGH' | 'MEDIUM' | 'LOW';
+        institutionalVolumeExpected: boolean;
+        setupValidityDuration: string;
+        triggerHour: string;
+    };
 }
 
 export interface MomentumAsset {

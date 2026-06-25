@@ -73,7 +73,7 @@ service cloud.firestore {
              data.id is string &&
              data.timestamp is number &&
              data.asset is string &&
-             data.signal in ['BUY', 'SELL', 'NEUTRAL'] &&
+             data.signal in ['BUY', 'SELL'] &&
              data.confidence is number;
     }
 
@@ -81,7 +81,7 @@ service cloud.firestore {
       return data.keys().hasAll(['uid', 'asset', 'signal', 'timestamp', 'outcome']) &&
              data.uid is string && data.uid == request.auth.uid &&
              data.asset is string &&
-             data.signal in ['BUY', 'SELL', 'NEUTRAL'] &&
+             data.signal in ['BUY', 'SELL'] &&
              data.timestamp is number &&
              data.outcome in ['Win', 'Loss', 'No Trade', 'Pending'];
     }
