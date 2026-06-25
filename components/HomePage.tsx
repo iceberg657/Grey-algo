@@ -398,10 +398,6 @@ export const HomePage: React.FC<HomePageProps> = ({
                 data = resultsContext[0];
             }
             
-            if (data && data.timingCalibration && data.timingCalibration.timeBasedEntryScore < 79) {
-                throw new Error(`⚠️ TRADE VETOED: The timing calibration score (${data.timingCalibration.timeBasedEntryScore}%) is below the minimum required threshold of 79%. The current session/clock alignment is not optimal for execution.`);
-            }
-
             const newCount = incrementAnalysisCount();
             setAnalysisCount(newCount);
             

@@ -3,7 +3,7 @@ import { Type } from '@google/genai';
 export const SignalDataSchema = {
   type: Type.OBJECT,
   properties: {
-    signal: { type: Type.STRING, enum: ["BUY", "SELL"] },
+    signal: { type: Type.STRING, enum: ["BUY", "SELL", "NEUTRAL"] },
     confidence: { type: Type.NUMBER },
     asset: { type: Type.STRING },
     timeframe: { type: Type.STRING },
@@ -137,9 +137,9 @@ export const SignalDataSchema = {
             hftActivityLevel: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] },
             institutionalVolumeExpected: { type: Type.BOOLEAN },
             setupValidityDuration: { type: Type.STRING },
-            triggerHour: { type: Type.STRING }
+            triggerHourUtc: { type: Type.STRING }
         },
-        required: ["optimalSession", "timeBasedEntryScore", "interestWindow", "hftActivityLevel", "institutionalVolumeExpected", "setupValidityDuration", "triggerHour"]
+        required: ["optimalSession", "timeBasedEntryScore", "interestWindow", "hftActivityLevel", "institutionalVolumeExpected", "setupValidityDuration", "triggerHourUtc"]
     }
   },
   required: [
@@ -199,9 +199,9 @@ export const SniperDataSchema = {
             hftActivityLevel: { type: Type.STRING, enum: ["HIGH", "MEDIUM", "LOW"] },
             institutionalVolumeExpected: { type: Type.BOOLEAN },
             setupValidityDuration: { type: Type.STRING },
-            triggerHour: { type: Type.STRING }
+            triggerHourUtc: { type: Type.STRING }
         },
-        required: ["optimalSession", "timeBasedEntryScore", "interestWindow", "hftActivityLevel", "institutionalVolumeExpected", "setupValidityDuration", "triggerHour"]
+        required: ["optimalSession", "timeBasedEntryScore", "interestWindow", "hftActivityLevel", "institutionalVolumeExpected", "setupValidityDuration", "triggerHourUtc"]
     }
   },
   required: [

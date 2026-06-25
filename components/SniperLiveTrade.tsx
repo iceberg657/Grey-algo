@@ -478,7 +478,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                           granularity / 60, // period parameter if applicable
                           userSettings?.autotrade?.maxRiskPerTrade || 10000
                       );
-                      if (sig && sig.signal) {
+                      if (sig && sig.signal !== 'NEUTRAL') {
                           signals.push({ strategy, ...sig });
                       }
                   } catch (e) {
@@ -501,7 +501,28 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       let result = null;
       if (quantData?.weightedScore?.totalScore < 35 && quantData?.quantMath?.fakeoutProbability > 0.8) {
           console.log('[SniperLiveTrade] ALGORITHMIC VETO TRIGGERED: Skipping AI Execution to save RPD token limit.');
-          throw new Error("Trade execution blocked locally by Quant Statistics Engine to save your daily RPD limit. System detected over 80% statistical probability of a trap/fakeout. Market Noise Ratio was dangerously high due to mean-reverting algorithms active on order book. Stay flat. Do not execute trades on this setup. We saved your account from a verified trap.");
+          result = {
+              id: Date.now().toString(),
+              type: 'ai',
+              signal: 'NEUTRAL',
+              asset: asset,
+              confidence: quantData.weightedScore.totalScore,
+              reasoning: [
+                  "Trade execution blocked locally by Quant Statistics Engine to save your daily RPD limit.",
+                  "System detected over 80% statistical probability of a trap/fakeout.",
+                  "Market Noise Ratio was dangerously high due to mean-reverting algorithms active on order book.",
+                  "Stay flat. Do not execute trades on this setup. We saved your account from a verified trap."
+              ],
+              entryRange: { min: 0, max: 0 },
+              stopLoss: 0,
+              takeProfits: [0, 0],
+              timestamp: Date.now(),
+              insight: "Quant Engine actively avoided an institutional trap zone.",
+              analysisBreakdown: quantData.weightedScore.breakdown,
+              recommendedPositions: '0',
+              formattedLotSize: '0.00',
+              grade: 'NO TRADE'
+          };
       } else {
           result = await generateSniperLiveSignal(
             currentQuery, 
@@ -515,12 +536,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           );
       }
       
-      if (result && result.timingCalibration && result.timingCalibration.timeBasedEntryScore < 79) {
-          throw new Error(`⚠️ TRADE VETOED: The timing calibration score (${result.timingCalibration.timeBasedEntryScore}%) is below the minimum required threshold of 79%. The current session/clock alignment is not optimal for execution.`);
-      }
-      
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
-      if (result && result.signal) {
+      if (result && result.signal && result.signal !== 'NEUTRAL') {
           try {
               // Strip ID and timestamp to let saveAnalysis re-apply it properly for journal
               const { id, timestamp, ...dataToSave } = result;
@@ -1018,7 +1035,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                               )}
 
                               {/* Position Management */}
-                              {(msg.signal.formattedLotSize || msg.signal.recommendedPositions) && (
+                              {msg.signal.signal !== 'NEUTRAL' && (msg.signal.formattedLotSize || msg.signal.recommendedPositions) && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                                   {msg.signal.formattedLotSize && (
                                     <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-4 rounded-3xl">
