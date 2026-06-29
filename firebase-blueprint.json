@@ -144,6 +144,44 @@
         "userId": { "type": "string" }
       },
       "required": ["rule", "timestamp", "sourceCount", "confidence", "userId"]
+    },
+    "AutoBacktestPattern": {
+      "title": "AutoBacktestPattern",
+      "description": "Mechanical backtest pattern",
+      "type": "object",
+      "properties": {
+        "asset": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "direction": { "type": "string" },
+        "pattern": { "type": "string" },
+        "logic": { "type": "string" },
+        "timestamp": { "type": "integer" },
+        "createdAt": { "type": "integer" }
+      },
+      "required": ["asset", "timeframe", "direction", "pattern"]
+    },
+    "TradeJournal": {
+      "title": "TradeJournal",
+      "description": "Mechanical backtest journal entry",
+      "type": "object",
+      "properties": {
+        "tradeSetup": { "type": "string" },
+        "asset": { "type": "string" },
+        "timeframe": { "type": "string" },
+        "direction": { "type": "string" },
+        "entryPrice": { "type": "number" },
+        "exitPrice": { "type": "number" },
+        "stopLoss": { "type": "number" },
+        "takeProfit": { "type": "number" },
+        "outcome": { "type": "string" },
+        "pnl": { "type": "number" },
+        "logic": { "type": "string" },
+        "isAutoBacktest": { "type": "boolean" },
+        "entryTime": { "type": "integer" },
+        "exitTime": { "type": "integer" },
+        "timestamp": { "type": "integer" }
+      },
+      "required": ["tradeSetup", "asset", "direction", "outcome"]
     }
   },
   "firestore": {
@@ -190,6 +228,14 @@
     "/learned_rules/{ruleId}": {
       "schema": "LearnedRule",
       "description": "Neural lessons learned by AutoML"
+    },
+    "/users/{userId}/auto_backtest_patterns/{patternId}": {
+      "schema": "AutoBacktestPattern",
+      "description": "Stored mechanical backtest patterns"
+    },
+    "/users/{userId}/trade_journals/{journalId}": {
+      "schema": "TradeJournal",
+      "description": "Stored trade journals for embeddings"
     }
   }
 }

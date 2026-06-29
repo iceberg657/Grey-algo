@@ -8,6 +8,8 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db, auth } from '../firebase';
 import ReactMarkdown from 'react-markdown';
 import { Loader } from './Loader';
+import { AutoBacktestPanel } from './AutoBacktestPanel';
+import { History } from 'lucide-react';
 
 interface TradingBlueprintPageProps {
     onBack: () => void;
@@ -71,6 +73,7 @@ const AVAILABLE_ASSETS = [
 ];
 
 export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBack }) => {
+    const [activeTab, setActiveTab] = useState<'schedule' | 'backtest'>('schedule');
     const [showRiskCalc, setShowRiskCalc] = useState(false);
     const [showCheatSheet, setShowCheatSheet] = useState(false);
     
@@ -278,10 +281,26 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 </div>
             </header>
 
-            <div className="flex flex-col lg:flex-row gap-6">
-                {/* Configuration Sidebar */}
-                <div className="w-full lg:w-1/3 flex flex-col gap-6">
-                    <div className="bg-white/40 dark:bg-slate-900/45 border border-white/50 dark:border-white/5 rounded-3xl p-6 shadow-xl backdrop-blur-3xl">
+            <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0">
+                <button
+                    onClick={() => setActiveTab('schedule')}
+                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'schedule' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                    <Compass size={14} /> Trading Schedule
+                </button>
+                <button
+                    onClick={() => setActiveTab('backtest')}
+                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'backtest' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                    <History size={14} /> Mechanical Backtester
+                </button>
+            </div>
+
+            {activeTab === 'schedule' ? (
+                <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Configuration Sidebar */}
+                    <div className="w-full lg:w-1/3 flex flex-col gap-6">
+                        <div className="bg-white/40 dark:bg-slate-900/45 border border-white/50 dark:border-white/5 rounded-3xl p-6 shadow-xl backdrop-blur-3xl">
                         <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 dark:text-white mb-6 flex items-center gap-2">
                             <Globe className="text-blue-500" size={18} /> Configure Sessions
                         </h2>
@@ -517,6 +536,11 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                     </div>
                 </div>
             </div>
+            ) : (
+                <div className="w-full">
+                    <AutoBacktestPanel userId={auth.currentUser?.uid} />
+                </div>
+            )}
 
             <AnimatePresence>
                 {showRiskCalc && (

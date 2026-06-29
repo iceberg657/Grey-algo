@@ -148,6 +148,16 @@ service cloud.firestore {
       match /sniper_messages/{messageId} {
         allow read, write: if isOwner(userId);
       }
+
+      // Auto Backtest Patterns
+      match /auto_backtest_patterns/{patternId} {
+        allow read, write: if isOwner(userId);
+      }
+
+      // Trade Journals
+      match /trade_journals/{journalId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // --- Signals ---
