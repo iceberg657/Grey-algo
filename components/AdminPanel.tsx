@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
+import { useGoogleLogin } from '@react-oauth/google';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, getDocs, query, where, orderBy, limit, addDoc, updateDoc, doc, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 import { Trade, GlobalStrategy, UserMetadata, Broadcast, AutoMLStrategy } from '../types';
@@ -173,6 +174,48 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
             handleFirestoreError(error, OperationType.WRITE, path);
         }
     };
+
+    const handleEmailBroadcast = useGoogleLogin({
+        onSuccess: async (tokenResponse) => {
+            if (!broadcastMsg.trim()) return;
+            setIsSending(true);
+            try {
+                const response = await fetch('/api/notifications/email', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        subject: 'GreyAlpha Update',
+                        message: broadcastMsg,
+                        accessToken: tokenResponse.access_token
+                    })
+                });
+                
+                const responseData = await response.json();
+                
+                if (!response.ok) {
+                    setStatusMsg({ type: 'error', text: `Email broadcast failed: ${responseData.error}` });
+                } else {
+                    setStatusMsg({ 
+                        type: 'success', 
+                        text: `Emails sent successfully to ${responseData.successCount} users. Failed: ${responseData.failureCount}.` 
+                    });
+                    setBroadcastMsg('');
+                }
+            } catch (error: any) {
+                console.error('Email broadcast error:', error);
+                setStatusMsg({ type: 'error', text: 'Email broadcast failed to send.' });
+            } finally {
+                setIsSending(false);
+                setTimeout(() => setStatusMsg(null), 5000);
+            }
+        },
+        onError: (errorResponse) => {
+            console.error('Google OAuth error:', errorResponse);
+            setStatusMsg({ type: 'error', text: 'Failed to authenticate with Google.' });
+            setTimeout(() => setStatusMsg(null), 5000);
+        },
+        scope: 'https://www.googleapis.com/auth/gmail.send'
+    });
 
     const handleSendBroadcast = async () => {
         if (!broadcastMsg.trim()) return;
@@ -406,13 +449,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                     placeholder="Enter system-wide message..."
                                     className="w-full h-40 bg-slate-100 dark:bg-black/40 border border-slate-200 dark:border-white/10 rounded-2xl p-6 text-sm focus:outline-none focus:ring-2 focus:ring-green-500/50 mb-6 resize-none"
                                 />
-                                <button 
-                                    onClick={handleSendBroadcast}
-                                    disabled={isSending || !broadcastMsg.trim()}
-                                    className="w-full py-5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg hover:shadow-green-500/30"
-                                >
-                                    {isSending ? 'Transmitting...' : 'Initiate Neural Broadcast'}
-                                </button>
+                                <div className="flex gap-4">
+                                    <button 
+                                        onClick={handleSendBroadcast}
+                                        disabled={isSending || !broadcastMsg.trim()}
+                                        className="w-full py-5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg hover:shadow-green-500/30"
+                                    >
+                                        {isSending ? 'Transmitting...' : 'Push Notification'}
+                                    </button>
+                                    <button 
+                                        onClick={() => handleEmailBroadcast()}
+                                        disabled={isSending || !broadcastMsg.trim()}
+                                        className="w-full py-5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg hover:shadow-blue-500/30"
+                                    >
+                                        {isSending ? 'Transmitting...' : 'Email Update'}
+                                    </button>
+                                </div>
                             </section>
 
                             <section className="bg-white dark:bg-slate-900/50 p-8 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl">

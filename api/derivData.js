@@ -127,40 +127,57 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
         });
 
         ws.on('message', (data) => {
-            const response = JSON.parse(data);
+            try {
+                const response = JSON.parse(data);
 
-            if (response.error) {
-                ws.close();
-                clearTimeout(timeout);
-                reject(new Error(response.error.message));
-                return;
-            }
+                if (response.error) {
+                    ws.close();
+                    clearTimeout(timeout);
+                    reject(new Error(response.error.message || JSON.stringify(response.error)));
+                    return;
+                }
 
-            if (response.msg_type === 'tick' && !fetchHistory) {
-                const tick = response.tick;
+                if (response.msg_type === 'tick' && !fetchHistory) {
+                    const tick = response.tick;
+                    ws.close();
+                    clearTimeout(timeout);
+                    resolve({
+                        symbol: tick.symbol,
+                        price: tick.quote,
+                        bid: tick.bid,
+                        ask: tick.ask,
+                        epoch: tick.epoch
+                    });
+                } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles' || response.msg_type === 'history') {
+                    ws.close();
+                    clearTimeout(timeout);
+                    resolve({
+                        symbol: mappedSymbol,
+                        candles: response.candles || response.history?.prices?.map((p, i) => ({
+                            epoch: response.history.times[i],
+                            close: p,
+                            high: p,
+                            low: p,
+                            open: p
+                        })) || []
+                    });
+                }
+            } catch (err) {
                 ws.close();
                 clearTimeout(timeout);
-                resolve({
-                    symbol: tick.symbol,
-                    price: tick.quote,
-                    bid: tick.bid,
-                    ask: tick.ask,
-                    epoch: tick.epoch
-                });
-            } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles') {
-                ws.close();
-                clearTimeout(timeout);
-                resolve({
-                    symbol: mappedSymbol,
-                    candles: response.candles || []
-                });
+                reject(new Error('Failed to parse Deriv API response: ' + err.message));
             }
         });
 
         ws.on('error', (error) => {
             ws.close();
             clearTimeout(timeout);
-            reject(error);
+            reject(new Error(error.message || 'WebSocket Error'));
+        });
+        
+        ws.on('close', (code, reason) => {
+            clearTimeout(timeout);
+            reject(new Error(`Deriv WS Closed: ${code} ${reason}`));
         });
     });
 }
@@ -177,7 +194,7 @@ export default async (req, res) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.status(200).json(data);
     } catch (error) {
-        console.error('[DerivData] Error:', error.message);
-        res.status(500).json({ error: error.message });
+        console.error('[DerivData] Error:', error.message || error);
+        res.status(500).json({ error: error.message || String(error) });
     }
 };

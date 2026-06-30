@@ -34,7 +34,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
             const saved = localStorage.getItem('trade_notification_config');
             return saved ? JSON.parse(saved) : {
                 assets: ['US30', 'NAS100', 'XAUUSD'],
-                dailyLimit: 3,
+                dailyLimit: 10,
                 enabled: false,
                 timeframes: ['15m'],
                 tradingWindowStart: '00:00',
@@ -45,7 +45,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
         } catch {
             return {
                 assets: ['US30', 'NAS100', 'XAUUSD'],
-                dailyLimit: 3,
+                dailyLimit: 10,
                 enabled: false,
                 timeframes: ['15m'],
                 tradingWindowStart: '00:00',
@@ -133,109 +133,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
         return () => unsubscribe();
     }, [userMetadata?.uid]);
 
-    // Main Engine Loop
-    useEffect(() => {
-        if (!config.enabled || !userMetadata?.uid) return;
-
-        let interval = setInterval(async () => {
-            const currentConfig = configRef.current;
-            const currentNotifs = notifsRef.current;
-            
-            // Check time window
-            const now = new Date();
-            const currentTime = now.getHours() * 60 + now.getMinutes();
-            const [startH, startM] = currentConfig.tradingWindowStart.split(':').map(Number);
-            const [endH, endM] = currentConfig.tradingWindowEnd.split(':').map(Number);
-            const startTotal = startH * 60 + startM;
-            const endTotal = endH * 60 + endM;
-            
-            let isWithinWindow = false;
-            if (startTotal <= endTotal) {
-                isWithinWindow = currentTime >= startTotal && currentTime <= endTotal;
-            } else {
-                // Crossing midnight
-                isWithinWindow = currentTime >= startTotal || currentTime <= endTotal;
-            }
-            if (!isWithinWindow) return;
-
-            // Check Daily Limit
-            const todayStr = now.toDateString();
-            const todaysNotifs = currentNotifs.filter(n => {
-                if (!n.timestamp) return false;
-                const date = new Date(n.timestamp?.toMillis ? n.timestamp.toMillis() : n.timestamp);
-                return date.toDateString() === todayStr;
-            });
-            if (todaysNotifs.length >= currentConfig.dailyLimit) return;
-
-            // Run Analysis for each asset and timeframe
-            const isMonday = now.getDay() === 1;
-            
-            for (const asset of currentConfig.assets) {
-                const normalizedAsset = getDerivSymbol(asset);
-                
-                for (const tf of currentConfig.timeframes) {
-                    const tfSeconds = tf === '5m' ? 300 : tf === '15m' ? 900 : tf === '30m' ? 1800 : 3600;
-                    
-                    try {
-                        const clientToken = getClientToken();
-                        const res = await fetch(`/api/derivData?symbol=${normalizedAsset}&history=true&granularity=${tfSeconds}&count=60${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`);
-                        const data = await res.json();
-                        
-                        if (data && data.candles && data.candles.length > 50) {
-                            // Mocking runMechanicalAnalysis for specific RR
-                            // In real scenario we'd pass RR to the engine
-                            const setup = runMechanicalAnalysis(asset, tf, data.candles, isMonday);
-                            
-                            if (setup.direction !== 'FLAT') {
-                                // Prevent duplicate notifications within 1 hour for same asset/tf
-                                const recentDuplicate = currentNotifs.find(n => 
-                                    n.asset === asset && 
-                                    n.timeframe === tf && 
-                                    n.direction === setup.direction &&
-                                    n.timestamp && 
-                                    (Date.now() - (n.timestamp?.toMillis ? n.timestamp.toMillis() : n.timestamp)) < 3600000
-                                );
-
-                                if (!recentDuplicate) {
-                                    // Calculate precise RR targets based on config
-                                    const entry = setup.entryRange.min;
-                                    const riskAmount = Math.abs(entry - setup.stopLoss);
-                                    let adjustedTP = setup.takeProfit;
-                                    
-                                    if (setup.direction === 'BUY') {
-                                        adjustedTP = entry + (riskAmount * currentConfig.riskReward);
-                                    } else {
-                                        adjustedTP = entry - (riskAmount * currentConfig.riskReward);
-                                    }
-                                    
-                                    // Save Notification
-                                    const newNotif = {
-                                        asset,
-                                        timeframe: tf,
-                                        direction: setup.direction,
-                                        entry,
-                                        stopLoss: setup.stopLoss,
-                                        takeProfit: adjustedTP,
-                                        pattern: setup.pattern,
-                                        riskReward: currentConfig.riskReward,
-                                        status: 'ACTIVE', // ACTIVE, EXECUTED, MISSED
-                                        timestamp: serverTimestamp(),
-                                        expiresAt: Date.now() + (currentConfig.notificationLifetime * 60000)
-                                    };
-                                    
-                                    await addDoc(collection(db, 'users', userMetadata.uid, 'trade_notifications'), newNotif);
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        console.error('Failed to run engine for notification', e);
-                    }
-                }
-            }
-        }, 60000); // Check every minute
-
-        return () => clearInterval(interval);
-    }, [config.enabled, userMetadata?.uid]);
+    // Main Engine Loop is now running globally via GlobalNotificationEngine at the app root level
+    // to allow real-time background market scanning across all views.
 
     // Check for expired notifications
     useEffect(() => {
@@ -414,17 +313,17 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                             <div className="grid grid-cols-2 gap-6 mb-8">
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
-                                        Max Signals Daily
+                                        Daily Limit per Instrument
                                     </label>
                                     <input 
                                         type="range" 
-                                        min="3" 
-                                        max="10" 
+                                        min="1" 
+                                        max="20" 
                                         value={config.dailyLimit}
                                         onChange={(e) => setConfig({...config, dailyLimit: parseInt(e.target.value)})}
                                         className="w-full accent-emerald-500"
                                     />
-                                    <div className="text-center mt-2 font-bold">{config.dailyLimit} Trades</div>
+                                    <div className="text-center mt-2 font-bold">{config.dailyLimit} Signals / Instrument</div>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
@@ -518,7 +417,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                 </div>
                                 <p className="text-sm text-emerald-700 dark:text-emerald-300 opacity-80 leading-relaxed">
                                     The signal engine will continuously scan {config.assets.length} assets on {config.timeframes.length} timeframes between {config.tradingWindowStart} and {config.tradingWindowEnd}. 
-                                    It will broadcast up to {config.dailyLimit} precise mechanical setups per day.
+                                    It will broadcast up to {config.dailyLimit} precise mechanical setups per instrument per day.
                                 </p>
                             </div>
                         </div>

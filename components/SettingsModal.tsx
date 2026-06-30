@@ -15,7 +15,9 @@ const DEFAULT_SETTINGS: UserSettings = {
     maxDrawdown: 10,
     timeLimit: 30,
     twelveDataApiKey: '',
-    deepThinking: true
+    deepThinking: true,
+    showDashboardSignals: true,
+    playSoundOnNotification: true
 };
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
@@ -367,6 +369,51 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                         className={`w-10 h-5 rounded-full relative transition-colors ${settings.useStrictKeyMode ? 'bg-blue-600' : 'bg-gray-300 dark:bg-slate-700'}`}
                                     >
                                         <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.useStrictKeyMode ? 'left-6' : 'left-1'}`}></div>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Notification Settings */}
+                        <div className="bg-emerald-50/50 dark:bg-emerald-900/10 backdrop-blur-sm p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20">
+                            <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.07 6.07 0 00-1-3.5M9 17v1a3 3 0 006 0v-1m-6 0H9m1.405-1.405A2.032 2.032 0 0110 14.158V11a6.07 6.07 0 00-1-3.5m-1 1a3 3 0 100 6M4 17h5" />
+                                </svg>
+                                Notification Alerts
+                            </h4>
+                            <div className="space-y-4">
+                                <div className="flex items-center justify-between p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-emerald-500/20">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-emerald-400">Live Dashboard Signals</label>
+                                        <p className="text-[10px] text-gray-500 dark:text-slate-400">Display active signals and high-probability SMC setups on your dashboard.</p>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={async () => {
+                                            const nextVal = settings.showDashboardSignals === false;
+                                            setSettings(prev => ({ ...prev, showDashboardSignals: nextVal }));
+                                            if (nextVal && 'Notification' in window && Notification.permission !== 'granted') {
+                                                await Notification.requestPermission();
+                                            }
+                                        }}
+                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.showDashboardSignals !== false ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-700'}`}
+                                    >
+                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.showDashboardSignals !== false ? 'left-6' : 'left-1'}`}></div>
+                                    </button>
+                                </div>
+
+                                <div className="flex items-center justify-between p-3 bg-white/50 dark:bg-slate-800/50 rounded-lg border border-gray-200 dark:border-emerald-500/20">
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-emerald-400">Chime Audio Alerts</label>
+                                        <p className="text-[10px] text-gray-500 dark:text-slate-400">Play a double-tone institutional chime when a live trading signal is identified.</p>
+                                    </div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => setSettings(prev => ({ ...prev, playSoundOnNotification: prev.playSoundOnNotification === false }))}
+                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.playSoundOnNotification !== false ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-slate-700'}`}
+                                    >
+                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.playSoundOnNotification !== false ? 'left-6' : 'left-1'}`}></div>
                                     </button>
                                 </div>
                             </div>

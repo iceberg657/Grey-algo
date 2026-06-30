@@ -50,6 +50,8 @@ export interface UserSettings extends Partial<AccountSettings> {
     useStrictKeyMode?: boolean;
     deepThinking?: boolean;
     language?: string;
+    showDashboardSignals?: boolean;
+    playSoundOnNotification?: boolean;
 }
 
 export interface GlobalTrendInfo {

@@ -18,7 +18,9 @@ import {
     Bell,
     ExternalLink,
     ChevronRight,
-    TrendingUp
+    TrendingUp,
+    ArrowUpRight,
+    ArrowDownRight
 } from 'lucide-react';
 import { SignalGeneratorForm } from './SignalGeneratorForm';
 import { AgentAnalysisLoader } from './AgentAnalysisLoader';
@@ -118,6 +120,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     const [criticalError, setCriticalError] = useState<Error | null>(null);
     const [analysisCount, setAnalysisCount] = useState<number>(0);
     const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+    const [liveSignals, setLiveSignals] = useState<any[]>([]);
     const [bullishSuggestions, setBullishSuggestions] = useState<MomentumAsset[]>(() => {
         const cached = localStorage.getItem('greyquant_asset_suggestions_v3');
         if (cached) {
@@ -138,6 +141,34 @@ export const HomePage: React.FC<HomePageProps> = ({
         }
         return [];
     });
+    
+    const [userSettings, setUserSettings] = useState<UserSettings>(() => {
+        try {
+            const saved = localStorage.getItem('greyquant_user_settings');
+            return saved ? JSON.parse(saved) : {} as UserSettings;
+        } catch { return {} as UserSettings; }
+    });
+
+    useEffect(() => {
+        const syncSettings = () => {
+            try {
+                const saved = localStorage.getItem('greyquant_user_settings');
+                if (saved) {
+                    const parsed = JSON.parse(saved);
+                    if (JSON.stringify(parsed) !== JSON.stringify(userSettings)) {
+                        setUserSettings(parsed);
+                    }
+                }
+            } catch (e) {
+                console.error('[HomePage] Failed to sync settings', e);
+            }
+        };
+
+        syncSettings();
+        const interval = setInterval(syncSettings, 1000);
+        return () => clearInterval(interval);
+    }, [userSettings]);
+
     if (criticalError) throw criticalError;
 
 
@@ -206,6 +237,26 @@ export const HomePage: React.FC<HomePageProps> = ({
         
         return () => clearInterval(interval);
     }, [broadcasts]);
+
+    // Fetch Active Trade Notifications for Dashboard Display
+    useEffect(() => {
+        if (!userMetadata?.uid) return;
+        
+        const q = query(
+            collection(db, 'users', userMetadata.uid, 'trade_notifications'),
+            where('status', '==', 'ACTIVE'),
+            orderBy('timestamp', 'desc')
+        );
+
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            const activeNotifs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            setLiveSignals(activeNotifs);
+        }, (err) => {
+            console.error('[HomePage] Live Signals fetch failed:', err);
+        });
+
+        return () => unsubscribe();
+    }, [userMetadata?.uid]);
 
     const handleResetAnalysisCount = useCallback(() => {
         resetAnalysisCount();
@@ -605,12 +656,109 @@ export const HomePage: React.FC<HomePageProps> = ({
 
 
 
+                   {userSettings.showDashboardSignals !== false && (
                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="relative group w-full animate-fade-in"
+                   >
+                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
+                            <Bell size={14} className="text-emerald-500 animate-pulse" />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Signals Scanner</span>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-950 p-6 sm:p-8 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
+                            <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-30" />
+                            
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                                <div>
+                                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                        Live Setup Alerts
+                                    </h3>
+                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                        Continuous mechanical scans searching for high-probability market setups.
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={onNavigateToNotifications}
+                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all hover:scale-105 active:scale-95"
+                                >
+                                    Manage Scanner Console
+                                    <ChevronRight size={14} />
+                                </button>
+                            </div>
+
+                            {liveSignals.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-10 bg-slate-50/50 dark:bg-slate-900/40 rounded-[24px] border border-dashed border-slate-200 dark:border-white/5">
+                                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 relative mb-4">
+                                        <span className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
+                                        <Activity size={20} />
+                                    </div>
+                                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
+                                        Scanner Active
+                                    </p>
+                                    <p className="text-[10px] text-slate-400 mt-1">
+                                        Sifting liquidity pools & trend structure... No active signals found yet.
+                                    </p>
+                                </div>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {liveSignals.slice(0, 6).map((sig) => (
+                                        <div 
+                                            key={sig.id}
+                                            className="p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-[24px] border border-slate-100 dark:border-white/5 hover:border-emerald-500/20 transition-all flex flex-col justify-between"
+                                        >
+                                            <div className="flex items-center justify-between">
+                                                 <div className="flex items-center gap-2.5">
+                                                     <div className={`p-2 rounded-xl ${sig.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                         {sig.direction === 'BUY' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                                                     </div>
+                                                     <div>
+                                                         <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                             {sig.asset}
+                                                             <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded-md">
+                                                                 {sig.timeframe}
+                                                             </span>
+                                                         </h4>
+                                                         <span className="text-[10px] text-slate-400 font-medium">
+                                                             {sig.pattern || 'SMC Setup'}
+                                                         </span>
+                                                     </div>
+                                                 </div>
+                                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${sig.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'}`}>
+                                                     {sig.direction}
+                                                 </span>
+                                             </div>
+
+                                             <div className="mt-4 grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-white/5 rounded-2xl p-2.5 font-mono text-xs">
+                                                 <div>
+                                                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Entry</span>
+                                                     <span className="font-bold text-slate-800 dark:text-slate-200">
+                                                         {sig.entry?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
+                                                     </span>
+                                                 </div>
+                                                 <div>
+                                                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Take Profit</span>
+                                                     <span className={`font-bold ${sig.direction === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                         {sig.takeProfit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
+                                                     </span>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     ))}
+                                 </div>
+                             )}
+                         </div>
+                    </motion.div>
+                    )}
+
+                    <motion.div
                         initial={{ opacity: 0, y: 30 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.4 }}
                         className="relative group lg:max-w-4xl lg:mx-auto w-full"
-                   >
+                    >
                         <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
                             <TrendingUp size={14} className="text-emerald-500" />
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Analysis Core</span>

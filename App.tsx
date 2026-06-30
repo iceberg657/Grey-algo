@@ -14,6 +14,7 @@ import { AutoTradePage } from './components/AutoTradePage';
 import { SniperLiveTrade } from './components/SniperLiveTrade';
 import { TradingBlueprintPage } from './components/TradingBlueprintPage';
 import { TradeNotificationPage } from './components/TradeNotificationPage';
+import { GlobalNotificationEngine } from './components/GlobalNotificationEngine';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';
@@ -646,6 +647,12 @@ const App: React.FC = () => {
 
     return (
         <ErrorBoundary>
+            {isLoggedIn && (
+                <GlobalNotificationEngine 
+                    userMetadata={userMetadata} 
+                    onNavigateToNotifications={handleNavigateToNotifications} 
+                />
+            )}
             {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
             
             <AnimatePresence>
