@@ -104,8 +104,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
             
             const todayStr = now.toDateString();
             const todaysNotifs = notifications.filter(n => {
-                if (!n.timestamp) return false;
-                const date = new Date(n.timestamp?.toMillis ? n.timestamp.toMillis() : n.timestamp);
+                const ts = n.timestamp?.toMillis ? n.timestamp.toMillis() : (n.timestamp || Date.now());
+                const date = new Date(ts);
                 return date.toDateString() === todayStr;
             });
             
@@ -468,7 +468,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                                 {notif.status}
                                             </div>
                                             <span className="text-xs font-mono text-slate-400">
-                                                {new Date(notif.timestamp?.toMillis ? notif.timestamp.toMillis() : notif.timestamp).toLocaleTimeString()}
+                                                {new Date(notif.timestamp?.toMillis ? notif.timestamp.toMillis() : (notif.timestamp || Date.now())).toLocaleTimeString()}
                                             </span>
                                         </div>
                                     </div>
