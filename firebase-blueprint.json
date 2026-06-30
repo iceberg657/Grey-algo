@@ -182,6 +182,18 @@
         "timestamp": { "type": "integer" }
       },
       "required": ["tradeSetup", "asset", "direction", "outcome"]
+    },
+    "NeuralKnowledge": {
+      "title": "NeuralKnowledge",
+      "description": "Embedded trading strategy knowledge for semantic search",
+      "type": "object",
+      "properties": {
+        "content": { "type": "string" },
+        "metadata": { "type": "object" },
+        "embedding": { "type": "array", "items": { "type": "number" } },
+        "timestamp": { "type": "integer" }
+      },
+      "required": ["content", "embedding", "timestamp"]
     }
   },
   "firestore": {
@@ -236,6 +248,10 @@
     "/users/{userId}/trade_journals/{journalId}": {
       "schema": "TradeJournal",
       "description": "Stored trade journals for embeddings"
+    },
+    "/neural_knowledge/{knowledgeId}": {
+      "schema": "NeuralKnowledge",
+      "description": "Shared semantic strategy embeddings"
     }
   }
 }

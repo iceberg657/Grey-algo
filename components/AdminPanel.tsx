@@ -411,7 +411,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                     disabled={isSending || !broadcastMsg.trim()}
                                     className="w-full py-5 bg-green-600 hover:bg-green-500 disabled:opacity-50 text-white font-black uppercase tracking-widest rounded-2xl transition-all shadow-lg hover:shadow-green-500/30"
                                 >
-                                    {isSending ? 'Transmitting...' : 'Push Notification'}
+                                    {isSending ? 'Transmitting...' : 'Initiate Neural Broadcast'}
                                 </button>
                             </section>
 

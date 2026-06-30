@@ -255,8 +255,8 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
             // Filter today's notifications
             const todayStr = now.toDateString();
             const todaysNotifs = currentNotifs.filter(n => {
-                const ts = n.timestamp?.toMillis ? n.timestamp.toMillis() : (n.timestamp || Date.now());
-                const date = new Date(ts);
+                if (!n.timestamp) return false;
+                const date = new Date(n.timestamp?.toMillis ? n.timestamp.toMillis() : n.timestamp);
                 return date.toDateString() === todayStr;
             });
 

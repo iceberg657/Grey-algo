@@ -18,8 +18,6 @@ import configHandler from './api/config.js';
 import analyzeHandler from './api/gemini/analyze.js';
 import derivHandler from './api/derivData.js';
 import twelveDataHandler from './api/twelveData.js';
-import broadcastHandler from './api/notifications/broadcast.js';
-import emailHandler from './api/notifications/email.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
@@ -478,9 +476,6 @@ async function startServer() {
       });
     }
   });
-
-  // Email Notification Route
-  app.post('/api/notifications/email', emailHandler);
 
   // Trading Engine State
   const engineState = {

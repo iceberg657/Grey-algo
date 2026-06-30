@@ -102,6 +102,15 @@ service cloud.firestore {
              data.userId is string && data.userId == request.auth.uid;
     }
 
+    function isValidNeuralKnowledge(data) {
+      return data.keys().hasAll(['content', 'embedding', 'timestamp']) &&
+             data.content is string && data.content.size() <= 20000 &&
+             data.embedding is list && data.embedding.size() <= 2048 &&
+             (data.embedding.size() == 0 || data.embedding[0] is number) &&
+             data.timestamp is number &&
+             (!data.keys().hasAny(['metadata']) || data.metadata is map);
+    }
+
     // ===============================================================
     // Collection Rules
     // ===============================================================
@@ -212,6 +221,14 @@ service cloud.firestore {
       allow list: if isSignedIn();
       allow create: if isValidId(ruleId) && isSignedIn() && isValidLearnedRule(incoming()) && incoming().userId == request.auth.uid;
       allow delete: if isValidId(ruleId) && isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // --- Neural Knowledge ---
+    match /neural_knowledge/{knowledgeId} {
+      allow get: if isValidId(knowledgeId) && isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if isValidId(knowledgeId) && isSignedIn() && isValidNeuralKnowledge(incoming());
+      allow update, delete: if isAdmin();
     }
   }
 }

@@ -1,16 +1,14 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
-import { initializeFirestore, doc, getDocFromServer } from 'firebase/firestore';
+import { getFirestore, doc, getDocFromServer } from 'firebase/firestore';
 import { getMessaging } from 'firebase/messaging';
 import firebaseConfig from './firebase-applet-config.json';
 
 const { firestoreDatabaseId, ...config } = firebaseConfig;
 const app = initializeApp(config);
 
-// Force Long Polling for stability in regions like Nigeria where WebSockets might be throttled
-export const db = initializeFirestore(app, {
-  experimentalForceLongPolling: true,
-}, firestoreDatabaseId && firestoreDatabaseId !== '(default)' ? firestoreDatabaseId : undefined);
+// Initialize Firestore using the standard recommended method
+export const db = getFirestore(app, firestoreDatabaseId && firestoreDatabaseId !== '(default)' ? firestoreDatabaseId : undefined);
 
 export const auth = getAuth();
 export const messaging = typeof window !== 'undefined' ? getMessaging(app) : null;
