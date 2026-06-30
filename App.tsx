@@ -13,6 +13,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { AutoTradePage } from './components/AutoTradePage';
 import { SniperLiveTrade } from './components/SniperLiveTrade';
 import { TradingBlueprintPage } from './components/TradingBlueprintPage';
+import { TradeNotificationPage } from './components/TradeNotificationPage';
 import { useAuth } from './hooks/useAuth';
 import { saveAnalysis } from './services/historyService';
 import type { SignalData, ChatMessage, AnalysisRequest } from './types';
@@ -46,7 +47,7 @@ import { OnboardingFlow } from './components/OnboardingFlow';
 import { SettingsModal } from './components/SettingsModal';
 
 type AuthPage = 'login' | 'signup';
-type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper' | 'blueprint';
+type AppView = 'landing' | 'auth' | 'home' | 'analysis' | 'history' | 'chat' | 'products' | 'session' | 'journal' | 'admin' | 'autotrade' | 'sniper' | 'blueprint' | 'notifications';
 
 // Storage keys
 const CHAT_STORAGE_KEY = 'greyquant_chat';
@@ -143,6 +144,11 @@ const App: React.FC = () => {
     };
 
     useEffect(() => {
+        if (!isLoggedIn) {
+            setSystemSettings(null);
+            return;
+        }
+        
         const path = 'admin_settings/system';
         const unsubscribe = onSnapshot(doc(db, 'admin_settings', 'system'), (snapshot) => {
             if (snapshot.exists()) {
@@ -156,7 +162,7 @@ const App: React.FC = () => {
             }
         });
         return () => unsubscribe();
-    }, []);
+    }, [isLoggedIn]);
 
     useEffect(() => {
         if (!loading) {
@@ -355,6 +361,10 @@ const App: React.FC = () => {
         navigateTo('blueprint');
     };
 
+    const handleNavigateToNotifications = () => {
+        navigateTo('notifications');
+    };
+
     const handleBackFromAnalysis = () => {
         setAnalysisData(null);
         navigateTo(previousView); 
@@ -502,6 +512,7 @@ const App: React.FC = () => {
                     onNavigateToAutoTrade={handleNavigateToAutoTrade}
                     onNavigateToSniper={handleNavigateToSniper}
                     onNavigateToBlueprint={handleNavigateToBlueprint}
+                    onNavigateToNotifications={handleNavigateToNotifications}
                     onOpenSettings={() => setShowSettings(true)}
                     onAssetSelect={handleAssetSelect}
                     userMetadata={userMetadata}
@@ -617,6 +628,11 @@ const App: React.FC = () => {
                     userMetadata={userMetadata}
                     isLocked={systemSettings?.sniperLocked && userMetadata?.role !== 'admin'}
                 />
+            );
+            break;
+        case 'notifications':
+            content = (
+                <TradeNotificationPage onBack={handleNavigateToHome} userMetadata={userMetadata} />
             );
             break;
         default:

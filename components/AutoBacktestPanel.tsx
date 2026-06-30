@@ -11,7 +11,12 @@ interface AutoBacktestPanelProps {
 
 export const AutoBacktestPanel: React.FC<AutoBacktestPanelProps> = ({ userId }) => {
     const [mode, setMode] = useState<'historical' | 'forward'>('historical');
-    const [assets, setAssets] = useState<string[]>(['US30', 'NAS100', 'XAUUSD']);
+    const [assets, setAssets] = useState<string[]>(() => {
+        try {
+            const saved = localStorage.getItem('auto_backtest_assets');
+            return saved ? JSON.parse(saved) : ['US30', 'NAS100', 'XAUUSD'];
+        } catch { return ['US30', 'NAS100', 'XAUUSD']; }
+    });
     const [newAsset, setNewAsset] = useState('');
     const [isTesting, setIsTesting] = useState(false);
     const [results, setResults] = useState<BacktestTradeResult[]>([]);
@@ -19,8 +24,30 @@ export const AutoBacktestPanel: React.FC<AutoBacktestPanelProps> = ({ userId }) 
     const [saveSuccess, setSaveSuccess] = useState(false);
 
     // Forward Testing State
-    const [isForwardTesting, setIsForwardTesting] = useState(false);
-    const [forwardTrades, setForwardTrades] = useState<BacktestTradeResult[]>([]);
+    const [isForwardTesting, setIsForwardTesting] = useState(() => {
+        try {
+            const saved = localStorage.getItem('auto_forward_testing');
+            return saved ? JSON.parse(saved) : false;
+        } catch { return false; }
+    });
+    const [forwardTrades, setForwardTrades] = useState<BacktestTradeResult[]>(() => {
+        try {
+            const saved = localStorage.getItem('auto_forward_trades');
+            return saved ? JSON.parse(saved) : [];
+        } catch { return []; }
+    });
+
+    useEffect(() => {
+        localStorage.setItem('auto_backtest_assets', JSON.stringify(assets));
+    }, [assets]);
+
+    useEffect(() => {
+        localStorage.setItem('auto_forward_testing', JSON.stringify(isForwardTesting));
+    }, [isForwardTesting]);
+
+    useEffect(() => {
+        localStorage.setItem('auto_forward_trades', JSON.stringify(forwardTrades));
+    }, [forwardTrades]);
 
     const getDerivSymbol = (asset: string) => {
         const normalized = asset.toUpperCase().replace(/[^A-Z0-9]/g, '');

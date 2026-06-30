@@ -158,6 +158,11 @@ service cloud.firestore {
       match /trade_journals/{journalId} {
         allow read, write: if isOwner(userId);
       }
+
+      // Trade Notifications
+      match /trade_notifications/{notificationId} {
+        allow read, write: if isOwner(userId);
+      }
     }
 
     // --- Signals ---

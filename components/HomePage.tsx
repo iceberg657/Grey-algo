@@ -52,6 +52,7 @@ interface HomePageProps {
     onNavigateToAutoTrade: () => void;
     onNavigateToSniper: () => void;
     onNavigateToBlueprint: () => void;
+    onNavigateToNotifications: () => void;
     onOpenSettings?: () => void;
     onAssetSelect?: (asset: string) => void;
     userMetadata: UserMetadata | null;
@@ -106,6 +107,7 @@ export const HomePage: React.FC<HomePageProps> = ({
     onNavigateToAutoTrade,
     onNavigateToSniper,
     onNavigateToBlueprint,
+    onNavigateToNotifications,
     onOpenSettings,
     onAssetSelect,
     userMetadata,
@@ -440,6 +442,12 @@ export const HomePage: React.FC<HomePageProps> = ({
             highlight: true,
             isLocked: (systemSettings?.sniperLocked || userMetadata?.access?.sniperLiveTrade === 'locked') && !isAdmin,
             icon: <Target size={20} />
+        },
+        {
+            onClick: onNavigateToNotifications,
+            label: 'Signals',
+            ariaLabel: 'Open Trade Notifications',
+            icon: <Bell size={20} />
         },
         ...(isAdmin ? [{
             onClick: onNavigateToAdmin,
