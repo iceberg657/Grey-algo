@@ -116,7 +116,10 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
     const getClientToken = () => {
         try {
             const stored = localStorage.getItem('greyquant_user_settings');
-            if (stored) return JSON.parse(stored).derivApiToken || '';
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return parsed.tradeNotificationDerivToken || parsed.derivApiToken || '';
+            }
         } catch { return ''; }
         return '';
     };
@@ -277,7 +280,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
 
                     try {
                         const clientToken = getClientToken();
-                        const res = await fetch(`/api/derivData?symbol=${normalizedAsset}&history=true&granularity=${tfSeconds}&count=60${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { cache: 'no-store' });
+                        const res = await fetch(`/api/derivTradeNotification?symbol=${normalizedAsset}&history=true&granularity=${tfSeconds}&count=60${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { cache: 'no-store' });
                         if (!res.ok) continue;
                         const data = await res.json();
 

@@ -320,15 +320,26 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <p className="text-[10px] text-blue-400 mt-1">If set, this key will be used for market data confluence.</p>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Deriv API Token (Sniper Live Trade)</label>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Deriv API Token (Sniper Live Trade - Legacy)</label>
                                     <input
                                         type="password"
                                         value={settings.derivApiToken || ''}
                                         onChange={(e) => handleChange('derivApiToken', e.target.value)}
                                         className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
-                                        placeholder="Enter your Deriv API Token"
+                                        placeholder="Enter your Deriv Legacy API Token"
                                     />
                                     <p className="text-[10px] text-blue-400 mt-1">Required for fetching live Forex/Gold prices in Sniper Live Trade.</p>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Deriv API Token (Trade Notification - New)</label>
+                                    <input
+                                        type="password"
+                                        value={settings.tradeNotificationDerivToken || ''}
+                                        onChange={(e) => handleChange('tradeNotificationDerivToken', e.target.value)}
+                                        className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
+                                        placeholder="Enter your Deriv API Token"
+                                    />
+                                    <p className="text-[10px] text-blue-400 mt-1">Required for fetching price history in Trade Notification Page.</p>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Custom Gemini API Key (Neural Lane Override)</label>

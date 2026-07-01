@@ -409,6 +409,53 @@ footer { background: rgba(15, 23, 42, 0.2); padding: 50px 0 20px; margin-top: 0;
     100% { transform: translateX(-100%); }
 }
 
+.partner-slide-container {
+    width: 100%;
+    overflow: hidden;
+    position: relative;
+    padding: 30px 0;
+}
+.partner-slide-container::before, .partner-slide-container::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 150px;
+    z-index: 5;
+    pointer-events: none;
+}
+.partner-slide-container::before {
+    left: 0;
+    background: linear-gradient(to right, #0f172a 10%, transparent 100%);
+}
+.partner-slide-container::after {
+    right: 0;
+    background: linear-gradient(to left, #0f172a 10%, transparent 100%);
+}
+.light .partner-slide-container::before {
+    background: linear-gradient(to right, var(--light-bg) 10%, transparent 100%);
+}
+.light .partner-slide-container::after {
+    background: linear-gradient(to left, var(--light-bg) 10%, transparent 100%);
+}
+.partner-slide-track {
+    display: flex;
+    gap: 24px;
+    width: max-content;
+    animation: slideRight 40s linear infinite;
+}
+.partner-slide-container:hover .partner-slide-track {
+    animation-play-state: paused;
+}
+@keyframes slideRight {
+    0% {
+        transform: translateX(-50%);
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
 @media (max-width: 992px) { .contact { flex-direction: column; } }
 @media (max-width: 768px) {
     .hero h1 { font-size: 2.5rem; }
@@ -945,97 +992,180 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
 
                 {/* Partners / Built On Section */}
                 <section className="py-24 relative z-10 overflow-hidden">
-                    <div className="landing-container relative z-10 max-w-6xl mx-auto px-4">
-                        <div className="text-center mb-16">
+                    <div className="relative z-10 w-full mx-auto">
+                        <div className="text-center mb-16 px-4">
                             <h2 className="text-3xl md:text-4xl font-extrabold text-slate-900 dark:text-white uppercase tracking-wider relative inline-block drop-shadow-md">
                                 Built on robust, institutional-grade infrastructure and data providers.
                             </h2>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 relative">
-                            
-                            {/* Google */}
-                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
-                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/5 to-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
-                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
-                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
-                                        <img src="https://www.vectorlogo.zone/logos/google/google-icon.svg" alt="Google Logo" className="w-full h-full object-contain" />
+                        <div className="partner-slide-container">
+                            <div className="partner-slide-track">
+                                {/* Google */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/5 to-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <img src="https://www.vectorlogo.zone/logos/google/google-icon.svg" alt="Google Logo" className="w-full h-full object-contain" />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Google</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2 drop-shadow-sm">Firebase Auth & Infrastructure</p>
                                     </div>
-                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Google</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2 drop-shadow-sm">Firebase Auth & Infrastructure</p>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            Powers authentication, real-time database, notifications and admin infrastructure
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
-                                        Powers authentication, real-time database, notifications and admin infrastructure
-                                    </p>
-                                </div>
-                            </div>
 
-                            {/* Deriv */}
-                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
-                                <div className="absolute inset-0 bg-gradient-to-br from-red-500/0 via-red-500/5 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
-                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
-                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
-                                        <svg viewBox="0 0 200 200" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg" fill="#FF444F">
-                                            <path d="M125.7,28.8 L152.0,24.5 L129.5,175.5 L91.2,175.5 C55.3,175.5 35.8,151.7 35.8,118.4 C35.8,79.5 61.1,70.5 89.8,70.5 L106.8,70.5 L125.7,28.8 Z M103.5,91.8 L84.2,91.8 C64.1,91.8 59.2,104.2 59.2,119.5 C59.2,138.8 68.2,154.2 86.8,154.2 L95.2,154.2 L103.5,91.8 Z" />
-                                        </svg>
+                                {/* Deriv */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/0 via-red-500/5 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <svg viewBox="0 0 200 200" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg" fill="#FF444F">
+                                                <path d="M125.7,28.8 L152.0,24.5 L129.5,175.5 L91.2,175.5 C55.3,175.5 35.8,151.7 35.8,118.4 C35.8,79.5 61.1,70.5 89.8,70.5 L106.8,70.5 L125.7,28.8 Z M103.5,91.8 L84.2,91.8 C64.1,91.8 59.2,104.2 59.2,119.5 C59.2,138.8 68.2,154.2 86.8,154.2 L95.2,154.2 L103.5,91.8 Z" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Deriv</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-2 drop-shadow-sm">Live Price Feed & Trade Data</p>
                                     </div>
-                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Deriv</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-2 drop-shadow-sm">Live Price Feed & Trade Data</p>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            Provides live WebSocket price feeds and OHLC data for the Sniper Page engine
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
-                                        Provides live WebSocket price feeds and OHLC data for the Sniper Page engine
-                                    </p>
-                                </div>
-                            </div>
 
-                            {/* Twelve Data */}
-                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
-                                <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/5 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
-                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
-                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
-                                        <svg viewBox="0 0 100 100" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg rounded-sm overflow-hidden">
-                                            <rect width="100" height="100" fill="#2563eb" />
-                                            <text x="50" y="74" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="76" fill="white" textAnchor="middle" letterSpacing="-4">12</text>
-                                        </svg>
+                                {/* Twelve Data */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/5 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <svg viewBox="0 0 100 100" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg rounded-sm overflow-hidden">
+                                                <rect width="100" height="100" fill="#2563eb" />
+                                                <text x="50" y="74" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="76" fill="white" textAnchor="middle" letterSpacing="-4">12</text>
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Twelve Data</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#2563eb] dark:text-[#60a5fa] mb-2 drop-shadow-sm">Market Scanner & Validation</p>
                                     </div>
-                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Twelve Data</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#2563eb] dark:text-[#60a5fa] mb-2 drop-shadow-sm">Market Scanner & Validation</p>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            Validates hourly market momentum for the dashboard asset scanner
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
-                                        Validates hourly market momentum for the dashboard asset scanner
-                                    </p>
-                                </div>
-                            </div>
 
-                            {/* Gemini AI */}
-                            <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px]">
-                                <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-purple-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
-                                <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
-                                    <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
-                                        <svg viewBox="0 0 24 24" className="w-16 h-16 drop-shadow-lg" fill="none">
-                                            <defs>
-                                                <linearGradient id="gemini-grad-logo" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" stopColor="#4285F4"/>
-                                                    <stop offset="50%" stopColor="#9B72CB"/>
-                                                    <stop offset="100%" stopColor="#D96570"/>
-                                                </linearGradient>
-                                            </defs>
-                                            <path d="M11.968 24C12.443 17.514 17.514 12.443 24 11.968C17.514 11.494 12.443 6.422 11.968 0C11.494 6.422 6.422 11.494 0 11.968C6.422 12.443 11.494 17.514 11.968 24Z" fill="url(#gemini-grad-logo)"/>
-                                        </svg>
+                                {/* Gemini AI */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-purple-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <svg viewBox="0 0 24 24" className="w-16 h-16 drop-shadow-lg" fill="none">
+                                                <defs>
+                                                    <linearGradient id="gemini-grad-logo" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                        <stop offset="0%" stopColor="#4285F4"/>
+                                                        <stop offset="50%" stopColor="#9B72CB"/>
+                                                        <stop offset="100%" stopColor="#D96570"/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <path d="M11.968 24C12.443 17.514 17.514 12.443 24 11.968C17.514 11.494 12.443 6.422 11.968 0C11.494 6.422 6.422 11.494 0 11.968C6.422 12.443 11.494 17.514 11.968 24Z" fill="url(#gemini-grad-logo)"/>
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Gemini AI</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#9B72CB] mb-2 drop-shadow-sm">Neural Analysis Engine</p>
                                     </div>
-                                    <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Gemini AI</h3>
-                                    <p className="text-[10px] font-black uppercase tracking-widest text-[#9B72CB] mb-2 drop-shadow-sm">Neural Analysis Engine</p>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            The neural analysis engine powering all trade signals, chatbot and market reasoning
+                                        </p>
+                                    </div>
                                 </div>
-                                <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
-                                    <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
-                                        The neural analysis engine powering all trade signals, chatbot and market reasoning
-                                    </p>
+
+                                {/* DUPLICATED SET FOR SEAMLESS LOOP */}
+                                {/* Google */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/0 via-blue-500/5 to-yellow-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <img src="https://www.vectorlogo.zone/logos/google/google-icon.svg" alt="Google Logo" className="w-full h-full object-contain" />
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Google</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 mb-2 drop-shadow-sm">Firebase Auth & Infrastructure</p>
+                                    </div>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            Powers authentication, real-time database, notifications and admin infrastructure
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Deriv */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-red-500/0 via-red-500/5 to-rose-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <svg viewBox="0 0 200 200" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg" fill="#FF444F">
+                                                <path d="M125.7,28.8 L152.0,24.5 L129.5,175.5 L91.2,175.5 C55.3,175.5 35.8,151.7 35.8,118.4 C35.8,79.5 61.1,70.5 89.8,70.5 L106.8,70.5 L125.7,28.8 Z M103.5,91.8 L84.2,91.8 C64.1,91.8 59.2,104.2 59.2,119.5 C59.2,138.8 68.2,154.2 86.8,154.2 L95.2,154.2 L103.5,91.8 Z" />
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Deriv</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-rose-600 dark:text-rose-400 mb-2 drop-shadow-sm">Live Price Feed & Trade Data</p>
+                                    </div>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            Provides live WebSocket price feeds and OHLC data for the Sniper Page engine
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Twelve Data */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/0 via-emerald-500/5 to-cyan-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <svg viewBox="0 0 100 100" className="w-[4.5rem] h-[4.5rem] drop-shadow-lg rounded-sm overflow-hidden">
+                                                <rect width="100" height="100" fill="#2563eb" />
+                                                <text x="50" y="74" fontFamily="Arial, Helvetica, sans-serif" fontWeight="900" fontSize="76" fill="white" textAnchor="middle" letterSpacing="-4">12</text>
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Twelve Data</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#2563eb] dark:text-[#60a5fa] mb-2 drop-shadow-sm">Market Scanner & Validation</p>
+                                    </div>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            Validates hourly market momentum for the dashboard asset scanner
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Gemini AI */}
+                                <div className="group relative bg-white/30 dark:bg-slate-900/40 backdrop-blur-2xl p-8 rounded-[2.5rem] border border-white/50 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.1)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.2)] hover:bg-white/40 dark:hover:bg-slate-900/50 transition-all duration-500 flex flex-col items-center text-center min-h-[280px] w-[320px] shrink-0">
+                                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/0 via-purple-500/5 to-indigo-500/10 opacity-0 group-hover:opacity-100 transition-opacity duration-500 rounded-[2.5rem] pointer-events-none"></div>
+                                    <div className="flex-1 flex flex-col items-center justify-center transform group-hover:-translate-y-4 transition-transform duration-500 w-full">
+                                        <div className="w-20 h-20 mb-6 flex items-center justify-center drop-shadow-md">
+                                            <svg viewBox="0 0 24 24" className="w-16 h-16 drop-shadow-lg" fill="none">
+                                                <defs>
+                                                    <linearGradient id="gemini-grad-logo-dup" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                        <stop offset="0%" stopColor="#4285F4"/>
+                                                        <stop offset="50%" stopColor="#9B72CB"/>
+                                                        <stop offset="100%" stopColor="#D96570"/>
+                                                    </linearGradient>
+                                                </defs>
+                                                <path d="M11.968 24C12.443 17.514 17.514 12.443 24 11.968C17.514 11.494 12.443 6.422 11.968 0C11.494 6.422 6.422 11.494 0 11.968C6.422 12.443 11.494 17.514 11.968 24Z" fill="url(#gemini-grad-logo-dup)"/>
+                                            </svg>
+                                        </div>
+                                        <h3 className="text-2xl font-bold text-slate-800 dark:text-white mb-1 drop-shadow-sm">Gemini AI</h3>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-[#9B72CB] mb-2 drop-shadow-sm">Neural Analysis Engine</p>
+                                    </div>
+                                    <div className="absolute bottom-6 left-6 right-6 opacity-0 translate-y-4 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+                                        <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed font-semibold drop-shadow-sm">
+                                            The neural analysis engine powering all trade signals, chatbot and market reasoning
+                                        </p>
+                                    </div>
                                 </div>
                             </div>
-                            
                         </div>
                     </div>
                 </section>
@@ -1083,8 +1213,19 @@ export const LandingPage: React.FC<{ onEnterApp: () => void }> = ({ onEnterApp }
                             </div>
                         </div>
                         
-                        <div className="copyright flex flex-col items-center">
-                            <p className="text-sm opacity-50">&copy; 2026 GreyAlpha. All rights reserved.</p>
+                        <div className="copyright flex flex-col items-center gap-4 pt-10">
+                            <div className="flex flex-col items-center gap-1.5">
+                                <div className="flex items-center justify-center gap-2">
+                                    <i className="fas fa-chart-line text-3xl text-blue-500"></i>
+                                    <span className="text-2xl font-black tracking-tight bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+                                        GreyAlpha
+                                    </span>
+                                </div>
+                                <div className="text-lg md:text-xl font-extrabold uppercase tracking-wider bg-gradient-to-r from-blue-400 via-purple-400 to-pink-500 bg-clip-text text-transparent">
+                                    Trading Made Easy
+                                </div>
+                            </div>
+                            <p className="text-xs opacity-50 mt-2">&copy; 2026 GreyAlpha. All rights reserved.</p>
                         </div>
                     </div>
                 </footer>

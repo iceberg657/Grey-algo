@@ -46,6 +46,7 @@ export interface UserSettings extends Partial<AccountSettings> {
     executionAlgorithm?: 'Standard' | 'TWAP' | 'VWAP' | 'Smart Order Router (SOR)' | 'Implementation Shortfall';
     twelveDataApiKey?: string;
     derivApiToken?: string;
+    tradeNotificationDerivToken?: string;
     geminiApiKey?: string;
     useStrictKeyMode?: boolean;
     deepThinking?: boolean;

@@ -168,7 +168,10 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
     const getClientToken = () => {
         try {
             const stored = localStorage.getItem('greyquant_user_settings');
-            if (stored) return JSON.parse(stored).derivApiToken || '';
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                return parsed.tradeNotificationDerivToken || parsed.derivApiToken || '';
+            }
         } catch { return ''; }
         return '';
     };

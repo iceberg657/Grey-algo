@@ -17,6 +17,7 @@ import marketDataHandler from './api/marketData.js';
 import configHandler from './api/config.js';
 import analyzeHandler from './api/gemini/analyze.js';
 import derivHandler from './api/derivData.js';
+import derivTradeNotificationHandler from './api/derivTradeNotification.js';
 import twelveDataHandler from './api/twelveData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
@@ -416,6 +417,7 @@ async function startServer() {
 
   // Deriv API Route
   app.get('/api/derivData', derivHandler);
+  app.get('/api/derivTradeNotification', derivTradeNotificationHandler);
 
   // Push Notification Route
   app.post('/api/notifications/broadcast', async (req, res) => {
