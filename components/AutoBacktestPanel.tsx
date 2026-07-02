@@ -529,6 +529,8 @@ const TradeCard = ({ res }: { res: BacktestTradeResult }) => (
                     </span>
                 </div>
                 <h5 className="font-bold text-slate-900 dark:text-white text-sm">{res.setup.pattern}</h5>
+                {res.setup.strategyName && <div className="text-[10px] font-bold text-slate-500 mt-0.5">Strategy: {res.setup.strategyName}</div>}
+                {res.setup.logic && <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-1" title={res.setup.logic}>{res.setup.logic}</div>}
             </div>
             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border flex items-center gap-1 ${
                 res.outcome === 'WIN' 

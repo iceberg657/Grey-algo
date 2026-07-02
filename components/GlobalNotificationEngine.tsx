@@ -316,6 +316,8 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                                         stopLoss: setup.stopLoss,
                                         takeProfit: adjustedTP,
                                         pattern: setup.pattern,
+                                        logic: setup.logic,
+                                        strategyName: setup.strategyName,
                                         riskReward: currentConfig.riskReward,
                                         status: 'ACTIVE',
                                         timestamp: serverTimestamp(),

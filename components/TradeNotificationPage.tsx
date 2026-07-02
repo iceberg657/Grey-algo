@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, Settings, Target, Clock, AlertTriangle, CheckCircle2, XCircle, ArrowLeft, Loader2, Save } from 'lucide-react';
+import { Bell, Settings, Target, Clock, AlertTriangle, CheckCircle2, XCircle, ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react';
 import { UserMetadata } from '../types';
 import { db, auth } from '../firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, serverTimestamp, getDocs, where } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, serverTimestamp, getDocs, where, writeBatch } from 'firebase/firestore';
 import { runMechanicalAnalysis } from '../utils/mechanicalBacktester';
 import { ThemeToggleButton } from './ThemeToggleButton';
 
@@ -208,6 +208,26 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
         await updateDoc(doc(db, 'users', userMetadata.uid, 'trade_notifications', id), {
             status: 'EXECUTED'
         });
+    };
+
+    const clearHistory = async () => {
+        if (!userMetadata?.uid || notifications.length === 0) return;
+        if (!window.confirm("Are you sure you want to clear all received analysis history?")) return;
+        
+        setIsSaving(true);
+        try {
+            const batch = writeBatch(db);
+            notifications.forEach(notif => {
+                const docRef = doc(db, 'users', userMetadata.uid, 'trade_notifications', notif.id);
+                batch.delete(docRef);
+            });
+            await batch.commit();
+        } catch (error) {
+            console.error("Error clearing history:", error);
+            alert("Failed to clear history.");
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     return (
@@ -427,6 +447,18 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                     </div>
                 ) : (
                     <div className="space-y-4">
+                        {notifications.length > 0 && (
+                            <div className="flex justify-end mb-2">
+                                <button
+                                    onClick={clearHistory}
+                                    disabled={isSaving}
+                                    className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-colors disabled:opacity-50"
+                                >
+                                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                                    Clear History
+                                </button>
+                            </div>
+                        )}
                         {notifications.length === 0 ? (
                             <div className="text-center py-20 bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800">
                                 <Bell className="w-12 h-12 text-slate-300 mx-auto mb-4" />
@@ -460,6 +492,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                                 <span className="text-sm font-bold text-slate-500">{notif.timeframe}</span>
                                             </div>
                                             <h4 className="font-bold text-lg">{notif.pattern}</h4>
+                                            {notif.strategyName && <div className="text-xs font-bold text-slate-500 mt-1">Strategy: {notif.strategyName}</div>}
+                                            {notif.logic && <div className="text-xs text-slate-400 mt-1 line-clamp-2" title={notif.logic}>{notif.logic}</div>}
                                         </div>
                                         
                                         <div className="flex items-center gap-3">

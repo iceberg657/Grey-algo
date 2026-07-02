@@ -1,4 +1,5 @@
 import { QuantEnginePipeline, MarketSeries } from './advancedExecutionEngines';
+import { autoSelectStrategy } from './quantStrategiesLibrary';
 
 export interface MechanicalTradeSetup {
     asset: string;
@@ -11,14 +12,12 @@ export interface MechanicalTradeSetup {
     timestamp: number;
     pattern: string;
     logic: string;
+    strategyName?: string;
 }
 
 /**
  * Mechanical Backtester for Sniper Page
- * Rules:
- * - Quant system for selling in a bullish market and buying in a bearish market (Mean Reversion)
- * - EXCEPT Mondays: Trend following and observation
- * - Standard RR = 1:2.5
+ * Incorporates 50+ Quant Trading Strategies auto-selected by asset and market condition.
  */
 export const runMechanicalAnalysis = (
     asset: string,
@@ -30,48 +29,67 @@ export const runMechanicalAnalysis = (
     const closes = candles.map(c => c.close);
     const highs = candles.map(c => c.high);
     const lows = candles.map(c => c.low);
-    const currentPrice = closes[closes.length - 1];
+    const currentPrice = closes[closes.length - 1] || 0;
     
     // Calculate simple moving average (SMA 20 and SMA 50)
-    const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / 20;
-    const sma50 = closes.slice(-50).reduce((a, b) => a + b, 0) / 50;
+    const sma20 = closes.slice(-20).reduce((a, b) => a + b, 0) / (Math.min(20, closes.length) || 1);
+    const sma50 = closes.slice(-50).reduce((a, b) => a + b, 0) / (Math.min(50, closes.length) || 1);
 
     const isBullish = sma20 > sma50 && currentPrice > sma20;
     const isBearish = sma20 < sma50 && currentPrice < sma20;
+    
+    const marketCondition = isBullish ? 'Bullish' : (isBearish ? 'Bearish' : 'Ranging');
+    
+    let assetClass = 'Forex';
+    if (asset.includes('BTC') || asset.includes('ETH')) assetClass = 'Crypto';
+    else if (asset.includes('US30') || asset.includes('UK100') || asset.includes('NDX')) assetClass = 'Indices';
+    else if (asset.includes('XAU') || asset.includes('WTI')) assetClass = 'Commodities';
+    else if (asset.includes('R_') || asset.includes('10S') || asset.includes('25S')) assetClass = 'Synthetics';
 
     let direction: 'BUY' | 'SELL' | 'FLAT' = 'FLAT';
     let logic = '';
     let pattern = 'NONE';
+    let strategyName = 'Base Quantitative Logic';
 
-    if (isMonday) {
-        // Monday: Trend following
-        logic = 'Monday Rule: Trend Following & Observation.';
-        if (isBullish) {
-            direction = 'BUY';
-            pattern = 'Trend Continuation (Bullish)';
-        } else if (isBearish) {
-            direction = 'SELL';
-            pattern = 'Trend Continuation (Bearish)';
-        } else {
-            direction = 'FLAT';
-            pattern = 'Ranging/Observation';
-        }
+    // Auto-select from the 50 quant strategies
+    const autoStrategy = autoSelectStrategy(candles, assetClass, marketCondition);
+
+    if (autoStrategy) {
+        direction = autoStrategy.result.direction;
+        logic = autoStrategy.result.logic;
+        pattern = autoStrategy.result.pattern;
+        strategyName = autoStrategy.strategy.name;
     } else {
-        // Other days: Quant Mean Reversion (Sell in Bullish, Buy in Bearish)
-        logic = 'Quant Mean Reversion: Selling in Bullish, Buying in Bearish.';
-        
-        // Measure short-term deviation from SMA20 to trigger reversion
-        const dev20 = ((currentPrice - sma20) / sma20) * 100;
-        
-        if (isBullish && dev20 > 0.1) {
-            direction = 'SELL';
-            pattern = 'Overextended Bullish (Mean Reversion)';
-        } else if (isBearish && dev20 < -0.1) {
-            direction = 'BUY';
-            pattern = 'Oversold Bearish (Mean Reversion)';
+        if (isMonday) {
+            // Monday: Trend following
+            logic = 'Monday Rule: Trend Following & Observation.';
+            if (isBullish) {
+                direction = 'BUY';
+                pattern = 'Trend Continuation (Bullish)';
+            } else if (isBearish) {
+                direction = 'SELL';
+                pattern = 'Trend Continuation (Bearish)';
+            } else {
+                direction = 'FLAT';
+                pattern = 'Ranging/Observation';
+            }
         } else {
-            direction = 'FLAT';
-            pattern = 'Consolidating / In Range';
+            // Other days: Quant Mean Reversion (Sell in Bullish, Buy in Bearish)
+            logic = 'Quant Mean Reversion: Selling in Bullish, Buying in Bearish.';
+            
+            // Measure short-term deviation from SMA20 to trigger reversion
+            const dev20 = sma20 > 0 ? ((currentPrice - sma20) / sma20) * 100 : 0;
+            
+            if (isBullish && dev20 > 0.1) {
+                direction = 'SELL';
+                pattern = 'Overextended Bullish (Mean Reversion)';
+            } else if (isBearish && dev20 < -0.1) {
+                direction = 'BUY';
+                pattern = 'Oversold Bearish (Mean Reversion)';
+            } else {
+                direction = 'FLAT';
+                pattern = 'Consolidating / In Range';
+            }
         }
     }
 
@@ -101,7 +119,8 @@ export const runMechanicalAnalysis = (
         riskRewardRatio: 2.0,
         timestamp: Date.now(),
         pattern,
-        logic
+        logic,
+        strategyName
     };
 };
 
