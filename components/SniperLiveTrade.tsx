@@ -23,7 +23,7 @@ import {
   Bot
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
-import { generateSniperLiveSignal } from '../services/geminiService';
+import { generateSniperLiveSignal, generateAntigravityResearch } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
@@ -445,7 +445,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
       let advancedQuantSignal = null;
       try {
-          if (derivData.candles) {
+          if (derivData.candles && Array.isArray(derivData.candles)) {
               const pipeline = new QuantEnginePipeline();
               const mSeries: MarketSeries = {
                   symbol: asset,
@@ -458,23 +458,16 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               const assetClass = isForex ? 'FOREX' : 'INDICES';
               const granularity = derivData.multiTimeframe?.entry?.granularity || 900;
               
-              const strategies: ('SMT' | 'STAT_ARB' | 'VELOCITY' | 'INDEX_SMT' | 'INDEX_STAT_ARB' | 'INDEX_LEAD_LAG')[] = isForex 
-                  ? ['SMT', 'STAT_ARB', 'VELOCITY']
-                  : ['INDEX_SMT', 'INDEX_STAT_ARB', 'INDEX_LEAD_LAG'];
+              // We are operating in a single asset context, so we must use regime/momentum models
+              // rather than passing the same asset multiple times to spread/arbitrage models.
+              const strategies: ('SINGLE_ASSET_REGIME' | 'SINGLE_ASSET_MOMENTUM')[] = ['SINGLE_ASSET_REGIME', 'SINGLE_ASSET_MOMENTUM'];
                   
-              // Filter and run only STABLE strategies dynamically determined by timeframe & asset class
-              const { getStrategyStability } = await import('../utils/backtestEngine');
-              const stableStrategies = strategies.filter(strategyId => 
-                  getStrategyStability(strategyId, assetClass, granularity) === 'STABLE'
-              );
-
               const signals = [];
-              for (const strategy of (stableStrategies.length > 0 ? stableStrategies : strategies)) {
+              for (const strategy of strategies) {
                   try {
-                      // For single asset view without direct cross-correlations, we pass the same asset to A,B,C 
-                      // Wait, we can pass mSeries three times, quant engine calculates it independently.
+                      // Process using single asset strategies
                       const sig = pipeline.processLiveExecution(
-                          strategy, mSeries, mSeries, mSeries,
+                          strategy as any, mSeries, mSeries, mSeries,
                           granularity / 60, // period parameter if applicable
                           userSettings?.autotrade?.maxRiskPerTrade || 10000
                       );
@@ -507,9 +500,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       if (quantData) {
           if (isSniperMode) {
               // Strict filters for Sniper Mode
-              if (quantData.weightedScore.totalScore < 70) {
+              if (quantData.weightedScore.totalScore < 79) {
                   isVetoed = true;
-                  vetoReason = `Sniper Mode Active: Confidence Score (${quantData.weightedScore.totalScore}) is below the strict 70 threshold for A+ setups.`;
+                  vetoReason = `Sniper Mode Active: Confidence Score (${quantData.weightedScore.totalScore}) is below the strict 79 threshold for A+ setups.`;
               } else if (quantData.quantMath?.fakeoutProbability > 0.45) {
                   isVetoed = true;
                   vetoReason = `Sniper Mode Active: Fakeout Probability (${(quantData.quantMath.fakeoutProbability * 100).toFixed(0)}%) exceeds the maximum 45% risk tolerance.`;
@@ -552,6 +545,20 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               grade: 'NO TRADE'
           };
       } else {
+          // Trigger Antigravity Agent for deep research
+          setMessages(prev => {
+              // Remove previous loading messages
+              const filtered = prev.filter(m => m.signal?.id !== 'loading');
+              return [...filtered, {
+                  id: Date.now().toString() + '-ag',
+                  type: 'ai',
+                  content: `Dispatching Antigravity Agent for deep institutional research on ${asset}. This may take 30-90 seconds...`,
+                  signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+              }];
+          });
+          
+          const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData);
+
           result = await generateSniperLiveSignal(
             currentQuery, 
             style, 
@@ -560,7 +567,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
             quantData,
             advancedQuantSignal,
             userSettings,
-            dailyRegime?.regime // Inject the AI Pilot's Daily Regime
+            dailyRegime?.regime, // Inject the AI Pilot's Daily Regime
+            antigravityVerdict
           );
       }
       
@@ -1134,7 +1142,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                   )}
                                 </div>
                                 <div className="space-y-2">
-                                  {msg.signal.reasoning.map((r, i) => {
+                                  {msg.signal.reasoning?.map((r, i) => {
                                     const parts = r.split(':');
                                     const title = parts.length > 1 ? parts[0] : '';
                                     const content = parts.length > 1 ? parts.slice(1).join(':').trim() : r;
@@ -1242,7 +1250,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Detected Candlestick Patterns</span>
                                     {msg.signal.candlestickPatterns && msg.signal.candlestickPatterns.length > 0 ? (
                                       <div className="flex flex-wrap gap-2">
-                                        {msg.signal.candlestickPatterns.map((pattern, idx) => (
+                                        {msg.signal.candlestickPatterns?.map((pattern, idx) => (
                                           <span 
                                             key={idx} 
                                             className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15"

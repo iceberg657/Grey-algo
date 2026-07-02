@@ -16,6 +16,7 @@ import { encrypt } from './src/services/encryptionService.js';
 import marketDataHandler from './api/marketData.js';
 import configHandler from './api/config.js';
 import analyzeHandler from './api/gemini/analyze.js';
+import antigravityHandler from './api/gemini/antigravity.js';
 import derivHandler from './api/derivData.js';
 import derivTradeNotificationHandler from './api/derivTradeNotification.js';
 import twelveDataHandler from './api/twelveData.js';
@@ -414,6 +415,7 @@ async function startServer() {
 
   // Gemini Proxy Route to bypass regional blocks (VPN-free execution)
   app.post('/api/gemini/analyze', analyzeHandler);
+  app.post('/api/gemini/antigravity', antigravityHandler);
 
   // Deriv API Route
   app.get('/api/derivData', derivHandler);

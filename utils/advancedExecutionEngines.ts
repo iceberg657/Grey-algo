@@ -105,6 +105,58 @@ export class QuantMath {
         }
         return atr;
     }
+
+    public static calculateEMA(values: number[], period: number): number[] {
+        if (values.length < period) return new Array(values.length).fill(0);
+        const ema = new Array(values.length).fill(0);
+        const multiplier = 2 / (period + 1);
+        
+        let sum = 0;
+        for (let i = 0; i < period; i++) {
+            sum += values[i];
+        }
+        ema[period - 1] = sum / period;
+        
+        for (let i = period; i < values.length; i++) {
+            ema[i] = (values[i] - ema[i - 1]) * multiplier + ema[i - 1];
+        }
+        
+        return ema;
+    }
+
+    public static calculateRSI(closes: number[], period: number): number[] {
+        if (closes.length < period) return new Array(closes.length).fill(50);
+        const rsi = new Array(closes.length).fill(50);
+        
+        let avgGain = 0;
+        let avgLoss = 0;
+        
+        for (let i = 1; i <= period; i++) {
+            const change = closes[i] - closes[i - 1];
+            if (change > 0) avgGain += change;
+            else avgLoss -= change;
+        }
+        
+        avgGain /= period;
+        avgLoss /= period;
+        
+        let rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+        rsi[period] = avgLoss === 0 ? 100 : 100 - (100 / (1 + rs));
+        
+        for (let i = period + 1; i < closes.length; i++) {
+            const change = closes[i] - closes[i - 1];
+            const gain = change > 0 ? change : 0;
+            const loss = change < 0 ? -change : 0;
+            
+            avgGain = (avgGain * (period - 1) + gain) / period;
+            avgLoss = (avgLoss * (period - 1) + loss) / period;
+            
+            rs = avgLoss === 0 ? 100 : avgGain / avgLoss;
+            rsi[i] = avgLoss === 0 ? 100 : 100 - (100 / (1 + rs));
+        }
+        
+        return rsi;
+    }
 }
 
 export class IndexQuantMath extends QuantMath {
@@ -610,6 +662,130 @@ export class IndexLeadLagEngine {
     }
 }
 
+export class SingleAssetRegimeEngine {
+    private lookback: number;
+    
+    constructor(lookbackBars: number = 20) {
+        this.lookback = lookbackBars;
+    }
+
+    public evaluate(series: MarketSeries, newsSentiment: number): Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } {
+        const data = QuantMath.extractArrays(series);
+        const t = data.closes.length - 1;
+        const breakdown: string[] = [];
+        
+        if (t < this.lookback) {
+            return { grade: 'NO TRADE', breakdown: ["Insufficient data for regime analysis."] };
+        }
+
+        const ema20 = QuantMath.calculateEMA(data.closes, 20);
+        const ema50 = QuantMath.calculateEMA(data.closes, 50);
+        
+        const currentEma20 = ema20[t];
+        const currentEma50 = ema50[t];
+        const prevEma20 = ema20[t-1];
+        
+        const currentPrice = data.closes[t];
+        const trendDir = currentEma20 > currentEma50 ? 'BUY' : 'SELL';
+        
+        let globalTrend = 0;
+        let smcStructure = 0;
+        
+        if (trendDir === 'BUY' && currentPrice > currentEma20 && prevEma20 > ema50[t-1]) {
+            globalTrend = 20;
+            breakdown.push(`STRONG BULLISH REGIME: Price > EMA20 > EMA50. Trend is accelerating.`);
+            smcStructure = 20;
+        } else if (trendDir === 'SELL' && currentPrice < currentEma20 && prevEma20 < ema50[t-1]) {
+            globalTrend = 20;
+            breakdown.push(`STRONG BEARISH REGIME: Price < EMA20 < EMA50. Trend is accelerating.`);
+            smcStructure = 20;
+        } else {
+            globalTrend = 5;
+            breakdown.push(`CHOPPY REGIME: Price oscillating around mean-reversion bands.`);
+            smcStructure = 5;
+        }
+        
+        const atr = QuantMath.calculateATR(data.highs, data.lows, data.closes, 14);
+        const currentAtr = atr[t];
+        const prevAtr = atr[t-1];
+        
+        let volumeProfile = 0;
+        if (currentAtr > prevAtr * 1.1) {
+            volumeProfile = 20;
+            breakdown.push(`VOLATILITY EXPANSION: ATR is rising exponentially (Breakout imminent).`);
+        } else if (currentAtr < prevAtr * 0.9) {
+            volumeProfile = 5;
+            breakdown.push(`VOLATILITY CONTRACTION: ATR is dropping (Consolidation).`);
+        } else {
+            volumeProfile = 15;
+            breakdown.push(`VOLATILITY STABLE.`);
+        }
+        
+        let sessionTiming = 15;
+        const totalScore = globalTrend + smcStructure + volumeProfile + newsSentiment + sessionTiming;
+        
+        let grade: StrategyTier = 'NO TRADE';
+        let suggestedRiskPercent = 0;
+
+        if (totalScore >= 80) { grade = 'A+'; suggestedRiskPercent = 1.5; }
+        else if (totalScore >= 70) { grade = 'A'; suggestedRiskPercent = 1.0; }
+        else if (totalScore >= 55) { grade = 'B+'; suggestedRiskPercent = 0.5; }
+        else if (totalScore >= 40) { grade = 'B'; suggestedRiskPercent = 0.25; }
+
+        return { grade, totalScore, suggestedRiskPercent, smcStructure, volumeProfile, globalTrend, newsSentiment, sessionTiming, breakdown, direction: trendDir };
+    }
+}
+
+export class SingleAssetMomentumEngine {
+    public evaluate(series: MarketSeries, newsSentiment: number): Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } {
+        const data = QuantMath.extractArrays(series);
+        const t = data.closes.length - 1;
+        const breakdown: string[] = [];
+        
+        if (t < 14) {
+            return { grade: 'NO TRADE', breakdown: ["Insufficient data for momentum analysis."] };
+        }
+
+        const rsi = QuantMath.calculateRSI(data.closes, 14);
+        const currentRsi = rsi[t];
+        
+        let direction: 'BUY' | 'SELL' | 'NEUTRAL' = 'NEUTRAL';
+        let globalTrend = 0;
+        let smcStructure = 0;
+        
+        if (currentRsi > 65) {
+            direction = 'BUY';
+            globalTrend = 25;
+            smcStructure = 20;
+            breakdown.push(`HIGH BULLISH MOMENTUM: RSI at ${currentRsi.toFixed(1)} indicates aggressive buying pressure.`);
+        } else if (currentRsi < 35) {
+            direction = 'SELL';
+            globalTrend = 25;
+            smcStructure = 20;
+            breakdown.push(`HIGH BEARISH MOMENTUM: RSI at ${currentRsi.toFixed(1)} indicates aggressive selling pressure.`);
+        } else {
+            direction = 'NEUTRAL';
+            globalTrend = 10;
+            smcStructure = 5;
+            breakdown.push(`MOMENTUM NEUTRAL: RSI at ${currentRsi.toFixed(1)}.`);
+        }
+        
+        const volumeProfile = 15;
+        const sessionTiming = 15;
+        const totalScore = globalTrend + smcStructure + volumeProfile + newsSentiment + sessionTiming;
+        
+        let grade: StrategyTier = 'NO TRADE';
+        let suggestedRiskPercent = 0;
+
+        if (totalScore >= 85) { grade = 'A+'; suggestedRiskPercent = 2.0; }
+        else if (totalScore >= 70) { grade = 'A'; suggestedRiskPercent = 1.0; }
+        else if (totalScore >= 55) { grade = 'B+'; suggestedRiskPercent = 0.5; }
+        else if (totalScore >= 40) { grade = 'B'; suggestedRiskPercent = 0.25; }
+
+        return { grade, totalScore, suggestedRiskPercent, smcStructure, volumeProfile, globalTrend, newsSentiment, sessionTiming, breakdown, direction: direction !== 'NEUTRAL' ? direction : 'BUY' };
+    }
+}
+
 export interface TieredSignal {
     signal: OrderSignal;
     tier: StrategyTier;
@@ -637,7 +813,7 @@ export class QuantEnginePipeline {
     private indexLeadLagEngine = new IndexLeadLagEngine(10, 3);
 
     public processLiveExecution(
-        strategyId: 'SMT' | 'STAT_ARB' | 'VELOCITY' | 'INDEX_SMT' | 'INDEX_STAT_ARB' | 'INDEX_LEAD_LAG',
+        strategyId: 'SMT' | 'STAT_ARB' | 'VELOCITY' | 'INDEX_SMT' | 'INDEX_STAT_ARB' | 'INDEX_LEAD_LAG' | 'SINGLE_ASSET_REGIME' | 'SINGLE_ASSET_MOMENTUM',
         dataA: MarketSeries,
         dataB: MarketSeries,
         dataC: MarketSeries,
@@ -645,7 +821,7 @@ export class QuantEnginePipeline {
         accountBalance: number
     ): TieredSignal | null {
         
-        let score: Partial<WeightedScore> = { grade: 'NO TRADE' };
+        let score: Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } = { grade: 'NO TRADE' };
         let signalDirection: OrderSignal = 'BUY';
         let entryPrice = 0;
         let stopLossPrice = 0;
@@ -715,6 +891,22 @@ export class QuantEnginePipeline {
                 signalDirection = score.direction || 'BUY';
                 entryPrice = arraysB.closes[tB];
                 stopLossPrice = setStopLoss(signalDirection, entryPrice, atrB || (entryPrice * 0.002));
+                break;
+                
+            case 'SINGLE_ASSET_REGIME':
+                const regimeEngine = new SingleAssetRegimeEngine();
+                score = regimeEngine.evaluate(dataA, newsSentimentScore);
+                signalDirection = score.direction || 'BUY';
+                entryPrice = arraysA.closes[tA];
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atrA);
+                break;
+                
+            case 'SINGLE_ASSET_MOMENTUM':
+                const momentumEngine = new SingleAssetMomentumEngine();
+                score = momentumEngine.evaluate(dataA, newsSentimentScore);
+                signalDirection = score.direction || 'BUY';
+                entryPrice = arraysA.closes[tA];
+                stopLossPrice = setStopLoss(signalDirection, entryPrice, atrA);
                 break;
         }
 

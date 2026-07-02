@@ -1832,6 +1832,50 @@ function calculateLocalLotSize(
  * Generates a high-precision trade setup using Gemini 3.1 Flash Lite and live Deriv data.
  * Focused on Market Execution and Institutional logic.
  */
+export async function generateAntigravityResearch(
+    query: string,
+    asset: string,
+    quantData: any
+): Promise<string> {
+    const prompt = `You are the Antigravity Agent, an elite institutional deep-research trading agent.
+Analyze the following asset: ${asset}.
+User Query: ${query}
+
+Quant Engine Data Summary:
+- Trend: ${quantData?.trend || 'UNKNOWN'}
+- Confidence Score: ${quantData?.weightedScore?.totalScore || 0} / 100
+- Orderflow Imbalance: ${quantData?.orderflowMetrics?.imbalanceRatio || 1}
+- Market Regime: ${quantData?.markovRegime?.currentRegime || 'UNKNOWN'}
+- Liquidity Sweep Detected: ${quantData?.liquiditySweep ? 'YES' : 'NO'}
+- OTE Zone: Bullish(${quantData?.ote?.bullish}), Bearish(${quantData?.ote?.bearish})
+
+Provide a comprehensive verification of this trading setup. Conclude with a clear verdict (A+ Setup, Suboptimal, or Trap). Keep it structured and highly analytical.`;
+
+    return await executeLaneCall<string>(async (apiKey) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 180000); // 3m timeout for agent
+
+        const proxyRes = await fetch('/api/gemini/antigravity', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                apiKey: apiKey
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (!proxyRes.ok) {
+            return `Antigravity agent verification failed (${proxyRes.status}).`;
+        }
+
+        const data = await proxyRes.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        return text || 'No agent verdict provided.';
+    });
+}
+
 export async function generateSniperLiveSignal(
     query: string,
     style: TradingStyle,
@@ -1840,7 +1884,8 @@ export async function generateSniperLiveSignal(
     quantData?: any,
     advancedQuantSignal?: any,
     userSettings?: UserSettings,
-    regime?: MarketRegime
+    regime?: MarketRegime,
+    antigravityVerdict?: string
 ): Promise<SignalData> {
     const livePrice = derivData?.price || 0;
     const assetName = derivData?.symbol || 'Asset';
@@ -1865,11 +1910,15 @@ export async function generateSniperLiveSignal(
              timeframe: 'M15',
              signal: 'NEUTRAL',
              entryPoints: [0],
+             entryType: 'Market Execution',
              stopLoss: 0,
              takeProfits: [0, 0],
              confidence: 0,
+             reasoning: [
+                 `⚠️ DATA STARVATION ERROR: The quant engine was unable to fetch any live pricing or historical data for ticker symbol "${assetName}". Because the Engine had a true price of 0.00, we forcefully veto the setup rather than allowing hallucinated coordinates.`
+             ],
              confluenceMatrix: {
-                 reasoning: `⚠️ DATA STARVATION ERROR: The quant engine was unable to fetch any live pricing or historical data for ticker symbol "${assetName}". Because the Engine had a true price of 0.00, we forcefully veto the setup rather than allowing hallucinated coordinates.`
+                 reasoning: `⚠️ DATA STARVATION ERROR.`
              }
         } as SignalData;
     }
@@ -1884,6 +1933,12 @@ ${advancedQuantSignal ? `
 - **Stop Loss**: ${advancedQuantSignal.stopLoss}
 - **Take Profits**: TP1: ${advancedQuantSignal.tp1}, TP2: ${advancedQuantSignal.tp2}, TP3: ${advancedQuantSignal.tp3}
 ` : 'NO ACTIVE ADVANCED CORRELATION SIGNAL'}
+
+${antigravityVerdict ? `
+**ANTIGRAVITY AGENT VERDICT (DEEP RESEARCH):**
+${antigravityVerdict}
+*You must highly weight this deep research verdict in your final decision.*
+` : ''}
 
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
