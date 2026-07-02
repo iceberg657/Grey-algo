@@ -1058,6 +1058,38 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 </div>
                               )}
 
+                              {/* Institutional Trade Management Protocols */}
+                              {msg.signal.signal !== 'NEUTRAL' && (
+                                <div className="mb-8 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                                        <Clock className="w-3 h-3" /> Execution Protocols
+                                    </h3>
+                                    <div className="space-y-3">
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-rose-500 mt-1.5 shrink-0" />
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">5-Minute Invalidation Rule</div>
+                                                <div className="text-[10px] text-slate-500 mt-0.5">If price does not exhibit explosive momentum in your direction within 5 minutes of entry, exit immediately. The setup has likely failed.</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-1.5 shrink-0" />
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">50% TP1 Rule (Risk-Free Mode)</div>
+                                                <div className="text-[10px] text-slate-500 mt-0.5">When price hits 50% of the distance to TP1 ({msg.signal.takeProfits[0]}), move your Stop Loss to entry price and secure partial profits.</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex items-start gap-3">
+                                            <div className="w-1.5 h-1.5 rounded-full bg-amber-500 mt-1.5 shrink-0" />
+                                            <div>
+                                                <div className="text-[10px] font-bold text-slate-900 dark:text-white uppercase tracking-widest">Daily Limit Cap</div>
+                                                <div className="text-[10px] text-slate-500 mt-0.5">Execute 1-3 high probability setups per day maximum. Overtrading degrades edge.</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                              )}
+
                               {/* Reasoning */}
                               <div className="space-y-4">
                                 <div className="flex items-center justify-between">
@@ -1094,6 +1126,59 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 </div>
                               </div>
                             </div>
+
+                            {/* Quant Engine Live Market Telemetry */}
+                            {msg.signal.signal !== 'NEUTRAL' && msg.signal.quantData && (
+                              <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                                  <Activity className="w-3 h-3" /> Live Market Telemetry (Quant Engine)
+                                </h3>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 rounded-2xl">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">Markov Regime Status</span>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-slate-900 dark:text-white uppercase">
+                                        {msg.signal.quantData.markovRegime?.currentRegime || msg.signal.quantData.quantMath?.regimeProbability || 'UNKNOWN'}
+                                      </span>
+                                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest ${
+                                        (msg.signal.quantData.markovRegime?.transitionProbability || 0) > 0.5 
+                                          ? 'bg-amber-500/10 text-amber-500' 
+                                          : 'bg-emerald-500/10 text-emerald-500'
+                                      }`}>
+                                        {((msg.signal.quantData.markovRegime?.transitionProbability || 0) * 100).toFixed(0)}% Shift Risk
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-2">
+                                      {msg.signal.quantData.quantMath?.regimeProbability === 'MEAN_REVERTING' 
+                                        ? 'Price is oscillating in a range. Avoid breakout trades.' 
+                                        : 'Market is actively trending. High volume structural shifts detected.'}
+                                    </p>
+                                  </div>
+                                  <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 rounded-2xl">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">Volume & Liquidity Imbalance</span>
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-bold text-slate-900 dark:text-white uppercase">
+                                        {(msg.signal.quantData.orderflowMetrics?.imbalanceRatio || 1) > 1.5 ? 'HIGH CONCENTRATION' : 'BALANCED'}
+                                      </span>
+                                      <span className={`text-[10px] font-black px-2 py-1 rounded-lg uppercase tracking-widest ${
+                                        msg.signal.quantData.volumeProfile?.poc > (msg.signal.priceAtSignal || 0)
+                                          ? 'bg-rose-500/10 text-rose-500'
+                                          : 'bg-emerald-500/10 text-emerald-500'
+                                      }`}>
+                                        POC: {msg.signal.quantData.volumeProfile?.poc?.toFixed(5)}
+                                      </span>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 mt-2">
+                                      Institutional orderflow footprint detected. {
+                                        (msg.signal.quantData.orderflowMetrics?.buyVolume || 0) > (msg.signal.quantData.orderflowMetrics?.sellVolume || 0) 
+                                          ? 'Heavy bullish absorption in the orderbook.' 
+                                          : 'Aggressive sell-side supply overwhelming demand.'
+                                      }
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Checklist */}
                             <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
