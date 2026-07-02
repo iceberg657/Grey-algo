@@ -1849,7 +1849,14 @@ Quant Engine Data Summary:
 - Liquidity Sweep Detected: ${quantData?.liquiditySweep ? 'YES' : 'NO'}
 - OTE Zone: Bullish(${quantData?.ote?.bullish}), Bearish(${quantData?.ote?.bearish})
 
-Provide a comprehensive verification of this trading setup. Conclude with a clear verdict (A+ Setup, Suboptimal, or Trap). Keep it structured and highly analytical.`;
+Your Task:
+1. Verify or challenge the initial setup conclusions (from the Quant Engine Data above).
+2. Look for any critical factors or market context that might have been missed by the initial analysis.
+3. Weigh any conflicting evidence regarding the setup's viability.
+4. Produce a refined final analysis with clear reasoning and risk assessment, ensuring the analysis is highly solid and reliable.
+
+Conclude with a clear verdict (A+ Setup, Suboptimal, or Trap).
+Keep the response structured and highly analytical.`;
 
     return await executeLaneCall<string>(async (apiKey) => {
         const controller = new AbortController();
