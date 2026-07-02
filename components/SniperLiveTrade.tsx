@@ -497,28 +497,56 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           console.error("Advanced Quant Engine Error:", e);
       }
 
-      // RPD Optimization (ALGORITHMIC VETO): Intercept and reject highly probable fakeouts locally before AI API call
+      // RPD Optimization & Sniper Mode Filter (ALGORITHMIC VETO): Intercept and reject highly probable fakeouts locally before AI API call
       let result = null;
-      if (quantData?.weightedScore?.totalScore < 35 && quantData?.quantMath?.fakeoutProbability > 0.8) {
-          console.log('[SniperLiveTrade] ALGORITHMIC VETO TRIGGERED: Skipping AI Execution to save RPD token limit.');
+      
+      const isSniperMode = userSettings?.tradeMode === 'Sniper';
+      let isVetoed = false;
+      let vetoReason = '';
+
+      if (quantData) {
+          if (isSniperMode) {
+              // Strict filters for Sniper Mode
+              if (quantData.weightedScore.totalScore < 70) {
+                  isVetoed = true;
+                  vetoReason = `Sniper Mode Active: Confidence Score (${quantData.weightedScore.totalScore}) is below the strict 70 threshold for A+ setups.`;
+              } else if (quantData.quantMath?.fakeoutProbability > 0.45) {
+                  isVetoed = true;
+                  vetoReason = `Sniper Mode Active: Fakeout Probability (${(quantData.quantMath.fakeoutProbability * 100).toFixed(0)}%) exceeds the maximum 45% risk tolerance.`;
+              }
+          } else {
+              // Standard aggressive filter
+              if (quantData.weightedScore.totalScore < 35 && quantData.quantMath?.fakeoutProbability > 0.8) {
+                  isVetoed = true;
+                  vetoReason = "System detected over 80% statistical probability of a trap/fakeout with extremely weak confidence.";
+              }
+          }
+      } else if (isSniperMode) {
+          isVetoed = true;
+          vetoReason = "Sniper Mode Active: Quant Engine structural data was unavailable for verification.";
+      }
+
+      if (isVetoed) {
+          console.log(`[SniperLiveTrade] ALGORITHMIC VETO TRIGGERED: ${vetoReason}`);
           result = {
               id: Date.now().toString(),
               type: 'ai',
               signal: 'NEUTRAL',
               asset: asset,
-              confidence: quantData.weightedScore.totalScore,
+              confidence: quantData?.weightedScore?.totalScore || 0,
               reasoning: [
-                  "Trade execution blocked locally by Quant Statistics Engine to save your daily RPD limit.",
-                  "System detected over 80% statistical probability of a trap/fakeout.",
-                  "Market Noise Ratio was dangerously high due to mean-reverting algorithms active on order book.",
-                  "Stay flat. Do not execute trades on this setup. We saved your account from a verified trap."
+                  "Trade execution blocked locally by Quant Statistics Engine.",
+                  vetoReason,
+                  isSniperMode 
+                    ? "In Sniper Mode, we only execute mathematically perfect setups to preserve your capital."
+                    : "Stay flat. Do not execute trades on this setup. We saved your account from a verified trap."
               ],
               entryRange: { min: 0, max: 0 },
               stopLoss: 0,
               takeProfits: [0, 0],
               timestamp: Date.now(),
-              insight: "Quant Engine actively avoided an institutional trap zone.",
-              analysisBreakdown: quantData.weightedScore.breakdown,
+              insight: isSniperMode ? "Quant Engine filtered out a suboptimal setup to enforce Sniper Mode discipline." : "Quant Engine actively avoided an institutional trap zone.",
+              analysisBreakdown: quantData?.weightedScore?.breakdown || [],
               recommendedPositions: '0',
               formattedLotSize: '0.00',
               grade: 'NO TRADE'
