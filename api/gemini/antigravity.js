@@ -12,7 +12,7 @@ export default async function handler(req, res) {
   // Prioritize client key
   const apiKey = (isValid(clientApiKey)) 
     ? clientApiKey.trim() 
-    : (process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY)?.trim();
+    : (process.env.API_KEY_3 || process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY)?.trim();
   
   if (!apiKey || apiKey.length < 5) {
     console.error('[AntigravityProxy] No valid API key found.');
