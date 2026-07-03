@@ -829,7 +829,7 @@ If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirat
 ---
 
 **TP Calculation Formula (MUST BE DISTINCT):**
-- **TP1:** EXACTLY 1.5R (1:1.5 Risk-to-Reward). This is the guaranteed secure profit target.
+- **TP1:** MINIMUM 2.0R (1:2 Risk-to-Reward). This is the primary profit target.
 - **TP2:** Target Ratio (1:2.5 or 1:3 RR, or ${rrRatio} if specified).
 - **TP3:** Opposing Liquidity Pool or Runner Target.
 
