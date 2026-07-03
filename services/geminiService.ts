@@ -1587,10 +1587,10 @@ export function calculateRRLevels(
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry + risk * 1.5).toFixed(precision)),
-            tp2: parseFloat((entry + risk * 2.5).toFixed(precision)),
-            tp3: parseFloat((entry + risk * 4.0).toFixed(precision)),
-            rrRatios: { tp1: '1:1.5', tp2: '1:2.5', tp3: '1:4' },
+            tp1: parseFloat((entry + risk * 2.0).toFixed(precision)),
+            tp2: parseFloat((entry + risk * 3.0).toFixed(precision)),
+            tp3: parseFloat((entry + risk * 5.0).toFixed(precision)),
+            rrRatios: { tp1: '1:2', tp2: '1:3', tp3: '1:5' },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -1598,10 +1598,10 @@ export function calculateRRLevels(
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry - risk * 1.5).toFixed(precision)),
-            tp2: parseFloat((entry - risk * 2.5).toFixed(precision)),
-            tp3: parseFloat((entry - risk * 4.0).toFixed(precision)),
-            rrRatios: { tp1: '1:1.5', tp2: '1:2.5', tp3: '1:4' },
+            tp1: parseFloat((entry - risk * 2.0).toFixed(precision)),
+            tp2: parseFloat((entry - risk * 3.0).toFixed(precision)),
+            tp3: parseFloat((entry - risk * 5.0).toFixed(precision)),
+            rrRatios: { tp1: '1:2', tp2: '1:3', tp3: '1:5' },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -1835,11 +1835,24 @@ function calculateLocalLotSize(
 export async function generateAntigravityResearch(
     query: string,
     asset: string,
-    quantData: any
+    quantData: any,
+    initialAnalysis?: SignalData
 ): Promise<string> {
     const prompt = `You are the Antigravity Agent, an elite institutional deep-research trading agent.
+Your sole objective is to find every possible reason why this trade might fail. You are the final Veto filter in the GreyAlpha Neural Matrix.
+
 Analyze the following asset: ${asset}.
 User Query: ${query}
+
+${initialAnalysis ? `
+Flash Lite's Preliminary Structured Analysis:
+- Signal: ${initialAnalysis.signal}
+- Confidence: ${initialAnalysis.confidence}%
+- Entry Points: ${initialAnalysis.entryPoints.join(', ')}
+- Stop Loss: ${initialAnalysis.stopLoss}
+- Take Profits: ${initialAnalysis.takeProfits.join(', ')}
+- Preliminary Reasoning: ${initialAnalysis.reasoning.join(' ')}
+` : ''}
 
 Quant Engine Data Summary:
 - Trend: ${quantData?.trend || 'UNKNOWN'}
@@ -1849,14 +1862,24 @@ Quant Engine Data Summary:
 - Liquidity Sweep Detected: ${quantData?.liquiditySweep ? 'YES' : 'NO'}
 - OTE Zone: Bullish(${quantData?.ote?.bullish}), Bearish(${quantData?.ote?.bearish})
 
-Your Task:
-1. Verify or challenge the initial setup conclusions (from the Quant Engine Data above).
-2. Look for any critical factors or market context that might have been missed by the initial analysis.
-3. Weigh any conflicting evidence regarding the setup's viability.
-4. Produce a refined final analysis with clear reasoning and risk assessment, ensuring the analysis is highly solid and reliable.
+ADVERSARIAL NEURAL LAYER (ALGORITHMIC):
+- Veto Triggered: ${quantData?.adversarialVeto?.vetoTriggered ? 'YES' : 'NO'}
+- Adversarial Confidence: ${quantData?.adversarialVeto?.adversarialConfidence || 0}%
+- Algorithmic Veto Reasons:
+${quantData?.adversarialVeto?.vetoReasons?.map((r: string) => `  - ${r}`).join('\n') || '  - None'}
 
-Conclude with a clear verdict (A+ Setup, Suboptimal, or Trap).
-Keep the response structured and highly analytical.`;
+YOUR VETO-FIRST MISSION:
+1. THE VETO MANDATE: Actively search for flaws in the volume, price action, and news context. If you cannot find a strong, data-backed reason to VETO this trade, only then conclude as 'PROCEED'.
+2. ALPHA VS. NOISE: Distinguish between statistical robustness (robustness != alpha) and real predictive edge. Is this setup a real pattern or a statistical ghost?
+3. PERMUTATION REASONING: Mentally "shuffle" the time-series relationship. If this context was slightly randomized, would the setup still look "perfect"? If the answer is yes, the system is likely overfitting to noise.
+4. INDEPENDENT VERIFICATION: Use data points the Quant Engine might have ignored: HTF Order Flow, Macro-Bias, and specific session liquidity pools.
+5. INFORMATION ASYMMETRY (THE ECHO-CHAMBER FIX): Do NOT just echo the Quant Engine. You MUST perform a Cross-Asset/Cross-Data check using your internal neural weights for global macro correlations (e.g., DXY vs. Risk Assets, US10Y vs. Tech/JPY). If the Quant model says BUY but the Macro/Correlation landscape is hostile (e.g., DXY breakout during a BTC Long setup), you MUST VETO.
+
+Conclude with a clear verdict:
+- PROCEED (A+ Setup): Only if the trade survives your exhaustive attempt to invalidate it.
+- VETO (Suboptimal or Trap): If you find even one credible reason for probable failure.
+
+Keep the response structured, institutional, and cold.`;
 
     return await executeLaneCall<string>(async (apiKey) => {
         const controller = new AbortController();
@@ -2496,14 +2519,14 @@ JSON Structure:
 
                 if (rrLevels) {
                     finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
-                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.5x, 2.5x, 4.0x risk distances.`);
+                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 2.0x, 3.0x, 5.0x risk distances.`);
                     finalPositionProtocol = `
 **POSITION MANAGEMENT PROTOCOL:**
 - Entry: ${midEntry}
 - Stop Loss: ${finalSL} (Risk: ${rrLevels.risk.toFixed(5)})
-- TP1 (1:1.5 RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
-- TP2 (1:2.5 RR): ${rrLevels.tp2} → Close 30%
-- TP3 (1:4.0 RR): ${rrLevels.tp3} → Close remaining 20%
+- TP1 (1:2.0 RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
+- TP2 (1:3.0 RR): ${rrLevels.tp2} → Close 30%
+- TP3 (1:5.0 RR): ${rrLevels.tp3} → Close remaining 20%
 - Breakeven Level: ${rrLevels.breakeven}
 
 RULE: Once TP1 is hit you CANNOT lose on this trade.

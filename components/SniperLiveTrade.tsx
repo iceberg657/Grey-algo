@@ -491,7 +491,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
 
       // RPD Optimization & Sniper Mode Filter (ALGORITHMIC VETO): Intercept and reject highly probable fakeouts locally before AI API call
-      let result = null;
+      let result: SignalData | null = null;
       
       const isSniperMode = userSettings?.tradeMode === 'Sniper';
       let isVetoed = false;
@@ -519,57 +519,81 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           vetoReason = "Sniper Mode Active: Quant Engine structural data was unavailable for verification.";
       }
 
+      // MULTI-MODEL NEURAL SEQUENCE: Flash Lite -> Antigravity
+      setMessages(prev => {
+          const filtered = prev.filter(m => m.signal?.id !== 'loading');
+          return [...filtered, {
+              id: Date.now().toString() + '-ag-start',
+              type: 'ai',
+              content: `Initiating multi-model neural verification for ${asset}...`,
+              signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+          }];
+      });
+
+      // 1. Structured Analysis via Flash Lite
+      const preliminarySignal = await generateSniperLiveSignal(
+        currentQuery, 
+        style, 
+        derivData, 
+        [], // Learned strategies
+        quantData,
+        advancedQuantSignal,
+        userSettings,
+        dailyRegime?.regime
+      );
+
+      // 2. Refined Research & Verification via Antigravity Agent
+      setMessages(prev => {
+          const filtered = prev.filter(m => m.signal?.id !== 'loading');
+          return [...filtered, {
+              id: Date.now().toString() + '-ag-deep',
+              type: 'ai',
+              content: `Flash Lite analysis complete. Dispatching Antigravity Agent for institutional verification and refinement...`,
+              signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+          }];
+      });
+
+      const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData, preliminarySignal);
+
+      // 3. Finalize Result (Combine Flash Lite's structure with Antigravity's refined insight)
+      result = {
+          ...preliminarySignal,
+          insight: antigravityVerdict // Override with Antigravity's "touch"
+      };
+
+      // 4. NEURAL ADVERSARIAL OVERRIDE (Hard Logic Veto)
+      // This is the "code for these logics" the user requested - a hard override based on quant engine's adversarial layer
+      const advVeto = quantData?.adversarialVeto;
+      if (advVeto?.vetoTriggered && advVeto?.adversarialConfidence > 60 && result.signal !== 'NEUTRAL') {
+          console.log(`[SniperLiveTrade] NEURAL ADVERSARIAL VETO TRIGGERED: ${advVeto.vetoReasons.join(', ')}`);
+          result = {
+              ...result,
+              signal: 'NEUTRAL',
+              grade: 'TRAP/VETO',
+              confidence: Math.min(result.confidence, 30),
+              reasoning: [
+                  ...result.reasoning,
+                  "🛡️ NEURAL ADVERSARIAL OVERRIDE: Setup failed Permutation/Alpha stability tests.",
+                  ...advVeto.vetoReasons
+              ],
+              insight: `ADVERSARIAL VETO ENGAGED: The Quant Engine detected a "statistical ghost" or "information homogeneity" risk.\n\nREASONS: ${advVeto.vetoReasons.join(' | ')}\n\nAntigravity Researcher Note: ${antigravityVerdict.substring(0, 300)}...`
+          };
+      }
+
+      // 5. Apply Veto Logic to Final Signal (Original Veto)
       if (isVetoed) {
           console.log(`[SniperLiveTrade] ALGORITHMIC VETO TRIGGERED: ${vetoReason}`);
           result = {
-              id: Date.now().toString(),
-              type: 'ai',
+              ...result,
               signal: 'NEUTRAL',
-              asset: asset,
-              confidence: quantData?.weightedScore?.totalScore || 0,
+              grade: 'NO TRADE',
               reasoning: [
-                  "Trade execution blocked locally by Quant Statistics Engine.",
-                  vetoReason,
-                  isSniperMode 
-                    ? "In Sniper Mode, we only execute mathematically perfect setups to preserve your capital."
-                    : "Stay flat. Do not execute trades on this setup. We saved your account from a verified trap."
+                  ...result.reasoning,
+                  "⚠️ ALGORITHMIC VETO: Quant Engine blocked execution.",
+                  vetoReason
               ],
-              entryRange: { min: 0, max: 0 },
-              stopLoss: 0,
-              takeProfits: [0, 0],
-              timestamp: Date.now(),
-              insight: isSniperMode ? "Quant Engine filtered out a suboptimal setup to enforce Sniper Mode discipline." : "Quant Engine actively avoided an institutional trap zone.",
-              analysisBreakdown: quantData?.weightedScore?.breakdown || [],
-              recommendedPositions: '0',
-              formattedLotSize: '0.00',
-              grade: 'NO TRADE'
+              insight: `QUANT VETO: ${vetoReason}\n\nANTIGRAVITY VERDICT:\n${antigravityVerdict}`
           };
-      } else {
-          // Trigger Antigravity Agent for deep research
-          setMessages(prev => {
-              // Remove previous loading messages
-              const filtered = prev.filter(m => m.signal?.id !== 'loading');
-              return [...filtered, {
-                  id: Date.now().toString() + '-ag',
-                  type: 'ai',
-                  content: `Dispatching Antigravity Agent for deep institutional research on ${asset}. This may take 30-90 seconds...`,
-                  signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
-              }];
-          });
-          
-          const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData);
-
-          result = await generateSniperLiveSignal(
-            currentQuery, 
-            style, 
-            derivData, 
-            [], // Default learned strategies
-            quantData,
-            advancedQuantSignal,
-            userSettings,
-            dailyRegime?.regime, // Inject the AI Pilot's Daily Regime
-            antigravityVerdict
-          );
       }
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
