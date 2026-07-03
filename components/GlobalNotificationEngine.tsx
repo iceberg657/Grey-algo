@@ -273,14 +273,27 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                     continue;
                 }
 
+                // Ensure only one timeframe analysis is active per asset at any time
+                const activeForAsset = currentNotifs.find(n => n.asset === asset && n.status === 'ACTIVE');
+                if (activeForAsset) {
+                    console.log(`[GlobalNotificationEngine] Active signal already exists for ${asset} on timeframe ${activeForAsset.timeframe}. Skipping scan.`);
+                    continue;
+                }
+
                 const normalizedAsset = getDerivSymbol(asset);
+                let triggeredForAssetThisCycle = false;
 
                 for (const tf of currentConfig.timeframes) {
+                    if (triggeredForAssetThisCycle) {
+                        console.log(`[GlobalNotificationEngine] Already triggered signal for ${asset} in this cycle. Skipping timeframe ${tf}.`);
+                        break;
+                    }
+
                     const tfSeconds = tf === '5m' ? 300 : tf === '15m' ? 900 : tf === '30m' ? 1800 : 3600;
 
                     try {
                         const clientToken = getClientToken();
-                        const res = await fetch(`/api/derivTradeNotification?symbol=${normalizedAsset}&history=true&granularity=${tfSeconds}&count=60${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { cache: 'no-store' });
+                        const res = await fetch(`/api/derivTradeNotification?symbol=${normalizedAsset}&history=true&granularity=${tfSeconds}&count=500${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { cache: 'no-store' });
                         if (!res.ok) continue;
                         const data = await res.json();
 
@@ -326,6 +339,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
 
                                     await addDoc(collection(db, 'users', userMetadata.uid, 'trade_notifications'), newNotif);
                                     console.log(`[GlobalNotificationEngine] Added setup for ${asset} ${tf}: ${setup.direction}`);
+                                    triggeredForAssetThisCycle = true;
                                 }
                             }
                         }

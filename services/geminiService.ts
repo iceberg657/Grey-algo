@@ -828,10 +828,10 @@ If you propose ANY pending order (Limit/Stop), you MUST supply a strict 'expirat
 
 ---
 
-**TP Calculation Formula (MUST BE DISTINCT):**
-- **TP1:** MINIMUM 2.0R (1:2 Risk-to-Reward). This is the primary profit target.
-- **TP2:** Target Ratio (1:2.5 or 1:3 RR, or ${rrRatio} if specified).
-- **TP3:** Opposing Liquidity Pool or Runner Target.
+**TP Calculation Formula (MUST BE DISTINCT & CONSERVATIVE):**
+- **TP1:** MINIMUM 1.0R (1:1.0 Risk-to-Reward). This is the primary profit-locking target to prevent losses on sudden reversals.
+- **TP2:** Target Ratio (1:2.0 RR).
+- **TP3:** Opposing Liquidity Pool or Runner Target (1:3.0 RR).
 
 ---
 
@@ -1587,10 +1587,10 @@ export function calculateRRLevels(
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry + risk * 2.0).toFixed(precision)),
-            tp2: parseFloat((entry + risk * 3.0).toFixed(precision)),
-            tp3: parseFloat((entry + risk * 5.0).toFixed(precision)),
-            rrRatios: { tp1: '1:2', tp2: '1:3', tp3: '1:5' },
+            tp1: parseFloat((entry + risk * 1.0).toFixed(precision)),
+            tp2: parseFloat((entry + risk * 2.0).toFixed(precision)),
+            tp3: parseFloat((entry + risk * 3.0).toFixed(precision)),
+            rrRatios: { tp1: '1:1', tp2: '1:2', tp3: '1:3' },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -1598,10 +1598,10 @@ export function calculateRRLevels(
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry - risk * 2.0).toFixed(precision)),
-            tp2: parseFloat((entry - risk * 3.0).toFixed(precision)),
-            tp3: parseFloat((entry - risk * 5.0).toFixed(precision)),
-            rrRatios: { tp1: '1:2', tp2: '1:3', tp3: '1:5' },
+            tp1: parseFloat((entry - risk * 1.0).toFixed(precision)),
+            tp2: parseFloat((entry - risk * 2.0).toFixed(precision)),
+            tp3: parseFloat((entry - risk * 3.0).toFixed(precision)),
+            rrRatios: { tp1: '1:1', tp2: '1:2', tp3: '1:3' },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -2519,18 +2519,18 @@ JSON Structure:
 
                 if (rrLevels) {
                     finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
-                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 2.0x, 3.0x, 5.0x risk distances.`);
+                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.0x, 2.0x, 3.0x risk distances to ensure high-probability profit locking.`);
                     finalPositionProtocol = `
-**POSITION MANAGEMENT PROTOCOL:**
+**POSITION MANAGEMENT PROTOCOL (ANTI-REVERSAL SHIELD):**
 - Entry: ${midEntry}
 - Stop Loss: ${finalSL} (Risk: ${rrLevels.risk.toFixed(5)})
-- TP1 (1:2.0 RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
-- TP2 (1:3.0 RR): ${rrLevels.tp2} → Close 30%
-- TP3 (1:5.0 RR): ${rrLevels.tp3} → Close remaining 20%
+- TP1 (1:1.0 RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
+- TP2 (1:2.0 RR): ${rrLevels.tp2} → Close 30%
+- TP3 (1:3.0 RR): ${rrLevels.tp3} → Close remaining 20%
 - Breakeven Level: ${rrLevels.breakeven}
 
 RULE: Once TP1 is hit you CANNOT lose on this trade.
-Move SL to entry immediately after TP1.
+Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
 `;
                 } else {
                     // Validate TPs are on correct side of entry just in case

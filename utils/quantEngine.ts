@@ -419,9 +419,9 @@ export const getKillzoneScore = (): KillzoneResult => {
     const hour = now.getUTCHours();
     const minute = now.getUTCMinutes();
 
-    // London Open (07:00 - 09:00 UTC) 
-    if (hour >= 7 && hour < 9) {
-        const minutesIn = (hour - 7) * 60 + minute;
+    // London Open (06:00 - 09:00 UTC) 
+    if (hour >= 6 && hour < 9) {
+        const minutesIn = (hour - 6) * 60 + minute;
         return {
             session: 'LONDON_OPEN',
             active: true,
@@ -632,8 +632,10 @@ export const calculateWeightedScore = (
     smcScore = Math.min(smcScore, 30);
 
     // 2. VOLUME PROFILE (20 pts)
-    const volScore = Math.min(vpScore, 20);
-    if (vpScore > 0) breakdown.push(`Volume Profile +${volScore}`);
+    // The volume profile from Deriv is mathematically fake (all ticks = 1 volume).
+    // We mock the score to 0 to prevent fake 20-pt confidence boost.
+    const volScore = 0; // Math.min(vpScore, 20);
+    // if (vpScore > 0) breakdown.push(`Volume Profile +${volScore}`);
 
     // 3. GLOBAL TREND / CORRELATION (20 pts)
     let trendScore = 0;
@@ -784,6 +786,9 @@ export const detectSMTDivergence = (
 
 // Master SMC Analysis
 export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: any[], assetSymbol: string = 'UNKNOWN') {
+    const day = new Date().getDay(); // 0=Sun, 1=Mon, 5=Fri, 6=Sat
+    const isOffDay = (day === 0 || day === 1 || day === 5 || day === 6);
+
     if (!candles || candles.length < 50) return null;
 
     const closes = candles.map(c => c.close);
@@ -887,20 +892,11 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
                 ? 'BEARISH' : 'RANGING';
     }
 
-    // If HTF data insufficient, don't penalize — just skip TF alignment check
+    // Require true macro alignment across timeframes to get the 10-point bonus
     tfConfirmation.allAligned = (
         (trend !== 'RANGING') &&
-        (
-            // Full 3TF alignment
-            (tfConfirmation.entryTrend === tfConfirmation.confirmTrend &&
-                tfConfirmation.confirmTrend === tfConfirmation.htfTrend) ||
-            // Partial — only entry + confirm available
-            (tfConfirmation.htfTrend === 'UNKNOWN' &&
-                tfConfirmation.entryTrend === tfConfirmation.confirmTrend) ||
-            // Only entry TF available
-            (tfConfirmation.confirmTrend === 'UNKNOWN' &&
-                tfConfirmation.htfTrend === 'UNKNOWN')
-        )
+        (tfConfirmation.entryTrend === tfConfirmation.confirmTrend) &&
+        (tfConfirmation.confirmTrend === tfConfirmation.htfTrend)
     );
 
     // ATR Calculation
@@ -1135,13 +1131,24 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
     const quantMath = calculateQuantMathematics(candles);
 
+    // Mock news risk since no API is connected
+    let newsRisk: 'HIGH' | 'MEDIUM' | 'LOW' | 'CLEAR' = 'CLEAR';
+    const nowHour = new Date().getUTCHours();
+    // High impact news usually drops at 13:30 UTC and 14:00 UTC, especially Wed/Thu
+    if ((nowHour === 13 || nowHour === 14) && (day === 2 || day === 3 || day === 4)) {
+        newsRisk = 'HIGH';
+    } else if (day === 3) {
+        // Wednesday is historically high impact volatility day
+        newsRisk = 'MEDIUM'; 
+    }
+
     const weightedScore = calculateWeightedScore(
         smcFactors,
         obVolConfluence.score,
         tfConfirmation.allAligned,
         0, // Correlation Score (need driver data)
         0, // Correlation Penalty
-        'CLEAR', // News Sentiment (need API)
+        newsRisk, // News Sentiment mocked based on day/time
         killzone.score,
         liquidityBonus,
         quantMath
@@ -1266,16 +1273,16 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         estimatedRewardToRisk = risk > 0 ? reward / risk : 2.0;
     }
 
+    // Run Monte Carlo Simulation to find price targets and win rate
+    const monteCarloPrediction = MathEngine.monteCarloPredict(currentPrice, returnsHistory, 10, 10000);
+
     const riskOptimization = executeRiskOptimization(
-        (weightedScore.totalScore / 100) * 0.8, // estimated win rate
+        monteCarloPrediction.winRate, // Use actual MC statistical win rate instead of fake score ratio
         estimatedRewardToRisk,
         1.0, // default account risk
         weightedScore,
         quantMath.statisticalNoiseRatio
     );
-
-    // Run Monte Carlo Simulation to find price targets
-    const monteCarloPrediction = MathEngine.monteCarloPredict(currentPrice, returnsHistory, 10, 10000);
 
     const institutionalExecution = calculateInstitutionalExecution(candles, currentPrice, atr);
 
@@ -1285,6 +1292,15 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         monteCarloPrediction,
         weightedScore
     }, returnsHistory);
+
+    // Apply off-day block if needed
+    if (isOffDay) {
+        explicitSignal = 'NEUTRAL';
+        weightedScore.totalScore = 0;
+        weightedScore.grade = 'NO TRADE';
+        weightedScore.breakdown.push('Blueprint: Off-day trading blocked (Monday/Friday/Weekend)');
+        signalValid = false;
+    }
 
     return {
         trend,
@@ -1360,10 +1376,10 @@ export function runAdversarialVeto(
     // Use the internal correlation map to find "Echo Chamber" risks
     const rules = CORRELATION_MAP[asset] || [];
     for (const rule of rules) {
-        if (rule.weight > 0.7) {
-            // High correlation drivers are dangerous if the setup is purely technical
-            vetoes.push(`Adversarial Alert: Asset has high Information Homogeneity with ${rule.driver}. Independent Alpha is unconfirmed.`);
-        }
+        // Only trigger veto if we had live macro driver data indicating divergence (e.g. DXY breaking out against EURUSD).
+        // Without live macro data, a static weight > 0.7 triggers on every pair and penalizes valid setups.
+        // We leave the rules mapped but skip the hard veto.
+        // if (rule.weight > 0.7 && liveDriverDataShowsDivergence) { ... }
     }
 
     // 3. Alpha vs. Robustness Fallback
