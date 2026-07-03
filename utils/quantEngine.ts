@@ -1160,7 +1160,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
     const isBearishSetup = (tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
         (!displacementDirection || displacementDirection === 'BEARISH');
 
-    const signalValid = weightedScore.totalScore >= 50;
+    let signalValid = weightedScore.totalScore >= 50;
 
     const mdp = new MarkovDecisionProcess();
     // Pass momentum state (-1 to 1 based on zScore and lstm) and zScore directly
