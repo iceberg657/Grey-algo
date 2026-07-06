@@ -562,6 +562,142 @@ async function startServer() {
 
   setInterval(broadcastMarketData, 60 * 60 * 1000); // 1 hour
 
+  // MarketAux News Proxy Route
+  app.get('/api/news', async (req, res) => {
+    const apiKey = process.env.MARKETAUX_API_KEY;
+    if (!apiKey) {
+      return res.status(200).json({
+        isConfigured: false,
+        message: 'MARKETAUX_API_KEY is not configured on the server. Please add it to your environment variables to enable live news streaming.',
+        data: []
+      });
+    }
+
+    try {
+      const { search, symbols, countries } = req.query;
+      let url = `https://api.marketaux.com/v1/news/all?api_token=${apiKey}&language=en`;
+      
+      if (search) {
+        url += `&search=${encodeURIComponent(search as string)}`;
+      }
+      if (symbols) {
+        url += `&symbols=${encodeURIComponent(symbols as string)}`;
+      }
+      if (countries) {
+        url += `&countries=${encodeURIComponent(countries as string)}`;
+      }
+
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`MarketAux responded with status ${response.status}`);
+      }
+      const data = await response.json();
+      res.json({
+        isConfigured: true,
+        data: data.data || []
+      });
+    } catch (error) {
+      console.error('Error fetching MarketAux news:', error);
+      res.status(500).json({
+        isConfigured: true,
+        error: error instanceof Error ? error.message : 'Failed to fetch news from MarketAux'
+      });
+    }
+  });
+
+  // Live Economic Calendar endpoint using Gemini Google Search Grounding
+  app.get('/api/economic-calendar', async (req, res) => {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return res.status(200).json({
+        isLive: false,
+        message: 'GEMINI_API_KEY is not configured on the server. Displaying offline calendar.',
+        data: []
+      });
+    }
+
+    try {
+      const { clientDate } = req.query;
+      const baseDate = clientDate ? new Date(clientDate as string) : new Date();
+      
+      const dates = [];
+      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+      
+      for (let i = 0; i < 4; i++) {
+        const d = new Date(baseDate);
+        d.setDate(baseDate.getDate() + i);
+        dates.push({
+          offset: i,
+          formatted: `${daysOfWeek[d.getDay()]}, ${months[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`
+        });
+      }
+
+      const datePrompts = dates.map(d => `Day ${d.offset}: ${d.formatted}`).join('\n');
+
+      const prompt = `You are a professional financial data parser. Your task is to fetch the ACTUAL, real-time live economic calendar releases (such as CPI, Unemployment, Interest Rate Decisions, NFP, GDP, etc.) for major currencies (USD, EUR, GBP, JPY, CAD, AUD) for the following exact dates:
+${datePrompts}
+
+Use Google Search grounding to find the actual figures, times, and consensus forecasts from trusted economic calendars (like Investing.com, Myfxbook, or ForexFactory).
+
+You MUST respond strictly with a JSON array matching the following TypeScript schema:
+interface EconomicEvent {
+    id: string; // Unique string starting with "evt-"
+    dayOffset: number; // 0 for Today, 1 for Tomorrow, 2 for Day 2, 3 for Day 3
+    time: string; // Event release time in 24-hour UTC format (e.g. "13:30" or "08:00")
+    currency: string; // e.g. "USD", "EUR", "GBP", "JPY", "CAD", "AUD"
+    event: string; // Name of the release (e.g. "Core CPI (MoM)")
+    importance: 'HIGH' | 'MEDIUM' | 'LOW'; // The actual importance / volatility classification
+    previous: string; // The previous release value (e.g. "0.3%", "228K", or "-")
+    forecast: string; // The forecasted/consensus value (e.g. "0.2%", "225K", or "-")
+    actual: string; // The actual released value if available (e.g. "0.1%"), or "Pending" if the event has not occurred yet
+    notes: string; // A high-quality explanation of what the event measures and how it dynamically affects the currency's trend.
+}
+
+Return ONLY the raw JSON array. Do not include any markdown backticks, explanations, or text outside of the JSON. If a date has no major events, omit events for that date, but try to find at least 4-8 significant events across these dates. Do not invent mock data; use the actual real calendar events retrieved from your search.`;
+
+      const ai = new GoogleGenAI({ 
+        apiKey,
+        httpOptions: {
+          headers: {
+            'User-Agent': 'aistudio-build',
+          }
+        }
+      });
+      
+      const response = await ai.models.generateContent({
+        model: "gemini-3.5-flash",
+        contents: prompt,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: "application/json"
+        },
+      });
+
+      const responseText = response.text || "[]";
+      let parsedData;
+      try {
+        parsedData = JSON.parse(responseText.trim());
+      } catch (parseErr) {
+        console.error("Failed to parse Gemini response as JSON. Response was:", responseText);
+        // Stripping markdown wrapper if any
+        const cleaned = responseText.replace(/```json/g, '').replace(/```/g, '').trim();
+        parsedData = JSON.parse(cleaned);
+      }
+
+      res.json({
+        isLive: true,
+        data: parsedData
+      });
+    } catch (error) {
+      console.error('Error fetching live economic calendar via Gemini search grounding:', error);
+      res.status(500).json({
+        isLive: false,
+        error: error instanceof Error ? error.message : 'Failed to retrieve live calendar data'
+      });
+    }
+  });
+
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

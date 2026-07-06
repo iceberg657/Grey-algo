@@ -20,6 +20,7 @@ interface NotificationConfig {
     tradingWindowEnd: string;
     notificationLifetime: number; // minutes
     riskReward: number;
+    executionType?: 'Market Execution' | 'Limit / Stop Order';
 }
 
 export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> = ({ 
@@ -289,7 +290,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                         break;
                     }
 
-                    const tfSeconds = tf === '5m' ? 300 : tf === '15m' ? 900 : tf === '30m' ? 1800 : 3600;
+                    const tfSeconds = tf === '1m' ? 60 : tf === '5m' ? 300 : tf === '15m' ? 900 : tf === '30m' ? 1800 : 3600;
 
                     try {
                         const clientToken = getClientToken();
@@ -332,6 +333,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                                         logic: setup.logic,
                                         strategyName: setup.strategyName,
                                         riskReward: currentConfig.riskReward,
+                                        executionType: currentConfig.executionType || 'Market Execution',
                                         status: 'ACTIVE',
                                         timestamp: serverTimestamp(),
                                         expiresAt: Date.now() + (currentConfig.notificationLifetime * 60000)

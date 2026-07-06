@@ -1877,7 +1877,7 @@ YOUR VETO-FIRST MISSION:
 
 Conclude with a clear verdict:
 - PROCEED (A+ Setup): Only if the trade survives your exhaustive attempt to invalidate it.
-- VETO (Suboptimal or Trap): If you find even one credible reason for probable failure.
+- VETO (Suboptimal or Trap): If you find even one credible reason for probable failure. When outputting a VETO verdict, use the phrase "VERDICT: VETO. MANAGE RISK." instead of saying "do not execute".
 
 Keep the response structured, institutional, and cold.`;
 

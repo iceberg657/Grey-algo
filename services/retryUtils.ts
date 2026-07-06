@@ -201,6 +201,7 @@ export const getServicePool = getChatPool;
 export const getSuggestionStructurePool = getBetaPool; 
 export const getTtsPool = getGammaPool;
 export const getTtsKey = () => [K.K8()].filter(k => !!k); // Redirect to K8 (Gamma)
+export const getSniperKey = () => K.K10() || API_KEY || '';
 
 // Global Penalty Box for exhausted keys
 const cooldownMap = new Map<string, number>();

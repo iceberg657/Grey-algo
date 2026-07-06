@@ -186,6 +186,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     // 2. Forex
     if (normalized.includes('GOLD') || normalized.includes('XAUUSD')) return 'frxXAUUSD';
     if (normalized.includes('SILVER') || normalized.includes('XAGUSD')) return 'frxXAGUSD';
+    if (normalized.includes('PLATINUM') || normalized.includes('XPTUSD')) return 'frxXPTUSD';
+    if (normalized.includes('PALLADIUM') || normalized.includes('XPDUSD')) return 'frxXPDUSD';
     if (normalized.includes('BRENT') || normalized.includes('XBRUSD')) return 'frxXBRUSD';
     if (normalized.includes('WTI') || normalized.includes('XTIUSD')) return 'frxXTIUSD';
     if (normalized.includes('EURUSD')) return 'frxEURUSD';
@@ -397,7 +399,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
     try {
       // 1. Extract asset from query
-      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
+      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|platinum|palladium|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xptusd|xpdusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
       const asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
 
       if (!asset) {
@@ -1327,6 +1329,18 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                 </div>
                               </div>
                             </div>
+
+                            {/* Antigravity Insight */}
+                            {msg.signal.insight && (
+                              <div className="mt-4 bg-violet-500/5 border border-violet-500/20 rounded-[2rem] p-6">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600/70 dark:text-violet-400/70 mb-4 flex items-center gap-2">
+                                  <Bot className="w-3 h-3" /> Antigravity Agent Verdict
+                                </h3>
+                                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                  {msg.signal.insight}
+                                </div>
+                              </div>
+                            )}
 
                             {/* Quant Engine Live Market Telemetry */}
                             {msg.signal.signal !== 'NEUTRAL' && msg.signal.quantData && (

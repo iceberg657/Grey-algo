@@ -21,6 +21,7 @@ interface NotificationConfig {
     tradingWindowEnd: string;
     notificationLifetime: number; // minutes
     riskReward: number;
+    executionType?: 'Market Execution' | 'Limit / Stop Order';
 }
 
 export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ onBack, userMetadata }) => {
@@ -32,7 +33,14 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
     const [config, setConfig] = useState<NotificationConfig>(() => {
         try {
             const saved = localStorage.getItem('trade_notification_config');
-            return saved ? JSON.parse(saved) : {
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                if (!parsed.executionType) {
+                    parsed.executionType = 'Market Execution';
+                }
+                return parsed;
+            }
+            return {
                 assets: ['US30', 'NAS100', 'XAUUSD'],
                 dailyLimit: 10,
                 enabled: false,
@@ -40,7 +48,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 tradingWindowStart: '00:00',
                 tradingWindowEnd: '23:59',
                 notificationLifetime: 3,
-                riskReward: 2.0
+                riskReward: 2.0,
+                executionType: 'Market Execution'
             };
         } catch {
             return {
@@ -51,7 +60,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 tradingWindowStart: '00:00',
                 tradingWindowEnd: '23:59',
                 notificationLifetime: 3,
-                riskReward: 2.0
+                riskReward: 2.0,
+                executionType: 'Market Execution'
             };
         }
     });
@@ -370,7 +380,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                     Timeframes Selection
                                 </label>
                                 <div className="flex gap-2">
-                                    {['5m', '15m', '30m', '1h'].map(tf => (
+                                    {['1m', '5m', '15m', '30m', '1h'].map(tf => (
                                         <button
                                             key={tf}
                                             onClick={() => handleToggleTimeframe(tf)}
@@ -404,26 +414,41 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                 </div>
                             </div>
 
-                            {/* Risk Reward */}
-                            <div>
-                                <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
-                                    Risk : Reward Profile
-                                </label>
-                                <select 
-                                    value={config.riskReward}
-                                    onChange={(e) => setConfig({...config, riskReward: parseFloat(e.target.value)})}
-                                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-emerald-500"
-                                >
-                                    <option value="1">1:1</option>
-                                    <option value="1.5">1:1.5</option>
-                                    <option value="2">1:2</option>
-                                    <option value="2.5">1:2.5</option>
-                                    <option value="3">1:3</option>
-                                    <option value="3.5">1:3.5</option>
-                                    <option value="4">1:4</option>
-                                    <option value="4.5">1:4.5</option>
-                                    <option value="5">1:5</option>
-                                </select>
+                            {/* Risk Reward & Execution Type */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
+                                        Risk : Reward Profile
+                                    </label>
+                                    <select 
+                                        value={config.riskReward}
+                                        onChange={(e) => setConfig({...config, riskReward: parseFloat(e.target.value)})}
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-emerald-500"
+                                    >
+                                        <option value="1">1:1</option>
+                                        <option value="1.5">1:1.5</option>
+                                        <option value="2">1:2</option>
+                                        <option value="2.5">1:2.5</option>
+                                        <option value="3">1:3</option>
+                                        <option value="3.5">1:3.5</option>
+                                        <option value="4">1:4</option>
+                                        <option value="4.5">1:4.5</option>
+                                        <option value="5">1:5</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
+                                        Execution Type
+                                    </label>
+                                    <select 
+                                        value={config.executionType || 'Market Execution'}
+                                        onChange={(e) => setConfig({...config, executionType: e.target.value as 'Market Execution' | 'Limit / Stop Order'})}
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-emerald-500"
+                                    >
+                                        <option value="Market Execution">Market Execution</option>
+                                        <option value="Limit / Stop Order">Limit / Stop Order</option>
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -481,7 +506,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                 >
                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                                         <div>
-                                            <div className="flex items-center gap-3 mb-2">
+                                            <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                 <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
                                                     notif.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
                                                 }`}>
@@ -490,6 +515,10 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                                 <span className="text-sm font-bold">{notif.asset}</span>
                                                 <span className="text-slate-400">•</span>
                                                 <span className="text-sm font-bold text-slate-500">{notif.timeframe}</span>
+                                                <span className="text-slate-400">•</span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                                    {notif.executionType || 'Market Execution'}
+                                                </span>
                                             </div>
                                             <h4 className="font-bold text-lg">{notif.pattern}</h4>
                                             {notif.strategyName && <div className="text-xs font-bold text-slate-500 mt-1">Strategy: {notif.strategyName}</div>}

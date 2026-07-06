@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, Compass, Calculator, BookOpen, Clock, Globe, RefreshCcw, Download } from 'lucide-react';
+import { ChevronLeft, Compass, Calculator, BookOpen, Clock, Globe, RefreshCcw, Download, Newspaper, Calendar, TrendingUp } from 'lucide-react';
 import { RiskCalculator } from './RiskCalculator';
 import { CheatSheet } from './CheatSheet';
 import { generateTradingBlueprint } from '../services/geminiService';
@@ -10,6 +10,7 @@ import ReactMarkdown from 'react-markdown';
 import { Loader } from './Loader';
 import { AutoBacktestPanel } from './AutoBacktestPanel';
 import { History } from 'lucide-react';
+import { TrendScannerPanel } from './TrendScannerPanel';
 
 interface TradingBlueprintPageProps {
     onBack: () => void;
@@ -73,7 +74,7 @@ const AVAILABLE_ASSETS = [
 ];
 
 export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'schedule' | 'backtest'>('schedule');
+    const [activeTab, setActiveTab] = useState<'schedule' | 'backtest' | 'trend_scanner'>('schedule');
     const [showRiskCalc, setShowRiskCalc] = useState(false);
     const [showCheatSheet, setShowCheatSheet] = useState(false);
     
@@ -281,18 +282,24 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 </div>
             </header>
 
-            <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0">
+            <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0 overflow-x-auto scrollbar-none">
                 <button
                     onClick={() => setActiveTab('schedule')}
-                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'schedule' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'schedule' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                 >
                     <Compass size={14} /> Trading Schedule
                 </button>
                 <button
                     onClick={() => setActiveTab('backtest')}
-                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'backtest' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'backtest' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                 >
                     <History size={14} /> Mechanical Backtester
+                </button>
+                <button
+                    onClick={() => setActiveTab('trend_scanner')}
+                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'trend_scanner' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                    <TrendingUp size={14} /> Trend Scanner
                 </button>
             </div>
 
@@ -536,9 +543,13 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                     </div>
                 </div>
             </div>
-            ) : (
+            ) : activeTab === 'backtest' ? (
                 <div className="w-full">
                     <AutoBacktestPanel userId={auth.currentUser?.uid} />
+                </div>
+            ) : (
+                <div className="w-full">
+                    <TrendScannerPanel />
                 </div>
             )}
 
