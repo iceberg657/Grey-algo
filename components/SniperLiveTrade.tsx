@@ -292,11 +292,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('timeout'), 25000); // 25 second timeout for 3 fetches
 
-      // Fetch all 3 timeframes simultaneously with 1000 candles history
+      // Fetch all 3 timeframes simultaneously with 300 candles history
       const [entryRes, confirmRes, htfRes] = await Promise.all([
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
       ]);
       
       clearTimeout(timeoutId);
@@ -327,7 +327,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           const ageMinutes = Math.floor(candleAge / 60);
           console.warn(`[SniperLiveTrade] STALE DATA DETECTED: Price is ${ageMinutes}m old.`);
           // IMPORTANT: Do not throw an error here. Markets (especially indices) close for weekends and holidays.
-          // We still want the AI to be able to analyze the last 1000 candles.
+          // We still want the AI to be able to analyze the last 300 candles.
           entryData.isMarketClosed = true;
       }
 
