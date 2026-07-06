@@ -302,16 +302,15 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                             const setup = runMechanicalAnalysis(asset, tf, data.candles, isMonday);
 
                             if (setup.direction !== 'FLAT') {
-                                // Prevent duplicate notifications within 1 hour for same asset/tf
-                                const recentDuplicate = currentNotifs.find(n => 
+                                // Prevent duplicate or opposing notifications within a strict cooldown period for same asset/tf
+                                const recentSignal = currentNotifs.find(n => 
                                     n.asset === asset && 
                                     n.timeframe === tf && 
-                                    n.direction === setup.direction &&
                                     n.timestamp && 
-                                    (Date.now() - (n.timestamp?.toMillis ? n.timestamp.toMillis() : n.timestamp)) < 3600000
+                                    (Date.now() - (n.timestamp?.toMillis ? n.timestamp.toMillis() : n.timestamp)) < (tf === '1m' ? 300000 : 1800000) // 5 mins for 1m, 30 mins for others
                                 );
 
-                                if (!recentDuplicate) {
+                                if (!recentSignal) {
                                     const entry = setup.entryRange.min;
                                     const riskAmount = Math.abs(entry - setup.stopLoss);
                                     let adjustedTP = setup.takeProfit;
