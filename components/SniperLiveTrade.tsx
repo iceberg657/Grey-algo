@@ -564,40 +564,39 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           insight: antigravityVerdict // Override with Antigravity's "touch"
       };
 
-      // 4. NEURAL ADVERSARIAL OVERRIDE (Hard Logic Veto)
-      // This is the "code for these logics" the user requested - a hard override based on quant engine's adversarial layer
-      const advVeto = quantData?.adversarialVeto;
-      if (advVeto?.vetoTriggered && advVeto?.adversarialConfidence > 60 && result.signal !== 'NEUTRAL') {
-          console.log(`[SniperLiveTrade] NEURAL ADVERSARIAL VETO TRIGGERED: ${advVeto.vetoReasons.join(', ')}`);
-          result = {
-              ...result,
-              signal: 'NEUTRAL',
-              grade: 'TRAP/VETO',
-              confidence: Math.min(result.confidence, 30),
-              reasoning: [
-                  ...result.reasoning,
-                  "🛡️ NEURAL ADVERSARIAL OVERRIDE: Setup failed Permutation/Alpha stability tests.",
-                  ...advVeto.vetoReasons
-              ],
-              insight: `ADVERSARIAL VETO ENGAGED: The Quant Engine detected a "statistical ghost" or "information homogeneity" risk.\n\nREASONS: ${advVeto.vetoReasons.join(' | ')}\n\nAntigravity Researcher Note: ${antigravityVerdict.substring(0, 300)}...`
-          };
-      }
+      // 4. NEURAL ADVERSARIAL OVERRIDE (Hard Logic Veto) - SUSPENDED
+      // const advVeto = quantData?.adversarialVeto;
+      // if (advVeto?.vetoTriggered && advVeto?.adversarialConfidence > 60 && result.signal !== 'NEUTRAL') {
+      //     console.log(`[SniperLiveTrade] NEURAL ADVERSARIAL VETO TRIGGERED: ${advVeto.vetoReasons.join(', ')}`);
+      //     result = {
+      //         ...result,
+      //         signal: 'NEUTRAL',
+      //         grade: 'TRAP/VETO',
+      //         confidence: Math.min(result.confidence, 30),
+      //         reasoning: [
+      //             ...result.reasoning,
+      //             "🛡️ NEURAL ADVERSARIAL OVERRIDE: Setup failed Permutation/Alpha stability tests.",
+      //             ...advVeto.vetoReasons
+      //         ],
+      //         insight: `ADVERSARIAL VETO ENGAGED: The Quant Engine detected a "statistical ghost" or "information homogeneity" risk.\n\nREASONS: ${advVeto.vetoReasons.join(' | ')}\n\nAntigravity Researcher Note: ${antigravityVerdict.substring(0, 300)}...`
+      //     };
+      // }
 
-      // 5. Apply Veto Logic to Final Signal (Original Veto)
-      if (isVetoed) {
-          console.log(`[SniperLiveTrade] ALGORITHMIC VETO TRIGGERED: ${vetoReason}`);
-          result = {
-              ...result,
-              signal: 'NEUTRAL',
-              grade: 'NO TRADE',
-              reasoning: [
-                  ...result.reasoning,
-                  "⚠️ ALGORITHMIC VETO: Quant Engine blocked execution.",
-                  vetoReason
-              ],
-              insight: `QUANT VETO: ${vetoReason}\n\nANTIGRAVITY VERDICT:\n${antigravityVerdict}`
-          };
-      }
+      // 5. Apply Veto Logic to Final Signal (Original Veto) - SUSPENDED
+      // if (isVetoed) {
+      //     console.log(`[SniperLiveTrade] ALGORITHMIC VETO TRIGGERED: ${vetoReason}`);
+      //     result = {
+      //         ...result,
+      //         signal: 'NEUTRAL',
+      //         grade: 'NO TRADE',
+      //         reasoning: [
+      //             ...result.reasoning,
+      //             "⚠️ ALGORITHMIC VETO: Quant Engine blocked execution.",
+      //             vetoReason
+      //         ],
+      //         insight: `QUANT VETO: ${vetoReason}\n\nANTIGRAVITY VERDICT:\n${antigravityVerdict}`
+      //     };
+      // }
       
       // 3.5 Log the trade into global analysis history for manual Win/Loss tracking
       if (result && result.signal && result.signal !== 'NEUTRAL') {
@@ -1391,6 +1390,33 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                       }
                                     </p>
                                   </div>
+                                  
+                                  {msg.signal.quantData.greyModelPrediction && (
+                                    <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 rounded-2xl md:col-span-2 border-l-2 border-indigo-500">
+                                      <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2 flex items-center gap-1">
+                                        <Bot className="w-3 h-3 text-indigo-500" /> Grey Model GM(1,1)
+                                      </span>
+                                      <div className="flex flex-col md:flex-row gap-4 justify-between mt-3">
+                                        <div className="flex-1">
+                                            <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase">Forward Projection (3 Periods)</span>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                {msg.signal.quantData.greyModelPrediction.forecast?.map((val: number, i: number) => (
+                                                    <span key={i} className="text-xs font-mono bg-indigo-500/10 text-indigo-500 px-2 py-1 rounded-md">
+                                                        {val.toFixed(5)}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 flex flex-col md:items-end justify-center">
+                                            <span className="text-[10px] font-bold text-slate-900 dark:text-white uppercase">Model Parameters</span>
+                                            <div className="flex items-center gap-2 mt-2 text-xs font-mono text-slate-500">
+                                                <span>a: {msg.signal.quantData.greyModelPrediction.a?.toFixed(4)}</span>
+                                                <span>b: {msg.signal.quantData.greyModelPrediction.b?.toFixed(4)}</span>
+                                            </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
                               </div>
                             )}

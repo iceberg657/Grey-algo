@@ -1977,6 +1977,11 @@ ${antigravityVerdict}
 - Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
 - BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
 
+**GREY MODEL GM(1,1) PREDICTION:**
+- Next 3 Time Periods Forecast: ${quantData.greyModelPrediction?.forecast?.map((f: number) => f.toFixed(5)).join(', ') || 'N/A'}
+- Model Parameter a: ${quantData.greyModelPrediction?.a?.toFixed(5) || 'N/A'}
+- Model Parameter b: ${quantData.greyModelPrediction?.b?.toFixed(5) || 'N/A'}
+
 **VOLUME PROFILE & VPVR (INSTITUTIONAL NODES):**
 - POC (Target): ${quantData.volumeProfile?.poc?.toFixed(5) || 'N/A'}
 - Value Area: ${quantData.volumeProfile?.val?.toFixed(5) || 'N/A'} - ${quantData.volumeProfile?.vah?.toFixed(5) || 'N/A'}

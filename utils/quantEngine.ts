@@ -8,6 +8,7 @@ import { MathEngine } from '../services/mathEngine';
 import { calculateInstitutionalExecution, InstitutionalExecutionData } from './institutionalEngine';
 import { KalmanFilter } from './kalmanFilter';
 import { GaussianMixtureModel, LSTMMath, MarkovDecisionProcess, MSGARCH } from './advancedMath';
+import { calculateGM11 } from './greyModel';
 
 export interface OHLC {
     epoch: number;
@@ -1302,6 +1303,8 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         signalValid = false;
     }
 
+    const greyModelPrediction = calculateGM11(closes.slice(-100), 3);
+
     return {
         trend,
         ema50,
@@ -1322,13 +1325,13 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         mathematicalSL,
         premiumZone,
         discountZone,
-        currentZone,
+        currentZone,        
         zoneValid,
         confidenceScore: weightedScore.totalScore, // Map total score to confidence
         signalValid,
         tfConfirmation,
         atr,
-        fvg,
+        fvg,        
         fvgRetest,
         orderBlock,
         session: killzone.session,
@@ -1346,7 +1349,8 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         neuralAnalysis,
         monteCarloPrediction,
         institutionalExecution,
-        adversarialVeto
+        adversarialVeto,
+        greyModelPrediction
     };
 }
 
