@@ -545,23 +545,23 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         dailyRegime?.regime
       );
 
-      // 2. Refined Research & Verification via Antigravity Agent
-      setMessages(prev => {
-          const filtered = prev.filter(m => m.signal?.id !== 'loading');
-          return [...filtered, {
-              id: Date.now().toString() + '-ag-deep',
-              type: 'ai',
-              content: `Flash Lite analysis complete. Dispatching Antigravity Agent for institutional verification and refinement...`,
-              signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
-          }];
-      });
+      // 2. Refined Research & Verification via Antigravity Agent - SUSPENDED
+      // setMessages(prev => {
+      //     const filtered = prev.filter(m => m.signal?.id !== 'loading');
+      //     return [...filtered, {
+      //         id: Date.now().toString() + '-ag-deep',
+      //         type: 'ai',
+      //         content: `Flash Lite analysis complete. Dispatching Antigravity Agent for institutional verification and refinement...`,
+      //         signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+      //     }];
+      // });
 
-      const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData, preliminarySignal);
+      // const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData, preliminarySignal);
 
       // 3. Finalize Result (Combine Flash Lite's structure with Antigravity's refined insight)
       result = {
           ...preliminarySignal,
-          insight: antigravityVerdict // Override with Antigravity's "touch"
+          // insight: antigravityVerdict // Override with Antigravity's "touch" - SUSPENDED
       };
 
       // 4. NEURAL ADVERSARIAL OVERRIDE (Hard Logic Veto) - SUSPENDED
