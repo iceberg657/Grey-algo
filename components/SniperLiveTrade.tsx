@@ -23,12 +23,12 @@ import {
   Bot
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
-import { generateSniperLiveSignal, generateAntigravityResearch } from '../services/geminiService';
+import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
 import { saveAnalysis } from '../services/historyService';
-import { generateLessonFromTradeLog } from '../services/learningService';
+import { generateLessonFromTradeLog, getLearnedStrategies } from '../services/learningService';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { analyzeSMC } from '../utils/quantEngine';
 import { 
@@ -292,11 +292,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('timeout'), 25000); // 25 second timeout for 3 fetches
 
-      // Fetch all 3 timeframes simultaneously with 300 candles history
+      // Fetch all 3 timeframes simultaneously (entry/confirm 300, HTF 1000)
       const [entryRes, confirmRes, htfRes] = await Promise.all([
           fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
           fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
       ]);
       
       clearTimeout(timeoutId);
@@ -522,27 +522,42 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           vetoReason = "Sniper Mode Active: Quant Engine structural data was unavailable for verification.";
       }
 
-      // MULTI-MODEL NEURAL SEQUENCE: Flash Lite -> Antigravity
+      // MULTI-MODEL NEURAL SEQUENCE: Macro Context -> Flash Lite
       setMessages(prev => {
           const filtered = prev.filter(m => m.signal?.id !== 'loading');
           return [...filtered, {
               id: Date.now().toString() + '-ag-start',
               type: 'ai',
-              content: `Initiating multi-model neural verification for ${asset}...`,
+              content: `Fetching Learned Lessons & Running Long-Term Context Agent for ${asset}...`,
               signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
           }];
       });
 
-      // 1. Structured Analysis via Flash Lite
+      // 1. Fetch Learned Lessons & Macro Context Summary
+      const activeLearnedStrategies = await getLearnedStrategies();
+      const macroContextSummary = await generateMacroContext(asset, derivData?.multiTimeframe?.htf || {});
+
+      setMessages(prev => {
+        const filtered = prev.filter(m => m.signal?.id !== 'loading');
+        return [...filtered, {
+            id: Date.now().toString() + '-ag-macro',
+            type: 'ai',
+            content: `Macro Context Analyzed.\n\n${macroContextSummary}\n\nInitiating structural engine...`,
+            signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+        }];
+      });
+
+      // 2. Structured Analysis via Flash Lite
       const preliminarySignal = await generateSniperLiveSignal(
         currentQuery, 
         style, 
         derivData, 
-        [], // Learned strategies
+        activeLearnedStrategies, // Learned strategies
         quantData,
         advancedQuantSignal,
         userSettings,
-        dailyRegime?.regime
+        dailyRegime?.regime,
+        macroContextSummary // Passed into antigravityVerdict parameter
       );
 
       // 2. Refined Research & Verification via Antigravity Agent - SUSPENDED

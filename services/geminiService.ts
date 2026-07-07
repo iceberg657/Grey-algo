@@ -6,7 +6,7 @@ import {
     executeLaneCall, 
     getAnalysisPool, 
     getSniperPool,
-    getPilotPool, 
+    getPilotPool, getBetaPool, 
     ANALYSIS_MODELS, 
     SNIPER_MODELS,
     PILOT_MODELS, 
@@ -1965,11 +1965,15 @@ ${advancedQuantSignal ? `
 ` : 'NO ACTIVE ADVANCED CORRELATION SIGNAL'}
 
 ${antigravityVerdict ? `
-**ANTIGRAVITY AGENT VERDICT (DEEP RESEARCH):**
+**LONG-TERM MACRO CONTEXT (1000 CANDLES):**
 ${antigravityVerdict}
-*You must highly weight this deep research verdict in your final decision.*
+*You must highly weight this deep research macro context in your final decision.*
 ` : ''}
-
+${learnedStrategies && learnedStrategies.length > 0 ? `
+**ACTIVE LEARNED STRATEGIES & NEURAL LESSONS (APPLY THESE STRICTLY):**
+${learnedStrategies.join('\n')}
+*These rules are derived from real trading history. You MUST strictly obey them. If a setup violates these learned rules, VETO the trade.*
+` : ''}
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
 - EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
@@ -2834,4 +2838,46 @@ Return pure JSON only.`;
 
         return response.text?.trim() || "Failed to generate Trading Blueprint.";
     }, getChatPool);
+}
+
+export async function generateMacroContext(
+    asset: string,
+    htfData: any
+): Promise<string> {
+    await initializeApiKey();
+    return await executeLaneCall<string>(async (apiKey) => {
+        const ai = new GoogleGenAI({ apiKey });
+        
+        // Downsample or extract key info if needed to keep it clean
+        const candles = htfData.candles || [];
+        const formatCandles = candles.map((c: any) => ({
+            time: new Date(c.epoch * 1000).toISOString().split('T')[0],
+            o: c.open, h: c.high, l: c.low, c: c.close
+        }));
+
+        let prompt = `You are the Long-Term Context Agent for ${asset}.
+Analyze the following ~1000 candles of higher timeframe data and produce a concise summary.
+Focus on:
+1. Major support and resistance levels.
+2. Overall macro trend direction.
+3. Institutional order blocks and long-term liquidity pools.
+4. Current market regime (trending, ranging, high volatility).
+
+Keep your response extremely concise, structured with bullet points. Avoid any fluff.
+
+Raw HTF Data:
+${JSON.stringify(formatCandles)}
+`;
+
+        const response = await runWithModelFallback<GenerateContentResponse>(
+            ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.5-flash'],
+            (modelId) => ai.models.generateContent({
+                model: modelId,
+                contents: prompt,
+                config: { temperature: 0.1 }
+            })
+        );
+
+        return response.text?.trim() || "MACRO CONTEXT: NEUTRAL. INSUFFICIENT DATA.";
+    }, getBetaPool);
 }

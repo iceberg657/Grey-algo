@@ -220,7 +220,7 @@ export const generateLessonFromTradeLog = async (tradeId?: string) => {
         const trades = snapshot.docs
             .map(doc => doc.data())
             .filter(t => t.outcome === 'Win' || t.outcome === 'Loss')
-            .slice(0, 5); // take the last 5 completed ones
+            .slice(0, 15); // take the last 15 completed ones
         
         if (trades.length === 0) {
            return null;
@@ -231,15 +231,16 @@ export const generateLessonFromTradeLog = async (tradeId?: string) => {
             const ai = new GoogleGenAI({ apiKey });
             
             const metaPrompt = `
-You are an expert Meta-Cognitive Analyzer. Your job is to review the execution trajectory of a trading agent and extract architectural improvements, structural rules, or behavioral corrections to prevent losing streaks.
+You are an expert Meta-Cognitive Analyzer. Your job is to review the execution trajectory of a trading agent and extract architectural improvements, structural rules, or behavioral corrections to aggressively prevent losing streaks and shift towards absolute profitability.
 
 ### RECENT EXECUTION LOG:
 ${JSON.stringify(trades, null, 2)}
 
 ### INSTRUCTIONS:
-1. Analyze why the recent trades succeeded or failed. Identify the exact moment a choice led to an error, a bad setup, or an optimized outcome.
-2. Synthesize this finding into highly dense, portable procedural instructions ("Skills").
-3. Output the result strictly in JSON. If no significant optimization or error pattern is found, return an empty array.
+1. Analyze why the recent trades failed (Losses) or succeeded (Wins). Pay special attention to the Losses and what caused them (e.g., bad market condition, early entry, wrong session, ignored resistance).
+2. Identify the exact moment a choice led to an error, a bad setup, or a trap.
+3. Synthesize this finding into highly dense, portable procedural instructions ("Skills"). These skills must act as STRICT FILTERS to prevent the agent from taking similar losing setups in the future.
+4. Output the result strictly in JSON. If no significant optimization or error pattern is found, return an empty array.
 
 ### OUTPUT SCHEMA (JSON):
 {
