@@ -20,7 +20,8 @@ import {
   Sun,
   Trash2,
   User,
-  Bot
+  Bot,
+  ChevronDown
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
 import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext } from '../services/geminiService';
@@ -48,6 +49,79 @@ import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { getDailyMarketRegime, DailyRegime } from '../services/pilotService';
 import { LiquidityHeatmapChart } from './LiquidityHeatmapChart';
+
+const AntigravityVerdictDisplay: React.FC<{ insight: string }> = ({ insight }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  let summary = '';
+  let fullContext = '';
+  
+  const summaryHeaderIndex = insight.indexOf('### EXECUTIVE SUMMARY');
+  const dividerIndex = insight.indexOf('---');
+  
+  if (dividerIndex !== -1) {
+    if (summaryHeaderIndex !== -1) {
+      summary = insight.substring(summaryHeaderIndex + '### EXECUTIVE SUMMARY'.length, dividerIndex).trim();
+    } else {
+      summary = insight.substring(0, dividerIndex).trim();
+    }
+    fullContext = insight.substring(dividerIndex + 3).trim();
+  } else {
+    if (summaryHeaderIndex !== -1) {
+      const parsed = insight.substring(summaryHeaderIndex + '### EXECUTIVE SUMMARY'.length).trim();
+      const nextSectionIndex = parsed.indexOf('###');
+      if (nextSectionIndex !== -1) {
+        summary = parsed.substring(0, nextSectionIndex).trim();
+        fullContext = parsed.substring(nextSectionIndex).trim();
+      } else {
+        summary = parsed;
+      }
+    } else {
+      summary = insight;
+    }
+  }
+
+  return (
+    <div className="mt-4 bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/20 rounded-[2rem] p-6">
+      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600 dark:text-violet-400 mb-3 flex items-center gap-2">
+        <Bot className="w-3.5 h-3.5" /> Antigravity QuantConnect Verdict
+      </h3>
+      
+      {/* Dynamic Summary Panel */}
+      <div className="text-sm font-semibold text-slate-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap bg-violet-500/10 dark:bg-violet-500/20 p-4 rounded-2xl border border-violet-500/10">
+        {summary}
+      </div>
+
+      {fullContext && (
+        <div className="mt-3">
+          <button 
+            onClick={() => setIsExpanded(!isExpanded)} 
+            className="flex items-center gap-1.5 text-xs font-bold text-violet-600 dark:text-violet-400 hover:opacity-80 transition cursor-pointer"
+          >
+            {isExpanded ? 'Hide Full Quantitative Rationale' : 'View Full Quantitative Rationale'}
+            <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          
+          <AnimatePresence initial={false}>
+            {isExpanded && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="mt-4 pt-4 border-t border-violet-500/10 text-xs text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed space-y-2">
+                  {fullContext}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface SniperMessage {
   id: string;
@@ -547,8 +621,31 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         }];
       });
 
-      // 2. Structured Analysis via Flash Lite
-      const preliminarySignal = await generateSniperLiveSignal(
+      // 2. Dispatch Antigravity Agent to pull QuantConnect strategies & run deep analysis
+      setMessages(prev => {
+          const filtered = prev.filter(m => m.signal?.id !== 'loading');
+          return [...filtered, {
+              id: Date.now().toString() + '-ag-deep-search',
+              type: 'ai',
+              content: `Dispatching Antigravity Agent to query QuantConnect algorithmic database & dynamically select strategy rules...`,
+              signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+          }];
+      });
+
+      const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData, undefined, macroContextSummary);
+
+      setMessages(prev => {
+          const filtered = prev.filter(m => m.signal?.id !== 'loading');
+          return [...filtered, {
+              id: Date.now().toString() + '-ag-compile',
+              type: 'ai',
+              content: `QuantConnect strategy pulled successfully!\n\nRunning high-speed compiler model (Gemini 3.5 Flash Lite) with temperature 1.0 to calibrate dynamic lot sizes, entries, and risk-to-reward boundaries...`,
+              signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+          }];
+      });
+
+      // 3. Compile high-speed Sniper live signal (temperature = 1.0) incorporating the Antigravity QuantConnect research
+      const finalSignal = await generateSniperLiveSignal(
         currentQuery, 
         style, 
         derivData, 
@@ -557,26 +654,12 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         advancedQuantSignal,
         userSettings,
         dailyRegime?.regime,
-        macroContextSummary // Passed into antigravityVerdict parameter
+        antigravityVerdict // Pass real QuantConnect-aligned Antigravity research
       );
 
-      // 2. Refined Research & Verification via Antigravity Agent - SUSPENDED
-      // setMessages(prev => {
-      //     const filtered = prev.filter(m => m.signal?.id !== 'loading');
-      //     return [...filtered, {
-      //         id: Date.now().toString() + '-ag-deep',
-      //         type: 'ai',
-      //         content: `Flash Lite analysis complete. Dispatching Antigravity Agent for institutional verification and refinement...`,
-      //         signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
-      //     }];
-      // });
-
-      // const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData, preliminarySignal);
-
-      // 3. Finalize Result (Combine Flash Lite's structure with Antigravity's refined insight)
       result = {
-          ...preliminarySignal,
-          // insight: antigravityVerdict // Override with Antigravity's "touch" - SUSPENDED
+          ...finalSignal,
+          insight: antigravityVerdict // Display the full QuantConnect strategy details inside the UI
       };
 
       // 4. NEURAL ADVERSARIAL OVERRIDE (Hard Logic Veto) - SUSPENDED
@@ -1345,16 +1428,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                             </div>
 
                             {/* Antigravity Insight */}
-                            {msg.signal.insight && (
-                              <div className="mt-4 bg-violet-500/5 border border-violet-500/20 rounded-[2rem] p-6">
-                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-600/70 dark:text-violet-400/70 mb-4 flex items-center gap-2">
-                                  <Bot className="w-3 h-3" /> Antigravity Agent Verdict
-                                </h3>
-                                <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                  {msg.signal.insight}
-                                </div>
-                              </div>
-                            )}
+                             {msg.signal.insight && (
+                               <AntigravityVerdictDisplay insight={msg.signal.insight} />
+                             )}
 
                             {/* Quant Engine Live Market Telemetry */}
                             {msg.signal.signal !== 'NEUTRAL' && msg.signal.quantData && (

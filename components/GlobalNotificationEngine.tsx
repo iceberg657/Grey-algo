@@ -5,6 +5,7 @@ import { db } from '../firebase';
 import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, serverTimestamp } from 'firebase/firestore';
 import { runMechanicalAnalysis } from '../utils/mechanicalBacktester';
 import { UserMetadata } from '../types';
+import { generateAntigravityResearch } from '../services/geminiService';
 
 interface GlobalNotificationEngineProps {
     userMetadata: UserMetadata | null;
@@ -321,6 +322,29 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                                         adjustedTP = entry - (riskAmount * currentConfig.riskReward);
                                     }
 
+                                    let antigravityVerdict = '';
+                                    try {
+                                        const mockQuantData = {
+                                            trend: setup.direction === 'BUY' ? 'BULLISH' : 'BEARISH',
+                                            weightedScore: { totalScore: 78 },
+                                            orderflowMetrics: { imbalanceRatio: setup.direction === 'BUY' ? 1.4 : 0.7 },
+                                            markovRegime: { currentRegime: 'High Volatility Trend' },
+                                            liquiditySweep: setup.pattern.includes('Sweep') || setup.logic.includes('swept'),
+                                            ote: { bullish: setup.direction === 'BUY' ? 'YES' : 'NO', bearish: setup.direction === 'SELL' ? 'YES' : 'NO' }
+                                        };
+                                        const queryStr = `Analyze scanning signal: Mechanical setup is a ${setup.direction} on ${asset} (${tf}) with entry range starting at ${entry}. Dynamic parameters are requested.`;
+                                        antigravityVerdict = await generateAntigravityResearch(
+                                            queryStr, 
+                                            asset, 
+                                            mockQuantData, 
+                                            undefined, 
+                                            `Signal context: Setup pattern detected was ${setup.pattern}. Detailed logical condition: ${setup.logic}. Timeframe is ${tf}. Execution model is ${currentConfig.executionType || 'Market Execution'}.`
+                                        );
+                                    } catch (err) {
+                                        console.error('[GlobalNotificationEngine] Antigravity verification failed:', err);
+                                        antigravityVerdict = 'Antigravity strategy mapping unavailable.';
+                                    }
+
                                     const newNotif = {
                                         asset,
                                         timeframe: tf,
@@ -335,11 +359,12 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                                         executionType: currentConfig.executionType || 'Market Execution',
                                         status: 'ACTIVE',
                                         timestamp: serverTimestamp(),
-                                        expiresAt: Date.now() + (currentConfig.notificationLifetime * 60000)
+                                        expiresAt: Date.now() + (currentConfig.notificationLifetime * 60000),
+                                        antigravityVerdict
                                     };
 
                                     await addDoc(collection(db, 'users', userMetadata.uid, 'trade_notifications'), newNotif);
-                                    console.log(`[GlobalNotificationEngine] Added setup for ${asset} ${tf}: ${setup.direction}`);
+                                    console.log(`[GlobalNotificationEngine] Added setup for ${asset} ${tf} with Antigravity verdict: ${setup.direction}`);
                                     triggeredForAssetThisCycle = true;
                                 }
                             }

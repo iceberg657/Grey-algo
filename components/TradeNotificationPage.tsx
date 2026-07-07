@@ -1,11 +1,84 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bell, Settings, Target, Clock, AlertTriangle, CheckCircle2, XCircle, ArrowLeft, Loader2, Save, Trash2 } from 'lucide-react';
+import { Bell, Settings, Target, Clock, AlertTriangle, CheckCircle2, XCircle, ArrowLeft, Loader2, Save, Trash2, Bot, ChevronDown } from 'lucide-react';
 import { UserMetadata } from '../types';
 import { db, auth } from '../firebase';
-import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, serverTimestamp, getDocs, where, writeBatch } from 'firebase/firestore';
+import { collection, addDoc, query, orderBy, onSnapshot, updateDoc, doc, serverTimestamp, getDocs, where, writeBatch, deleteDoc } from 'firebase/firestore';
 import { runMechanicalAnalysis } from '../utils/mechanicalBacktester';
 import { ThemeToggleButton } from './ThemeToggleButton';
+
+const AntigravityVerdictDisplay: React.FC<{ insight: string }> = ({ insight }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+
+    let summary = '';
+    let fullContext = '';
+    
+    const summaryHeaderIndex = insight.indexOf('### EXECUTIVE SUMMARY');
+    const dividerIndex = insight.indexOf('---');
+    
+    if (dividerIndex !== -1) {
+        if (summaryHeaderIndex !== -1) {
+            summary = insight.substring(summaryHeaderIndex + '### EXECUTIVE SUMMARY'.length, dividerIndex).trim();
+        } else {
+            summary = insight.substring(0, dividerIndex).trim();
+        }
+        fullContext = insight.substring(dividerIndex + 3).trim();
+    } else {
+        if (summaryHeaderIndex !== -1) {
+            const parsed = insight.substring(summaryHeaderIndex + '### EXECUTIVE SUMMARY'.length).trim();
+            const nextSectionIndex = parsed.indexOf('###');
+            if (nextSectionIndex !== -1) {
+                summary = parsed.substring(0, nextSectionIndex).trim();
+                fullContext = parsed.substring(nextSectionIndex).trim();
+            } else {
+                summary = parsed;
+            }
+        } else {
+            summary = insight;
+        }
+    }
+
+    return (
+        <div className="mt-3 p-4 bg-violet-500/5 dark:bg-violet-500/10 border border-violet-500/20 rounded-2xl">
+            <div className="text-[10px] font-black uppercase tracking-wider text-violet-600 dark:text-violet-400 mb-2 flex items-center gap-1.5">
+                <Bot size={13} /> Antigravity QuantConnect Verdict
+            </div>
+            
+            {/* Dynamic Summary Panel */}
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-100 leading-relaxed whitespace-pre-wrap bg-violet-500/10 dark:bg-violet-500/20 p-3 rounded-xl border border-violet-500/5">
+                {summary}
+            </div>
+
+            {fullContext && (
+                <div className="mt-2.5">
+                    <button 
+                        onClick={() => setIsExpanded(!isExpanded)} 
+                        className="flex items-center gap-1 text-[11px] font-bold text-violet-600 dark:text-violet-400 hover:opacity-80 transition cursor-pointer"
+                    >
+                        {isExpanded ? 'Hide Full Quantitative Rationale' : 'View Full Quantitative Rationale'}
+                        <ChevronDown className={`w-3 h-3 transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    <AnimatePresence initial={false}>
+                        {isExpanded && (
+                            <motion.div
+                                initial={{ height: 0, opacity: 0 }}
+                                animate={{ height: 'auto', opacity: 1 }}
+                                exit={{ height: 0, opacity: 0 }}
+                                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                                className="overflow-hidden"
+                            >
+                                <div className="mt-3 pt-3 border-t border-violet-500/10 text-[11px] text-slate-600 dark:text-slate-400 whitespace-pre-wrap leading-relaxed space-y-1.5">
+                                    {fullContext}
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
+                </div>
+            )}
+        </div>
+    );
+};
 
 interface TradeNotificationPageProps {
     onBack: () => void;
@@ -68,6 +141,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
 
     const [newAsset, setNewAsset] = useState('');
     const [notifications, setNotifications] = useState<any[]>([]);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const configRef = React.useRef(config);
     const notifsRef = React.useRef(notifications);
@@ -220,9 +295,20 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
         });
     };
 
+    const deleteNotification = async (id: string) => {
+        if (!userMetadata?.uid) return;
+        setDeletingId(id);
+        try {
+            await deleteDoc(doc(db, 'users', userMetadata.uid, 'trade_notifications', id));
+        } catch (error) {
+            console.error("Error deleting notification:", error);
+        } finally {
+            setDeletingId(null);
+        }
+    };
+
     const clearHistory = async () => {
         if (!userMetadata?.uid || notifications.length === 0) return;
-        if (!window.confirm("Are you sure you want to clear all received analysis history?")) return;
         
         setIsSaving(true);
         try {
@@ -232,9 +318,9 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 batch.delete(docRef);
             });
             await batch.commit();
+            setShowClearConfirm(false);
         } catch (error) {
             console.error("Error clearing history:", error);
-            alert("Failed to clear history.");
         } finally {
             setIsSaving(false);
         }
@@ -474,14 +560,34 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                     <div className="space-y-4">
                         {notifications.length > 0 && (
                             <div className="flex justify-end mb-2">
-                                <button
-                                    onClick={clearHistory}
-                                    disabled={isSaving}
-                                    className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-colors disabled:opacity-50"
-                                >
-                                    {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
-                                    Clear History
-                                </button>
+                                {showClearConfirm ? (
+                                    <div className="flex items-center gap-2 bg-rose-500/5 dark:bg-rose-500/10 border border-rose-500/20 px-3 py-1.5 rounded-2xl">
+                                        <span className="text-xs font-bold text-rose-500">Clear all received history?</span>
+                                        <button
+                                            onClick={clearHistory}
+                                            disabled={isSaving}
+                                            className="px-3 py-1 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors flex items-center gap-1 cursor-pointer"
+                                        >
+                                            {isSaving ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                                            Yes, Clear
+                                        </button>
+                                        <button
+                                            onClick={() => setShowClearConfirm(false)}
+                                            disabled={isSaving}
+                                            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-black uppercase tracking-widest transition-colors cursor-pointer"
+                                        >
+                                            Cancel
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button
+                                        onClick={() => setShowClearConfirm(true)}
+                                        className="flex items-center gap-2 px-4 py-2 bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20 rounded-xl text-xs font-bold uppercase tracking-widest hover:bg-rose-500/20 transition-colors cursor-pointer"
+                                    >
+                                        <Trash2 size={14} />
+                                        Clear History
+                                    </button>
+                                )}
                             </div>
                         )}
                         {notifications.length === 0 ? (
@@ -523,6 +629,9 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                             <h4 className="font-bold text-lg">{notif.pattern}</h4>
                                             {notif.strategyName && <div className="text-xs font-bold text-slate-500 mt-1">Strategy: {notif.strategyName}</div>}
                                             {notif.logic && <div className="text-xs text-slate-400 mt-1 line-clamp-2" title={notif.logic}>{notif.logic}</div>}
+                                            {notif.antigravityVerdict && (
+                                                <AntigravityVerdictDisplay insight={notif.antigravityVerdict} />
+                                            )}
                                         </div>
                                         
                                         <div className="flex items-center gap-3">
@@ -536,6 +645,18 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                             <span className="text-xs font-mono text-slate-400">
                                                 {new Date(notif.timestamp?.toMillis ? notif.timestamp.toMillis() : notif.timestamp).toLocaleTimeString()}
                                             </span>
+                                            <button
+                                                onClick={() => deleteNotification(notif.id)}
+                                                disabled={deletingId === notif.id}
+                                                className="p-1.5 text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                                                title="Delete received analysis"
+                                            >
+                                                {deletingId === notif.id ? (
+                                                    <Loader2 size={14} className="animate-spin" />
+                                                ) : (
+                                                    <Trash2 size={14} />
+                                                )}
+                                            </button>
                                         </div>
                                     </div>
                                     

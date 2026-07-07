@@ -96,6 +96,8 @@ interface TechnicalAnalysisResult {
     resistance: number;
     isStale: boolean;
     candles: Candle[];
+    fvg?: 'BULLISH' | 'BEARISH' | 'NONE';
+    liquidityPool?: 'EQUAL_HIGHS' | 'EQUAL_LOWS' | 'NONE';
 }
 
 export const TrendScannerPanel: React.FC = () => {
@@ -276,6 +278,33 @@ export const TrendScannerPanel: React.FC = () => {
         const lastCandle = candles[candles.length - 1];
         const isStale = lastCandle ? (Math.floor(Date.now() / 1000) - lastCandle.epoch > parseInt(selectedTimeframe) * 3) : false;
 
+
+        // Check for FVG in the last 10 candles
+        let fvgStatus: 'BULLISH' | 'BEARISH' | 'NONE' = 'NONE';
+        for (let i = candles.length - 1; i >= Math.max(0, candles.length - 10); i--) {
+            const c1 = candles[i - 2];
+            const c3 = candles[i];
+            if (c1 && c3) {
+                if (c1.high < c3.low) fvgStatus = 'BULLISH';
+                else if (c1.low > c3.high) fvgStatus = 'BEARISH';
+            }
+            if (fvgStatus !== 'NONE') break;
+        }
+
+        // Check for Liquidity Pools (Equal Highs / Equal Lows)
+        let liquidityPool: 'EQUAL_HIGHS' | 'EQUAL_LOWS' | 'NONE' = 'NONE';
+        const maxHigh = Math.max(...recentHighs);
+        const minLow = Math.min(...recentLows);
+        
+        const highsNearMax = recentHighs.filter(h => (maxHigh - h) / maxHigh < 0.0005);
+        const lowsNearMin = recentLows.filter(l => (l - minLow) / minLow < 0.0005);
+        
+        if (highsNearMax.length >= 2) {
+            liquidityPool = 'EQUAL_HIGHS';
+        } else if (lowsNearMin.length >= 2) {
+            liquidityPool = 'EQUAL_LOWS';
+        }
+
         return {
             symbol,
             lastPrice,
@@ -289,7 +318,9 @@ export const TrendScannerPanel: React.FC = () => {
             support,
             resistance,
             isStale,
-            candles
+            candles,
+            fvg: fvgStatus,
+            liquidityPool
         };
     };
 
@@ -368,15 +399,17 @@ MARKET METRICS:
 - Swing Support: ${activeAnalysis.support.toFixed(4)}
 - Swing Resistance: ${activeAnalysis.resistance.toFixed(4)}
 - Math-Model Trend Bias: ${activeAnalysis.trend} (Confluence: ${activeAnalysis.confluenceScore}/100)
+- Institutional Liquidity Pools: ${activeAnalysis.liquidityPool === 'EQUAL_HIGHS' ? 'EQUAL HIGHS DETECTED' : activeAnalysis.liquidityPool === 'EQUAL_LOWS' ? 'EQUAL LOWS DETECTED' : 'None Detected'}
+- Institutional Imbalances (FVG): ${activeAnalysis.fvg === 'BULLISH' ? 'BULLISH FVG DETECTED' : activeAnalysis.fvg === 'BEARISH' ? 'BEARISH FVG DETECTED' : 'None Detected'}
 
 RECENT OHLC HISTORICAL CANDLES:
 ${recentCandlesDesc}
 
 TASK:
 Provide a highly professional, short, and punchy strategic trading plan giving a clean setup for the ${timeFrameLabel} timeframe. Strictly keep it to 3 clean sections:
-1. **Trend Sentiment Analysis**: Formulate a short argument for why this asset is structurally Bullish or Bearish from an institutional perspective (Smart Money Concepts / order flow / liquidity sweeps).
-2. **Key Battle Zones**: Specify a tactical Entry Zone (POIs/Order Blocks) based on EMAs, and exact mathematical Stop Loss and Take Profit zones.
-3. **Execution Directive**: Give an immediate operational guideline (e.g., 'WAIT for a pool sweep', 'MARKET ORDER LONG', or 'LIMIT BUY near Support').
+1. **Institutional Trap Analysis**: Formulate a short argument for why this asset is structurally Bullish or Bearish from an institutional perspective (Smart Money Concepts). Focus heavily on analyzing the detected Liquidity Pools and FVGs to identify potential counter-trend Stop Hunts before entry.
+2. **Key Battle Zones**: Specify a tactical Entry Zone (POIs/Order Blocks). If Equal Highs/Lows are present, position entries AFTER the expected liquidity sweep. Provide exact mathematical Stop Loss and Take Profit zones.
+3. **Execution Directive**: Give an immediate operational guideline emphasizing Lower Timeframe (LTF) Confirmation (e.g., 'Wait for CHoCH on LTF after liquidity sweep', 'LIMIT BUY at FVG mitigation').
 
 Be objective, authoritative, and direct. Do not include any standard financial disclaimers or flowery introductions. Use elegant Markdown.`;
 
@@ -794,7 +827,44 @@ Be objective, authoritative, and direct. Do not include any standard financial d
                                 </div>
                             </div>
 
-                            {/* Chart Overlay */}
+
+                            {/* Structural Trap Analysis */}
+                            <div className="flex flex-col gap-3 mt-2">
+                                <div className="flex justify-between items-center px-1">
+                                    <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">
+                                        Institutional Liquidity & Structure
+                                    </h4>
+                                </div>
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                    <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-800/30">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Liquidity Pools</span>
+                                        <span className={`font-mono text-sm font-bold ${
+                                            activeAnalysis.liquidityPool === 'EQUAL_HIGHS' ? 'text-amber-500' :
+                                            activeAnalysis.liquidityPool === 'EQUAL_LOWS' ? 'text-indigo-400' : 'text-slate-500'
+                                        }`}>
+                                            {activeAnalysis.liquidityPool === 'EQUAL_HIGHS' ? '🚨 EQUAL HIGHS (Buy Stops)' : 
+                                             activeAnalysis.liquidityPool === 'EQUAL_LOWS' ? '🚨 EQUAL LOWS (Sell Stops)' : 'None Detected'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-800/30">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Imbalances (FVG)</span>
+                                        <span className={`font-mono text-sm font-bold ${
+                                            activeAnalysis.fvg === 'BULLISH' ? 'text-emerald-500' :
+                                            activeAnalysis.fvg === 'BEARISH' ? 'text-rose-500' : 'text-slate-500'
+                                        }`}>
+                                            {activeAnalysis.fvg === 'BULLISH' ? '📈 BULLISH FVG' : 
+                                             activeAnalysis.fvg === 'BEARISH' ? '📉 BEARISH FVG' : 'None Detected'}
+                                        </span>
+                                    </div>
+                                    <div className="flex flex-col gap-1.5 p-3 rounded-lg border border-slate-200 dark:border-white/5 bg-slate-50/50 dark:bg-slate-800/30">
+                                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">LTF Confirmation</span>
+                                        <span className="font-mono text-sm font-bold text-slate-400">
+                                            {activeAnalysis.fvg !== 'NONE' || activeAnalysis.liquidityPool !== 'NONE' ? '⏳ WAIT FOR CHoCH' : 'N/A'}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+\n                            {/* Chart Overlay */}
                             <div className="flex flex-col gap-3">
                                 <div className="flex justify-between items-center px-1">
                                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-500">

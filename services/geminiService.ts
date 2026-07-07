@@ -1836,13 +1836,20 @@ export async function generateAntigravityResearch(
     query: string,
     asset: string,
     quantData: any,
-    initialAnalysis?: SignalData
+    initialAnalysis?: SignalData,
+    macroContext?: string
 ): Promise<string> {
     const prompt = `You are the Antigravity Agent, an elite institutional deep-research trading agent.
-Your sole objective is to find every possible reason why this trade might fail. You are the final Veto filter in the GreyAlpha Neural Matrix.
+Your primary objective is to act as a QuantConnect Algorithmic Strategy Router & Dynamic Verification Engine.
+Hardcoded, rigid rules are causing unprofitable bleeding losses. We are transitioning to a fully adaptive, dynamic architecture that maps the current market structure to QuantConnect Lean quantitative algorithms.
 
 Analyze the following asset: ${asset}.
 User Query: ${query}
+
+${macroContext ? `
+Macro Market Context & Multi-Timeframe Structure:
+${macroContext}
+` : ''}
 
 ${initialAnalysis ? `
 Flash Lite's Preliminary Structured Analysis:
@@ -1868,18 +1875,32 @@ ADVERSARIAL NEURAL LAYER (ALGORITHMIC):
 - Algorithmic Veto Reasons:
 ${quantData?.adversarialVeto?.vetoReasons?.map((r: string) => `  - ${r}`).join('\n') || '  - None'}
 
-YOUR VETO-FIRST MISSION:
-1. THE VETO MANDATE: Actively search for flaws in the volume, price action, and news context. If you cannot find a strong, data-backed reason to VETO this trade, only then conclude as 'PROCEED'.
-2. ALPHA VS. NOISE: Distinguish between statistical robustness (robustness != alpha) and real predictive edge. Is this setup a real pattern or a statistical ghost?
-3. PERMUTATION REASONING: Mentally "shuffle" the time-series relationship. If this context was slightly randomized, would the setup still look "perfect"? If the answer is yes, the system is likely overfitting to noise.
-4. INDEPENDENT VERIFICATION: Use data points the Quant Engine might have ignored: HTF Order Flow, Macro-Bias, and specific session liquidity pools.
-5. INFORMATION ASYMMETRY (THE ECHO-CHAMBER FIX): Do NOT just echo the Quant Engine. You MUST perform a Cross-Asset/Cross-Data check using your internal neural weights for global macro correlations (e.g., DXY vs. Risk Assets, US10Y vs. Tech/JPY). If the Quant model says BUY but the Macro/Correlation landscape is hostile (e.g., DXY breakout during a BTC Long setup), you MUST VETO.
+YOUR QUANTCONNECT ROUTING & DYNAMIC FORMULATION MISSION:
+1. QUANTCONNECT ALGORITHMIC ROUTING:
+   - Identify the most appropriate QuantConnect Lean-compatible algorithmic strategy from the Quant repository for the current regime (e.g., QC_Momentum_Reversal_V4, QC_Ema_Pullback_Kelly_Sizer, QC_Session_Arbitrage_SMC, QC_Statistical_Arbitrage_ZScore, QC_Volatility_Co-integration).
+   - Detail the Selected QuantConnect Strategy ID, its core mathematical rationale, and how it maps to this setup.
 
-Conclude with a clear verdict:
-- PROCEED (A+ Setup): Only if the trade survives your exhaustive attempt to invalidate it.
-- VETO (Suboptimal or Trap): If you find even one credible reason for probable failure. When outputting a VETO verdict, use the phrase "VERDICT: VETO. MANAGE RISK." instead of saying "do not execute".
+2. DYNAMIC PARAMETER FORMULATION (OVERRIDING ALL RIGID RULES):
+   - **Dynamic Lot Sizing Multiplier**: Formulate a volatility/regime-adjusted position sizing multiplier (using Kelly Criterion or Fractional Kelly). Provide the exact mathematical equation (e.g., QC_LotMultiplier = Math.max(0.2, (HurstExponent - StatisticalNoise) * 1.5)) and explain how the user should dynamically scale their position.
+   - **Dynamic Risk-to-Reward (R:R)**: Determine the optimal target R:R. Explain how it dynamically adapts to institutional structural key zones (FVGs, Liquidity pools) rather than being fixed. Target an adaptive ratio from 1:1.2 to 1:5.0.
+   - **Dynamic Entry Range**: Specify how the entry range adapts to the ATR/Z-score volatility boundary rather than a hardcoded trigger.
 
-Keep the response structured, institutional, and cold.`;
+3. INDEPENDENT VERIFICATION & VERDICT:
+   - Examine HTF orderflow, session bias (London Open vs NY Open liquidity traps), and DXY/Risk correlation.
+   - Surrender a precise, data-backed verdict: PROCEED (survived invalidation, survived alpha stability testing) or VETO (risk-heavy statistical ghost).
+   - If proceeding, output the exact QuantConnect strategy code concept or dynamic rules block.
+
+IMPORTANT FORMATTING INSTRUCTION:
+You MUST start your response with a clearly labeled summary section:
+### EXECUTIVE SUMMARY
+[Provide a clear, 2-3 sentence high-level summary of your decision, the matched QuantConnect Strategy ID, and the dynamic key parameters. Keep it actionable, bold, and precise.]
+
+Followed by a divider line:
+---
+
+And then provide the deep institutional analysis and mathematical formulas under standard headings below the divider.
+
+Keep the response highly structured, institutional, cold, and mathematically rich.`;
 
     return await executeLaneCall<string>(async (apiKey) => {
         const controller = new AbortController();
@@ -2253,7 +2274,7 @@ JSON Structure:
             models,
             async (modelId) => {
                 const config: any = {
-                    temperature: 0.0,
+                    temperature: 1.0,
                     maxOutputTokens: 8192,
                     responseMimeType: "application/json",
                     responseSchema: SniperDataSchema
@@ -2762,7 +2783,7 @@ export async function getGeminiAnalysis(prompt: string): Promise<string> {
             model: ANALYSIS_MODELS[0],
             contents: prompt,
             config: {
-                temperature: 0.2, // precise analytical mode
+                temperature: 1.0, // text out model
                 thinkingConfig: { thinkingBudget: 256 }
             }
         });
