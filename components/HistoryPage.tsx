@@ -1,8 +1,10 @@
 
 import React, { useState, useEffect } from 'react';
-import type { SignalData } from '../types';
+import type { SignalData, Trade } from '../types';
 import { getHistory, clearHistory } from '../services/historyService';
+import { getTradeHistory } from '../services/tradeLogger';
 import { ThemeToggleButton } from './ThemeToggleButton';
+import { PerformanceDashboard } from './PerformanceDashboard';
 
 interface HistoryPageProps {
     onSelectAnalysis: (data: SignalData) => void;
@@ -41,12 +43,19 @@ const HistoryItem: React.FC<{ data: SignalData; onSelect: (data: SignalData) => 
 
 export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBack, onLogout }) => {
     const [history, setHistory] = useState<SignalData[]>([]);
+    const [trades, setTrades] = useState<Trade[]>([]);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     
     useEffect(() => {
         const fetchHistory = async () => {
             const data = await getHistory();
             setHistory(data);
+            try {
+                const tradeData = await getTradeHistory();
+                setTrades(tradeData);
+            } catch (err) {
+                console.error("Failed to load trades for dashboard", err);
+            }
         };
         fetchHistory();
     }, []);
@@ -126,6 +135,12 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
                         </button>
                     </div>
                  </header>
+                 
+                 {trades && trades.length > 0 && (
+                     <div className="mb-6">
+                         <PerformanceDashboard trades={trades} />
+                     </div>
+                 )}
 
                 <main className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)] space-y-4">
                     {history.length > 0 ? (

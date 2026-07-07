@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Trade } from '../types';
 import { getTradeHistory, updateTradeOutcome } from '../services/tradeLogger';
 import { generateLessonFromTradeLog } from '../services/learningService';
+import { PerformanceDashboard } from './PerformanceDashboard';
 
 export const TradeHistory: React.FC = () => {
     const [trades, setTrades] = useState<Trade[]>([]);
@@ -44,6 +45,7 @@ export const TradeHistory: React.FC = () => {
 
     return (
         <div className="space-y-6">
+            <PerformanceDashboard trades={trades} />
             <div className="grid grid-cols-1 gap-4">
                 {trades.length === 0 ? (
                     <div className="text-center py-12 bg-white/5 rounded-2xl border border-white/10">
