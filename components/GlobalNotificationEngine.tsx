@@ -24,6 +24,57 @@ interface NotificationConfig {
     executionType?: 'Market Execution' | 'Limit / Stop Order';
 }
 
+const DEFAULT_SESSION_ASSETS: Record<string, string[]> = {
+    Asian: ['USDJPY', 'GBPJPY', 'EURJPY', 'AUDUSD', 'NZDUSD', 'BTCUSD', 'ETHUSD', 'LTCUSD'],
+    London: ['EURUSD', 'GBPUSD', 'EURGBP', 'GBPJPY', 'EURJPY', 'GBPCHF', 'XAUUSD', 'UK100', 'Germany40', 'France40', 'Europe50'],
+    'New York': ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'USDCHF', 'AUDUSD', 'XAUUSD', 'SILVER', 'BRENT', 'WTI', 'US30', 'NAS100', 'SPX500', 'BTCUSD', 'ETHUSD']
+};
+
+const getAllowedAssetsForCurrentSession = (
+    utcHour: number, 
+    settings: { asianAssets: string[]; londonAssets: string[]; nyAssets: string[] } | null
+) => {
+    const activeSessions: ('Asian' | 'London' | 'New York')[] = [];
+    if (utcHour >= 0 && utcHour < 9) activeSessions.push('Asian');
+    if (utcHour >= 7 && utcHour < 16) activeSessions.push('London');
+    if (utcHour >= 12 && utcHour < 21) activeSessions.push('New York');
+
+    const allowed = new Set<string>();
+
+    const hasUserConfig = settings && (
+        (settings.asianAssets && settings.asianAssets.length > 0) ||
+        (settings.londonAssets && settings.londonAssets.length > 0) ||
+        (settings.nyAssets && settings.nyAssets.length > 0)
+    );
+
+    if (activeSessions.length === 0) {
+        return null;
+    }
+
+    if (hasUserConfig && settings) {
+        activeSessions.forEach(session => {
+            if (session === 'Asian' && settings.asianAssets) {
+                settings.asianAssets.forEach(a => allowed.add(a.toUpperCase().replace(/[^A-Z0-9]/g, '')));
+            }
+            if (session === 'London' && settings.londonAssets) {
+                settings.londonAssets.forEach(a => allowed.add(a.toUpperCase().replace(/[^A-Z0-9]/g, '')));
+            }
+            if (session === 'New York' && settings.nyAssets) {
+                settings.nyAssets.forEach(a => allowed.add(a.toUpperCase().replace(/[^A-Z0-9]/g, '')));
+            }
+        });
+    } else {
+        activeSessions.forEach(session => {
+            const defaults = DEFAULT_SESSION_ASSETS[session];
+            if (defaults) {
+                defaults.forEach(a => allowed.add(a.toUpperCase().replace(/[^A-Z0-9]/g, '')));
+            }
+        });
+    }
+
+    return Array.from(allowed);
+};
+
 export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> = ({ 
     userMetadata, 
     onNavigateToNotifications 
@@ -61,6 +112,12 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
 
     const configRef = useRef<NotificationConfig | null>(null);
     const notifsRef = useRef<any[]>([]);
+    const [blueprintSettings, setBlueprintSettings] = useState<{
+        asianAssets: string[];
+        londonAssets: string[];
+        nyAssets: string[];
+    } | null>(null);
+    const blueprintSettingsRef = useRef<typeof blueprintSettings>(null);
 
     useEffect(() => {
         configRef.current = config;
@@ -69,6 +126,40 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
     useEffect(() => {
         notifsRef.current = notifications;
     }, [notifications]);
+
+    useEffect(() => {
+        blueprintSettingsRef.current = blueprintSettings;
+    }, [blueprintSettings]);
+
+    // Subscribe to session/blueprint settings from Firestore
+    useEffect(() => {
+        if (!userMetadata?.uid) {
+            setBlueprintSettings(null);
+            return;
+        }
+
+        const blueprintDocRef = doc(db, 'users', userMetadata.uid, 'settings', 'blueprint');
+        const unsubscribe = onSnapshot(blueprintDocRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
+                setBlueprintSettings({
+                    asianAssets: data.asianAssets || [],
+                    londonAssets: data.londonAssets || [],
+                    nyAssets: data.nyAssets || []
+                });
+            } else {
+                setBlueprintSettings({
+                    asianAssets: [],
+                    londonAssets: [],
+                    nyAssets: []
+                });
+            }
+        }, (err) => {
+            console.error('[GlobalNotificationEngine] Failed to load blueprint settings:', err);
+        });
+
+        return () => unsubscribe();
+    }, [userMetadata?.uid]);
 
     // 1. Sync Configuration from localStorage periodically (every 3s)
     useEffect(() => {
@@ -138,7 +229,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
             const gain1 = ctx.createGain();
             osc1.type = 'sine';
             osc1.frequency.setValueAtTime(587.33, now); // D5
-            gain1.gain.setValueAtTime(0.12, now);
+            gain1.gain.setValueAtTime(0.5, now); // Increased from 0.12
             gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
             
             osc1.connect(gain1);
@@ -151,7 +242,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
             const gain2 = ctx.createGain();
             osc2.type = 'sine';
             osc2.frequency.setValueAtTime(880, now + 0.08); // A5
-            gain2.gain.setValueAtTime(0.12, now + 0.08);
+            gain2.gain.setValueAtTime(0.5, now + 0.08); // Increased from 0.12
             gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
             
             osc2.connect(gain2);
@@ -267,7 +358,16 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
 
             const isMonday = now.getDay() === 1;
 
+            // Determine session-aware allowed assets for current hour
+            const allowedSessionAssets = getAllowedAssetsForCurrentSession(now.getUTCHours(), blueprintSettingsRef.current);
+
             for (const asset of currentConfig.assets) {
+                // Session-awareness check
+                if (allowedSessionAssets && !allowedSessionAssets.includes(asset.toUpperCase().replace(/[^A-Z0-9]/g, ''))) {
+                    console.log(`[GlobalNotificationEngine] Skipping ${asset} because it is not active in the current trading session(s).`);
+                    continue;
+                }
+
                 // Check Daily Limit per asset (e.g. 10 signals per instrument daily)
                 const todaysAssetNotifs = todaysNotifs.filter(n => n.asset === asset);
                 if (todaysAssetNotifs.length >= currentConfig.dailyLimit) {
