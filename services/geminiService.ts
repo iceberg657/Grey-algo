@@ -6,6 +6,7 @@ import {
     executeLaneCall, 
     getAnalysisPool, 
     getSniperPool,
+    getAntigravityPool,
     getPilotPool, getBetaPool, 
     ANALYSIS_MODELS, 
     SNIPER_MODELS,
@@ -1924,7 +1925,7 @@ Keep the response highly structured, institutional, cold, and mathematically ric
         const data = await proxyRes.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         return text || 'No agent verdict provided.';
-    });
+    }, getAntigravityPool);
 }
 
 export async function generateSniperLiveSignal(

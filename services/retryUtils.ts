@@ -144,7 +144,7 @@ export const ANALYSIS_MODELS = [
 ];
 
 // 2. SNIPER PAGE
-export const getSniperPool = () => getUniqueKeys([K.K10()]);
+export const getSniperPool = () => getUniqueKeys([K.K3(), K.K10()]);
 export const SNIPER_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
@@ -164,6 +164,8 @@ export const CHAT_MODELS = [
 ];
 
 // 4. FEATURE DISTRIBUTION (Keys 6-9)
+
+export const getAntigravityPool = () => getUniqueKeys([K.K3(), K.K1(), K.K2(), K.K4()]);
 
 // ALPHA (Key 6)
 export const getAlphaPool = () => getUniqueKeys([K.K6()]);
