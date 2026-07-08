@@ -139,7 +139,7 @@ interface SniperLiveTradeProps {
 
 export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata, isLocked }) => {
   const [query, setQuery] = useState('');
-  const [style, setStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
+  const [style, setStyle] = useState<TradingStyle>('scalping(1 to 15mins)');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [messages, setMessages] = useState<SniperMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -356,25 +356,25 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       // Define 3 timeframes based on trading style
       const getTimeframes = (style: string) => {
         if (style.includes('scalping')) {
-            return { entry: 300, confirm: 900, htf: 3600 };
-        } else if (style.includes('day')) {
-            return { entry: 900, confirm: 3600, htf: 14400 };
+            return { entry: 300, confirm: 900, htf: 3600 }; // 5m, 15m, 1h
+        } else if (style.includes('swing')) {
+            return { entry: 14400, confirm: 86400, htf: 604800 }; // 4h, 1d, 1w
         } else {
-            return { entry: 3600, confirm: 14400, htf: 86400 };
+            return { entry: 900, confirm: 3600, htf: 14400 }; // Day: 15m, 1h, 4h
         }
       };
 
       const timeframes = getTimeframes(style);
 
-      console.log(`[SniperLiveTrade] Fetching 3 timeframes for ${symbol}...`);
+      console.log(`[SniperLiveTrade] Fetching 3 timeframes for ${symbol} (1000 candles each)...`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort('timeout'), 25000); // 25 second timeout for 3 fetches
+      const timeoutId = setTimeout(() => controller.abort('timeout'), 35000); // Increased timeout for larger fetches
 
-      // Fetch all 3 timeframes simultaneously (entry/confirm 300, HTF 1000)
+      // Fetch all 3 timeframes simultaneously (1000 candles each as requested)
       const [entryRes, confirmRes, htfRes] = await Promise.all([
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=300${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+          fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
           fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
       ]);
       
@@ -612,9 +612,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           }];
       });
 
-      // 1. Fetch Learned Lessons & Macro Context Summary
+      // 1. Fetch Learned Lessons & Macro Context Summary (Passing all 3 timeframes for combined analysis)
       const activeLearnedStrategies = await getLearnedStrategies();
-      const macroContextSummary = await generateMacroContext(asset, derivData?.multiTimeframe?.htf || {});
+      const macroContextSummary = await generateMacroContext(asset, derivData?.multiTimeframe || {});
 
       setMessages(prev => {
         const filtered = prev.filter(m => m.signal?.id !== 'loading');

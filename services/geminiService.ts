@@ -1577,21 +1577,29 @@ export function calculateRRLevels(
     signal: 'BUY' | 'SELL',
     entry: number,
     stopLoss: number,
-    asset: string = 'EURUSD'
+    asset: string = 'EURUSD',
+    isScalping: boolean = false
 ) {
     const risk = Math.abs(entry - stopLoss);
     if (risk === 0) return null;
 
     const precision = getAssetPrecision(asset);
 
+    const mult1 = 1.0;
+    const mult2 = isScalping ? 1.5 : 2.0;
+    const mult3 = isScalping ? 2.0 : 3.0;
+    const tp1Label = '1:1';
+    const tp2Label = isScalping ? '1:1.5' : '1:2';
+    const tp3Label = isScalping ? '1:2' : '1:3';
+
     if (signal === 'BUY') {
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry + risk * 1.0).toFixed(precision)),
-            tp2: parseFloat((entry + risk * 2.0).toFixed(precision)),
-            tp3: parseFloat((entry + risk * 3.0).toFixed(precision)),
-            rrRatios: { tp1: '1:1', tp2: '1:2', tp3: '1:3' },
+            tp1: parseFloat((entry + risk * mult1).toFixed(precision)),
+            tp2: parseFloat((entry + risk * mult2).toFixed(precision)),
+            tp3: parseFloat((entry + risk * mult3).toFixed(precision)),
+            rrRatios: { tp1: tp1Label, tp2: tp2Label, tp3: tp3Label },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -1599,10 +1607,10 @@ export function calculateRRLevels(
         return {
             risk,
             riskPips: risk,
-            tp1: parseFloat((entry - risk * 1.0).toFixed(precision)),
-            tp2: parseFloat((entry - risk * 2.0).toFixed(precision)),
-            tp3: parseFloat((entry - risk * 3.0).toFixed(precision)),
-            rrRatios: { tp1: '1:1', tp2: '1:2', tp3: '1:3' },
+            tp1: parseFloat((entry - risk * mult1).toFixed(precision)),
+            tp2: parseFloat((entry - risk * mult2).toFixed(precision)),
+            tp3: parseFloat((entry - risk * mult3).toFixed(precision)),
+            rrRatios: { tp1: tp1Label, tp2: tp2Label, tp3: tp3Label },
             breakeven: entry,
             partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
         };
@@ -1878,7 +1886,10 @@ ${quantData?.adversarialVeto?.vetoReasons?.map((r: string) => `  - ${r}`).join('
 
 YOUR QUANTCONNECT ROUTING & DYNAMIC FORMULATION MISSION:
 1. QUANTCONNECT ALGORITHMIC ROUTING:
-   - Identify the most appropriate QuantConnect Lean-compatible algorithmic strategy from the Quant repository for the current regime (e.g., QC_Momentum_Reversal_V4, QC_Ema_Pullback_Kelly_Sizer, QC_Session_Arbitrage_SMC, QC_Statistical_Arbitrage_ZScore, QC_Volatility_Co-integration).
+   - Identify the most appropriate QuantConnect Lean-compatible algorithmic strategy for the current regime.
+   - **PROP FIRM OPTIMIZATION MANDATE**: You must completely reprogram how the strategy behaves during optimization. Do NOT optimize for maximum 5-year returns (which results in wide stop-losses and long holding times).
+   - **Instead, optimize for high-win-rate intraday scalping.** Shift the strategy objectives toward daily, short-term, high-consistency targets with a 1:1 or 1:1.5 Risk-to-Reward (R:R) ratio, targeting a 70-80% win rate.
+   - You hunt for a quick "scalp" displacement leg, secure your daily target, and instantly shut off the algorithm's execution engine for the day.
    - Detail the Selected QuantConnect Strategy ID, its core mathematical rationale, and how it maps to this setup.
 
 2. DYNAMIC PARAMETER FORMULATION (OVERRIDING ALL RIGID RULES):
@@ -2074,8 +2085,8 @@ ${learnedStrategies.join('\n')}
 - **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 
 - You MUST anchor your Stop Loss EXACTLY using the engine mathematical SL or the Monte Carlo bounds (Lower Bound for BUY, Upper Bound for SELL). 
 - Your Take Profits MUST align with Expected Median Price and the structural Liquidity targets provided. If a user asks for statistical/mathematical projections, ONLY use the Monte Carlo bounds.
-- **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL. 
-- **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless engine explicitly gives Neutral.
+- **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the "ADVANCED MULTI-ASSET ENGINE SIGNAL" is active, you MUST output exactly the signal direction it provided (e.g. if it says "BUY", you MUST output "BUY"). Otherwise, if the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL.
+- **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless the engine explicitly gives Neutral.
 - **EXECUTION COMPLIANCE:** If the ENGINE MANDATED EXECUTION is "LIMIT", you MUST use Pending Orders ("Buy Limit" or "Sell Limit") instead of Market Execution to protect against overextension traps.
 - **GRADE PENALTY:** If the Grade is "C", you MUST warn the user about the low confluence but provide the best possible execution setup if forced by the query.
 - **LONDON/EUR PROTECTION:** If the asset is UK100, FTSE, or EUR-based and the session is LONDON, you MUST prioritize the Mathematical Strict SL provided (${quantData.mathematicalSL}). This SL includes a wider institutional buffer to protect against typical London session "Stop Hunts" and "Liquidity Sweeps".
@@ -2146,8 +2157,11 @@ ${brokerInstruction}
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:
 ${style.includes('scalping') ? `
-- ENTRY TIMEFRAMES: 1min, 5min (Prioritize for exact entry trigger)
-- STRUCTURE/CONTEXT: 15min, 30min (Use for trend and major levels)` :
+- ENTRY TIMEFRAMES: 3min, 5min (Prioritize for exact entry trigger)
+- CONFIRMATION TIMEFRAME: 15min
+- STRUCTURE/CONTEXT: 1hr (Use for trend and major levels)
+- **PROP FIRM SCALPING MANDATE**: To achieve consistent daily targets, you must hunt for a quick "scalp" displacement leg and secure the daily target.
+- **RISK TO REWARD SHIFT**: Shift the mathematical engine to a high-win-rate intraday scalper. Target a **1:1 or 1:1.5 Risk-to-Reward (R:R)** ratio, optimizing for a **70-80% win rate**. Do NOT use wide stop losses or long holding times.` :
             style.includes('day trading') ? `
 - ENTRY TIMEFRAMES: 15min, 30min, 1hr (Prioritize for entry confirmation)
 - STRUCTURE/CONTEXT: 4hrs (Use for daily bias and institutional zones)` :
@@ -2196,8 +2210,8 @@ You MUST localize the exact text outputs inside fields such as "reasoning", "bia
    - Penalties: Deduct heavily (-20%) if trading against HTF Bias or outside of optimal zones.
    - CAP: Your final score MUST NOT exceed 85% to reflect inherent market risk.
 2. **TIMEFRAME PRECISION & ACTIVE VISUAL SYNCHRONIZATION:** Your selected \`timeframe\` output must be perfectly synchronized with the market structure:
-   - If Displacement is YES and volatility/momentum is high, select "15m" (or 5m for scalps) for surgical precision.
-   - If the market is consolidating, or in a broader structural zone waiting for a trigger, select "1H" (or 4H for swing).
+    - If the style is Scalping, you MUST output '5m' or '3m' as the timeframe, never '15m'.
+   - If the style is Day Trading, select '15m' or '1H'.
    - The chosen timeframe MUST logically match the scale of your Entry Range and Stop Loss pip distance.
    - **Visual Synchronicity:** Under screen capture (Oracle / Screen Share Live Mode), look closely at the displayed chart header watermark or top-left ticker details. Always match the user’s active screen timeframe: if their screen shows a 15-minute chart, you MUST output '15m' and align your entry range/levels with their chart candles. Never output '1m' or '5m' if a larger macro timeframe is loaded on their shared display. Do not hallucinate prices not represented on their scale.
 3. **ADVANCED QUANT & INSTITUTIONAL EXECUTION (ANTI-LOSS MANDATE):**
@@ -2460,7 +2474,11 @@ JSON Structure:
                 let enforcedByEngine = false;
 
                 // Strict Math Engine Enforcement Override
-                if (quantData?.explicitSignal && quantData.explicitSignal !== 'NEUTRAL') {
+                if (advancedQuantSignal?.signal && advancedQuantSignal.signal !== 'NEUTRAL') {
+                    finalSignal = advancedQuantSignal.signal;
+                    enforcedByEngine = true;
+                    finalReasoning.push(`⚙️ ADVANCED QUANT ENGINE: Direction mathematically locked to ${finalSignal} via algorithmic arbitrage analysis.`);
+                } else if (quantData?.explicitSignal && quantData.explicitSignal !== 'NEUTRAL') {
                     finalSignal = quantData.explicitSignal;
                     enforcedByEngine = true;
                     finalReasoning.push(`⚙️ STRICT MATH ENGINE OVERRIDE: Direction mathematically locked to ${finalSignal}. LLM guesses rejected.`);
@@ -2545,19 +2563,20 @@ JSON Structure:
                 }
 
                 // Apply mathematical RR overrides
-                const rrLevels = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, signal.asset || assetName);
+                const isScalping = style.includes('scalping');
+                const rrLevels = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, signal.asset || assetName, isScalping);
                 let finalPositionProtocol: string | undefined = undefined;
 
                 if (rrLevels) {
                     finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
-                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.0x, 2.0x, 3.0x risk distances to ensure high-probability profit locking.`);
+                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.0x, ${isScalping ? '1.5x, 2.0x' : '2.0x, 3.0x'} risk distances to ensure high-probability profit locking.`);
                     finalPositionProtocol = `
 **POSITION MANAGEMENT PROTOCOL (ANTI-REVERSAL SHIELD):**
 - Entry: ${midEntry}
 - Stop Loss: ${finalSL} (Risk: ${rrLevels.risk.toFixed(5)})
-- TP1 (1:1.0 RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
-- TP2 (1:2.0 RR): ${rrLevels.tp2} → Close 30%
-- TP3 (1:3.0 RR): ${rrLevels.tp3} → Close remaining 20%
+- TP1 (${rrLevels.rrRatios.tp1} RR): ${rrLevels.tp1} → Close 50%, move SL to breakeven
+- TP2 (${rrLevels.rrRatios.tp2} RR): ${rrLevels.tp2} → Close 30%
+- TP3 (${rrLevels.rrRatios.tp3} RR): ${rrLevels.tp3} → Close remaining 20%
 - Breakeven Level: ${rrLevels.breakeven}
 
 RULE: Once TP1 is hit you CANNOT lose on this trade.
@@ -2571,7 +2590,7 @@ Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
 
                     if (!tpsValid) {
                         console.warn('[RR] TP validation failed — recalculating');
-                        const recalculated = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL);
+                        const recalculated = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, signal.asset || assetName, isScalping);
                         if (recalculated) {
                             finalTPs[0] = recalculated.tp1 || finalTPs[0] || 0;
                             finalTPs[1] = recalculated.tp2 || finalTPs[1] || 0;
@@ -2864,31 +2883,47 @@ Return pure JSON only.`;
 
 export async function generateMacroContext(
     asset: string,
-    htfData: any
+    multiTimeframe: any
 ): Promise<string> {
     await initializeApiKey();
     return await executeLaneCall<string>(async (apiKey) => {
         const ai = new GoogleGenAI({ apiKey });
         
-        // Downsample or extract key info if needed to keep it clean
-        const candles = htfData.candles || [];
-        const formatCandles = candles.map((c: any) => ({
-            time: new Date(c.epoch * 1000).toISOString().split('T')[0],
-            o: c.open, h: c.high, l: c.low, c: c.close
-        }));
+        const formatTf = (tfData: any) => {
+            const candles = tfData?.candles || [];
+            // Sample data to keep prompt size manageable while preserving structure
+            // We take every 5th candle if count is 1000
+            const sampled = candles.filter((_: any, i: number) => i % 5 === 0);
+            return sampled.map((c: any) => ({
+                t: new Date(c.epoch * 1000).toISOString().split('T')[1].substring(0, 5),
+                o: c.open, h: c.high, l: c.low, c: c.close
+            }));
+        };
 
-        let prompt = `You are the Long-Term Context Agent for ${asset}.
-Analyze the following ~1000 candles of higher timeframe data and produce a concise summary.
-Focus on:
-1. Major support and resistance levels.
-2. Overall macro trend direction.
-3. Institutional order blocks and long-term liquidity pools.
-4. Current market regime (trending, ranging, high volatility).
+        const entryContext = formatTf(multiTimeframe.entry);
+        const confirmContext = formatTf(multiTimeframe.confirm);
+        const htfContext = formatTf(multiTimeframe.htf);
 
-Keep your response extremely concise, structured with bullet points. Avoid any fluff.
+        let prompt = `You are the Multi-Timeframe Context Agent for ${asset}.
+Your task is to analyze market structure across three distinct timeframes to find CONFLUENCE.
 
-Raw HTF Data:
-${JSON.stringify(formatCandles)}
+Timeframe 1 (Entry/Scalp/M5/H4):
+${JSON.stringify(entryContext)}
+
+Timeframe 2 (Confirm/M15/D1):
+${JSON.stringify(confirmContext)}
+
+Timeframe 3 (HTF/H1/W1):
+${JSON.stringify(htfContext)}
+
+Analysis Objectives:
+1. Identify major structural breaks (BOS/CHoCH) on all timeframes.
+2. Detect if there is structural alignment (e.g., all 3 TFs are bullish).
+3. Map institutional supply/demand zones and high-volume nodes (POC).
+4. Identify Liquidity Voids or Fair Value Gaps (FVG) that need filling.
+5. Determine if we are in a high-probability "Goldilocks" zone (confluence of support/demand across TFs).
+
+Provide a concise, high-impact summary with bullet points. Be blunt. If there is no alignment, say "STRUCTURAL DIVERGENCE DETECTED".
 `;
 
         const response = await runWithModelFallback<GenerateContentResponse>(
@@ -2900,6 +2935,6 @@ ${JSON.stringify(formatCandles)}
             })
         );
 
-        return response.text?.trim() || "MACRO CONTEXT: NEUTRAL. INSUFFICIENT DATA.";
+        return response.text?.trim() || "MACRO CONFLUENCE: UNKNOWN. INSUFFICIENT DATA.";
     }, getBetaPool);
 }
