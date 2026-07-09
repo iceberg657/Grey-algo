@@ -1887,6 +1887,7 @@ ${quantData?.adversarialVeto?.vetoReasons?.map((r: string) => `  - ${r}`).join('
 YOUR QUANTCONNECT ROUTING & DYNAMIC FORMULATION MISSION:
 1. QUANTCONNECT ALGORITHMIC ROUTING:
    - Identify the most appropriate QuantConnect Lean-compatible algorithmic strategy for the current regime.
+   - **MEAN REVERSION INTEGRATION**: If the market is ranging or exhibits overextension (Category 1: Price Level Mean Reversion via Z-Score/RSI or Category 2: Return Mean Reversion via Signature Leg fading), map this to a Lean Statistical Arbitrage, Z-Score Reversion, or Session Rotation algorithm.
    - **PROP FIRM OPTIMIZATION MANDATE**: You must completely reprogram how the strategy behaves during optimization. Do NOT optimize for maximum 5-year returns (which results in wide stop-losses and long holding times).
    - **Instead, optimize for high-win-rate intraday scalping.** Shift the strategy objectives toward daily, short-term, high-consistency targets with a 1:1 or 1:1.5 Risk-to-Reward (R:R) ratio, targeting a 70-80% win rate.
    - You hunt for a quick "scalp" displacement leg, secure your daily target, and instantly shut off the algorithm's execution engine for the day.
@@ -2168,6 +2169,18 @@ ${style.includes('scalping') ? `
                 `
 - ENTRY TIMEFRAMES: 4hr, Daily (Prioritize for swing entry)
 - STRUCTURE/CONTEXT: Weekly (Use for macro trend and major liquidity pools)`}
+
+**MEAN REVERSION & HIGH WIN-RATE OPTIMIZATION (THE MATH OF SCALPING):**
+${style.includes('scalping') ? `
+1. **THE "ONE AND DONE" TARGET:** To win every day and protect prop firm accounts, you must secure a daily target and close exposure. You hunt for a quick "scalp" displacement leg or a short-term rotation back to the average.
+2. **HIGH WIN RATE (70-80%):** You MUST aim for a 1:1 or tight 1:1.5 Risk-to-Reward ratio to ensure high statistical probability of hitting Take Profit 1 and Take Profit 2. Do NOT maximize for 5-year returns or wide stop-losses.
+3. **PRICE LEVEL MEAN REVERSION (Category 1):** Use dynamic Z-scores, Bollinger Bands, and RSI/Stochastic overextensions. If price wicks outside the 3rd Standard Deviation band and oscillators flash overbought/oversold, generate a "Sniper Entry Range".
+4. **RETURN MEAN REVERSION (Category 2):** Track behavioral overreaction. Scan for high-displacing institutional "Signature Legs" where price moves out of bounds in a single session. Fade the overextension for a liquidity pullback.
+5. **REGIME-DEPENDENT KILL SWITCH:** If the market regime is "Highly Trending" or breaking out into a heavy one-way institutional trend, you MUST DEACTIVATE mean reversion signals and output a setup that aligns with the trend (or output NEUTRAL to avoid catching a falling knife).
+6. **ML CONFIDENCE SCORER:** Calculate the speed and probability of the snapback based on order flow data. Filter out low-probability entries.
+` : `
+- While not explicitly scalping, apply Mean Reversion concepts when the market is clearly ranging or overextended beyond standard deviation bands.
+`}
 
 **ALPHA MAXIMIZER & NEURAL TRANSCENDENCE PROTOCOL:**
 1. **HTF TREND ALIGNMENT:** You should generally identify the higher timeframe (HTF) trend.

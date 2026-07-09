@@ -117,11 +117,11 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 assets: ['US30', 'NAS100', 'XAUUSD'],
                 dailyLimit: 10,
                 enabled: false,
-                timeframes: ['15m'],
+                timeframes: ['5m'],
                 tradingWindowStart: '00:00',
                 tradingWindowEnd: '23:59',
                 notificationLifetime: 3,
-                riskReward: 2.0,
+                riskReward: 1.5,
                 executionType: 'Market Execution'
             };
         } catch {
@@ -129,11 +129,11 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 assets: ['US30', 'NAS100', 'XAUUSD'],
                 dailyLimit: 10,
                 enabled: false,
-                timeframes: ['15m'],
+                timeframes: ['5m'],
                 tradingWindowStart: '00:00',
                 tradingWindowEnd: '23:59',
                 notificationLifetime: 3,
-                riskReward: 2.0,
+                riskReward: 1.5,
                 executionType: 'Market Execution'
             };
         }

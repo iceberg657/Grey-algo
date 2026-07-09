@@ -116,7 +116,7 @@ export const runMechanicalAnalysis = (
     swingHighs.sort((a, b) => b.index - a.index);
     swingLows.sort((a, b) => b.index - a.index);
 
-    // 4. Evaluate combined CMP and OHLC strategies
+    // 4. Evaluate combined CMP and OHLC strategies, and Mean Reversion
     let direction: 'BUY' | 'SELL' | 'FLAT' = 'FLAT';
     let logic = '';
     let pattern = 'NONE';
@@ -127,6 +127,76 @@ export const runMechanicalAnalysis = (
     const atr = calculateATR(highs, lows, closes, 14);
     let stopLoss = 0;
     let takeProfit = 0;
+
+    // Check Mean Reversion (Category 1: Price Level Mean Reversion)
+    const sma20 = calculateSMA(closes, 20);
+    const sma50 = calculateSMA(closes, 50);
+    const sd20 = calculateStandardDeviation(closes, 20, sma20);
+    const rsi14 = calculateRSI(closes, 14);
+    
+    // Kill-Switch: Highly Trending Regime Filter
+    // If the difference between fast and slow SMA is massive, it indicates a heavy one-way trend
+    const isHighlyTrending = Math.abs(sma20 - sma50) > (atr * 2.0);
+    
+    const upperBB3 = sma20 + (sd20 * 3);
+    const lowerBB3 = sma20 - (sd20 * 3);
+
+    // Category 2: Return Mean Reversion (Signature Leg)
+    const current4H = candles.slice(Math.max(0, candles.length - 16)); // approx 4h if 15m TF
+    const max4H = Math.max(...current4H.map(c => c.high));
+    const min4H = Math.min(...current4H.map(c => c.low));
+    const move4H = max4H - min4H;
+    const isSignatureLeg = move4H > (atr * 3.5);
+
+    if (!isHighlyTrending) {
+        if (currentCandle.low < lowerBB3 && rsi14 < 30) {
+            direction = 'BUY';
+            logic = `Mean Reversion: Price wicked outside 3rd SD band (${lowerBB3.toFixed(5)}) with RSI at ${rsi14.toFixed(1)}. Anticipating snapback rotation.`;
+            pattern = 'Z-Score Exhaustion';
+            strategyName = 'Price Level Mean Reversion (Scalp)';
+            isSwingSweepTriggered = true;
+            
+            stopLoss = exactEntry - (atr * 0.8);
+            const risk = exactEntry - stopLoss;
+            takeProfit = exactEntry + (risk * 1.5); // 1:1.5 RR for scalps
+        }
+        else if (currentCandle.high > upperBB3 && rsi14 > 70) {
+            direction = 'SELL';
+            logic = `Mean Reversion: Price wicked outside 3rd SD band (${upperBB3.toFixed(5)}) with RSI at ${rsi14.toFixed(1)}. Anticipating snapback rotation.`;
+            pattern = 'Z-Score Exhaustion';
+            strategyName = 'Price Level Mean Reversion (Scalp)';
+            isSwingSweepTriggered = true;
+            
+            stopLoss = exactEntry + (atr * 0.8);
+            const risk = stopLoss - exactEntry;
+            takeProfit = exactEntry - (risk * 1.5); // 1:1.5 RR for scalps
+        }
+        else if (isSignatureLeg && currentPrice <= min4H + (atr * 0.5)) {
+            direction = 'BUY';
+            logic = `Return Mean Reversion: High-displacing signature leg dropped ${move4H.toFixed(5)} (>${(atr*3.5).toFixed(5)} limit). Fading the overextension.`;
+            pattern = 'Signature Leg Exhaustion';
+            strategyName = 'Return Mean Reversion (Scalp)';
+            isSwingSweepTriggered = true;
+            
+            stopLoss = min4H - (atr * 0.5);
+            const risk = exactEntry - stopLoss;
+            takeProfit = exactEntry + (risk * 1.5);
+        }
+        else if (isSignatureLeg && currentPrice >= max4H - (atr * 0.5)) {
+            direction = 'SELL';
+            logic = `Return Mean Reversion: High-displacing signature leg pumped ${move4H.toFixed(5)} (>${(atr*3.5).toFixed(5)} limit). Fading the overextension.`;
+            pattern = 'Signature Leg Exhaustion';
+            strategyName = 'Return Mean Reversion (Scalp)';
+            isSwingSweepTriggered = true;
+            
+            stopLoss = max4H + (atr * 0.5);
+            const risk = stopLoss - exactEntry;
+            takeProfit = exactEntry - (risk * 1.5);
+        }
+    }
+
+    // Fallback to OHLC Swing Sweep if Mean Reversion not triggered
+    if (!isSwingSweepTriggered) {
 
     // Check for swing low sweep (Bullish Swing Invalidation)
     const activeLows = swingLows.filter(l => l.price < currentPrice);
@@ -182,6 +252,7 @@ export const runMechanicalAnalysis = (
             takeProfit = exactEntry - (risk * 2.0);
         }
     }
+    } // Close fallback for OHLC swing sweep
 
     if (direction === 'FLAT') {
         stopLoss = currentPrice;
@@ -330,4 +401,33 @@ function calculateATR(highs: number[], lows: number[], closes: number[], period:
     }
     const sum = tr.slice(-period).reduce((a, b) => a + b, 0);
     return sum / period;
+}
+
+function calculateSMA(data: number[], period: number): number {
+    if (data.length < period) return 0;
+    const sum = data.slice(-period).reduce((a, b) => a + b, 0);
+    return sum / period;
+}
+
+function calculateStandardDeviation(data: number[], period: number, sma: number): number {
+    if (data.length < period) return 0;
+    const slice = data.slice(-period);
+    const squaredDiffs = slice.map(x => Math.pow(x - sma, 2));
+    const variance = squaredDiffs.reduce((a, b) => a + b, 0) / period;
+    return Math.sqrt(variance);
+}
+
+function calculateRSI(closes: number[], period: number): number {
+    if (closes.length < period + 1) return 50;
+    let gains = 0;
+    let losses = 0;
+    for (let i = closes.length - period; i < closes.length; i++) {
+        const diff = closes[i] - closes[i - 1];
+        if (diff >= 0) gains += diff;
+        else losses -= diff;
+    }
+    if (losses === 0) return 100;
+    if (gains === 0) return 0;
+    const rs = gains / losses;
+    return 100 - (100 / (1 + rs));
 }
