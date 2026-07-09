@@ -1,5 +1,6 @@
 import { QuantEnginePipeline, MarketSeries } from './advancedExecutionEngines';
 import { autoSelectStrategy } from './quantStrategiesLibrary';
+import { KalmanFilter } from './kalmanFilter';
 
 export interface MechanicalTradeSetup {
     asset: string;
@@ -23,7 +24,10 @@ export const runMechanicalAnalysis = (
     asset: string,
     timeframe: string,
     candles: any[],
-    isMonday: boolean
+    isMonday: boolean,
+    selectedRR?: number,
+    selectedSystem?: string,
+    selectedStrategy?: string
 ): MechanicalTradeSetup => {
     if (!candles || candles.length < 50) {
         return {
@@ -134,12 +138,22 @@ export const runMechanicalAnalysis = (
     const sd20 = calculateStandardDeviation(closes, 20, sma20);
     const rsi14 = calculateRSI(closes, 14);
     
+    // Kalman Filter implementation
+    const kalman = new KalmanFilter(0.01, 0.001, 1, 1);
+    let kalmanEstimate = closes[0];
+    let prevKalmanEstimate = closes[0];
+    for (let i = 0; i < closes.length; i++) {
+        prevKalmanEstimate = kalmanEstimate;
+        kalmanEstimate = kalman.filter(closes[i], i === 0);
+    }
+    const kalmanSlope = kalmanEstimate - prevKalmanEstimate;
+    
     // Kill-Switch: Highly Trending Regime Filter
     // If the difference between fast and slow SMA is massive, it indicates a heavy one-way trend
     const isHighlyTrending = Math.abs(sma20 - sma50) > (atr * 2.0);
     
-    const upperBB3 = sma20 + (sd20 * 3);
-    const lowerBB3 = sma20 - (sd20 * 3);
+    const upperBB3 = kalmanEstimate + (sd20 * 2.5); // Using Kalman for center
+    const lowerBB3 = kalmanEstimate - (sd20 * 2.5);
 
     // Category 2: Return Mean Reversion (Signature Leg)
     const current4H = candles.slice(Math.max(0, candles.length - 16)); // approx 4h if 15m TF
@@ -148,55 +162,97 @@ export const runMechanicalAnalysis = (
     const move4H = max4H - min4H;
     const isSignatureLeg = move4H > (atr * 3.5);
 
-    if (!isHighlyTrending) {
-        if (currentCandle.low < lowerBB3 && rsi14 < 30) {
-            direction = 'BUY';
-            logic = `Mean Reversion: Price wicked outside 3rd SD band (${lowerBB3.toFixed(5)}) with RSI at ${rsi14.toFixed(1)}. Anticipating snapback rotation.`;
-            pattern = 'Z-Score Exhaustion';
-            strategyName = 'Price Level Mean Reversion (Scalp)';
-            isSwingSweepTriggered = true;
+    // Apply selected strategy
+    if (selectedStrategy === 'auto_select') {
+        const auto = autoSelectStrategy(candles, 'Indices', isHighlyTrending ? 'Trending' : 'Ranging');
+        if (auto) {
+            direction = auto.result.direction;
+            logic = auto.result.logic;
+            pattern = auto.result.pattern;
+            strategyName = auto.strategy.name;
             
-            stopLoss = exactEntry - (atr * 0.8);
-            const risk = exactEntry - stopLoss;
-            takeProfit = exactEntry + (risk * 1.5); // 1:1.5 RR for scalps
+            stopLoss = direction === 'BUY' ? currentPrice - (atr * 1.5) : currentPrice + (atr * 1.5);
+            const risk = Math.abs(currentPrice - stopLoss);
+            takeProfit = direction === 'BUY' ? currentPrice + (risk * 2.0) : currentPrice - (risk * 2.0);
         }
-        else if (currentCandle.high > upperBB3 && rsi14 > 70) {
-            direction = 'SELL';
-            logic = `Mean Reversion: Price wicked outside 3rd SD band (${upperBB3.toFixed(5)}) with RSI at ${rsi14.toFixed(1)}. Anticipating snapback rotation.`;
-            pattern = 'Z-Score Exhaustion';
-            strategyName = 'Price Level Mean Reversion (Scalp)';
-            isSwingSweepTriggered = true;
-            
-            stopLoss = exactEntry + (atr * 0.8);
-            const risk = stopLoss - exactEntry;
-            takeProfit = exactEntry - (risk * 1.5); // 1:1.5 RR for scalps
-        }
-        else if (isSignatureLeg && currentPrice <= min4H + (atr * 0.5)) {
-            direction = 'BUY';
-            logic = `Return Mean Reversion: High-displacing signature leg dropped ${move4H.toFixed(5)} (>${(atr*3.5).toFixed(5)} limit). Fading the overextension.`;
-            pattern = 'Signature Leg Exhaustion';
-            strategyName = 'Return Mean Reversion (Scalp)';
-            isSwingSweepTriggered = true;
-            
-            stopLoss = min4H - (atr * 0.5);
-            const risk = exactEntry - stopLoss;
-            takeProfit = exactEntry + (risk * 1.5);
-        }
-        else if (isSignatureLeg && currentPrice >= max4H - (atr * 0.5)) {
-            direction = 'SELL';
-            logic = `Return Mean Reversion: High-displacing signature leg pumped ${move4H.toFixed(5)} (>${(atr*3.5).toFixed(5)} limit). Fading the overextension.`;
-            pattern = 'Signature Leg Exhaustion';
-            strategyName = 'Return Mean Reversion (Scalp)';
-            isSwingSweepTriggered = true;
-            
-            stopLoss = max4H + (atr * 0.5);
-            const risk = stopLoss - exactEntry;
-            takeProfit = exactEntry - (risk * 1.5);
-        }
-    }
+    } else {
+        // Hybrid or Mean Reversion or Trend
+        if ((selectedStrategy === 'hybrid' || selectedStrategy === 'mean_reversion') && !isHighlyTrending) {
+            // Check for momentum shift with Kalman Slope
+            const bullishShift = kalmanSlope > 0;
+            const bearishShift = kalmanSlope < 0;
 
-    // Fallback to OHLC Swing Sweep if Mean Reversion not triggered
-    if (!isSwingSweepTriggered) {
+            if (currentCandle.low < lowerBB3 && rsi14 < 35 && bullishShift) {
+                direction = 'BUY';
+                logic = `Kalman Mean Reversion: Price dropped below smoothed SD band (${lowerBB3.toFixed(5)}), RSI (${rsi14.toFixed(1)}). Kalman slope flattening/reversing.`;
+                pattern = 'Kalman Band Exhaustion';
+                strategyName = 'Kalman Mean Reversion (Scalp)';
+                isSwingSweepTriggered = true;
+                
+                stopLoss = exactEntry - (atr * 0.8);
+                const risk = exactEntry - stopLoss;
+                takeProfit = exactEntry + (risk * 1.5); // 1:1.5 RR for scalps
+            }
+            else if (currentCandle.high > upperBB3 && rsi14 > 65 && bearishShift) {
+                direction = 'SELL';
+                logic = `Kalman Mean Reversion: Price pumped above smoothed SD band (${upperBB3.toFixed(5)}), RSI (${rsi14.toFixed(1)}). Kalman slope flattening/reversing.`;
+                pattern = 'Kalman Band Exhaustion';
+                strategyName = 'Kalman Mean Reversion (Scalp)';
+                isSwingSweepTriggered = true;
+                
+                stopLoss = exactEntry + (atr * 0.8);
+                const risk = stopLoss - exactEntry;
+                takeProfit = exactEntry - (risk * 1.5); // 1:1.5 RR for scalps
+            }
+            else if (isSignatureLeg && currentPrice <= min4H + (atr * 0.5) && bullishShift) {
+                direction = 'BUY';
+                logic = `Kalman Return Reversion: Dropped ${move4H.toFixed(5)}, Kalman intercept confirms bottom.`;
+                pattern = 'Signature Leg Exhaustion';
+                strategyName = 'Return Mean Reversion (Scalp)';
+                isSwingSweepTriggered = true;
+                
+                stopLoss = min4H - (atr * 0.5);
+                const risk = exactEntry - stopLoss;
+                takeProfit = exactEntry + (risk * 1.5);
+            }
+            else if (isSignatureLeg && currentPrice >= max4H - (atr * 0.5) && bearishShift) {
+                direction = 'SELL';
+                logic = `Kalman Return Reversion: Pumped ${move4H.toFixed(5)}, Kalman intercept confirms top.`;
+                pattern = 'Signature Leg Exhaustion';
+                strategyName = 'Return Mean Reversion (Scalp)';
+                isSwingSweepTriggered = true;
+                
+                stopLoss = max4H + (atr * 0.5);
+                const risk = stopLoss - exactEntry;
+                takeProfit = exactEntry - (risk * 1.5);
+            }
+        }
+
+        if (selectedStrategy === 'trend' && isHighlyTrending) {
+            // Basic Trend Following Logic
+            if (sma20 > sma50 && currentPrice > sma20) {
+                direction = 'BUY';
+                logic = `Trend Following: Price above fast SMA which is above slow SMA in a highly trending regime.`;
+                pattern = 'SMA Trend Alignment';
+                strategyName = 'Trend Following';
+                isSwingSweepTriggered = true;
+                stopLoss = sma50;
+                const risk = exactEntry - stopLoss;
+                takeProfit = exactEntry + (risk * 2.0);
+            } else if (sma20 < sma50 && currentPrice < sma20) {
+                direction = 'SELL';
+                logic = `Trend Following: Price below fast SMA which is below slow SMA in a highly trending regime.`;
+                pattern = 'SMA Trend Alignment';
+                strategyName = 'Trend Following';
+                isSwingSweepTriggered = true;
+                stopLoss = sma50;
+                const risk = stopLoss - exactEntry;
+                takeProfit = exactEntry - (risk * 2.0);
+            }
+        }
+
+        // Fallback to OHLC Swing Sweep if Mean Reversion/Trend not triggered
+        if (!isSwingSweepTriggered && (selectedStrategy === 'hybrid' || !selectedStrategy)) {
 
     // Check for swing low sweep (Bullish Swing Invalidation)
     const activeLows = swingLows.filter(l => l.price < currentPrice);
@@ -253,6 +309,7 @@ export const runMechanicalAnalysis = (
         }
     }
     } // Close fallback for OHLC swing sweep
+    } // Close selected strategy else block
 
     if (direction === 'FLAT') {
         stopLoss = currentPrice;
@@ -268,6 +325,17 @@ export const runMechanicalAnalysis = (
         }
     }
 
+    const finalRR = selectedRR || 2.0;
+
+    if (direction !== 'FLAT') {
+        const risk = Math.abs(exactEntry - stopLoss);
+        if (direction === 'BUY') {
+            takeProfit = exactEntry + (risk * finalRR);
+        } else if (direction === 'SELL') {
+            takeProfit = exactEntry - (risk * finalRR);
+        }
+    }
+
     return {
         asset,
         timeframe,
@@ -275,7 +343,7 @@ export const runMechanicalAnalysis = (
         entryRange: { min: exactEntry, max: exactEntry },
         stopLoss: parseFloat(stopLoss.toFixed(5)),
         takeProfit: parseFloat(takeProfit.toFixed(5)),
-        riskRewardRatio: 2.0,
+        riskRewardRatio: finalRR,
         timestamp: Date.now(),
         pattern,
         logic,
@@ -296,7 +364,10 @@ export const runHistoricalDeepBacktest = (
     asset: string,
     timeframe: string,
     candles: any[],
-    maxTrades: number = 10
+    maxTrades: number = 10,
+    selectedRR?: number,
+    selectedSystem?: string,
+    selectedStrategy?: string
 ): BacktestTradeResult[] => {
     const results: BacktestTradeResult[] = [];
     let currentTrade: BacktestTradeResult | null = null;
@@ -361,7 +432,7 @@ export const runHistoricalDeepBacktest = (
 
             // Run analysis on slice up to i
             const historySlice = candles.slice(0, i + 1);
-            const setup = runMechanicalAnalysis(asset, timeframe, historySlice, isMonday);
+            const setup = runMechanicalAnalysis(asset, timeframe, historySlice, isMonday, selectedRR, selectedSystem, selectedStrategy);
             
             if (setup.direction !== 'FLAT') {
                 currentTrade = {

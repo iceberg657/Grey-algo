@@ -18,6 +18,10 @@ export const AutoBacktestPanel: React.FC<AutoBacktestPanelProps> = ({ userId }) 
         } catch { return ['US30', 'NAS100', 'XAUUSD']; }
     });
     const [newAsset, setNewAsset] = useState('');
+    const [selectedRR, setSelectedRR] = useState<number>(2.0);
+    const [selectedTimeframe, setSelectedTimeframe] = useState<string>('All');
+    const [selectedSystem, setSelectedSystem] = useState<string>('auto_backtest');
+    const [selectedStrategy, setSelectedStrategy] = useState<string>('hybrid');
     const [isTesting, setIsTesting] = useState(false);
     const [results, setResults] = useState<BacktestTradeResult[]>([]);
     const [isSaving, setIsSaving] = useState(false);
@@ -122,14 +126,16 @@ export const AutoBacktestPanel: React.FC<AutoBacktestPanelProps> = ({ userId }) 
         const clientToken = getClientToken();
 
         try {
+            const activeTimeframes = selectedTimeframe === 'All' ? timeframes : timeframes.filter(t => t.label === selectedTimeframe);
+            
             for (const asset of assets) {
                 const symbol = getDerivSymbol(asset);
-                for (const tf of timeframes) {
+                for (const tf of activeTimeframes) {
                     try {
                         const res = await fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${tf.seconds}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`);
                         const data = await res.json();
                         if (data && data.candles && data.candles.length > 50) {
-                            const tradeResults = runHistoricalDeepBacktest(asset, tf.label, data.candles, 10);
+                            const tradeResults = runHistoricalDeepBacktest(asset, tf.label, data.candles, 10, selectedRR, selectedSystem, selectedStrategy);
                             newResults.push(...tradeResults);
                         }
                     } catch (e) {
@@ -156,10 +162,11 @@ export const AutoBacktestPanel: React.FC<AutoBacktestPanelProps> = ({ userId }) 
             interval = setInterval(async () => {
                 const isMonday = new Date().getDay() === 1;
                 const clientToken = getClientToken();
+                const activeTimeframes = selectedTimeframe === 'All' ? timeframes : timeframes.filter(t => t.label === selectedTimeframe);
 
                 for (const asset of assets) {
                     const symbol = getDerivSymbol(asset);
-                    for (const tf of timeframes) {
+                    for (const tf of activeTimeframes) {
                         try {
                             const res = await fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${tf.seconds}&count=60${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`);
                             const data = await res.json();
@@ -238,7 +245,7 @@ export const AutoBacktestPanel: React.FC<AutoBacktestPanelProps> = ({ userId }) 
                                         const dailyTrades = updated.filter(t => new Date(t.entryTime).toDateString() === new Date().toDateString()).length;
                                         
                                         if (dailyTrades < 10) {
-                                            const setup = runMechanicalAnalysis(asset, tf.label, data.candles, isMonday);
+                                            const setup = runMechanicalAnalysis(asset, tf.label, data.candles, isMonday, selectedRR, selectedSystem, selectedStrategy);
                                             if (setup.direction !== 'FLAT') {
                                                 updated.unshift({
                                                     setup,
@@ -344,6 +351,67 @@ export const AutoBacktestPanel: React.FC<AutoBacktestPanelProps> = ({ userId }) 
             </div>
 
             <div className="space-y-6">
+                <div className="bg-slate-50 dark:bg-[#020617] p-4 rounded-2xl border border-slate-200 dark:border-slate-800 space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Risk to Reward</label>
+                            <select
+                                value={selectedRR}
+                                onChange={(e) => setSelectedRR(parseFloat(e.target.value))}
+                                disabled={isForwardTesting || isTesting}
+                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value={1.0}>1:1 RR</option>
+                                <option value={1.5}>1:1.5 RR</option>
+                                <option value={2.0}>1:2 RR</option>
+                                <option value={3.0}>1:3 RR</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Timeframe</label>
+                            <select
+                                value={selectedTimeframe}
+                                onChange={(e) => setSelectedTimeframe(e.target.value)}
+                                disabled={isForwardTesting || isTesting}
+                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="All">All Timeframes</option>
+                                <option value="5m">5 Minutes</option>
+                                <option value="15m">15 Minutes</option>
+                                <option value="30m">30 Minutes</option>
+                                <option value="1h">1 Hour</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Trading System</label>
+                            <select
+                                value={selectedSystem}
+                                onChange={(e) => setSelectedSystem(e.target.value)}
+                                disabled={isForwardTesting || isTesting}
+                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="auto_backtest">Auto Backtesting Engine</option>
+                                <option value="sniper">Sniper Page Engine</option>
+                                <option value="notification">Notification Signal</option>
+                            </select>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
+                            <label className="text-[10px] font-black uppercase tracking-widest text-slate-500">Strategy</label>
+                            <select
+                                value={selectedStrategy}
+                                onChange={(e) => setSelectedStrategy(e.target.value)}
+                                disabled={isForwardTesting || isTesting}
+                                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-sm font-medium focus:outline-none focus:border-indigo-500"
+                            >
+                                <option value="hybrid">Hybrid (CMP + OHLC + Mean Reversion)</option>
+                                <option value="mean_reversion">Mean Reversion Only</option>
+                                <option value="trend">Trend Following</option>
+                                <option value="auto_select">Auto-Select (Quant Library)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div className="bg-slate-50 dark:bg-[#020617] p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
                     <div className="flex justify-between items-center mb-4">
                         <label className="text-xs font-black uppercase tracking-widest text-slate-500">Tracked Assets ({assets.length}/10)</label>

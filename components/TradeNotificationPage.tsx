@@ -95,6 +95,7 @@ interface NotificationConfig {
     notificationLifetime: number; // minutes
     riskReward: number;
     executionType?: 'Market Execution' | 'Limit / Stop Order';
+    strategy?: string;
 }
 
 export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ onBack, userMetadata }) => {
@@ -111,6 +112,9 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 if (!parsed.executionType) {
                     parsed.executionType = 'Market Execution';
                 }
+                if (!parsed.strategy) {
+                    parsed.strategy = 'trend';
+                }
                 return parsed;
             }
             return {
@@ -122,7 +126,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 tradingWindowEnd: '23:59',
                 notificationLifetime: 3,
                 riskReward: 1.5,
-                executionType: 'Market Execution'
+                executionType: 'Market Execution',
+                strategy: 'trend'
             };
         } catch {
             return {
@@ -134,7 +139,8 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 tradingWindowEnd: '23:59',
                 notificationLifetime: 3,
                 riskReward: 1.5,
-                executionType: 'Market Execution'
+                executionType: 'Market Execution',
+                strategy: 'trend'
             };
         }
     });
@@ -520,6 +526,21 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                         <option value="4">1:4</option>
                                         <option value="4.5">1:4.5</option>
                                         <option value="5">1:5</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black uppercase tracking-widest text-slate-500 mb-3">
+                                        Strategy Type
+                                    </label>
+                                    <select 
+                                        value={config.strategy || 'trend'}
+                                        onChange={(e) => setConfig({...config, strategy: e.target.value})}
+                                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl px-4 py-3 font-bold focus:outline-none focus:border-emerald-500"
+                                    >
+                                        <option value="trend">Trend Following</option>
+                                        <option value="hybrid">Hybrid (CMP + OHLC + Mean Reversion)</option>
+                                        <option value="mean_reversion">Mean Reversion Only</option>
+                                        <option value="auto_select">Auto-Select (Quant Library)</option>
                                     </select>
                                 </div>
                                 <div>

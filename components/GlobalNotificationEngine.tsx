@@ -22,6 +22,7 @@ interface NotificationConfig {
     notificationLifetime: number; // minutes
     riskReward: number;
     executionType?: 'Market Execution' | 'Limit / Stop Order';
+    strategy?: string;
 }
 
 const DEFAULT_SESSION_ASSETS: Record<string, string[]> = {
@@ -177,11 +178,13 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                         assets: ['US30', 'NAS100', 'XAUUSD'],
                         dailyLimit: 3,
                         enabled: false,
-                        timeframes: ['15m'],
+                        timeframes: ['5m', '15m'],
                         tradingWindowStart: '00:00',
                         tradingWindowEnd: '23:59',
                         notificationLifetime: 3,
-                        riskReward: 2.0
+                        riskReward: 1.5,
+                        executionType: 'Market Execution',
+                        strategy: 'trend'
                     };
                     localStorage.setItem('trade_notification_config', JSON.stringify(defaultConfig));
                     setConfig(defaultConfig);
@@ -400,7 +403,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                         const data = await res.json();
 
                         if (data && data.candles && data.candles.length > 50) {
-                            const setup = runMechanicalAnalysis(asset, tf, data.candles, isMonday);
+                            const setup = runMechanicalAnalysis(asset, tf, data.candles, isMonday, config.riskReward, 'notification', config.strategy || 'trend');
 
                             if (setup.direction !== 'FLAT') {
                                 // Prevent duplicate or opposing notifications within a strict cooldown period for same asset/tf
