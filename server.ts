@@ -31,7 +31,15 @@ import { fetchAssetSuggestions } from './services/suggestionService.js';
 export async function createViteApp() {
   const app = express();
   const server = createServer(app);
-  const wss = new WebSocketServer({ server });
+  let wss: any = null;
+  
+  if (!process.env.VERCEL) {
+    wss = new WebSocketServer({ server });
+    console.log('[Server] WebSocket server initialized');
+  } else {
+    console.log('[Server] Skipping WebSocket initialization on Vercel');
+  }
+
   const PORT = 3000;
 
   app.use(express.json({ limit: '50mb' }));
@@ -47,6 +55,18 @@ export async function createViteApp() {
   app.post('/api/ctrader/exchange', ctraderExchangeHandler);
   app.get('/api/ctrader/accounts', ctraderAccountsHandler);
   app.get('/api/ctrader/status', ctraderStatusHandler);
+  app.get('/api/debug', (req, res) => {
+    res.json({
+      vercel: !!process.env.VERCEL,
+      nodeEnv: process.env.NODE_ENV,
+      hasCtraderId: !!process.env.CTRADER_CLIENT_ID,
+      hasCtraderSecret: !!process.env.CTRADER_CLIENT_SECRET,
+      hasAccessToken: !!process.env.CTRADER_ACCESS_TOKEN,
+      hasAccountId: !!process.env.CTRADER_ACCOUNT_ID,
+      firebaseApps: admin.apps.length,
+      cwd: process.cwd()
+    });
+  });
   app.get('/api/ctrader/ticks', ctraderTickHistoryHandler);
   app.get('/api/ctrader/stream', ctraderStreamHandler);
   app.get('/api/ctrader/trendbars', ctraderTrendbarsHandler);
@@ -74,22 +94,24 @@ export async function createViteApp() {
     console.warn('Could not read firebase-applet-config.json, using default database ID');
   }
 
-  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
-    try {
-      const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-      admin.initializeApp({
-        credential: admin.credential.cert(serviceAccount)
-      });
-      console.log('Firebase Admin initialized with custom service account');
-    } catch (error) {
-      console.error('Error initializing Firebase Admin:', error);
-    }
-  } else {
-    try {
-      admin.initializeApp();
-      console.log('Firebase Admin initialized with default credentials');
-    } catch (error) {
-      console.error('Error initializing Firebase Admin with default credentials:', error);
+  if (admin.apps.length === 0) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      try {
+        const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+        admin.initializeApp({
+          credential: admin.credential.cert(serviceAccount)
+        });
+        console.log('Firebase Admin initialized with custom service account');
+      } catch (error) {
+        console.error('Error initializing Firebase Admin:', error);
+      }
+    } else {
+      try {
+        admin.initializeApp();
+        console.log('Firebase Admin initialized with default credentials');
+      } catch (error) {
+        console.error('Error initializing Firebase Admin with default credentials:', error);
+      }
     }
   }
 
@@ -510,29 +532,31 @@ export async function createViteApp() {
   };
 
   // WebSocket handling
-  wss.on('connection', (ws) => {
-    console.log('Client connected');
-    
-    // Send initial state
-    ws.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState }));
+  if (wss) {
+    wss.on('connection', (ws: any) => {
+      console.log('Client connected');
+      
+      // Send initial state
+      ws.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState }));
 
-    ws.on('message', (message) => {
-      const data = JSON.parse(message.toString());
-      
-      if (data.type === 'TOGGLE_ENGINE') {
-        engineState.isRunning = data.isRunning;
-        engineState.accountId = data.accountId;
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
-      }
-      
-      if (data.type === 'SET_MODE') {
-        engineState.mode = data.mode;
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
-      }
+      ws.on('message', (message: any) => {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'TOGGLE_ENGINE') {
+          engineState.isRunning = data.isRunning;
+          engineState.accountId = data.accountId;
+          wss.clients.forEach((client: any) => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+        }
+        
+        if (data.type === 'SET_MODE') {
+          engineState.mode = data.mode;
+          wss.clients.forEach((client: any) => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+        }
+      });
+
+      ws.on('close', () => console.log('Client disconnected'));
     });
-
-    ws.on('close', () => console.log('Client disconnected'));
-  });
+  }
 
   // Trading Engine Monitor
   const monitorAccount = async () => {
@@ -551,32 +575,37 @@ export async function createViteApp() {
         
         // Stop engine for safety
         engineState.isRunning = false;
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+        if (wss) {
+          wss.clients.forEach((client: any) => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+        }
       }
     } catch (error) {
       console.error('Error monitoring account:', error);
     }
   };
 
-  // Check every 5 seconds
-  setInterval(monitorAccount, 5000);
-
   // Hourly market data update
   const broadcastMarketData = async () => {
     try {
       const data = await fetchAssetSuggestions();
       const message = JSON.stringify({ type: 'MARKET_DATA_UPDATE', data });
-      wss.clients.forEach((client) => {
-        if (client.readyState === 1) { // OPEN
-          client.send(message);
-        }
-      });
+      if (wss) {
+        wss.clients.forEach((client: any) => {
+          if (client.readyState === 1) { // OPEN
+            client.send(message);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error broadcasting market data:', error);
     }
   };
 
-  setInterval(broadcastMarketData, 60 * 60 * 1000); // 1 hour
+  // Check every 5 seconds
+  if (!process.env.VERCEL) {
+    setInterval(monitorAccount, 5000);
+    setInterval(broadcastMarketData, 60 * 60 * 1000); // 1 hour
+  }
 
   // MarketAux News Proxy Route
   app.get('/api/news', async (req, res) => {

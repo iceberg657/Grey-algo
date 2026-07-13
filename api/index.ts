@@ -1,4 +1,4 @@
-import { createViteApp } from '../server';
+import { createViteApp } from '../server.js';
 
 console.log('[Vercel] Handler loading...');
 
