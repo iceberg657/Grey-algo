@@ -17,7 +17,7 @@ const SYMBOLS_MAP: Record<string, string> = {
     'NDX': 'otcNDX'
 };
 
-export async function fetchFromDeriv(token?: string): Promise<any[]> {
+export async function fetchFromDeriv(_token?: string): Promise<any[]> {
     console.log('[MarketData] Fetching ticker data from Deriv...');
     
     return new Promise((resolve) => {

@@ -12,20 +12,20 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { GoogleGenAI } from "@google/genai";
 import fs from 'node:fs/promises';
-import { encrypt } from './src/services/encryptionService';
-import marketDataHandler from './backend/marketData';
-import configHandler from './backend/config';
-import analyzeHandler from './backend/gemini/analyze';
-import antigravityHandler from './backend/gemini/antigravity';
-import derivHandler from './backend/derivData';
-import derivTradeNotificationHandler from './backend/derivTradeNotification';
-import twelveDataHandler from './backend/twelveData';
-import ctraderAccountsHandler from './backend/ctrader/accounts';
-import ctraderStatusHandler from './backend/ctrader/status';
-import ctraderAuthUrlHandler from './backend/ctrader/auth-url';
-import ctraderExchangeHandler from './backend/ctrader/exchange';
-import { ctraderTickHistoryHandler, ctraderStreamHandler, ctraderTrendbarsHandler } from './backend/ctrader/marketData';
-import { fetchAssetSuggestions } from './services/suggestionService';
+import { encrypt } from './src/services/encryptionService.js';
+import marketDataHandler from './backend/marketData.js';
+import configHandler from './backend/config.js';
+import analyzeHandler from './backend/gemini/analyze.js';
+import antigravityHandler from './backend/gemini/antigravity.js';
+import derivHandler from './backend/derivData.js';
+import derivTradeNotificationHandler from './backend/derivTradeNotification.js';
+import twelveDataHandler from './backend/twelveData.js';
+import ctraderAccountsHandler from './backend/ctrader/accounts.js';
+import ctraderStatusHandler from './backend/ctrader/status.js';
+import ctraderAuthUrlHandler from './backend/ctrader/auth-url.js';
+import ctraderExchangeHandler from './backend/ctrader/exchange.js';
+import { ctraderTickHistoryHandler, ctraderStreamHandler, ctraderTrendbarsHandler } from './backend/ctrader/marketData.js';
+import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
 export async function createViteApp() {
@@ -127,13 +127,14 @@ export async function createViteApp() {
         "performance": 0.85
       }`;
 
-      const response = await automlAi.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: prompt,
-        config: { responseMimeType: "application/json" }
+      const automlModel = automlAi.getGenerativeModel({ model: "gemini-2.0-flash" });
+      const result = await automlModel.generateContent({
+        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        generationConfig: { responseMimeType: "application/json" }
       });
 
-      const responseText = await response.text();
+      const response = result.response;
+      const responseText = response.text();
       const strategy = JSON.parse(responseText);
       const strategyId = `automl_${Date.now()}`;
       

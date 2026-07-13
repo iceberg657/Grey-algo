@@ -126,9 +126,9 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
             }
         });
 
-        ws.on('message', (data) => {
+        ws.on('message', (data: any) => {
             try {
-                const response = JSON.parse(data);
+                const response = JSON.parse(data.toString());
 
                 if (response.error) {
                     ws.close();
@@ -153,7 +153,7 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
                     clearTimeout(timeout);
                     resolve({
                         symbol: mappedSymbol,
-                        candles: response.candles || response.history?.prices?.map((p, i) => ({
+                        candles: response.candles || response.history?.prices?.map((p: any, i: number) => ({
                             epoch: response.history.times[i],
                             close: p,
                             high: p,
@@ -162,14 +162,14 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
                         })) || []
                     });
                 }
-            } catch (err) {
+            } catch (err: any) {
                 ws.close();
                 clearTimeout(timeout);
                 reject(new Error('Failed to parse Deriv API response: ' + err.message));
             }
         });
 
-        ws.on('error', (error) => {
+        ws.on('error', (error: any) => {
             ws.close();
             clearTimeout(timeout);
             reject(new Error(error.message || 'WebSocket Error'));
@@ -193,7 +193,7 @@ export default async (req: Request, res: Response) => {
         const data = await fetchDerivQuote(symbol, token, fetchHistory, granularity, count);
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.status(200).json(data);
-    } catch (error) {
+    } catch (error: any) {
         console.error('[DerivData] Error:', error.message || error);
         res.status(500).json({ error: error.message || String(error) });
     }

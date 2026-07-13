@@ -7,7 +7,7 @@ export default async function handler(req: Request, res: Response) {
 
   const { model, contents, config, apiKey: clientApiKey } = req.body;
   
-  const isValid = (k) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
+  const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
   // Prioritize client key (rotated by frontend), fallback to standard GEMINI_API_KEY, then others
   const apiKey = (isValid(clientApiKey)) 
@@ -25,7 +25,7 @@ export default async function handler(req: Request, res: Response) {
     // Extract root-level properties from config
     const { tools, systemInstruction, ...generationConfig } = config || {};
     
-    const requestBody = {
+    const requestBody: any = {
       contents,
       generationConfig,
     };

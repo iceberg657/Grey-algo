@@ -8,7 +8,7 @@ export default async function handler(req: Request, res: Response) {
 
   const { contents, apiKey: clientApiKey } = req.body;
   
-  const isValid = (k) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
+  const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
   // Prioritize client key
   const apiKey = (isValid(clientApiKey)) 
@@ -29,7 +29,7 @@ export default async function handler(req: Request, res: Response) {
 
     // The Interactions API calls model 'agents/antigravity'
     // It can take some time, but we don't have streaming via REST right now, so we wait for the final text
-    const interaction = await ai.interactions.create({
+    const interaction = await (ai as any).interactions.create({
       agent: 'antigravity-preview-05-2026',
       input: prompt,
       environment: { type: 'remote' },
@@ -38,7 +38,7 @@ export default async function handler(req: Request, res: Response) {
     let fullOutput = "";
     for (const step of interaction.steps) {
       if (step.type === 'model_output') {
-        const textContent = step.content?.find(c => c.type === 'text');
+        const textContent = step.content?.find((c: any) => c.type === 'text');
         if (textContent && textContent.text) {
           fullOutput += textContent.text;
         }
@@ -54,7 +54,7 @@ export default async function handler(req: Request, res: Response) {
         }
       ]
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[AntigravityProxy] Proxy Error:', error);
     res.status(500).json({ error: 'Internal server error during Antigravity execution', details: error.message });
   }
