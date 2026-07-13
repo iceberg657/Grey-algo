@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
+import { Settings } from 'lucide-react';
 import type { UserSettings } from '../types';
 import { CTraderConnectionManager } from './CTraderConnectionManager';
 import { useAuthContext } from './contexts/AuthContext';
@@ -19,7 +20,8 @@ const DEFAULT_SETTINGS: UserSettings = {
     twelveDataApiKey: '',
     deepThinking: true,
     showDashboardSignals: true,
-    playSoundOnNotification: true
+    playSoundOnNotification: true,
+    enableCTrader: false
 };
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
@@ -468,32 +470,54 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                             </div>
                         </div>
 
-                                                {settings.streamingMode === 'Advanced' && (
-                            <div className="pt-2">
-                                {!isAdvancedStreamingGranted ? (
-                                    <div className="relative group">
-                                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[2px] rounded-xl border border-slate-200/50 dark:border-slate-700/50">
-                                            <div className="bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg mb-2">
-                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                                                </svg>
-                                            </div>
-                                            <p className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-widest text-center px-4">
-                                                Advanced Streaming Locked
-                                            </p>
-                                            <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1 text-center px-4 max-w-xs">
-                                                Requires Admin permission. You cannot connect your cTrader account until access is granted.
-                                            </p>
-                                        </div>
-                                        <div className="opacity-40 pointer-events-none select-none blur-[1px]">
-                                            <CTraderConnectionManager />
-                                        </div>
+                                                {/* cTrader Integration Toggle */}
+                        <div className="bg-slate-50 dark:bg-slate-800/50 p-4 rounded-xl border border-slate-200 dark:border-slate-700/50 mb-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg text-indigo-600 dark:text-indigo-400">
+                                        <Settings className="w-5 h-5" />
                                     </div>
-                                ) : (
-                                    <CTraderConnectionManager />
-                                )}
+                                    <div>
+                                        <h4 className="text-sm font-bold text-slate-800 dark:text-white">cTrader Open API</h4>
+                                        <p className="text-[10px] text-slate-500 dark:text-slate-400">Institutional grade execution & tick data</p>
+                                    </div>
+                                </div>
+                                <button 
+                                    type="button"
+                                    onClick={() => setSettings(prev => ({ ...prev, enableCTrader: !prev.enableCTrader }))}
+                                    className={`w-10 h-5 rounded-full relative transition-colors ${settings.enableCTrader ? 'bg-indigo-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+                                >
+                                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.enableCTrader ? 'left-6' : 'left-1'}`}></div>
+                                </button>
                             </div>
-                        )}
+                            
+                            {settings.enableCTrader && (
+                                <div className="mt-4 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    {!isAdvancedStreamingGranted ? (
+                                        <div className="relative group">
+                                            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[2px] rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                                                <div className="bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg mb-2">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                </div>
+                                                <p className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-widest text-center px-4">
+                                                    Access Restricted
+                                                </p>
+                                                <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1 text-center px-4 max-w-xs">
+                                                    Advanced Streaming is restricted to Admin accounts.
+                                                </p>
+                                            </div>
+                                            <div className="opacity-40 pointer-events-none select-none blur-[1px]">
+                                                <CTraderConnectionManager />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <CTraderConnectionManager />
+                                    )}
+                                </div>
+                            )}
+                        </div>
 
                         <div className="pt-2 space-y-3">
                             <button

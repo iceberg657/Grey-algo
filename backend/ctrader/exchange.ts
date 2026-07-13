@@ -1,8 +1,8 @@
 import { Request, Response } from 'express';
 
 export default async function handler(req: Request, res: Response) {
-    const clientId = process.env.CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET;
+    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
         return res.status(500).json({ error: 'cTrader credentials (CTRADER_CLIENT_ID and CTRADER_CLIENT_SECRET) not configured in Vercel environment variables.' });

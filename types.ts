@@ -52,6 +52,7 @@ export interface UserSettings extends Partial<AccountSettings> {
     deepThinking?: boolean;
     language?: string;
     streamingMode?: 'Standard' | 'Advanced';
+    enableCTrader?: boolean;
     showDashboardSignals?: boolean;
     playSoundOnNotification?: boolean;
 }

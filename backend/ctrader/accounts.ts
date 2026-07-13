@@ -2,13 +2,19 @@ import { Request, Response } from 'express';
 import { CTraderConnection, CTraderAuth } from 'ctrader-ts';
 
 export default async function ctraderAccountsHandler(req: Request, res: Response) {
-    const token = req.headers.authorization?.split(' ')[1];
+    let token = req.headers.authorization?.split(' ')[1];
+    
+    // If no user token, check for system token (support both standard and VITE_ prefix)
+    if (!token) {
+        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+    }
+
     if (!token) {
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET;
+    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(500).json({ error: 'cTrader credentials not configured in server' });

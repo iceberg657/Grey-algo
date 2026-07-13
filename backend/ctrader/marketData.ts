@@ -2,13 +2,19 @@ import { Request, Response } from 'express';
 import { connect } from 'ctrader-ts';
 
 export const ctraderTickHistoryHandler = async (req: Request, res: Response) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    let token = req.headers.authorization?.split(' ')[1];
+    
+    // If no user token, check for system token (support both standard and VITE_ prefix)
+    if (!token) {
+        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+    }
+
     if (!token) {
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET;
+    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(500).json({ error: 'cTrader credentials not configured in server' });
@@ -44,8 +50,14 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
 };
 
 export const ctraderStreamHandler = async (req: Request, res: Response) => {
-    const token = req.query.token as string;
-    const accountIdStr = req.query.accountId as string;
+    let token = req.query.token as string;
+    
+    // If no user token, check for system token (support both standard and VITE_ prefix)
+    if (!token) {
+        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+    }
+
+    const accountIdStr = req.query.accountId as string || process.env.CTRADER_ACCOUNT_ID || process.env.VITE_CTRADER_ACCOUNT_ID;
     const environment = req.query.environment as string;
     const symbolsStr = req.query.symbols as string;
 
@@ -53,8 +65,8 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Missing required query parameters: token, accountId, symbols' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET;
+    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(500).json({ error: 'cTrader credentials not configured in server' });
@@ -107,13 +119,19 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
 
 
 export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    let token = req.headers.authorization?.split(' ')[1];
+    
+    // If no user token, check for system token (support both standard and VITE_ prefix)
+    if (!token) {
+        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+    }
+
     if (!token) {
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET;
+    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(500).json({ error: 'cTrader credentials not configured in server' });

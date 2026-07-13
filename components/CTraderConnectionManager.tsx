@@ -9,27 +9,55 @@ export const CTraderConnectionManager: React.FC = () => {
     const [error, setError] = useState('');
     const [accounts, setAccounts] = useState<any[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
+    const [isSystemConnected, setIsSystemConnected] = useState(false);
 
     useEffect(() => {
-        checkConnection();
-        fetchAuthUrl();
+        const init = async () => {
+            const status = await checkSystemStatus();
+            checkConnection(status);
+            fetchAuthUrl();
+        };
+        init();
     }, []);
 
-    const checkConnection = () => {
+    const checkSystemStatus = async () => {
+        try {
+            const res = await fetch('/api/ctrader/status');
+            if (res.ok) {
+                const data = await res.json();
+                setIsSystemConnected(data.systemConnected);
+                if (data.systemConnected && data.systemAccountId) {
+                    setSelectedAccountId(data.systemAccountId);
+                }
+                return data;
+            }
+        } catch (e) {
+            console.error('Failed to fetch cTrader status', e);
+        }
+        return null;
+    };
+
+    const checkConnection = (systemStatus?: any) => {
         const token = localStorage.getItem('ctrader_access_token');
         if (token) {
             setIsConnected(true);
             fetchAccounts(token);
+        } else if (systemStatus?.systemConnected) {
+            setIsConnected(true);
+            fetchAccounts(); // Fetch using system token on backend
         }
+
         const savedAccount = localStorage.getItem('ctrader_account_id');
         if (savedAccount) setSelectedAccountId(savedAccount);
+        else if (systemStatus?.systemAccountId) setSelectedAccountId(systemStatus.systemAccountId);
     };
 
-    const fetchAccounts = async (token: string) => {
+    const fetchAccounts = async (token?: string) => {
         try {
-            const res = await fetch('/api/ctrader/accounts', {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const headers: any = {};
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            
+            const res = await fetch('/api/ctrader/accounts', { headers });
             if (res.ok) {
                 const data = await res.json();
                 setAccounts(data.accounts || []);
@@ -105,7 +133,21 @@ export const CTraderConnectionManager: React.FC = () => {
         localStorage.removeItem('ctrader_access_token');
         localStorage.removeItem('ctrader_refresh_token');
         localStorage.removeItem('ctrader_token_expiry');
-        setIsConnected(false);
+        
+        if (isSystemConnected) {
+            // If system connected, we can't truly disconnect unless we ignore the system token
+            // But usually the user wants to clear their local session.
+            // We'll just refresh the status.
+            checkSystemStatus().then(status => {
+                if (status?.systemConnected) {
+                    setIsConnected(true);
+                } else {
+                    setIsConnected(false);
+                }
+            });
+        } else {
+            setIsConnected(false);
+        }
     };
 
     return (
@@ -122,8 +164,13 @@ export const CTraderConnectionManager: React.FC = () => {
                 </div>
                 <div>
                     {isConnected ? (
-                        <span className="flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md">
-                            <CheckCircle className="w-3 h-3" /> Connected
+                        <span className="flex flex-col items-end">
+                            <span className="flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md">
+                                <CheckCircle className="w-3 h-3" /> Connected
+                            </span>
+                            {isSystemConnected && !localStorage.getItem('ctrader_access_token') && (
+                                <span className="text-[9px] text-emerald-600 dark:text-emerald-400 mt-1 uppercase font-bold tracking-tight">System Environment Mode</span>
+                            )}
                         </span>
                     ) : (
                         <span className="flex items-center gap-1 text-xs font-bold text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2 py-1 rounded-md">
