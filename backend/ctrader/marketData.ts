@@ -4,17 +4,17 @@ import { connect } from 'ctrader-ts';
 export const ctraderTickHistoryHandler = async (req: Request, res: Response) => {
     let token = req.headers.authorization?.split(' ')[1];
     
-    // If no user token, check for system token (support both standard and VITE_ prefix)
+    // If no user token, check for system token
     if (!token) {
-        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+        token = process.env.CTRADER_ACCESS_TOKEN;
     }
 
     if (!token) {
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
@@ -56,12 +56,12 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
 export const ctraderStreamHandler = async (req: Request, res: Response) => {
     let token: string | undefined = req.query.token as string;
     
-    // If no user token, check for system token (support both standard and VITE_ prefix)
+    // If no user token, check for system token
     if (!token) {
-        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+        token = process.env.CTRADER_ACCESS_TOKEN;
     }
 
-    const accountIdStr = req.query.accountId as string || process.env.CTRADER_ACCOUNT_ID || process.env.VITE_CTRADER_ACCOUNT_ID;
+    const accountIdStr = req.query.accountId as string || process.env.CTRADER_ACCOUNT_ID;
     const environment = req.query.environment as string;
     const symbolsStr = req.query.symbols as string;
 
@@ -69,8 +69,8 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Missing required query parameters: token, accountId, symbols' });
     }
 
-    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
@@ -125,17 +125,17 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
 export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
     let token = req.headers.authorization?.split(' ')[1];
     
-    // If no user token, check for system token (support both standard and VITE_ prefix)
+    // If no user token, check for system token
     if (!token) {
-        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+        token = process.env.CTRADER_ACCESS_TOKEN;
     }
 
     if (!token) {
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });

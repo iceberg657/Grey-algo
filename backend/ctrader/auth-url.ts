@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
 
 export default async function handler(req: Request, res: Response) {
-    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID;
     const REDIRECT_URI = req.query.redirectUri as string || "https://openapi.ctrader.com";
     
     if (!clientId) {

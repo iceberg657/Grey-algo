@@ -97,7 +97,7 @@ export async function fetchFromDeriv(_token?: string): Promise<any[]> {
 
 export default async (req: Request, res: Response) => {
     const isStale = !marketDataCache.timestamp || (Date.now() - marketDataCache.timestamp > CACHE_DURATION);
-    const token = req.query?.token as string || process.env.DERIV_API_TOKEN || process.env.VITE_DERIV_API_TOKEN || process.env.DERIV_TOKEN || process.env.VITE_DERIV_TOKEN;
+    const token = req.query?.token as string || process.env.DERIV_API_TOKEN || process.env.DERIV_TOKEN;
     
     if (isStale || req.query?.force) {
         const data = await fetchFromDeriv(token);

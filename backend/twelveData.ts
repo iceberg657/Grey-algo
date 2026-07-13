@@ -8,9 +8,7 @@ export async function statusHandler(_req: Request, res: Response) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     
     const apiKey = process.env.TWELVE_DATA_API_KEY || 
-                   process.env.VITE_TWELVE_DATA_API_KEY || 
-                   process.env.TWELVEDATA_API_KEY || 
-                   process.env.VITE_TWELVEDATA_API_KEY;
+                   process.env.TWELVEDATA_API_KEY;
                    
     if (apiKey && twelveDataKeyCache && twelveDataKeyCache.key === apiKey && (Date.now() - twelveDataKeyCache.timestamp < CACHE_DURATION)) {
         return res.json({ 
@@ -60,9 +58,7 @@ export async function quoteHandler(req: Request, res: Response) {
     }
 
     const apiKey = apikey || process.env.TWELVE_DATA_API_KEY || 
-                   process.env.VITE_TWELVE_DATA_API_KEY || 
-                   process.env.TWELVEDATA_API_KEY || 
-                   process.env.VITE_TWELVEDATA_API_KEY;
+                   process.env.TWELVEDATA_API_KEY;
                    
     if (!apiKey) {
         return res.status(500).json({ error: 'Twelve Data API key not configured' });

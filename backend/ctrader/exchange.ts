@@ -3,8 +3,8 @@ import { Request, Response } from 'express';
 export default async function handler(req: Request, res: Response) {
     const { code, clientId: manualClientId, clientSecret: manualClientSecret, redirectUri: manualRedirectUri } = req.body;
     
-    const clientId = manualClientId || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = manualClientSecret || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = manualClientId || process.env.CTRADER_CLIENT_ID;
+    const clientSecret = manualClientSecret || process.env.CTRADER_CLIENT_SECRET;
     const REDIRECT_URI = manualRedirectUri || "https://openapi.ctrader.com";
     
     if (!clientId || !clientSecret) {

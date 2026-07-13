@@ -4,17 +4,17 @@ import { CTraderConnection, CTraderAuth } from 'ctrader-ts';
 export default async function ctraderAccountsHandler(req: Request, res: Response) {
     let token = req.headers.authorization?.split(' ')[1];
     
-    // If no user token, check for system token (support both standard and VITE_ prefix)
+    // If no user token, check for system token
     if (!token) {
-        token = process.env.CTRADER_ACCESS_TOKEN || process.env.VITE_CTRADER_ACCESS_TOKEN;
+        token = process.env.CTRADER_ACCESS_TOKEN;
     }
 
     if (!token) {
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
         return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
