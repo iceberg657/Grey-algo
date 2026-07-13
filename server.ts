@@ -714,7 +714,9 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
     }
   });
 
-  if (!process.env.VERCEL) {
+  if (process.env.VERCEL) {
+    console.log('[Server] Running on Vercel, skipping listener');
+  } else {
     // Vite middleware for development
     if (process.env.NODE_ENV !== 'production') {
       const { createServer: createViteServer } = await import('vite');
@@ -730,7 +732,7 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
         res.sendFile(path.join(distPath, 'index.html'));
       });
     }
-
+  
     server.listen(PORT, '0.0.0.0', () => {
       console.log(`Server running on http://localhost:${PORT}`);
     });
@@ -739,6 +741,11 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
   return app;
 }
 
-if (!process.env.VERCEL) {
-  createViteApp();
+// Support both export styles
+export default createViteApp;
+
+if (!process.env.VERCEL && (process.env.NODE_ENV !== 'production' || process.argv[1]?.includes('server.ts'))) {
+  createViteApp().catch(err => {
+    console.error('[Server] Failed to start:', err);
+  });
 }

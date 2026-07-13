@@ -30,7 +30,7 @@ export default async function handler(req: Request, res: Response) {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'Accept': 'application/json' 
             },
-            body: params
+            body: params.toString()
         });
 
         if (!response.ok) {

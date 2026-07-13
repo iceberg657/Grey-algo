@@ -1,9 +1,15 @@
-import { createViteApp } from '../server.js';
+import { createViteApp } from '../server';
 
-let appPromise = createViteApp();
+console.log('[Vercel] Handler loading...');
+
+let appPromise: any = null;
 
 export default async function handler(req: any, res: any) {
   try {
+    if (!appPromise) {
+      console.log('[Vercel] Initializing app...');
+      appPromise = createViteApp();
+    }
     const app = await appPromise;
     return app(req, res);
   } catch (error: any) {
