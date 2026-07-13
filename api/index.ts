@@ -1,4 +1,4 @@
-import { createViteApp } from '../server.js';
+import { createViteApp } from '../server';
 
 let appPromise = createViteApp();
 
