@@ -54,55 +54,76 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
         const localKey = userSettings?.twelveDataApiKey;
 
-        if (!localKey) {
-            return { error: 'Twelve Data API key is required. Please set it in Settings.' };
+        // 1. Attempt to use backend proxy first (picks up Vercel/backend env variables)
+        let url = `/api/twelveData?symbol=${encodeURIComponent(symbol)}&interval=${interval}`;
+        if (localKey) {
+            url += `&apikey=${encodeURIComponent(localKey)}`;
         }
 
-        const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
-            fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`, { cache: 'no-store' }),
-            fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
-            fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
-            fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
-            fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
-            fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' })
-        ]);
+        const proxyRes = await fetch(url, { cache: 'no-store' });
+        if (proxyRes.ok) {
+            const data = await proxyRes.json();
+            if (data && !data.error && data.status !== 'error') {
+                return data;
+            }
+        }
 
-        if (quoteRes.ok) {
-            const quoteData = await quoteRes.json();
-            
-            if (quoteData.code === 429) {
-                return { error: 'Twelve Data rate limit exceeded. Please wait or upgrade your plan.' };
-            }
+        // 2. Fallback to client-side direct calls ONLY if we have a local key override
+        if (localKey) {
+            const [quoteRes, rsiRes, smaRes, stddevRes, atrRes, adxRes] = await Promise.all([
+                fetch(`https://api.twelvedata.com/quote?symbol=${encodeURIComponent(symbol)}&apikey=${localKey}`, { cache: 'no-store' }),
+                fetch(`https://api.twelvedata.com/rsi?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
+                fetch(`https://api.twelvedata.com/sma?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
+                fetch(`https://api.twelvedata.com/stddev?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=20&apikey=${localKey}`, { cache: 'no-store' }),
+                fetch(`https://api.twelvedata.com/atr?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' }),
+                fetch(`https://api.twelvedata.com/adx?symbol=${encodeURIComponent(symbol)}&interval=${interval}&time_period=14&apikey=${localKey}`, { cache: 'no-store' })
+            ]);
 
-            const data: any = {
-                ...quoteData,
-            };
+            if (quoteRes.ok) {
+                const quoteData = await quoteRes.json();
+                
+                if (quoteData.code === 429) {
+                    return { error: 'Twelve Data rate limit exceeded. Please wait or upgrade your plan.' };
+                }
 
-            if (rsiRes.ok) {
-                const rsiData = await rsiRes.json();
-                data.rsi = rsiData.values?.[0]?.rsi || null;
-            }
-            if (smaRes.ok) {
-                const smaData = await smaRes.json();
-                data.sma = smaData.values?.[0]?.sma || null;
-            }
-            if (stddevRes.ok) {
-                const stddevData = await stddevRes.json();
-                data.stddev = stddevData.values?.[0]?.stddev || null;
-            }
-            if (atrRes.ok) {
-                const atrData = await atrRes.json();
-                data.atr = atrData.values?.[0]?.atr || null;
-            }
-            if (adxRes.ok) {
-                const adxData = await adxRes.json();
-                data.adx = adxData.values?.[0]?.adx || null;
-            }
+                const data: any = {
+                    ...quoteData,
+                };
 
-            return data;
+                if (rsiRes.ok) {
+                    const rsiData = await rsiRes.json();
+                    data.rsi = rsiData.values?.[0]?.rsi || null;
+                }
+                if (smaRes.ok) {
+                    const smaData = await smaRes.json();
+                    data.sma = smaData.values?.[0]?.sma || null;
+                }
+                if (stddevRes.ok) {
+                    const stddevData = await stddevRes.json();
+                    data.stddev = stddevData.values?.[0]?.stddev || null;
+                }
+                if (atrRes.ok) {
+                    const atrData = await atrRes.json();
+                    data.atr = atrData.values?.[0]?.atr || null;
+                }
+                if (adxRes.ok) {
+                    const adxData = await adxRes.json();
+                    data.adx = adxData.values?.[0]?.adx || null;
+                }
+
+                return data;
+            }
         }
         
-        return { error: 'Failed to fetch quote data from Twelve Data.' };
+        // Return proxy error details if any
+        if (!proxyRes.ok) {
+            try {
+                const errData = await proxyRes.json();
+                return { error: errData.error || 'Failed to fetch Twelve Data from server. Please configure Twelve Data API Key on Vercel.' };
+            } catch (e) {}
+        }
+        
+        return { error: 'Twelve Data API key not configured. Please set it as an environment variable in Vercel or in Settings.' };
     } catch (e: any) {
         console.error('Failed to fetch from Twelve Data:', e);
         return { error: e.message };

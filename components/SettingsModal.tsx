@@ -323,56 +323,72 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                         {/* API Keys Section */}
                         <div className="bg-blue-50/50 dark:bg-blue-900/10 backdrop-blur-sm p-4 rounded-xl border border-blue-200 dark:border-blue-500/20">
-                            <h4 className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                            <h4 className="text-xs font-bold text-blue-500 uppercase tracking-wider mb-1 flex items-center gap-2">
                                 <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                 </svg>
-                                External API Integrations
+                                External API Integrations (Vercel Backend Ready)
                             </h4>
+                            <p className="text-[10px] text-gray-500 dark:text-gray-400 mb-4">
+                                ⚡ <strong>Active Auto-Pickup:</strong> The application prioritizes keys configured as environment variables on your backend/Vercel. Fields below are 100% optional local overrides.
+                            </p>
+                            
                             <div className="space-y-4">
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Twelve Data API Key (Market Data)</label>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1 flex justify-between">
+                                        <span>Twelve Data API Key (Market Data)</span>
+                                        <span className="text-[9px] font-semibold text-emerald-500 dark:text-emerald-400 uppercase">Auto-Loaded from Vercel</span>
+                                    </label>
                                     <input
                                         type="password"
                                         value={settings.twelveDataApiKey || ''}
                                         onChange={(e) => handleChange('twelveDataApiKey', e.target.value)}
                                         className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
-                                        placeholder="Enter your Twelve Data API Key"
+                                        placeholder="Optional: Auto-reads from TWELVE_DATA_API_KEY"
                                     />
-                                    <p className="text-[10px] text-blue-400 mt-1">If set, this key will be used for market data confluence.</p>
+                                    <p className="text-[10px] text-blue-400 mt-1">Leave empty to auto-load your Vercel/backend key. Set here to override locally.</p>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Deriv API Token (Sniper Live Trade - Legacy)</label>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1 flex justify-between">
+                                        <span>Deriv API Token (Sniper Live Trade)</span>
+                                        <span className="text-[9px] font-semibold text-emerald-500 dark:text-emerald-400 uppercase">Auto-Loaded from Vercel</span>
+                                    </label>
                                     <input
                                         type="password"
                                         value={settings.derivApiToken || ''}
                                         onChange={(e) => handleChange('derivApiToken', e.target.value)}
                                         className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
-                                        placeholder="Enter your Deriv Legacy API Token"
+                                        placeholder="Optional: Auto-reads from DERIV_API_TOKEN"
                                     />
-                                    <p className="text-[10px] text-blue-400 mt-1">Required for fetching live Forex/Gold prices in Sniper Live Trade.</p>
+                                    <p className="text-[10px] text-blue-400 mt-1">Used for fetching live Forex/Gold prices in Sniper Live Trade.</p>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Deriv API Token (Trade Notification - New)</label>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1 flex justify-between">
+                                        <span>Deriv API Token (Trade Notification)</span>
+                                        <span className="text-[9px] font-semibold text-emerald-500 dark:text-emerald-400 uppercase">Auto-Loaded from Vercel</span>
+                                    </label>
                                     <input
                                         type="password"
                                         value={settings.tradeNotificationDerivToken || ''}
                                         onChange={(e) => handleChange('tradeNotificationDerivToken', e.target.value)}
                                         className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
-                                        placeholder="Enter your Deriv API Token"
+                                        placeholder="Optional: Auto-reads from TRADE_NOTIFICATION_DERIV_TOKEN"
                                     />
                                     <p className="text-[10px] text-blue-400 mt-1">Required for fetching price history in Trade Notification Page.</p>
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1">Custom Gemini API Key (Neural Lane Override)</label>
+                                    <label className="block text-xs font-medium text-gray-600 dark:text-blue-200/80 mb-1 flex justify-between">
+                                        <span>Custom Gemini API Key (Neural Lane Override)</span>
+                                        <span className="text-[9px] font-semibold text-emerald-500 dark:text-emerald-400 uppercase">Auto-Loaded from Vercel</span>
+                                    </label>
                                     <input
                                         type="password"
                                         value={settings.geminiApiKey || ''}
                                         onChange={(e) => handleChange('geminiApiKey', e.target.value)}
                                         className="w-full px-3 py-1.5 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-blue-500/30 rounded focus:ring-1 focus:ring-blue-500 outline-none text-gray-900 dark:text-white text-sm"
-                                        placeholder="Enter your Gemini Pro API Key"
+                                        placeholder="Optional: Auto-reads from GEMINI_API_KEY"
                                     />
-                                    <p className="text-[10px] text-blue-400 mt-1">If set, this key will be prioritized for AI analysis and Intelligence.</p>
+                                    <p className="text-[10px] text-blue-400 mt-1">If set, this key will override the active Vercel/backend model pool key.</p>
                                 </div>
                                 <div className="flex items-center justify-between p-3 bg-violet-500/10 dark:bg-violet-500/5 rounded-lg border border-violet-500/30">
                                     <div>

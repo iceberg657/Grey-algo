@@ -152,6 +152,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
   const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
+  const ctraderDepthRef = React.useRef<{ bids: [number, number][], asks: [number, number][] } | null>(null);
   
   // Get last analyzed asset
   const lastAnalyzedAsset = React.useMemo(() => {
@@ -162,6 +163,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     }
     return null;
   }, [messages]);
+
+  useEffect(() => {
+    // Clear L2 depth cache when switching focus assets
+    ctraderDepthRef.current = null;
+  }, [lastAnalyzedAsset]);
 
     useEffect(() => {
         // Initialize Daily Market Regime Tracking (AI Pilot)
@@ -592,7 +598,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
             derivData.candles,
             derivData.multiTimeframe?.confirm?.candles,
             derivData.multiTimeframe?.htf?.candles,
-            asset
+            asset,
+            derivData.usedBroker || 'Deriv',
+            ctraderDepthRef.current
           )
         : null;
         
@@ -985,7 +993,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
             {/* Advanced Streaming Panel */}
             {userSettings?.streamingMode === 'Advanced' && lastAnalyzedAsset && (
               <div className="mb-4">
-                 <CTraderAdvancedData symbol={lastAnalyzedAsset} />
+                 <CTraderAdvancedData 
+                    symbol={lastAnalyzedAsset} 
+                    onDepthUpdate={(depth) => { ctraderDepthRef.current = depth; }}
+                 />
               </div>
             )}
 
@@ -1674,6 +1685,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                         data={msg.signal.heatmapData} 
                                         currentPrice={msg.signal.priceAtSignal || livePrice} 
                                         height={180} 
+                                        poc={msg.signal.quantData?.volumeProfile?.poc}
+                                        vah={msg.signal.quantData?.volumeProfile?.vah}
+                                        val={msg.signal.quantData?.volumeProfile?.val}
+                                        stopClusters={msg.signal.quantData?.stopClusters}
                                     />
                                     <p className="text-[9px] text-slate-500 uppercase tracking-widest text-center mt-3">
                                         D3.js Visualization of Liquidity Zones detected by Quant Engine

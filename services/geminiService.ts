@@ -2155,6 +2155,9 @@ ${quantData.ctraderTicks ? `- HIGH DENSITY cTRADER TICK DATA: ${quantData.ctrade
 - VETO STATUS: If Trap Probability is incredibly high, you MUST reject the trade and output NEUTRAL.
 - Orderflow Imbalance: ${quantData.orderflowMetrics?.imbalanceRatio?.toFixed(2) || 'N/A'} (${quantData.orderflowMetrics?.institutionalFootprint || 'N/A'})
 - Orderflow Exhaustion: ${quantData.orderflowMetrics?.exhaustionWarning ? 'WARN: WICK EXHAUSTION DETECTED' : 'CLEAN'}
+- Real-time L2 Depth Skew: ${quantData.orderflowMetrics?.l2Metrics ? `${quantData.orderflowMetrics.l2Metrics.imbalancePercent?.toFixed(1)}% imbalance skew (${quantData.orderflowMetrics.l2Metrics.skew})` : 'N/A'}
+- Volumetric Absorptions Detected: ${quantData.orderflowMetrics?.absorptions?.map((a: any) => `${a.type} at ${a.price} (Strength: ${a.strength}%)`)?.join(', ') || 'NONE'}
+- Predicted Stop Clusters (Liquidity Targets): ${quantData.stopClusters?.map((s: any) => `${s.type} at ${s.price} (Size: ${s.size} Lots, Prob: ${s.probability})`)?.join(' | ') || 'NONE'}
 - Liquidity Sweep Prediction: Next Target: ${quantData.liquidityPrediction?.nextTarget || 'NONE'} | Probability: ${quantData.liquidityPrediction?.probability || 0}% | Imminent: ${quantData.liquidityPrediction?.imminentSweep ? 'YES' : 'NO'}
 - Risk Optimization: Kelly Exec: ${quantData.riskOptimization?.suggestedRiskPercentage?.toFixed(2)}% | Split Orders: ${quantData.riskOptimization?.splitOrders ? 'YES' : 'NO'} | Approval: ${quantData.riskOptimization?.approval ? 'APPROVED' : 'VETOED'}
 
@@ -2304,6 +2307,14 @@ ${style.includes('scalping') ? `
 **CRITICAL DATA (SMC BASIS):**
 - ASSET: ${assetName}
 - LIVE MARKET PRICE: ${livePrice}
+
+${derivData?.usedBroker === 'cTrader' ? `
+🚨 **cTRADER REAL-TIME PROVIDER DATA ACTIVE**
+- **DATA INTEGRITY:** Verified Institutional Liquid Provider (No counterfeit/mocked volume or fake data). All volume data is 100% authentic and represents actual market depth and tick activity.
+- **REAL TICK VOLUME:** The trendbars contain genuine tick volume. If the Volume Profile score/confluence is high (+10 to +20), you MUST prioritize the Volume Profile POC (Point of Control) and High Volume Nodes (HVNs) as absolute magnets for entry/targets.
+- **DEPTH OF MARKET / L2 ORDERBOOK:** Real-time L2 order book has true institutional bids and asks with corresponding real order sizes.
+- **ENTRY MODIFICATION & SLIPPAGE MITIGATION:** Because this is real, live-market data with actual liquidity, you MUST adjust your limit orders or market execution ranges to target deep liquidity pockets (orderbook spikes) where large institutional sizes are waiting, minimizing slippage and maximizing filled orders at the highest value price.
+` : ''}
 
 USER REQUEST: "${cleanQueryForLLM}"
 

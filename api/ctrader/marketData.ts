@@ -29,7 +29,7 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
             environment: environment === 'live' ? 'live' : 'demo'
         });
 
-        const params: any = { type: type === 'ASK' ? 'ASK' : 'BID' };
+        const params: any = { type: type === 'ASK' ? 2 : 1 };
         if (fromTimestamp) params.fromTimestamp = parseInt(fromTimestamp, 10);
         if (toTimestamp) params.toTimestamp = parseInt(toTimestamp, 10);
 
@@ -147,7 +147,10 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         // We first need to get the symbol ID.
         let symbolId = 0;
         const symbolsData = await ct.getSymbols();
-        const sym = symbolsData.symbols.find(s => s.symbolName === symbol);
+        const symbolsArray = Array.isArray(symbolsData) 
+            ? symbolsData 
+            : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
+        const sym = symbolsArray.find((s: any) => s.symbolName === symbol);
         if (!sym) {
             await ct.disconnect();
             return res.status(404).json({ error: `Symbol ${symbol} not found in cTrader` });
@@ -155,8 +158,7 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         symbolId = sym.symbolId;
 
         
-        const data = await ct.getTrendbars({
-            symbolId,
+        const data = await ct.getTrendbars(symbolId, {
             period: periodEnum,
             count: parseInt(count || '100', 10)
         });

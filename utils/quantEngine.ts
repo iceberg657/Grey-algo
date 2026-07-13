@@ -1,6 +1,6 @@
 import { calculateEMA, calculateRSI, findSwings } from './analyticsEngine';
 import { calculateMarkovRegime, MarkovRegimeResult } from './markovEngine';
-import { analyzeOrderflow, OrderflowMetrics } from './orderflowEngine';
+import { analyzeOrderflow, OrderflowMetrics, predictStopClusters, StopCluster, calculateL2OrderbookMetrics, L2Metrics } from './orderflowEngine';
 import { executeRiskOptimization, RiskOptimization } from './riskOptimizer';
 import { predictNextLiquiditySweep, LiquidityPrediction } from './liquidityPrediction';
 import { NeuralEngine, NeuralAnalysis } from '../services/neuralEngine';
@@ -619,7 +619,10 @@ export const calculateWeightedScore = (
     newsRiskLevel: 'HIGH' | 'MEDIUM' | 'LOW' | 'CLEAR',
     killzoneScore: number,
     liquiditySweptBonus: number,
-    quantMath?: QuantMathematics
+    quantMath?: QuantMathematics,
+    usedBroker: string = 'Deriv',
+    direction?: 'BUY' | 'SELL' | 'NEUTRAL',
+    l2Metrics?: L2Metrics | null
 ): WeightedScore => {
     const breakdown: string[] = [];
 
@@ -630,20 +633,93 @@ export const calculateWeightedScore = (
     if (smcFactors.zoneValid) { smcScore += 7; breakdown.push('Correct Premium/Discount zone +7'); }
     if (smcFactors.otePrecise) { smcScore += 3; breakdown.push('Price in OTE 70.5% zone +3'); }
     if (smcFactors.obConfluence) { smcScore += 2; breakdown.push('OB confluence +2'); }
-    smcScore = Math.min(smcScore, 30);
 
-    // 2. VOLUME PROFILE (20 pts)
+    // DOM L2 Skew Influence on SMC Structure (confluence / conflict checking)
+    if (usedBroker === 'cTrader' && l2Metrics && direction && direction !== 'NEUTRAL') {
+        if (direction === 'BUY') {
+            if (l2Metrics.skew === 'BULLISH_SUPPORT') {
+                smcScore += 5;
+                breakdown.push('DOM Bullish Support (L2 Depth) confirms SMC demand zone +5');
+            } else if (l2Metrics.skew === 'BEARISH_RESISTANCE') {
+                smcScore -= 5;
+                breakdown.push('DOM Bearish Resistance (L2 Depth) conflicts with SMC demand zone -5');
+            }
+        } else if (direction === 'SELL') {
+            if (l2Metrics.skew === 'BEARISH_RESISTANCE') {
+                smcScore += 5;
+                breakdown.push('DOM Bearish Resistance (L2 Depth) confirms SMC supply zone +5');
+            } else if (l2Metrics.skew === 'BULLISH_SUPPORT') {
+                smcScore -= 5;
+                breakdown.push('DOM Bullish Support (L2 Depth) conflicts with SMC supply zone -5');
+            }
+        }
+    }
+    smcScore = Math.max(0, Math.min(smcScore, 30));
+
+    // 2. VOLUME PROFILE / DOM DEPTH (20 pts)
     // The volume profile from Deriv is mathematically fake (all ticks = 1 volume).
-    // We mock the score to 0 to prevent fake 20-pt confidence boost.
-    const volScore = 0; // Math.min(vpScore, 20);
-    // if (vpScore > 0) breakdown.push(`Volume Profile +${volScore}`);
+    // If we use cTrader, we have the ACTUAL volume data directly from the provider.
+    let volScore = usedBroker === 'cTrader' ? Math.min(vpScore, 12) : 0; // Max 12pts from Volume Profile
+    let domDepthScore = 0; // Max 8pts from real-time DOM imbalances
 
-    // 3. GLOBAL TREND / CORRELATION (20 pts)
+    if (usedBroker === 'cTrader') {
+        if (volScore > 0) {
+            breakdown.push(`Volume Profile Confluence (cTrader Actual Vol) +${volScore}`);
+        } else {
+            breakdown.push(`cTrader Actual Vol Profile Aligned`);
+        }
+
+        if (l2Metrics && direction && direction !== 'NEUTRAL') {
+            const imbalancePercent = l2Metrics.imbalancePercent; // (Bids - Asks) / (Bids + Asks) * 100
+            if (direction === 'BUY') {
+                if (imbalancePercent > 10) {
+                    domDepthScore = Math.min(8, Math.round(imbalancePercent / 5));
+                    breakdown.push(`DOM Bullish Imbalance (+${imbalancePercent.toFixed(1)}%) confirmed +${domDepthScore}`);
+                } else if (imbalancePercent < -10) {
+                    domDepthScore = 0;
+                    breakdown.push(`DOM Warning: Bearish Imbalance (${imbalancePercent.toFixed(1)}%) in BUY setup`);
+                }
+            } else if (direction === 'SELL') {
+                if (imbalancePercent < -10) {
+                    domDepthScore = Math.min(8, Math.round(Math.abs(imbalancePercent) / 5));
+                    breakdown.push(`DOM Bearish Imbalance (${imbalancePercent.toFixed(1)}%) confirmed +${domDepthScore}`);
+                } else if (imbalancePercent > 10) {
+                    domDepthScore = 0;
+                    breakdown.push(`DOM Warning: Bullish Imbalance (+${imbalancePercent.toFixed(1)}%) in SELL setup`);
+                }
+            }
+        }
+    }
+    volScore = Math.max(0, Math.min(volScore + domDepthScore, 20));
+
+    // 3. GLOBAL TREND / CORRELATION / DOM CONFLUENCE (20 pts)
     let trendScore = 0;
     if (trendAligned) { trendScore += 10; breakdown.push('3TF trend aligned +10'); }
     trendScore += Math.min(correlationScore, 10);
     if (correlationScore > 0) breakdown.push(`Correlation score +${Math.min(correlationScore, 10)}`);
-    trendScore = Math.min(trendScore, 20);
+
+    // DOM L2 Skew Influence on Global Trend (adds up to +3, or penalizes up to -5)
+    if (usedBroker === 'cTrader' && l2Metrics && direction && direction !== 'NEUTRAL') {
+        const imbalancePercent = l2Metrics.imbalancePercent;
+        if (direction === 'BUY') {
+            if (imbalancePercent > 20) {
+                trendScore += 3;
+                breakdown.push('DOM Bullish Depth confirms positive Trend bias +3');
+            } else if (imbalancePercent < -20) {
+                trendScore -= 5;
+                breakdown.push('DOM Bearish Depth opposes positive Trend bias -5 ⚠️');
+            }
+        } else if (direction === 'SELL') {
+            if (imbalancePercent < -20) {
+                trendScore += 3;
+                breakdown.push('DOM Bearish Depth confirms negative Trend bias +3');
+            } else if (imbalancePercent > 20) {
+                trendScore -= 5;
+                breakdown.push('DOM Bullish Depth opposes negative Trend bias -5 ⚠️');
+            }
+        }
+    }
+    trendScore = Math.max(0, Math.min(trendScore, 20));
 
     // 4. NEWS SENTIMENT (20 pts)
     let newsScore = 0;
@@ -786,7 +862,14 @@ export const detectSMTDivergence = (
 };
 
 // Master SMC Analysis
-export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: any[], assetSymbol: string = 'UNKNOWN') {
+export function analyzeSMC(
+    candles: any[], 
+    confirmCandles?: any[], 
+    htfCandles?: any[], 
+    assetSymbol: string = 'UNKNOWN', 
+    usedBroker: string = 'Deriv',
+    depth?: { bids: [number, number][], asks: [number, number][] } | null
+) {
     const day = new Date().getDay(); // 0=Sun, 1=Mon, 5=Fri, 6=Sat
     const isOffDay = (day === 0 || day === 1 || day === 5 || day === 6);
 
@@ -1143,6 +1226,18 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         newsRisk = 'MEDIUM'; 
     }
 
+    // Enforce direction based on HTF structure and Displacement
+    const isBullishSetup = (tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
+        (!displacementDirection || displacementDirection === 'BULLISH');
+    const isBearishSetup = (tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
+        (!displacementDirection || displacementDirection === 'BEARISH');
+
+    const directionOfSetup: 'BUY' | 'SELL' | 'NEUTRAL' = 
+        isBullishSetup ? 'BUY' : (isBearishSetup ? 'SELL' : 'NEUTRAL');
+
+    // Parse L2 Orderbook DOM Depth if available
+    const l2Metrics = depth ? calculateL2OrderbookMetrics(depth, currentPrice) : null;
+
     const weightedScore = calculateWeightedScore(
         smcFactors,
         obVolConfluence.score,
@@ -1152,14 +1247,11 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         newsRisk, // News Sentiment mocked based on day/time
         killzone.score,
         liquidityBonus,
-        quantMath
+        quantMath,
+        usedBroker,
+        directionOfSetup,
+        l2Metrics
     );
-
-    // Enforce direction based on HTF structure and Displacement
-    const isBullishSetup = (tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
-        (!displacementDirection || displacementDirection === 'BULLISH');
-    const isBearishSetup = (tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
-        (!displacementDirection || displacementDirection === 'BEARISH');
 
     let signalValid = weightedScore.totalScore >= 50;
 
@@ -1234,6 +1326,19 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
 
     // 6. Advanced Micro-Decisions
     const orderflowMetrics = analyzeOrderflow(candles);
+    if (l2Metrics) {
+        orderflowMetrics.l2Metrics = l2Metrics;
+        orderflowMetrics.imbalanceRatio = l2Metrics.imbalanceRatio;
+        if (l2Metrics.skew === 'BULLISH_SUPPORT') {
+            orderflowMetrics.institutionalFootprint = 'STRONG_BUY';
+        } else if (l2Metrics.skew === 'BEARISH_RESISTANCE') {
+            orderflowMetrics.institutionalFootprint = 'STRONG_SELL';
+        }
+    }
+    const stopClusters = predictStopClusters(candles);
+    if (l2Metrics && l2Metrics.detectedStopClusters && l2Metrics.detectedStopClusters.length > 0) {
+        stopClusters.push(...l2Metrics.detectedStopClusters);
+    }
     const liquidityPrediction = predictNextLiquiditySweep(liquidityHeatmap, markovRegime, quantMath, currentPrice, trend);
 
     // Normalize data for NeuralEngine
@@ -1344,6 +1449,7 @@ export function analyzeSMC(candles: any[], confirmCandles?: any[], htfCandles?: 
         markovRegime,
         quantMath,
         orderflowMetrics,
+        stopClusters,
         liquidityPrediction,
         riskOptimization,
         neuralAnalysis,
