@@ -12,29 +12,29 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { GoogleGenAI } from "@google/genai";
 import fs from 'node:fs/promises';
+import { readFileSync } from 'node:fs';
 import { encrypt } from './src/services/encryptionService.js';
-import marketDataHandler from './api/marketData.js';
-import configHandler from './api/config.js';
-import analyzeHandler from './api/gemini/analyze.js';
-import antigravityHandler from './api/gemini/antigravity.js';
-import derivHandler from './api/derivData.js';
-import derivTradeNotificationHandler from './api/derivTradeNotification.js';
-import twelveDataHandler from './api/twelveData.js';
-import ctraderAccountsHandler from './api/ctrader/accounts.js';
-import { ctraderTickHistoryHandler, ctraderStreamHandler, ctraderTrendbarsHandler } from './api/ctrader/marketData.js';
+import marketDataHandler from './api-handlers/marketData.js';
+import configHandler from './api-handlers/config.js';
+import analyzeHandler from './api-handlers/gemini/analyze.js';
+import antigravityHandler from './api-handlers/gemini/antigravity.js';
+import derivHandler from './api-handlers/derivData.js';
+import derivTradeNotificationHandler from './api-handlers/derivTradeNotification.js';
+import twelveDataHandler from './api-handlers/twelveData.js';
+import ctraderAccountsHandler from './api-handlers/ctrader/accounts.js';
+import { ctraderTickHistoryHandler, ctraderStreamHandler, ctraderTrendbarsHandler } from './api-handlers/ctrader/marketData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
-async function startServer() {
-  const app = express();
-  const server = createServer(app);
-  const wss = new WebSocketServer({ server });
-  const PORT = 3000;
+export const app = express();
+export const PORT = 3000;
+export const server = !process.env.VERCEL ? createServer(app) : null;
+export const wss = (!process.env.VERCEL && server) ? new WebSocketServer({ server }) : null;
 
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-  console.log('[Server] Initializing API routes...');
+console.log('[Server] Initializing API routes...');
 
   // Twelve Data Routes
   app.get('/api/twelveData', twelveDataHandler);
@@ -129,7 +129,7 @@ async function startServer() {
   let firestoreDatabaseId = '(default)';
   try {
     const configPath = path.join(process.cwd(), 'firebase-applet-config.json');
-    const configData = await fs.readFile(configPath, 'utf-8');
+    const configData = readFileSync(configPath, 'utf-8');
     const firebaseConfig = JSON.parse(configData);
     firestoreDatabaseId = firebaseConfig.firestoreDatabaseId || '(default)';
   } catch (error) {
@@ -208,11 +208,13 @@ async function startServer() {
       console.log(`Auto ML Strategy learned and logged: ${strategy.name}`);
       
       // Broadcast to admins via WS
-      wss.clients.forEach(client => {
-        if (client.readyState === 1) {
-          client.send(JSON.stringify({ type: 'AUTO_ML_UPDATE', strategy }));
-        }
-      });
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) {
+            client.send(JSON.stringify({ type: 'AUTO_ML_UPDATE', strategy }));
+          }
+        });
+      }
     } catch (error) {
       console.error('Error in Auto ML process:', error);
     }
@@ -233,7 +235,9 @@ async function startServer() {
     }
   }
 
-  scheduleAutoML();
+  if (!process.env.VERCEL) {
+    scheduleAutoML();
+  }
 
   // Helper to call MetaAPI REST API
   async function metaApiFetch(endpoint: string, method: string = 'GET', body: any = null) {
@@ -345,11 +349,13 @@ async function startServer() {
       
       // Broadcast to connected clients via WebSocket
       const message = JSON.stringify({ type: 'ACCOUNT_SYNC', uid, data: syncData });
-      wss.clients.forEach(client => {
-        if (client.readyState === 1) {
-          client.send(message);
-        }
-      });
+      if (wss) {
+        wss.clients.forEach(client => {
+          if (client.readyState === 1) {
+            client.send(message);
+          }
+        });
+      }
 
       res.json({ success: true });
     } catch (error) {
@@ -570,29 +576,35 @@ async function startServer() {
   };
 
   // WebSocket handling
-  wss.on('connection', (ws) => {
-    console.log('Client connected');
-    
-    // Send initial state
-    ws.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState }));
+  if (wss) {
+    wss.on('connection', (ws) => {
+      console.log('Client connected');
+      
+      // Send initial state
+      ws.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState }));
 
-    ws.on('message', (message) => {
-      const data = JSON.parse(message.toString());
-      
-      if (data.type === 'TOGGLE_ENGINE') {
-        engineState.isRunning = data.isRunning;
-        engineState.accountId = data.accountId;
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
-      }
-      
-      if (data.type === 'SET_MODE') {
-        engineState.mode = data.mode;
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
-      }
+      ws.on('message', (message) => {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'TOGGLE_ENGINE') {
+          engineState.isRunning = data.isRunning;
+          engineState.accountId = data.accountId;
+          if (wss) {
+            wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+          }
+        }
+        
+        if (data.type === 'SET_MODE') {
+          engineState.mode = data.mode;
+          if (wss) {
+            wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+          }
+        }
+      });
+
+      ws.on('close', () => console.log('Client disconnected'));
     });
-
-    ws.on('close', () => console.log('Client disconnected'));
-  });
+  }
 
   // Trading Engine Monitor
   const monitorAccount = async () => {
@@ -611,32 +623,39 @@ async function startServer() {
         
         // Stop engine for safety
         engineState.isRunning = false;
-        wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+        if (wss) {
+          wss.clients.forEach(client => client.send(JSON.stringify({ type: 'ENGINE_STATE', state: engineState })));
+        }
       }
     } catch (error) {
       console.error('Error monitoring account:', error);
     }
   };
 
-  // Check every 5 seconds
-  setInterval(monitorAccount, 5000);
-
   // Hourly market data update
   const broadcastMarketData = async () => {
     try {
       const data = await fetchAssetSuggestions();
       const message = JSON.stringify({ type: 'MARKET_DATA_UPDATE', data });
-      wss.clients.forEach((client) => {
-        if (client.readyState === 1) { // OPEN
-          client.send(message);
-        }
-      });
+      if (wss) {
+        wss.clients.forEach((client) => {
+          if (client.readyState === 1) { // OPEN
+            client.send(message);
+          }
+        });
+      }
     } catch (error) {
       console.error('Error broadcasting market data:', error);
     }
   };
 
-  setInterval(broadcastMarketData, 60 * 60 * 1000); // 1 hour
+  if (!process.env.VERCEL) {
+    // Check every 5 seconds
+    setInterval(monitorAccount, 5000);
+
+    // Hourly market data update
+    setInterval(broadcastMarketData, 60 * 60 * 1000); // 1 hour
+  }
 
   // MarketAux News Proxy Route
   app.get('/api/news', async (req, res) => {
@@ -775,13 +794,15 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
   });
 
   // Vite middleware for development
-  if (process.env.NODE_ENV !== 'production') {
-    const vite = await createViteServer({
-      server: { middlewareMode: true },
-      appType: 'spa',
-    });
-    app.use(vite.middlewares);
-  } else {
+  if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+    (async () => {
+      const vite = await createViteServer({
+        server: { middlewareMode: true },
+        appType: 'spa',
+      });
+      app.use(vite.middlewares);
+    })();
+  } else if (!process.env.VERCEL) {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
     app.get('*all', (req, res) => {
@@ -789,9 +810,8 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
     });
   }
 
-  server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-  });
-}
-
-startServer();
+  if (server && !process.env.VERCEL) {
+    server.listen(PORT, '0.0.0.0', () => {
+      console.log(`Server running on http://localhost:${PORT}`);
+    });
+  }
