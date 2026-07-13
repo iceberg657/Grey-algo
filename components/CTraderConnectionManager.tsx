@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { Settings, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 
-export const CTraderConnectionManager: React.FC = () => {
+interface CTraderConnectionManagerProps {
+    manualClientId?: string;
+    manualClientSecret?: string;
+}
+
+export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> = ({ 
+    manualClientId, 
+    manualClientSecret 
+}) => {
     const [authUrl, setAuthUrl] = useState('');
     const [authCode, setAuthCode] = useState('');
     const [isConnected, setIsConnected] = useState(false);
@@ -20,9 +28,15 @@ export const CTraderConnectionManager: React.FC = () => {
             fetchAuthUrl();
         };
         init();
-    }, []);
+    }, [manualClientId, manualClientSecret]);
 
     const getManualConfig = () => {
+        if (manualClientId && manualClientSecret) {
+            return {
+                clientId: manualClientId,
+                clientSecret: manualClientSecret
+            };
+        }
         try {
             const stored = localStorage.getItem('greyquant_user_settings');
             if (stored) {
@@ -52,7 +66,8 @@ export const CTraderConnectionManager: React.FC = () => {
                 console.log('[cTrader] System Status:', data);
                 setStatusData(data);
                 setIsSystemConnected(data.systemConnected);
-                setIsConfigured(data.configured);
+                // Mark as configured if either server has keys OR user provided them manually
+                setIsConfigured(data.configured || !!config);
                 if (data.systemConnected && data.systemAccountId) {
                     setSelectedAccountId(data.systemAccountId);
                 }
@@ -104,18 +119,28 @@ export const CTraderConnectionManager: React.FC = () => {
     const fetchAuthUrl = async () => {
         try {
             const config = getManualConfig();
-            const url = new URL('/api/ctrader/auth-url', window.location.origin);
-            if (config) {
-                url.searchParams.set('clientId', config.clientId);
-                url.searchParams.set('clientSecret', config.clientSecret);
+            if (!config?.clientId) {
+                setAuthUrl('');
+                return;
             }
+
+            const url = new URL('/api/ctrader/auth-url', window.location.origin);
+            url.searchParams.set('clientId', config.clientId);
+            url.searchParams.set('clientSecret', config.clientSecret);
+            
             const res = await fetch(url.toString());
             if (res.ok) {
                 const data = await res.json();
                 setAuthUrl(data.authUrl);
+                setIsConfigured(true);
+            } else {
+                const errorData = await res.json();
+                console.error('Auth URL Error:', errorData);
+                setAuthUrl('');
             }
         } catch (e) {
             console.error('Failed to fetch auth url', e);
+            setAuthUrl('');
         }
     };
 
@@ -252,18 +277,30 @@ export const CTraderConnectionManager: React.FC = () => {
                             </div>
                         )}
                         <p className="mb-2">1. Click the button below to authorize the application.</p>
-                        {authUrl ? (
-                            <a 
-                                href={authUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-2 px-4 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-lg text-sm font-bold hover:opacity-90 transition-opacity"
-                            >
-                                Authorize via cTrader <ExternalLink className="w-4 h-4" />
-                            </a>
-                        ) : (
-                            <div className="px-4 py-2 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-lg w-48 h-9" />
-                        )}
+                        <div className="flex flex-col gap-2">
+                            {authUrl ? (
+                                <a 
+                                    href={authUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 dark:bg-indigo-500 text-white rounded-lg text-sm font-bold hover:bg-indigo-700 transition-colors shadow-lg shadow-indigo-500/20"
+                                >
+                                    Authorize GreyAlpha <ExternalLink className="w-4 h-4" />
+                                </a>
+                            ) : (
+                                <div className="space-y-2">
+                                    <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 border border-dashed border-slate-300 dark:border-slate-700 rounded-lg text-[10px] text-slate-500 text-center italic">
+                                        Waiting for valid Client ID and Secret...
+                                    </div>
+                                    <button 
+                                        onClick={fetchAuthUrl}
+                                        className="text-[9px] uppercase font-bold text-indigo-500 hover:text-indigo-600 underline mx-auto block"
+                                    >
+                                        Refresh Authorization Link
+                                    </button>
+                                </div>
+                            )}
+                        </div>
                         <p className="mt-4 mb-2">2. After authorizing, you will be redirected to an empty page. Copy the URL from your browser's address bar and paste it below.</p>
                         <input
                             type="text"

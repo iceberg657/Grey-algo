@@ -540,7 +540,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                 </div>
                                                 <p className="text-[9px] text-slate-500 mt-2 italic leading-tight">These keys are stored locally and sent with each connection request to override server defaults.</p>
                                             </div>
-                                            <CTraderConnectionManager />
+                                            <CTraderConnectionManager 
+                                                manualClientId={settings.ctraderClientId}
+                                                manualClientSecret={settings.ctraderClientSecret}
+                                            />
                                         </div>
                                     )}
                                 </div>
