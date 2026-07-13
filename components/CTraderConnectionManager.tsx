@@ -4,11 +4,13 @@ import { Settings, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
 interface CTraderConnectionManagerProps {
     manualClientId?: string;
     manualClientSecret?: string;
+    manualRedirectUri?: string;
 }
 
 export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> = ({ 
     manualClientId, 
-    manualClientSecret 
+    manualClientSecret,
+    manualRedirectUri
 }) => {
     const [authUrl, setAuthUrl] = useState('');
     const [authCode, setAuthCode] = useState('');
@@ -34,7 +36,8 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
         if (manualClientId && manualClientSecret) {
             return {
                 clientId: manualClientId,
-                clientSecret: manualClientSecret
+                clientSecret: manualClientSecret,
+                redirectUri: manualRedirectUri || 'https://openapi.ctrader.com'
             };
         }
         try {
@@ -44,7 +47,8 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                 if (settings.ctraderClientId && settings.ctraderClientSecret) {
                     return {
                         clientId: settings.ctraderClientId,
-                        clientSecret: settings.ctraderClientSecret
+                        clientSecret: settings.ctraderClientSecret,
+                        redirectUri: settings.ctraderRedirectUri || 'https://openapi.ctrader.com'
                     };
                 }
             }
@@ -127,6 +131,9 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
             const url = new URL('/api/ctrader/auth-url', window.location.origin);
             url.searchParams.set('clientId', config.clientId);
             url.searchParams.set('clientSecret', config.clientSecret);
+            if (config.redirectUri) {
+                url.searchParams.set('redirectUri', config.redirectUri);
+            }
             
             const res = await fetch(url.toString());
             if (res.ok) {
@@ -175,7 +182,8 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                 body: JSON.stringify({ 
                     code: codeToExchange,
                     clientId: config?.clientId,
-                    clientSecret: config?.clientSecret
+                    clientSecret: config?.clientSecret,
+                    redirectUri: config?.redirectUri
                 })
             });
 

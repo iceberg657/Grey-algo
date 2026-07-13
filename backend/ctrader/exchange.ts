@@ -1,10 +1,11 @@
 import { Request, Response } from 'express';
 
 export default async function handler(req: Request, res: Response) {
-    const { code, clientId: manualClientId, clientSecret: manualClientSecret } = req.body;
+    const { code, clientId: manualClientId, clientSecret: manualClientSecret, redirectUri: manualRedirectUri } = req.body;
     
     const clientId = manualClientId || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
     const clientSecret = manualClientSecret || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const REDIRECT_URI = manualRedirectUri || "https://openapi.ctrader.com";
     
     if (!clientId || !clientSecret) {
         return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
@@ -15,17 +16,21 @@ export default async function handler(req: Request, res: Response) {
 
     try {
         const OAUTH_TOKEN_URL = "https://openapi.ctrader.com/apps/token";
-        const REDIRECT_URI = "https://openapi.ctrader.com";
 
-        const url = new URL(OAUTH_TOKEN_URL);
-        url.searchParams.set("grant_type", "authorization_code");
-        url.searchParams.set("code", code);
-        url.searchParams.set("redirect_uri", REDIRECT_URI);
-        url.searchParams.set("client_id", clientId);
-        url.searchParams.set("client_secret", clientSecret);
+        const params = new URLSearchParams();
+        params.append("grant_type", "authorization_code");
+        params.append("code", code);
+        params.append("redirect_uri", REDIRECT_URI);
+        params.append("client_id", clientId);
+        params.append("client_secret", clientSecret);
 
-        const response = await fetch(url.toString(), {
-            headers: { Accept: "application/json" },
+        const response = await fetch(OAUTH_TOKEN_URL, {
+            method: 'POST',
+            headers: { 
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Accept': 'application/json' 
+            },
+            body: params
         });
 
         if (!response.ok) {

@@ -117,8 +117,9 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
             if (isResolved) return;
             isResolved = true;
             cleanup();
-            reject(new Error('Deriv API connection timed out. Please check your internet connection or try a different symbol.'));
-        }, 15000);
+            console.error('[Deriv] Connection timed out after 8s');
+            reject(new Error('Deriv API connection timed out. Vercel serverless limit reached. Please try again.'));
+        }, 8000);
 
         ws.on('open', () => {
             if (isResolved) return;

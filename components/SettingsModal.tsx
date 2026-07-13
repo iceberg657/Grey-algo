@@ -537,12 +537,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                                             placeholder="Enter Client Secret from cTrader Open API"
                                                         />
                                                     </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">cTrader Redirect URI</label>
+                                                        <input 
+                                                            type="text"
+                                                            value={settings.ctraderRedirectUri || 'https://openapi.ctrader.com'}
+                                                            onChange={(e) => handleChange('ctraderRedirectUri', e.target.value)}
+                                                            className="w-full px-2 py-1.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-600 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none dark:text-white"
+                                                            placeholder="https://openapi.ctrader.com"
+                                                        />
+                                                    </div>
                                                 </div>
-                                                <p className="text-[9px] text-slate-500 mt-2 italic leading-tight">These keys are stored locally and sent with each connection request to override server defaults.</p>
+                                                <p className="text-[9px] text-slate-500 mt-2 italic leading-tight">These keys are stored locally and sent with each connection request to override server defaults. Redirect URI must match your cTrader portal config.</p>
                                             </div>
                                             <CTraderConnectionManager 
                                                 manualClientId={settings.ctraderClientId}
                                                 manualClientSecret={settings.ctraderClientSecret}
+                                                manualRedirectUri={settings.ctraderRedirectUri}
                                             />
                                         </div>
                                     )}
