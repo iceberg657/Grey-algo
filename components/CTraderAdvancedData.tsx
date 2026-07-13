@@ -15,7 +15,7 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol }) => {
     const [errorMsg, setErrorMsg] = useState('');
     const eventSourceRef = useRef<EventSource | null>(null);
 
-    const isGranted = userMetadata?.access?.advancedStreaming === 'granted';
+    const isGranted = userMetadata?.access?.advancedStreaming === 'granted' || userMetadata?.role === 'admin';
 
     useEffect(() => {
         if (!isGranted || !symbol) return;
@@ -31,8 +31,21 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol }) => {
                 return;
             }
 
+            const cleanSymbol = (raw: string) => {
+                let clean = raw.toUpperCase().replace('/', '').replace('-', '');
+                if (clean.startsWith('FRX')) {
+                    clean = clean.substring(3);
+                }
+                if (clean === 'GOLD') return 'XAUUSD';
+                if (clean === 'SILVER') return 'XAGUSD';
+                if (clean === 'PLATINUM') return 'XPTUSD';
+                if (clean === 'PALLADIUM') return 'XPDUSD';
+                return clean;
+            };
+            const activeSymbol = cleanSymbol(symbol);
+
             setStatus('connecting');
-            const url = `/api/ctrader/stream?token=${encodeURIComponent(token)}&accountId=${accountId}&environment=${environment}&symbols=${symbol}`;
+            const url = `/api/ctrader/stream?token=${encodeURIComponent(token)}&accountId=${accountId}&environment=${environment}&symbols=${activeSymbol}`;
             
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();

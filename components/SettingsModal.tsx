@@ -26,6 +26,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
     const [saved, setSaved] = useState(false);
     const { userMetadata } = useAuthContext();
+    const isAdvancedStreamingGranted = userMetadata?.access?.advancedStreaming === 'granted' || userMetadata?.role === 'admin';
 
     useEffect(() => {
         const stored = localStorage.getItem('greyquant_user_settings');
@@ -274,7 +275,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <option value="Standard">Standard Streaming (Deriv 60s)</option>
                                     <option value="Advanced">Advanced Streaming (cTrader Level 2 / Tick)</option>
                                 </select>
-                                {userMetadata?.access?.advancedStreaming !== 'granted' && (
+                                {!isAdvancedStreamingGranted && (
                                     <p className="text-[10px] text-amber-500 mt-1">Requires Admin permission to enable Advanced Streaming.</p>
                                 )}
                             </div>
@@ -453,7 +454,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
 
                                                 {settings.streamingMode === 'Advanced' && (
                             <div className="pt-2">
-                                {userMetadata?.access?.advancedStreaming !== 'granted' ? (
+                                {!isAdvancedStreamingGranted ? (
                                     <div className="relative group">
                                         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[2px] rounded-xl border border-slate-200/50 dark:border-slate-700/50">
                                             <div className="bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg mb-2">

@@ -21,7 +21,7 @@ import derivHandler from './api/derivData.js';
 import derivTradeNotificationHandler from './api/derivTradeNotification.js';
 import twelveDataHandler from './api/twelveData.js';
 import ctraderAccountsHandler from './api/ctrader/accounts.js';
-import { ctraderTickHistoryHandler, ctraderStreamHandler } from './api/ctrader/marketData.js';
+import { ctraderTickHistoryHandler, ctraderStreamHandler, ctraderTrendbarsHandler } from './api/ctrader/marketData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
@@ -111,6 +111,7 @@ async function startServer() {
   app.get('/api/ctrader/accounts', ctraderAccountsHandler);
   app.get('/api/ctrader/ticks', ctraderTickHistoryHandler);
   app.get('/api/ctrader/stream', ctraderStreamHandler);
+  app.get('/api/ctrader/trendbars', ctraderTrendbarsHandler);
 
   // MetaApiService initialization removed for testing
   // function getMetaApiService(): MetaApiService {

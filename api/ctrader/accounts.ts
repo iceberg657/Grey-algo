@@ -16,7 +16,7 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
 
     // Try both demo and live environments. Some tokens work for both, others for one.
     // However, usually we just connect to live to query ctidTraderAccount because the API token is tied to the ID.
-    const connection = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5036 });
+    const connection = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5035 });
 
     try {
         await connection.connect();
