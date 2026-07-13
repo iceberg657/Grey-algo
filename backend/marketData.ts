@@ -1,12 +1,12 @@
-
 import WebSocket from 'ws';
+import { Request, Response } from 'express';
 
 const DERIV_APP_ID = 1089;
 
-let marketDataCache = { timestamp: null, data: [] };
+let marketDataCache: { timestamp: number | null, data: any[] } = { timestamp: null, data: [] };
 const CACHE_DURATION = 15 * 60 * 1000; // 15 mins
 
-const SYMBOLS_MAP = {
+const SYMBOLS_MAP: Record<string, string> = {
     'EUR/USD': 'frxEURUSD',
     'GBP/USD': 'frxGBPUSD',
     'USD/JPY': 'frxUSDJPY',
@@ -17,12 +17,12 @@ const SYMBOLS_MAP = {
     'NDX': 'otcNDX'
 };
 
-export async function fetchFromDeriv(token) {
+export async function fetchFromDeriv(token?: string): Promise<any[]> {
     console.log('[MarketData] Fetching ticker data from Deriv...');
     
     return new Promise((resolve) => {
         const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
-        const results = [];
+        const results: any[] = [];
         const expectedCount = Object.keys(SYMBOLS_MAP).length;
         let receivedCount = 0;
         
@@ -49,7 +49,7 @@ export async function fetchFromDeriv(token) {
         });
 
         ws.on('message', (data) => {
-            const response = JSON.parse(data);
+            const response = JSON.parse(data.toString());
             
             if (response.msg_type === 'ticks_history') {
                 receivedCount++;
@@ -95,9 +95,9 @@ export async function fetchFromDeriv(token) {
     });
 }
 
-export default async (req, res) => {
+export default async (req: Request, res: Response) => {
     const isStale = !marketDataCache.timestamp || (Date.now() - marketDataCache.timestamp > CACHE_DURATION);
-    const token = req.query?.token || process.env.DERIV_API_TOKEN || process.env.VITE_DERIV_API_TOKEN || process.env.DERIV_TOKEN || process.env.VITE_DERIV_TOKEN;
+    const token = req.query?.token as string || process.env.DERIV_API_TOKEN || process.env.VITE_DERIV_API_TOKEN || process.env.DERIV_TOKEN || process.env.VITE_DERIV_TOKEN;
     
     if (isStale || req.query?.force) {
         const data = await fetchFromDeriv(token);

@@ -1,9 +1,9 @@
-
 import WebSocket from 'ws';
+import { Request, Response } from 'express';
 
 const DERIV_APP_ID = 1089; // Default app id for testing or use a specific one if provided
 
-export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory = false, granularity = 60, count = 1000) {
+export async function fetchDerivQuote(symbol: string, _clientToken: string | null = null, fetchHistory: boolean = false, granularity: any = 60, count: any = 1000): Promise<any> {
     // Map common symbols to Deriv format if needed
     const normalized = symbol.toUpperCase().replace('/', '').replace(' ', '').replace(/[^A-Z0-9_]/g, '');
     let mappedSymbol = normalized;
@@ -100,7 +100,7 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
         mappedSymbol = 'frx' + normalized;
     }
 
-    console.log(`[DerivTradeNotif] Mapping: "${symbol}" -> "${normalized}" -> "${mappedSymbol}"`);
+    console.log(`[DerivData] Mapping: "${symbol}" -> "${normalized}" -> "${mappedSymbol}"`);
 
     return new Promise((resolve, reject) => {
         const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
@@ -112,15 +112,11 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
 
         ws.on('open', () => {
             // Ticks API does not require authorization
-            requestData();
-        });
-
-        const requestData = () => {
             if (fetchHistory) {
                 ws.send(JSON.stringify({ 
                     ticks_history: mappedSymbol,
                     adjust_start_time: 1,
-                    count: parseInt(count) || 1000,
+                    count: parseInt(count) || 1000, // Get requested candles for deep history
                     end: 'latest',
                     style: 'candles',
                     granularity: parseInt(granularity) || 60
@@ -128,7 +124,7 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
             } else {
                 ws.send(JSON.stringify({ ticks: mappedSymbol }));
             }
-        };
+        });
 
         ws.on('message', (data) => {
             try {
@@ -142,15 +138,14 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
                 }
 
                 if (response.msg_type === 'tick' && !fetchHistory) {
-                    // Update required response handling based on new Deriv API
                     const tick = response.tick;
                     ws.close();
                     clearTimeout(timeout);
                     resolve({
                         symbol: tick.symbol,
                         price: tick.quote,
-                        bid: tick.quote, // New API might not have bid/ask separated in tick
-                        ask: tick.quote, 
+                        bid: tick.bid,
+                        ask: tick.ask,
                         epoch: tick.epoch
                     });
                 } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles' || response.msg_type === 'history') {
@@ -187,8 +182,8 @@ export async function fetchDerivQuote(symbol, clientToken = null, fetchHistory =
     });
 }
 
-export default async (req, res) => {
-    const { symbol, token, history, granularity, count } = req.query;
+export default async (req: Request, res: Response) => {
+    const { symbol, token, history, granularity, count } = req.query as any;
     if (!symbol) {
         return res.status(400).json({ error: 'Missing symbol' });
     }
@@ -199,7 +194,7 @@ export default async (req, res) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.status(200).json(data);
     } catch (error) {
-        console.error('[DerivTradeNotif] Error:', error.message || error);
+        console.error('[DerivData] Error:', error.message || error);
         res.status(500).json({ error: error.message || String(error) });
     }
 };

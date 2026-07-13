@@ -10,6 +10,8 @@ export const CTraderConnectionManager: React.FC = () => {
     const [accounts, setAccounts] = useState<any[]>([]);
     const [selectedAccountId, setSelectedAccountId] = useState<string>('');
     const [isSystemConnected, setIsSystemConnected] = useState(false);
+    const [isConfigured, setIsConfigured] = useState(true); // Default true to avoid flash
+    const [statusData, setStatusData] = useState<any>(null);
 
     useEffect(() => {
         const init = async () => {
@@ -25,14 +27,17 @@ export const CTraderConnectionManager: React.FC = () => {
             const res = await fetch('/api/ctrader/status');
             if (res.ok) {
                 const data = await res.json();
+                console.log('[cTrader] System Status:', data);
+                setStatusData(data);
                 setIsSystemConnected(data.systemConnected);
+                setIsConfigured(data.configured);
                 if (data.systemConnected && data.systemAccountId) {
                     setSelectedAccountId(data.systemAccountId);
                 }
                 return data;
             }
         } catch (e) {
-            console.error('Failed to fetch cTrader status', e);
+            console.error('[cTrader] Failed to fetch cTrader status', e);
         }
         return null;
     };
@@ -163,6 +168,11 @@ export const CTraderConnectionManager: React.FC = () => {
                     </div>
                 </div>
                 <div>
+                    {!isConfigured && !isConnected && (
+                        <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold bg-amber-50 dark:bg-amber-500/10 px-2 py-1 rounded-md animate-pulse">
+                            Missing Credentials
+                        </span>
+                    )}
                     {isConnected ? (
                         <span className="flex flex-col items-end">
                             <span className="flex items-center gap-1 text-xs font-bold text-emerald-500 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 rounded-md">
@@ -183,6 +193,24 @@ export const CTraderConnectionManager: React.FC = () => {
             {!isConnected ? (
                 <div className="space-y-4">
                     <div className="text-sm text-slate-600 dark:text-slate-300">
+                        {!isConfigured && (
+                            <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg">
+                                <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold mb-1 uppercase tracking-tight">Missing Server Configuration</p>
+                                <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">
+                                    Client ID not detected in environment. Ensure <b>VITE_CTRADER_CLIENT_ID</b> and <b>VITE_CTRADER_CLIENT_SECRET</b> are set in your Vercel project settings.
+                                </p>
+                                {statusData && statusData.debug && (
+                                    <div className="mt-2">
+                                        <p className="text-[8px] text-slate-500 uppercase font-bold mb-1">Detected Keys:</p>
+                                        <div className="flex flex-wrap gap-1">
+                                            {statusData.debug.envKeys.length > 0 ? statusData.debug.envKeys.map((k: string) => (
+                                                <span key={k} className="text-[8px] bg-slate-200 dark:bg-slate-700 px-1 rounded">{k}</span>
+                                            )) : <span className="text-[8px] italic">None</span>}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
                         <p className="mb-2">1. Click the button below to authorize the application.</p>
                         {authUrl ? (
                             <a 

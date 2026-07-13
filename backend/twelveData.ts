@@ -1,8 +1,9 @@
+import { Request, Response } from 'express';
 
-let twelveDataKeyCache = null;
+let twelveDataKeyCache: any = null;
 const CACHE_DURATION = 15 * 60 * 1000;
 
-export async function statusHandler(req, res) {
+export async function statusHandler(_req: Request, res: Response) {
     console.log('[TwelveData] Status check requested');
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
     
@@ -52,8 +53,8 @@ export async function statusHandler(req, res) {
     });
 }
 
-export async function quoteHandler(req, res) {
-    const { symbol, interval = '15min', apikey } = req.query;
+export async function quoteHandler(req: Request, res: Response) {
+    const { symbol, interval = '15min', apikey } = req.query as any;
     if (!symbol || typeof symbol !== 'string') {
         return res.status(400).json({ error: 'Missing symbol' });
     }
@@ -118,8 +119,8 @@ export async function quoteHandler(req, res) {
     }
 }
 
-export default async function handler(req, res) {
-    const { action } = req.query;
+export default async function handler(req: Request, res: Response) {
+    const { action } = req.query as any;
     if (action === 'status') {
         return statusHandler(req, res);
     } else {

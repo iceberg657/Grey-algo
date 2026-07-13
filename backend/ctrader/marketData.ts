@@ -50,7 +50,7 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
 };
 
 export const ctraderStreamHandler = async (req: Request, res: Response) => {
-    let token = req.query.token as string;
+    let token: string | undefined = req.query.token as string;
     
     // If no user token, check for system token (support both standard and VITE_ prefix)
     if (!token) {

@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-export default async function handler(req: Request, res: Response) {
+export default async function handler(_req: Request, res: Response) {
     const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
     if (!clientId) {
         return res.status(500).json({ error: 'CTRADER_CLIENT_ID environment variable not configured on server (Vercel). Please add it in your Vercel project settings.' });

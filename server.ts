@@ -12,20 +12,20 @@ import admin from 'firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
 import { GoogleGenAI } from "@google/genai";
 import fs from 'node:fs/promises';
-import { encrypt } from './src/services/encryptionService.js';
-import marketDataHandler from './backend/marketData.js';
-import configHandler from './backend/config.js';
-import analyzeHandler from './backend/gemini/analyze.js';
-import antigravityHandler from './backend/gemini/antigravity.js';
-import derivHandler from './backend/derivData.js';
-import derivTradeNotificationHandler from './backend/derivTradeNotification.js';
-import twelveDataHandler from './backend/twelveData.js';
-import ctraderAccountsHandler from './backend/ctrader/accounts.js';
-import ctraderStatusHandler from './backend/ctrader/status.js';
-import ctraderAuthUrlHandler from './backend/ctrader/auth-url.js';
-import ctraderExchangeHandler from './backend/ctrader/exchange.js';
-import { ctraderTickHistoryHandler, ctraderStreamHandler, ctraderTrendbarsHandler } from './backend/ctrader/marketData.js';
-import { fetchAssetSuggestions } from './services/suggestionService.js';
+import { encrypt } from './src/services/encryptionService';
+import marketDataHandler from './backend/marketData';
+import configHandler from './backend/config';
+import analyzeHandler from './backend/gemini/analyze';
+import antigravityHandler from './backend/gemini/antigravity';
+import derivHandler from './backend/derivData';
+import derivTradeNotificationHandler from './backend/derivTradeNotification';
+import twelveDataHandler from './backend/twelveData';
+import ctraderAccountsHandler from './backend/ctrader/accounts';
+import ctraderStatusHandler from './backend/ctrader/status';
+import ctraderAuthUrlHandler from './backend/ctrader/auth-url';
+import ctraderExchangeHandler from './backend/ctrader/exchange';
+import { ctraderTickHistoryHandler, ctraderStreamHandler, ctraderTrendbarsHandler } from './backend/ctrader/marketData';
+import { fetchAssetSuggestions } from './services/suggestionService';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
 export async function createViteApp() {
@@ -112,7 +112,7 @@ export async function createViteApp() {
       const prompt = `As an elite Quantitative and Institutional Trading AI, analyze current market trends and generate a new, high-probability trading strategy.
       Your goal is to discover "Alpha" by identifying institutional footprints and statistical anomalies.
       
-      Market Data Context: ${JSON.stringify(marketData.slice(0, 10))}
+      Market Data Context: ${JSON.stringify(marketData.bullish.concat(marketData.bearish).slice(0, 10))}
       
       Focus on:
       1. **Institutional Liquidity:** POI mitigation, Liquidity Sweeps, and Order Flow.
@@ -133,7 +133,8 @@ export async function createViteApp() {
         config: { responseMimeType: "application/json" }
       });
 
-      const strategy = JSON.parse(response.text);
+      const responseText = await response.text();
+      const strategy = JSON.parse(responseText);
       const strategyId = `automl_${Date.now()}`;
       
       await db.collection('auto_ml_strategies').doc(strategyId).set({
@@ -462,7 +463,7 @@ export async function createViteApp() {
         return res.status(500).json({ 
           error: 'Failed to fetch tokens from database', 
           details: dbError instanceof Error ? dbError.message : String(dbError),
-          databaseId 
+          firestoreDatabaseId 
         });
       }
 
@@ -724,7 +725,7 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
     } else {
       const distPath = path.join(process.cwd(), 'dist');
       app.use(express.static(distPath));
-      app.get('*all', (req, res) => {
+      app.get('*all', (_req, res) => {
         res.sendFile(path.join(distPath, 'index.html'));
       });
     }

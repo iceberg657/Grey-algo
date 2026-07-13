@@ -1,4 +1,6 @@
-export default function handler(req, res) {
+import { Request, Response } from 'express';
+
+export default function handler(_req: Request, res: Response) {
   const primaryKey = process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY;
   res.status(200).json({ 
     apiKey: primaryKey,
