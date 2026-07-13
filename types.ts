@@ -55,6 +55,8 @@ export interface UserSettings extends Partial<AccountSettings> {
     enableCTrader?: boolean;
     showDashboardSignals?: boolean;
     playSoundOnNotification?: boolean;
+    ctraderClientId?: string;
+    ctraderClientSecret?: string;
 }
 
 export interface GlobalTrendInfo {

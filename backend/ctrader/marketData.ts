@@ -13,11 +13,11 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        return res.status(500).json({ error: 'cTrader credentials not configured in server' });
+        return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
     }
 
     const { accountId, environment, symbol, type, fromTimestamp, toTimestamp } = req.query as any;
@@ -45,7 +45,11 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
         res.json(data);
     } catch (e: any) {
         console.error('Error fetching cTrader tick history:', e);
-        res.status(500).json({ error: e.message || 'Failed to fetch tick history' });
+        res.status(200).json({ 
+            error: e.message || 'Failed to fetch tick history',
+            status: 'failed',
+            info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+        });
     }
 };
 
@@ -65,11 +69,11 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Missing required query parameters: token, accountId, symbols' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        return res.status(500).json({ error: 'cTrader credentials not configured in server' });
+        return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
     }
 
     const symbols = symbolsStr.split(',').map(s => s.trim()).filter(Boolean);
@@ -130,11 +134,11 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        return res.status(500).json({ error: 'cTrader credentials not configured in server' });
+        return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
     }
 
     const { accountId, environment, symbol, period, count } = req.query as any;
@@ -206,6 +210,10 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
 
     } catch (e: any) {
         console.error('Error fetching cTrader trendbars:', e);
-        res.status(500).json({ error: e.message || 'Failed to fetch trendbars' });
+        res.status(200).json({ 
+            error: e.message || 'Failed to fetch trendbars',
+            status: 'failed',
+            info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+        });
     }
 };

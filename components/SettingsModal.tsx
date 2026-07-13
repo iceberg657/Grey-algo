@@ -513,7 +513,35 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                             </div>
                                         </div>
                                     ) : (
-                                        <CTraderConnectionManager />
+                                        <div className="space-y-4">
+                                            <div className="p-3 bg-indigo-500/10 rounded-lg border border-indigo-500/20 mb-4">
+                                                <p className="text-[10px] text-indigo-700 dark:text-indigo-300 font-bold mb-2 uppercase tracking-tight">Manual Server Configuration (Advanced)</p>
+                                                <div className="space-y-3">
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">cTrader Client ID</label>
+                                                        <input 
+                                                            type="text"
+                                                            value={settings.ctraderClientId || ''}
+                                                            onChange={(e) => handleChange('ctraderClientId', e.target.value)}
+                                                            className="w-full px-2 py-1.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-600 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none dark:text-white"
+                                                            placeholder="Enter Client ID from cTrader Open API"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[9px] font-bold text-slate-500 dark:text-slate-400 uppercase mb-1">cTrader Client Secret</label>
+                                                        <input 
+                                                            type="password"
+                                                            value={settings.ctraderClientSecret || ''}
+                                                            onChange={(e) => handleChange('ctraderClientSecret', e.target.value)}
+                                                            className="w-full px-2 py-1.5 bg-white/50 dark:bg-slate-800/50 border border-slate-300 dark:border-slate-600 rounded text-[10px] focus:ring-1 focus:ring-indigo-500 outline-none dark:text-white"
+                                                            placeholder="Enter Client Secret from cTrader Open API"
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[9px] text-slate-500 mt-2 italic leading-tight">These keys are stored locally and sent with each connection request to override server defaults.</p>
+                                            </div>
+                                            <CTraderConnectionManager />
+                                        </div>
                                     )}
                                 </div>
                             )}

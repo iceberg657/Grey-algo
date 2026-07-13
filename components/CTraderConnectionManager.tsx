@@ -22,9 +22,31 @@ export const CTraderConnectionManager: React.FC = () => {
         init();
     }, []);
 
+    const getManualConfig = () => {
+        try {
+            const stored = localStorage.getItem('greyquant_user_settings');
+            if (stored) {
+                const settings = JSON.parse(stored);
+                if (settings.ctraderClientId && settings.ctraderClientSecret) {
+                    return {
+                        clientId: settings.ctraderClientId,
+                        clientSecret: settings.ctraderClientSecret
+                    };
+                }
+            }
+        } catch (e) {}
+        return null;
+    };
+
     const checkSystemStatus = async () => {
         try {
-            const res = await fetch('/api/ctrader/status');
+            const config = getManualConfig();
+            const url = new URL('/api/ctrader/status', window.location.origin);
+            if (config) {
+                url.searchParams.set('clientId', config.clientId);
+                url.searchParams.set('clientSecret', config.clientSecret);
+            }
+            const res = await fetch(url.toString());
             if (res.ok) {
                 const data = await res.json();
                 console.log('[cTrader] System Status:', data);
@@ -59,10 +81,17 @@ export const CTraderConnectionManager: React.FC = () => {
 
     const fetchAccounts = async (token?: string) => {
         try {
+            const config = getManualConfig();
+            const url = new URL('/api/ctrader/accounts', window.location.origin);
+            if (config) {
+                url.searchParams.set('clientId', config.clientId);
+                url.searchParams.set('clientSecret', config.clientSecret);
+            }
+
             const headers: any = {};
             if (token) headers['Authorization'] = `Bearer ${token}`;
             
-            const res = await fetch('/api/ctrader/accounts', { headers });
+            const res = await fetch(url.toString(), { headers });
             if (res.ok) {
                 const data = await res.json();
                 setAccounts(data.accounts || []);
@@ -74,7 +103,13 @@ export const CTraderConnectionManager: React.FC = () => {
 
     const fetchAuthUrl = async () => {
         try {
-            const res = await fetch('/api/ctrader/auth-url');
+            const config = getManualConfig();
+            const url = new URL('/api/ctrader/auth-url', window.location.origin);
+            if (config) {
+                url.searchParams.set('clientId', config.clientId);
+                url.searchParams.set('clientSecret', config.clientSecret);
+            }
+            const res = await fetch(url.toString());
             if (res.ok) {
                 const data = await res.json();
                 setAuthUrl(data.authUrl);
@@ -108,10 +143,15 @@ export const CTraderConnectionManager: React.FC = () => {
                 }
             }
 
+            const config = getManualConfig();
             const res = await fetch('/api/ctrader/exchange', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ code: codeToExchange })
+                body: JSON.stringify({ 
+                    code: codeToExchange,
+                    clientId: config?.clientId,
+                    clientSecret: config?.clientSecret
+                })
             });
 
             const data = await res.json();

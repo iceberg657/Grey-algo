@@ -13,11 +13,11 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
         return res.status(401).json({ error: 'Missing cTrader access token' });
     }
 
-    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const clientId = req.query.clientId as string || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = req.query.clientSecret as string || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
-        return res.status(500).json({ error: 'cTrader credentials not configured in server' });
+        return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
     }
 
     // Try both demo and live environments. Some tokens work for both, others for one.
@@ -37,6 +37,11 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
     } catch (e: any) {
         connection.disconnect();
         console.error('Error fetching cTrader accounts:', e);
-        res.status(500).json({ error: e.message || 'Failed to fetch accounts' });
+        // Returning 200 with error field so the frontend receives "information" instead of a raw 500 crash
+        res.status(200).json({ 
+            error: e.message || 'Failed to fetch accounts',
+            status: 'failed',
+            info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+        });
     }
 }

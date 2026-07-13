@@ -1,14 +1,14 @@
 import { Request, Response } from 'express';
 
 export default async function handler(req: Request, res: Response) {
-    const clientId = process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
-    const clientSecret = process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
+    const { code, clientId: manualClientId, clientSecret: manualClientSecret } = req.body;
+    
+    const clientId = manualClientId || process.env.CTRADER_CLIENT_ID || process.env.VITE_CTRADER_CLIENT_ID;
+    const clientSecret = manualClientSecret || process.env.CTRADER_CLIENT_SECRET || process.env.VITE_CTRADER_CLIENT_SECRET;
     
     if (!clientId || !clientSecret) {
-        return res.status(500).json({ error: 'cTrader credentials (CTRADER_CLIENT_ID and CTRADER_CLIENT_SECRET) not configured in Vercel environment variables.' });
+        return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
     }
-
-    const { code } = req.body;
     if (!code) {
         return res.status(400).json({ error: 'Code is required' });
     }
@@ -49,6 +49,11 @@ export default async function handler(req: Request, res: Response) {
         });
     } catch (e: any) {
         console.error('Error exchanging cTrader token:', e);
-        res.status(500).json({ error: e.message || 'Failed to exchange token' });
+        // Returning 200 with error field so the frontend receives "information" instead of a raw 500 crash
+        res.status(200).json({ 
+            error: e.message || 'Failed to exchange token',
+            status: 'failed',
+            info: 'cTrader token exchange failed. Please ensure your Client ID and Secret are correct in Settings.'
+        });
     }
 }
