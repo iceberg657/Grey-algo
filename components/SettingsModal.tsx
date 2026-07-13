@@ -1,6 +1,8 @@
 
 import React, { useState, useEffect } from 'react';
 import type { UserSettings } from '../types';
+import { CTraderConnectionManager } from './CTraderConnectionManager';
+import { useAuthContext } from './contexts/AuthContext';
 
 interface SettingsModalProps {
     onClose: () => void;
@@ -23,6 +25,7 @@ const DEFAULT_SETTINGS: UserSettings = {
 export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
     const [saved, setSaved] = useState(false);
+    const { userMetadata } = useAuthContext();
 
     useEffect(() => {
         const stored = localStorage.getItem('greyquant_user_settings');
@@ -255,7 +258,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     <option value="Arabic">Arabic</option>
                                     <option value="Spanish">Spanish</option>
                                     <option value="Persian">Persian (Farsi)</option>
+                                                                </select>
+                            </div>
+                        </div>
+
+                        {/* Streaming Mode */}
+                        <div className="grid grid-cols-1 gap-4 mt-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Streaming Mode</label>
+                                <select
+                                    value={settings.streamingMode || 'Standard'}
+                                    onChange={(e) => handleChange('streamingMode', e.target.value)}
+                                    className="w-full px-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                >
+                                    <option value="Standard">Standard Streaming (Deriv 60s)</option>
+                                    <option value="Advanced">Advanced Streaming (cTrader Level 2 / Tick)</option>
                                 </select>
+                                {userMetadata?.access?.advancedStreaming !== 'granted' && (
+                                    <p className="text-[10px] text-amber-500 mt-1">Requires Admin permission to enable Advanced Streaming.</p>
+                                )}
                             </div>
                         </div>
 
@@ -429,6 +450,33 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 </div>
                             </div>
                         </div>
+
+                                                {settings.streamingMode === 'Advanced' && (
+                            <div className="pt-2">
+                                {userMetadata?.access?.advancedStreaming !== 'granted' ? (
+                                    <div className="relative group">
+                                        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-white/40 dark:bg-slate-900/40 backdrop-blur-[2px] rounded-xl border border-slate-200/50 dark:border-slate-700/50">
+                                            <div className="bg-white dark:bg-slate-800 p-3 rounded-full shadow-lg mb-2">
+                                                <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-widest text-center px-4">
+                                                Advanced Streaming Locked
+                                            </p>
+                                            <p className="text-[10px] text-slate-600 dark:text-slate-400 mt-1 text-center px-4 max-w-xs">
+                                                Requires Admin permission. You cannot connect your cTrader account until access is granted.
+                                            </p>
+                                        </div>
+                                        <div className="opacity-40 pointer-events-none select-none blur-[1px]">
+                                            <CTraderConnectionManager />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <CTraderConnectionManager />
+                                )}
+                            </div>
+                        )}
 
                         <div className="pt-2 space-y-3">
                             <button

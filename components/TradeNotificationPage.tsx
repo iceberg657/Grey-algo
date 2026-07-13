@@ -149,6 +149,14 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
     const [notifications, setNotifications] = useState<any[]>([]);
     const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [deletingId, setDeletingId] = useState<string | null>(null);
+    const [userSettings, setUserSettings] = useState<any>(null);
+
+    useEffect(() => {
+        const stored = localStorage.getItem('greyquant_user_settings');
+        if (stored) {
+            setUserSettings(JSON.parse(stored));
+        }
+    }, []);
 
     const configRef = React.useRef(config);
     const notifsRef = React.useRef(notifications);

@@ -20,6 +20,8 @@ import antigravityHandler from './api/gemini/antigravity.js';
 import derivHandler from './api/derivData.js';
 import derivTradeNotificationHandler from './api/derivTradeNotification.js';
 import twelveDataHandler from './api/twelveData.js';
+import ctraderAccountsHandler from './api/ctrader/accounts.js';
+import { ctraderTickHistoryHandler, ctraderStreamHandler } from './api/ctrader/marketData.js';
 import { fetchAssetSuggestions } from './services/suggestionService.js';
 // import { MetaApiService } from './src/services/metaApiService.js';
 
@@ -36,6 +38,79 @@ async function startServer() {
 
   // Twelve Data Routes
   app.get('/api/twelveData', twelveDataHandler);
+
+  // cTrader API Routes
+  app.get('/api/ctrader/auth-url', (req, res) => {
+    const clientId = process.env.CTRADER_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ error: 'CTRADER_CLIENT_ID not configured in server' });
+    }
+    // Hardcoded REDIRECT_URI to spotware's default, so users can just paste the resulting URL
+    const REDIRECT_URI = "https://openapi.ctrader.com";
+    const url = new URL("https://id.ctrader.com/my/settings/openapi/grantingaccess/");
+    url.searchParams.set("client_id", clientId);
+    url.searchParams.set("redirect_uri", REDIRECT_URI);
+    url.searchParams.set("scope", "trading");
+    url.searchParams.set("product", "web");
+    res.json({ authUrl: url.toString() });
+  });
+
+  app.post('/api/ctrader/exchange', async (req, res) => {
+    const clientId = process.env.CTRADER_CLIENT_ID;
+    const clientSecret = process.env.CTRADER_CLIENT_SECRET;
+    
+    if (!clientId || !clientSecret) {
+      return res.status(500).json({ error: 'cTrader credentials not configured in server' });
+    }
+
+    const { code } = req.body;
+    if (!code) {
+      return res.status(400).json({ error: 'Code is required' });
+    }
+
+    try {
+      const OAUTH_TOKEN_URL = "https://openapi.ctrader.com/apps/token";
+      const REDIRECT_URI = "https://openapi.ctrader.com";
+
+      const url = new URL(OAUTH_TOKEN_URL);
+      url.searchParams.set("grant_type", "authorization_code");
+      url.searchParams.set("code", code);
+      url.searchParams.set("redirect_uri", REDIRECT_URI);
+      url.searchParams.set("client_id", clientId);
+      url.searchParams.set("client_secret", clientSecret);
+
+      const response = await fetch(url.toString(), {
+        headers: { Accept: "application/json" },
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} from token endpoint`);
+      }
+
+      const body = await response.json();
+      if (body.errorCode) {
+        throw new Error(`${body.errorCode}: ${body.description}`);
+      }
+
+      if (!body.accessToken) {
+        throw new Error(`Invalid response: ${JSON.stringify(body)}`);
+      }
+
+      res.json({
+        accessToken: body.accessToken,
+        refreshToken: body.refreshToken,
+        tokenType: body.tokenType,
+        expiresIn: body.expiresIn
+      });
+    } catch (e: any) {
+      console.error('Error exchanging cTrader token:', e);
+      res.status(500).json({ error: e.message || 'Failed to exchange token' });
+    }
+  });
+
+  app.get('/api/ctrader/accounts', ctraderAccountsHandler);
+  app.get('/api/ctrader/ticks', ctraderTickHistoryHandler);
+  app.get('/api/ctrader/stream', ctraderStreamHandler);
 
   // MetaApiService initialization removed for testing
   // function getMetaApiService(): MetaApiService {

@@ -51,6 +51,7 @@ export interface UserSettings extends Partial<AccountSettings> {
     useStrictKeyMode?: boolean;
     deepThinking?: boolean;
     language?: string;
+    streamingMode?: 'Standard' | 'Advanced';
     showDashboardSignals?: boolean;
     playSoundOnNotification?: boolean;
 }
@@ -386,6 +387,7 @@ export interface UserMetadata {
         autoTrade: 'locked' | 'pending' | 'granted';
         products: 'locked' | 'pending' | 'granted';
         sniperLiveTrade: 'locked' | 'pending' | 'granted';
+        advancedStreaming: 'locked' | 'pending' | 'granted';
     };
     mt5Credentials?: {
         server: string;

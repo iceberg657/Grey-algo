@@ -17,6 +17,14 @@ interface AnalysisPageProps {
 export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack, onLogout }) => {
     const [outcome, setOutcome] = useState<'Win' | 'Loss' | 'No Trade' | 'Pending'>('Pending');
     const [isUpdating, setIsUpdating] = useState(false);
+    const [userSettings, setUserSettings] = useState<any>(null);
+
+    React.useEffect(() => {
+        const stored = localStorage.getItem('greyquant_user_settings');
+        if (stored) {
+            setUserSettings(JSON.parse(stored));
+        }
+    }, []);
 
     const handleOutcomeSelect = async (newOutcome: 'Win' | 'Loss' | 'No Trade') => {
         if (!data.id) return;

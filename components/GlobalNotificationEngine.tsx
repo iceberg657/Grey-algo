@@ -402,6 +402,29 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
                         if (!res.ok) continue;
                         const data = await res.json();
 
+                        // Fetch high-density tick data from cTrader if connected
+                        let ctraderTicks = null;
+                        try {
+                            const ctToken = localStorage.getItem('ctrader_access_token');
+                            const ctAccount = localStorage.getItem('ctrader_account_id');
+                            if (ctToken && ctAccount) {
+                                const ctAsset = asset.replace('/', '').replace('-', '');
+                                const ctRes = await fetch(`/api/ctrader/ticks?symbol=${ctAsset}&type=BID&accountId=${ctAccount}&environment=live`, {
+                                    headers: { 'Authorization': `Bearer ${ctToken}` }
+                                });
+                                if (ctRes.ok) {
+                                    const ctData = await ctRes.json();
+                                    ctraderTicks = ctData.ticks;
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('[GlobalNotificationEngine] Failed to fetch cTrader ticks:', e);
+                        }
+                        
+                        if (ctraderTicks) {
+                            data.ctraderTicks = ctraderTicks;
+                        }
+
                         if (data && data.candles && data.candles.length > 50) {
                             const setup = runMechanicalAnalysis(asset, tf, data.candles, isMonday, config.riskReward, 'notification', config.strategy || 'trend');
 
@@ -468,6 +491,7 @@ export const GlobalNotificationEngine: React.FC<GlobalNotificationEngineProps> =
 
                                     await addDoc(collection(db, 'users', userMetadata.uid, 'trade_notifications'), newNotif);
                                     console.log(`[GlobalNotificationEngine] Added setup for ${asset} ${tf} with Antigravity verdict: ${setup.direction}`);
+                                    
                                     triggeredForAssetThisCycle = true;
                                 }
                             }

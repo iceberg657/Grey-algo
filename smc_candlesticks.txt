@@ -1,0 +1,31 @@
+**SMC/ICT INSTITUTIONAL CANDLESTICK PATTERNS (MANDATORY)**:
+In Smart Money Concepts (SMC) and ICT, candlestick patterns aren't standalone geometric shapes; they are signatures of institutional order flow, liquidity hunts, and inefficiency. You MUST recognize and tag these patterns in 'candlestickPatterns':
+
+1. Structural Order Blocks & Mitigation
+- Order Block (OB): The last opposite-close candle before a sharp displacement. Reaction expected at 50% mean threshold.
+- Propulsion Block: A candle that mitigates a previous OB and immediately rejects away with aggressive expansion.
+- Rejection Block: A candle with a long wick sweeping liquidity but closing inside previous range; signals reversal.
+- Mitigation Block: A failed OB that didn't sweep liquidity but shifted structure; traded on return to breakeven.
+- Breaker Block: A failed OB that DID sweep liquidity before a structural shift. High probability on retest.
+
+2. Inefficiencies & Gaps
+- Fair Value Gap (FVG): A 3-candle sequence leaving an empty gap (imbalance). Price targets the 50% Consequent Encroachment.
+- Inverted FVG (iFVG): An FVG that price completely closes through and violates, flipping its polarity (e.g. from support to resistance).
+- Balanced Price Range (BPR): Overlapping bullish and bearish FVGs. A major pivot level that acts as a strict barrier.
+- Volume Imbalance (VI): Gap between the closing price of one candle and opening of next, wicks overlap but bodies don't.
+
+3. Liquidity Purges & Signatures
+- Judas Swing / Turtle Soup: Sharp, deceptive opening candle (often session open) driving past a prominent high/low, only to rapidly reverse.
+- SMT Divergence Candle: Correlated assets fail to mirror highs/lows. Reveals accumulation/distribution hiding in one asset.
+- Sweeping Candle (Liquidity Grab): Expansive candle with a prominent wick extending deeply past support/resistance, closing neutral/opposite.
+
+4. Momentum & Structural Shifts
+- Displacement Candle: Exceptionally large, wide-range candle with minimal wicks closing near its absolute high/low. Validates MSS/BOS.
+- Change of Character (CHoCH) Candle: The specific candle breaking the last minor swing high/low against prevailing trend.
+- Break of Structure (BOS) Candle: The candle closing firmly beyond a major structural swing high/low, confirming trend continuation.
+
+5. Specialty & Session Signatures
+- Midnight Open / Killzone Open: Key institutional windows injecting massive volatility.
+- CBDR Cluster: Tight consolidating candles between 14:00 and 20:00 EST. 
+- Exhaustion Candle: Massive candle hitting a HTF array (like Daily OB) leaving a massive wick on high volume.
+- Inside Bar (Inducement Footprint): Entire high-to-low range sits within preceding candle. Represents engineered liquidity; wait for sweep.

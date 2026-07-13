@@ -28,6 +28,7 @@ import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroCon
 import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
+import { CTraderAdvancedData } from './CTraderAdvancedData';
 import { saveAnalysis } from '../services/historyService';
 import { generateLessonFromTradeLog, getLearnedStrategies } from '../services/learningService';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -151,6 +152,16 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
   const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
+  
+  // Get last analyzed asset
+  const lastAnalyzedAsset = React.useMemo(() => {
+    for (let i = messages.length - 1; i >= 0; i--) {
+        if (messages[i].signal?.asset) {
+            return messages[i].signal.asset.replace('/', '').replace('-', '');
+        }
+    }
+    return null;
+  }, [messages]);
 
     useEffect(() => {
         // Initialize Daily Market Regime Tracking (AI Pilot)
@@ -417,8 +428,30 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
       
       // Attach all 3 timeframes to the data
+      let ctraderTicks = null;
+      try {
+          const ctToken = localStorage.getItem('ctrader_access_token');
+          const ctAccount = localStorage.getItem('ctrader_account_id');
+          if (ctToken && ctAccount) {
+              const ctAsset = asset.replace('/', '').replace('-', '');
+              console.log(`[SniperLiveTrade] Fetching cTrader high-density ticks for ${ctAsset}...`);
+              // Fetch last 1 hour of ticks
+              const ctRes = await fetch(`/api/ctrader/ticks?symbol=${ctAsset}&type=BID&accountId=${ctAccount}&environment=live`, {
+                  headers: { 'Authorization': `Bearer ${ctToken}` }
+              });
+              if (ctRes.ok) {
+                  const ctData = await ctRes.json();
+                  ctraderTicks = ctData.ticks;
+                  console.log(`[SniperLiveTrade] Successfully pulled ${ctraderTicks?.length || 0} ticks from cTrader`);
+              }
+          }
+      } catch (e) {
+          console.warn('[SniperLiveTrade] Could not fetch cTrader tick data:', e);
+      }
+
       const combinedData = {
           ...entryData,
+          ctraderTicks,
           multiTimeframe: {
               entry: {
                   granularity: timeframes.entry,
@@ -523,6 +556,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
             asset
           )
         : null;
+        
+      if (quantData && derivData.ctraderTicks) {
+          quantData.ctraderTicks = derivData.ctraderTicks;
+      }
       console.log(`[SniperLiveTrade] SMC Quant Engine Results:`, quantData);
 
       let advancedQuantSignal = null;
@@ -902,6 +939,14 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                     Historical logs restrict high-confidence trading on Mondays and Fridays due to lower profitability and market unpredictability. Capital preservation is priority. Proceed with extreme caution or remain flat.
                   </p>
                 </div>
+              </div>
+            )}
+
+            {/* Style Selector */}
+            {/* Advanced Streaming Panel */}
+            {userSettings?.streamingMode === 'Advanced' && lastAnalyzedAsset && (
+              <div className="mb-4">
+                 <CTraderAdvancedData symbol={lastAnalyzedAsset} />
               </div>
             )}
 

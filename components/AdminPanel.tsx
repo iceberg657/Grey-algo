@@ -241,7 +241,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
         }
     };
 
-    const handleUpdateUserAccess = async (userId: string, feature: 'autoTrade' | 'products' | 'sniperLiveTrade', status: 'locked' | 'pending' | 'granted') => {
+    const handleUpdateUserAccess = async (userId: string, feature: 'autoTrade' | 'products' | 'sniperLiveTrade' | 'advancedStreaming', status: 'locked' | 'pending' | 'granted') => {
         const path = `users/${userId}`;
         try {
             const userRef = doc(db, 'users', userId);
@@ -255,6 +255,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                     let featureName = 'Premium Products';
                     if (feature === 'autoTrade') featureName = 'Auto Trade';
                     if (feature === 'sniperLiveTrade') featureName = 'Sniper Live Trade';
+                    if (feature === 'advancedStreaming') featureName = 'Advanced Streaming';
 
                     const response = await fetch('/api/notifications/broadcast', {
                         method: 'POST',
@@ -504,78 +505,91 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ onBack }) => {
                                         <th className="p-6 text-[10px] font-black uppercase tracking-widest opacity-50">Analysis Count</th>
                                         <th className="p-6 text-[10px] font-black uppercase tracking-widest opacity-50">Auto Trade</th>
                                         <th className="p-6 text-[10px] font-black uppercase tracking-widest opacity-50">Products</th>
+                                        <th className="p-6 text-[10px] font-black uppercase tracking-widest opacity-50">Sniper Live</th>
+                                        <th className="p-6 text-[10px] font-black uppercase tracking-widest opacity-50">Adv. Streaming</th>
                                         <th className="p-6 text-[10px] font-black uppercase tracking-widest opacity-50">Status</th>
                                         <th className="p-6 text-[10px] font-black uppercase tracking-widest opacity-50">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-100 dark:divide-white/5">
                                     {users.map(user => (
-                                        <tr key={user.uid} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
-                                            <td className="p-6">
-                                                <div className="flex flex-col">
-                                                    <span className="text-sm font-bold">{user.email}</span>
-                                                    <span className="text-[10px] opacity-40 font-mono">{user.uid}</span>
-                                                </div>
-                                            </td>
-                                            <td className="p-6">
-                                                <span className="text-sm font-black text-green-500">{user.analysisCount || 0}</span>
-                                            </td>
-                                            <td className="p-6">
-                                                <select 
-                                                    value={user.access?.autoTrade || 'locked'}
-                                                    onChange={(e) => handleUpdateUserAccess(user.uid, 'autoTrade', e.target.value as any)}
-                                                    className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
-                                                >
-                                                    <option value="locked">LOCKED</option>
-                                                    <option value="pending">PENDING</option>
-                                                    <option value="granted">GRANTED</option>
-                                                </select>
-                                            </td>
-                                            <td className="p-6">
-                                                <select 
-                                                    value={user.access?.products || 'locked'}
-                                                    onChange={(e) => handleUpdateUserAccess(user.uid, 'products', e.target.value as any)}
-                                                    className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
-                                                >
-                                                    <option value="locked">LOCKED</option>
-                                                    <option value="pending">PENDING</option>
-                                                    <option value="granted">GRANTED</option>
-                                                </select>
-                                            </td>
-                                            <td className="p-6">
-                                                <select 
-                                                    value={user.access?.sniperLiveTrade || 'locked'}
-                                                    onChange={(e) => handleUpdateUserAccess(user.uid, 'sniperLiveTrade', e.target.value as any)}
-                                                    className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
-                                                >
-                                                    <option value="locked">LOCKED</option>
-                                                    <option value="pending">PENDING</option>
-                                                    <option value="granted">GRANTED</option>
-                                                </select>
-                                            </td>
-                                            <td className="p-6">
-                                                <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
-                                                    user.isRevoked 
-                                                        ? 'bg-red-500/10 text-red-500' 
-                                                        : 'bg-green-500/10 text-green-500'
-                                                }`}>
-                                                    {user.isRevoked ? 'REVOKED' : 'ACTIVE'}
-                                                </span>
-                                            </td>
-                                            <td className="p-6">
-                                                <button 
-                                                    onClick={() => handleRevokeUser(user.uid, !user.isRevoked)}
-                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                        user.isRevoked 
-                                                            ? 'bg-green-500 text-white hover:bg-green-400' 
-                                                            : 'bg-red-500 text-white hover:bg-red-400'
-                                                    }`}
-                                                >
-                                                    {user.isRevoked ? 'Restore' : 'Revoke'}
-                                                </button>
-                                            </td>
-                                        </tr>
-                                    ))}
+    <tr key={user.uid} className="hover:bg-slate-50 dark:hover:bg-white/[0.02] transition-colors">
+        <td className="p-6">
+            <div className="flex flex-col">
+                <span className="text-sm font-bold">{user.email}</span>
+                <span className="text-[10px] opacity-40 font-mono">{user.uid}</span>
+            </div>
+        </td>
+        <td className="p-6">
+            <span className="font-mono text-sm">{user.analysisCount || 0}</span>
+        </td>
+        <td className="p-6">
+            <select 
+                value={user.access?.autoTrade || 'locked'}
+                onChange={(e) => handleUpdateUserAccess(user.uid, 'autoTrade', e.target.value as any)}
+                className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
+            >
+                <option value="locked">LOCKED</option>
+                <option value="pending">PENDING</option>
+                <option value="granted">GRANTED</option>
+            </select>
+        </td>
+        <td className="p-6">
+            <select 
+                value={user.access?.products || 'locked'}
+                onChange={(e) => handleUpdateUserAccess(user.uid, 'products', e.target.value as any)}
+                className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
+            >
+                <option value="locked">LOCKED</option>
+                <option value="pending">PENDING</option>
+                <option value="granted">GRANTED</option>
+            </select>
+        </td>
+        <td className="p-6">
+            <select 
+                value={user.access?.sniperLiveTrade || 'locked'}
+                onChange={(e) => handleUpdateUserAccess(user.uid, 'sniperLiveTrade', e.target.value as any)}
+                className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
+            >
+                <option value="locked">LOCKED</option>
+                <option value="pending">PENDING</option>
+                <option value="granted">GRANTED</option>
+            </select>
+        </td>
+        <td className="p-6">
+            <select 
+                value={user.access?.advancedStreaming || 'locked'}
+                onChange={(e) => handleUpdateUserAccess(user.uid, 'advancedStreaming', e.target.value as any)}
+                className="bg-slate-100 dark:bg-white/5 border-none rounded-lg text-[10px] font-bold p-2 focus:ring-2 focus:ring-green-500/50"
+            >
+                <option value="locked">LOCKED</option>
+                <option value="pending">PENDING</option>
+                <option value="granted">GRANTED</option>
+            </select>
+        </td>
+        <td className="p-6">
+            <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest ${
+                user.isRevoked 
+                    ? 'bg-red-500/10 text-red-500' 
+                    : 'bg-green-500/10 text-green-500'
+            }`}>
+                {user.isRevoked ? 'REVOKED' : 'ACTIVE'}
+            </span>
+        </td>
+        <td className="p-6">
+            <button 
+                onClick={() => handleRevokeUser(user.uid, !user.isRevoked)}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                    user.isRevoked 
+                        ? 'bg-green-500/10 text-green-500 hover:bg-green-500/20' 
+                        : 'bg-red-500/10 text-red-500 hover:bg-red-500/20'
+                }`}
+            >
+                {user.isRevoked ? 'RESTORE' : 'REVOKE'}
+            </button>
+        </td>
+    </tr>
+))}
                                 </tbody>
                             </table>
                         </div>

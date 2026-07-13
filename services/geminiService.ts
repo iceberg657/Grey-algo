@@ -25,6 +25,91 @@ import { getLearnedStrategies } from './learningService';
 import { detectMarketRegime, MarketRegime } from '../utils/marketRegime';
 import { GREYALPHA_IDENTITY } from './identity';
 import { SignalDataSchema, SniperDataSchema } from './schema';
+export const smcCandlestickLogic = `**SMC/ICT INSTITUTIONAL CANDLESTICK PATTERNS (MANDATORY)**:
+In Smart Money Concepts (SMC) and ICT, candlestick patterns aren't standalone geometric shapes; they are signatures of institutional order flow, liquidity hunts, and inefficiency. You MUST recognize and tag these patterns in 'candlestickPatterns':
+
+1. Structural Order Blocks & Mitigation
+- Order Block (OB): The last opposite-close candle before a sharp displacement. Reaction expected at 50% mean threshold.
+- Propulsion Block: A candle that mitigates a previous OB and immediately rejects away with aggressive expansion.
+- Rejection Block: A candle with a long wick sweeping liquidity but closing inside previous range; signals reversal.
+- Mitigation Block: A failed OB that didn't sweep liquidity but shifted structure; traded on return to breakeven.
+- Breaker Block: A failed OB that DID sweep liquidity before a structural shift. High probability on retest.
+
+2. Inefficiencies & Gaps
+- Fair Value Gap (FVG): A 3-candle sequence leaving an empty gap (imbalance). Price targets the 50% Consequent Encroachment.
+- Inverted FVG (iFVG): An FVG that price completely closes through and violates, flipping its polarity (e.g. from support to resistance).
+- Balanced Price Range (BPR): Overlapping bullish and bearish FVGs. A major pivot level that acts as a strict barrier.
+- Volume Imbalance (VI): Gap between the closing price of one candle and opening of next, wicks overlap but bodies don't.
+
+3. Liquidity Purges & Signatures
+- Judas Swing / Turtle Soup: Sharp, deceptive opening candle (often session open) driving past a prominent high/low, only to rapidly reverse.
+- SMT Divergence Candle: Correlated assets fail to mirror highs/lows. Reveals accumulation/distribution hiding in one asset.
+- Sweeping Candle (Liquidity Grab): Expansive candle with a prominent wick extending deeply past support/resistance, closing neutral/opposite.
+
+4. Momentum & Structural Shifts
+- Displacement Candle: Exceptionally large, wide-range candle with minimal wicks closing near its absolute high/low. Validates MSS/BOS.
+- Change of Character (CHoCH) Candle: The specific candle breaking the last minor swing high/low against prevailing trend.
+- Break of Structure (BOS) Candle: The candle closing firmly beyond a major structural swing high/low, confirming trend continuation.
+
+5. Specialty & Session Signatures
+- Midnight Open / Killzone Open: Key institutional windows injecting massive volatility.
+- CBDR Cluster: Tight consolidating candles between 14:00 and 20:00 EST. 
+- Exhaustion Candle: Massive candle hitting a HTF array (like Daily OB) leaving a massive wick on high volume.
+- Inside Bar (Inducement Footprint): Entire high-to-low range sits within preceding candle. Represents engineered liquidity; wait for sweep.`;
+export const retailCandlestickLogic = `**CLASSIC PRICE ACTION CANDLESTICK PATTERNS (MANDATORY)**:
+Unlike SMC/ICT which focuses on institutional algorithmic zones, retail price action treats these patterns as visual representations of the immediate psychological battle between buyers (bulls) and sellers (bears). You MUST also recognize and tag these patterns in 'candlestickPatterns':
+
+1. Single-Candle Patterns (Reversals & Pauses)
+- Pin Bar (Hammer / Shooting Star): Small body at one end with a long wick (at least 2/3 total length). Shows sharp, sudden rejection of price.
+- Hanging Man: Visually identical to a bullish Hammer but forms at the peak of an uptrend. Warns buyers' grip is loosening.
+- Inverted Hammer: Small body at bottom with long upper wick at the bottom of a downtrend. Early buying interest.
+- Marubozu (Bullish / Bearish): Long, thick solid body with virtually zero wicks. Total dominance by one side.
+- Doji: Open and close are virtually identical. Complete equilibrium and indecision.
+- Dragonfly Doji: T-shaped (open, high, close at top) leaving long lower wick. Reliable bullish reversal at support.
+- Gravestone Doji: Upside-down T-shaped (open, low, close at bottom) leaving long upper wick. Bearish reversal at resistance.
+- Spinning Top: Small real body in the middle of two symmetrical, modest wicks. Pause and indecision.
+
+2. Two-Candle Patterns
+- Bullish Engulfing: Small bearish candle followed by larger bullish candle completely swallowing the first. Aggressive buying.
+- Bearish Engulfing: Small bullish candle followed by larger bearish candle completely swallowing the first. Aggressive supply.
+- Tweezer Bottoms: Two consecutive candles whose lower wicks/bodies hit the exact same price floor. Strong short-term support.
+- Tweezer Tops: Two consecutive candles whose upper wicks/bodies hit the exact same price ceiling. Strong resistance.
+- Dark Cloud Cover: Bearish reversal where 2nd (bearish) candle opens above 1st's high but closes >50% deep into its body.
+- Piercing Line: Bullish mirror of Dark Cloud. 2nd (bullish) candle opens below 1st's low but closes >50% deep into its body.
+- Inside Bar: Entire range is completely nested inside the previous candle's range. Consolidation preparing for breakout.
+
+3. Three-Candle Patterns
+- Morning Star: Long bearish, small stalling middle candle, large bullish closing deep into 1st candle. Bullish U-turn.
+- Evening Star: Long bullish, small stalling middle candle, large bearish closing deep into 1st candle. Classic top reversal.
+- Three White Soldiers: Three consecutive strong bullish candles opening within previous body and closing higher. Sustained trend.
+- Three Black Crows: Three consecutive strong bearish candles closing lower than the last. Aggressive distribution.
+- Three Line Strike (Bullish Continuous): Three bullish candles followed by a massive 4th bearish candle that plunges below 1st's open. Flush out of retail buyers, continuation.`;
+export const combinedCandlestickLogic = `**COMBINED CANDLESTICK & CHART PATTERNS (MANDATORY)**:
+When combining candlestick patterns (micro-level execution triggers) with chart patterns (macro-level market structures), you bridge the gap between what the market is doing structurally and when to execute. You MUST recognize these fused patterns:
+
+1. Classical Chart Patterns + Price Action Candlestick Triggers
+- Double Bottom + Dragonfly Doji / Pin Bar: The macro floor is confirmed by a long lower wick rejecting a second break.
+- Double Top + Gravestone Doji / Shooting Star: The macro ceiling is confirmed by upper-wick exhaustion.
+- Head and Shoulders + Bearish Engulfing (Right Shoulder): The right shoulder prints a massive Bearish Engulfing candle, signaling momentum shift before the neckline breaks.
+- Inverse Head and Shoulders + Morning Star (Right Shoulder): Morning Star confirms exact pivot where buying takes control.
+- Bull Flag + Marubozu Breakout: A thick Bullish Marubozu explodes out of the flag's upper boundary.
+- Bear Flag + Three Black Crows: Breakdown out of the channel driven by three consecutive strong red candles.
+- Ascending Triangle + Bullish Engulfing (At Support): Pullback to the rising trendline prints a clean Bullish Engulfing.
+- Descending Triangle + Marubozu Breakdown: Bearish Marubozu closes firmly below the flat support level.
+- Symmetrical Triangle + Inside Bar Breakout: Price compresses into an Inside Bar at the apex before breaking out.
+- Rectangle Range + Tweezer Bottoms (At Range Demand): Tweezer Bottoms print directly on the horizontal support line.
+
+2. Smart Money Concepts (SMC) Structure + Candlestick Footprints
+- Market Structure Shift (MSS) + Displacement Candle: Wide-range, high-volume Displacement Candle forces the break.
+- Liquidity Sweep + Rejection Block: Sweeping candle leaves massive wick past the level and closes back inside.
+- SMT Divergence + Pin Bar: The asset failing to make a new high/low prints a Pin Bar/Shooting Star at secondary peak.
+- Order Block Mitigation + Fair Value Gap Fill: Retracement fills a lower-timeframe FVG nestled right inside a HTF Order Block.
+- Breaker Block Test + iFVG Confluence: Retest area lines up perfectly with an Inverted FVG.
+- Quasi-Short (QM) / QML + Bearish Engulfing: Price rallies to left shoulder and prints a sharp Bearish Engulfing.
+- Wyckoff Accumulation Spring + Dragonfly Doji: Spring candle prints a Dragonfly Doji closing firmly inside the trading range.
+- Balanced Price Range (BPR) + Spinning Top Rest: Price returns to BPR and prints a tiny Spinning Top or Doji respecting boundaries.
+- Judas Swing + Bullish Piercing Line: Judas Swing drives below Midnight Open and prints a Bullish Piercing Line.
+- Premium/Discount Array Alignment + Exhaustion Candle: Final down-candle into Discount zone is a massive Exhaustion Candle leaving a long wick on high volume.`;
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime, advancedQuantSignal?: any) => {
     const date = currentDate || new Date();
@@ -430,6 +515,9 @@ ${boomCrashLogic}
 ${accountInfo}
 ${tradeModeInstructions}
 ${institutionalMath}
+${smcCandlestickLogic}
+${retailCandlestickLogic}
+${combinedCandlestickLogic}
 ${weekendInstruction}
 
 ---
@@ -1870,6 +1958,10 @@ Flash Lite's Preliminary Structured Analysis:
 - Preliminary Reasoning: ${initialAnalysis.reasoning.join(' ')}
 ` : ''}
 
+${smcCandlestickLogic}
+${retailCandlestickLogic}
+${combinedCandlestickLogic}
+
 Quant Engine Data Summary:
 - Trend: ${quantData?.trend || 'UNKNOWN'}
 - Confidence Score: ${quantData?.weightedScore?.totalScore || 0} / 100
@@ -1877,6 +1969,7 @@ Quant Engine Data Summary:
 - Market Regime: ${quantData?.markovRegime?.currentRegime || 'UNKNOWN'}
 - Liquidity Sweep Detected: ${quantData?.liquiditySweep ? 'YES' : 'NO'}
 - OTE Zone: Bullish(${quantData?.ote?.bullish}), Bearish(${quantData?.ote?.bearish})
+${quantData?.ctraderTicks ? `- HIGH DENSITY cTRADER TICK DATA: ${quantData.ctraderTicks.length} recent ticks captured. Utilize tick density as proxy for volume and orderbook activity.` : ''}
 
 ADVERSARIAL NEURAL LAYER (ALGORITHMIC):
 - Veto Triggered: ${quantData?.adversarialVeto?.vetoTriggered ? 'YES' : 'NO'}
@@ -2045,6 +2138,7 @@ ${learnedStrategies.join('\n')}
 - Entry TF Trend: ${quantData.tfConfirmation?.entryTrend} | HTF Trend: ${quantData.tfConfirmation?.htfTrend}
 - All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
 - Current Trading Session: ${quantData.session || 'OFF_SESSION'} (${quantData.killzone?.reason})
+${quantData.ctraderTicks ? `- HIGH DENSITY cTRADER TICK DATA: ${quantData.ctraderTicks.length} recent ticks captured. Utilize tick density as proxy for volume and orderbook activity.` : ''}
 
 **ENGINE WEIGHTED SCORE & GRADE:**
 - Total Score: ${quantData.weightedScore?.totalScore}/100
@@ -2154,6 +2248,9 @@ ${boomCrashLogic}
 ${weekendInstruction}
 ${unprofitableDayInstruction}
 ${brokerInstruction}
+${smcCandlestickLogic}
+${retailCandlestickLogic}
+${combinedCandlestickLogic}
 
 **TRADING STYLE CONTEXT: ${style}**
 You MUST use the following timeframe hierarchy for this style:
