@@ -39,31 +39,33 @@ export async function initializeApiKey() {
         // 1. Check for Vite environment variables (Client-side build/Vercel)                
         const meta = import.meta as any;
         const envKeys = {
-            k1: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY_1 || process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_GEMINI_API_KEY || meta.env.VITE_API_KEY_1 || meta.env.VITE_API_KEY) : undefined,
-            k2: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_2 || process.env.API_KEY_2) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_2 : undefined,
-            k3: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_3 || process.env.API_KEY_3) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_3 : undefined,
-            k4: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_4 || process.env.API_KEY_4) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_4 : undefined,
-            k5: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_5 || process.env.API_KEY_5) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_5 : undefined,
-            k6: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_6 || process.env.API_KEY_6) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_6 : undefined,
-            k7: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_7 || process.env.API_KEY_7) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_7 : undefined,
-            k8: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_8 || process.env.API_KEY_8) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_8 : undefined,
-            k9: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_9 || process.env.API_KEY_9) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_9 : undefined,
-            k10: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_10 || process.env.API_KEY_10) : (typeof window !== 'undefined' && meta && meta.env) ? meta.env.VITE_API_KEY_10 : undefined,
+            k1: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_GEMINI_API_KEY || process.env.VITE_API_KEY_1 || process.env.VITE_API_KEY || process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_GEMINI_API_KEY || meta.env.VITE_API_KEY_1 || meta.env.VITE_API_KEY || meta.env.GEMINI_API_KEY || meta.env.API_KEY_1 || meta.env.API_KEY) : undefined,
+            k2: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_2 || process.env.API_KEY_2) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_2 || meta.env.API_KEY_2) : undefined,
+            k3: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_3 || process.env.API_KEY_3) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_3 || meta.env.API_KEY_3) : undefined,
+            k4: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_4 || process.env.API_KEY_4) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_4 || meta.env.API_KEY_4) : undefined,
+            k5: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_5 || process.env.API_KEY_5) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_5 || meta.env.API_KEY_5) : undefined,
+            k6: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_6 || process.env.API_KEY_6) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_6 || meta.env.API_KEY_6) : undefined,
+            k7: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_7 || process.env.API_KEY_7) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_7 || meta.env.API_KEY_7) : undefined,
+            k8: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_8 || process.env.API_KEY_8) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_8 || meta.env.API_KEY_8) : undefined,
+            k9: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_9 || process.env.API_KEY_9) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_9 || meta.env.API_KEY_9) : undefined,
+            k10: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_10 || process.env.API_KEY_10) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_10 || meta.env.API_KEY_10) : undefined,
         };
 
         const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
+        // Assign all valid env keys to KEYS
+        Object.entries(envKeys).forEach(([key, val]) => {
+            if (isValid(val)) (KEYS as any)[key] = (val as string).trim();
+        });
+
         if (isValid(envKeys.k1)) {
             API_KEY = envKeys.k1?.trim();
-            // Assign all valid env keys to KEYS
-            Object.entries(envKeys).forEach(([key, val]) => {
-                if (isValid(val)) (KEYS as any)[key] = (val as string).trim();
-            });
-            if (!KEYS.k1 && API_KEY) KEYS.k1 = API_KEY;
-            if (API_KEY) return;
         }
+        
+        if (!KEYS.k1 && API_KEY) KEYS.k1 = API_KEY;
 
         // 2. Fallback to server endpoint (Local development or Proxy)
+        // We ALWAYS try to fetch from server to get non-VITE keys or updated values
         try {
             const response = await fetch('/api/config');
             if (response.ok) {

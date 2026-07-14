@@ -447,7 +447,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           } catch (e) {}
                 
           if (!clientToken) {
-            clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || '';
+            // @ts-ignore
+            clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || import.meta.env.DERIV_API_TOKEN || import.meta.env.DERIV_TOKEN || '';
           }
 
           console.log(`[SniperLiveTrade] Fetching Standard Data from Deriv for ${symbol}...`);
