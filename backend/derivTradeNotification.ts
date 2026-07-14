@@ -104,16 +104,129 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
 
     return new Promise((resolve, reject) => {
         let isResolved = false;
-        const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+        let ws: WebSocket;
+        let timeout: NodeJS.Timeout;
 
         const cleanup = () => {
             if (timeout) clearTimeout(timeout);
-            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+            if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
                 ws.close();
             }
         };
 
-        const timeout = setTimeout(() => {
+        const connect = (useToken: boolean) => {
+            ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
+
+            ws.on('open', () => {
+                if (isResolved) return;
+                
+                // If token provided and we are using it, authorize first
+                if (useToken && _clientToken) {
+                    ws.send(JSON.stringify({ authorize: _clientToken }));
+                } else {
+                    requestData();
+                }
+            });
+
+            const requestData = () => {
+                if (isResolved) return;
+                if (fetchHistory) {
+                    ws.send(JSON.stringify({ 
+                        ticks_history: mappedSymbol,
+                        adjust_start_time: 1,
+                        count: parseInt(count) || 1000,
+                        end: 'latest',
+                        style: 'candles',
+                        granularity: parseInt(granularity) || 60
+                    }));
+                } else {
+                    ws.send(JSON.stringify({ ticks: mappedSymbol }));
+                }
+            };
+
+            ws.on('message', (data: any) => {
+                if (isResolved) return;
+                try {
+                    const response = JSON.parse(data.toString());
+
+                    if (response.error) {
+                        // If token authorization fails, gracefully retry without a token since quotes are public
+                        if (response.msg_type === 'authorize' && useToken) {
+                            console.warn(`[DerivTradeNotif] Authorization failed: ${response.error.message || JSON.stringify(response.error)}. Retrying WITHOUT token/authorization...`);
+                            ws.close();
+                            connect(false);
+                            return;
+                        }
+                        isResolved = true;
+                        cleanup();
+                        reject(new Error(`Deriv API Error: ${response.error.message || JSON.stringify(response.error)}`));
+                        return;
+                    }
+
+                    if (response.msg_type === 'authorize') {
+                        // Authorization successful, now request data
+                        requestData();
+                        return;
+                    }
+
+                    if (response.msg_type === 'tick' && !fetchHistory) {
+                        const tick = response.tick;
+                        isResolved = true;
+                        cleanup();
+                        resolve({
+                            symbol: tick.symbol,
+                            price: tick.quote,
+                            bid: tick.quote, 
+                            ask: tick.quote, 
+                            epoch: tick.epoch
+                        });
+                    } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles' || response.msg_type === 'history') {
+                        isResolved = true;
+                        cleanup();
+                        resolve({
+                            symbol: mappedSymbol,
+                            candles: response.candles || response.history?.prices?.map((p: any, i: number) => ({
+                                epoch: response.history.times[i],
+                                close: p,
+                                high: p,
+                                low: p,
+                                open: p
+                            })) || []
+                        });
+                    }
+                } catch (err: any) {
+                    isResolved = true;
+                    cleanup();
+                    reject(new Error('Failed to parse Deriv API response: ' + err.message));
+                }
+            });
+
+            ws.on('error', (error: any) => {
+                if (isResolved) return;
+                if (useToken) {
+                    console.warn(`[DerivTradeNotif] WS Error during token auth: ${error.message}. Retrying WITHOUT token/authorization...`);
+                    ws.close();
+                    connect(false);
+                    return;
+                }
+                isResolved = true;
+                cleanup();
+                reject(new Error('Deriv Connection Error: ' + (error.message || 'Unable to establish WebSocket connection.')));
+            });
+            
+            ws.on('close', (code, reason) => {
+                if (isResolved) return;
+                if (useToken) {
+                    console.warn(`[DerivTradeNotif] WS Closed during token auth: ${code}. Retrying WITHOUT token/authorization...`);
+                    connect(false);
+                    return;
+                }
+                isResolved = true;
+                reject(new Error(`Deriv Connection Closed (Code: ${code}). ${reason || 'The connection was interrupted.'}`));
+            });
+        };
+
+        timeout = setTimeout(() => {
             if (isResolved) return;
             isResolved = true;
             cleanup();
@@ -121,95 +234,7 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
             reject(new Error('Deriv API connection timed out. Vercel serverless limit reached. Please try again.'));
         }, 8000);
 
-        ws.on('open', () => {
-            if (isResolved) return;
-            
-            // If token provided, authorize first
-            if (_clientToken) {
-                ws.send(JSON.stringify({ authorize: _clientToken }));
-            } else {
-                requestData();
-            }
-        });
-
-        const requestData = () => {
-            if (isResolved) return;
-            if (fetchHistory) {
-                ws.send(JSON.stringify({ 
-                    ticks_history: mappedSymbol,
-                    adjust_start_time: 1,
-                    count: parseInt(count) || 1000,
-                    end: 'latest',
-                    style: 'candles',
-                    granularity: parseInt(granularity) || 60
-                }));
-            } else {
-                ws.send(JSON.stringify({ ticks: mappedSymbol }));
-            }
-        };
-
-        ws.on('message', (data: any) => {
-            if (isResolved) return;
-            try {
-                const response = JSON.parse(data.toString());
-
-                if (response.error) {
-                    isResolved = true;
-                    cleanup();
-                    reject(new Error(`Deriv API Error: ${response.error.message || JSON.stringify(response.error)}`));
-                    return;
-                }
-
-                if (response.msg_type === 'authorize') {
-                    // Authorization successful, now request data
-                    requestData();
-                    return;
-                }
-
-                if (response.msg_type === 'tick' && !fetchHistory) {
-                    const tick = response.tick;
-                    isResolved = true;
-                    cleanup();
-                    resolve({
-                        symbol: tick.symbol,
-                        price: tick.quote,
-                        bid: tick.quote, 
-                        ask: tick.quote, 
-                        epoch: tick.epoch
-                    });
-                } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles' || response.msg_type === 'history') {
-                    isResolved = true;
-                    cleanup();
-                    resolve({
-                        symbol: mappedSymbol,
-                        candles: response.candles || response.history?.prices?.map((p: any, i: number) => ({
-                            epoch: response.history.times[i],
-                            close: p,
-                            high: p,
-                            low: p,
-                            open: p
-                        })) || []
-                    });
-                }
-            } catch (err: any) {
-                isResolved = true;
-                cleanup();
-                reject(new Error('Failed to parse Deriv API response: ' + err.message));
-            }
-        });
-
-        ws.on('error', (error: any) => {
-            if (isResolved) return;
-            isResolved = true;
-            cleanup();
-            reject(new Error('Deriv Connection Error: ' + (error.message || 'Unable to establish WebSocket connection.')));
-        });
-        
-        ws.on('close', (code, reason) => {
-            if (isResolved) return;
-            isResolved = true;
-            reject(new Error(`Deriv Connection Closed (Code: ${code}). ${reason || 'The connection was interrupted.'}`));
-        });
+        connect(!!_clientToken);
     });
 }
 

@@ -1,5 +1,65 @@
 import { Request, Response } from 'express';
-import { connect } from 'ctrader-ts';
+import { connect, CTraderConnection, CTraderAuth } from 'ctrader-ts';
+
+const envCache = new Map<number, 'live' | 'demo'>();
+
+async function detectAccountEnvironment(clientId: string, clientSecret: string, token: string, accountId: number): Promise<'live' | 'demo' | null> {
+    const connection = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5035 });
+    try {
+        await connection.connect();
+        const auth = new CTraderAuth(connection);
+        await auth.authenticateApp(clientId, clientSecret);
+        const accounts = await auth.getAccountsByToken(token);
+        await connection.disconnect();
+        
+        const matchingAccount = accounts.find((acc: any) => acc.ctidTraderAccountId === accountId);
+        if (matchingAccount) {
+            console.log(`[cTrader] Auto-detected environment for account ${accountId}: ${matchingAccount.isLive ? 'live' : 'demo'}`);
+            return matchingAccount.isLive ? 'live' : 'demo';
+        }
+    } catch (e: any) {
+        console.warn(`[cTrader] Error detecting environment from live server for account ${accountId}, trying demo server...`, e.message || e);
+        try { await connection.disconnect(); } catch (_) {}
+    }
+
+    // Try demo connection to be thorough
+    const demoConnection = new CTraderConnection({ host: 'demo.ctraderapi.com', port: 5035 });
+    try {
+        await demoConnection.connect();
+        const auth = new CTraderAuth(demoConnection);
+        await auth.authenticateApp(clientId, clientSecret);
+        const accounts = await auth.getAccountsByToken(token);
+        await demoConnection.disconnect();
+        
+        const matchingAccount = accounts.find((acc: any) => acc.ctidTraderAccountId === accountId);
+        if (matchingAccount) {
+            console.log(`[cTrader] Auto-detected environment (Demo server) for account ${accountId}: ${matchingAccount.isLive ? 'live' : 'demo'}`);
+            return matchingAccount.isLive ? 'live' : 'demo';
+        }
+    } catch (e: any) {
+        console.warn(`[cTrader] Error detecting environment from demo server for account ${accountId}:`, e.message || e);
+        try { await demoConnection.disconnect(); } catch (_) {}
+    }
+
+    return null;
+}
+
+async function getOrDetectEnvironment(clientId: string, clientSecret: string, token: string, accountId: number, queryEnv: string): Promise<'live' | 'demo'> {
+    if (envCache.has(accountId)) {
+        return envCache.get(accountId)!;
+    }
+    
+    const detected = await detectAccountEnvironment(clientId, clientSecret, token, accountId);
+    if (detected) {
+        envCache.set(accountId, detected);
+        return detected;
+    }
+    
+    const finalEnv = queryEnv === 'live' ? 'live' : 'demo';
+    console.log(`[cTrader] Could not auto-detect environment for account ${accountId}, using manual configuration/query parameter: ${finalEnv}`);
+    envCache.set(accountId, finalEnv);
+    return finalEnv;
+}
 
 export const ctraderTickHistoryHandler = async (req: Request, res: Response) => {
     let token = req.headers.authorization?.split(' ')[1];
@@ -27,19 +87,46 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
     }
 
     try {
+        const intAccountId = parseInt(accountId, 10);
+        const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+
         const ct = await connect({
             clientId,
             clientSecret,
             accessToken: token,
-            accountId: parseInt(accountId, 10),
-            environment: environment === 'live' ? 'live' : 'demo'
+            accountId: intAccountId,
+            environment: resolvedEnv
         });
 
         const params: any = { type: type === 'ASK' ? 2 : 1 };
         if (fromTimestamp) params.fromTimestamp = parseInt(fromTimestamp, 10);
         if (toTimestamp) params.toTimestamp = parseInt(toTimestamp, 10);
 
-        const data = await ct.getTickData(symbol, params);
+        // Fetch symbols list and find matching symbol (with fuzzy matching fallback)
+        let resolvedSymbol = symbol;
+        try {
+            const symbolsData = await ct.getSymbols();
+            const symbolsArray = Array.isArray(symbolsData) 
+                ? symbolsData 
+                : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
+            
+            let sym = symbolsArray.find((s: any) => s.symbolName === symbol);
+            if (!sym) {
+                const upperSymbol = symbol.toUpperCase();
+                sym = symbolsArray.find((s: any) => {
+                    const name = s.symbolName.toUpperCase();
+                    return name === upperSymbol || name.startsWith(upperSymbol) || name.includes(upperSymbol);
+                });
+            }
+            if (sym) {
+                resolvedSymbol = sym.symbolName;
+                console.log(`[cTrader] Resolved tick history symbol "${symbol}" to "${resolvedSymbol}"`);
+            }
+        } catch (symError) {
+            console.warn('[cTrader] Symbol lookup/resolution failed, using raw symbol:', symError);
+        }
+
+        const data = await ct.getTickData(resolvedSymbol, params);
 
         await ct.disconnect();
         res.json(data);
@@ -93,12 +180,15 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
     });
 
     try {
+        const intAccountId = parseInt(accountIdStr, 10);
+        const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+
         ct = await connect({
             clientId,
             clientSecret,
             accessToken: token,
-            accountId: parseInt(accountIdStr, 10),
-            environment: environment === 'live' ? 'live' : 'demo'
+            accountId: intAccountId,
+            environment: resolvedEnv
         });
 
         await ct.watchSpots(symbols, (spot: any) => {
@@ -120,7 +210,6 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
         }
     }
 };
-
 
 export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
     let token = req.headers.authorization?.split(' ')[1];
@@ -148,12 +237,15 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
     }
 
     try {
+        const intAccountId = parseInt(accountId, 10);
+        const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+
         const ct = await connect({
             clientId,
             clientSecret,
             accessToken: token,
-            accountId: parseInt(accountId, 10),
-            environment: environment === 'live' ? 'live' : 'demo'
+            accountId: intAccountId,
+            environment: resolvedEnv
         });
 
         // Convert period string (e.g. M1, M5, H1) to enum value manually since we can't easily import the enum
@@ -164,33 +256,33 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         
         const periodEnum = periodMap[period] || 9; // Default to H1
 
-        // For trendbars, we need the symbol ID, but getTrendbars might take symbol name or ID depending on the library.
-        // Wait, CTraderMarket.getTrendbars takes `symbolId: number`. 
-        // We first need to get the symbol ID.
         let symbolId = 0;
         const symbolsData = await ct.getSymbols();
         const symbolsArray = Array.isArray(symbolsData) 
             ? symbolsData 
             : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
-        const sym = symbolsArray.find((s: any) => s.symbolName === symbol);
+        
+        let sym = symbolsArray.find((s: any) => s.symbolName === symbol);
+        if (!sym) {
+            const upperSymbol = symbol.toUpperCase();
+            sym = symbolsArray.find((s: any) => {
+                const name = s.symbolName.toUpperCase();
+                return name === upperSymbol || name.startsWith(upperSymbol) || name.includes(upperSymbol);
+            });
+        }
+        
         if (!sym) {
             await ct.disconnect();
             return res.status(404).json({ error: `Symbol ${symbol} not found in cTrader` });
         }
         symbolId = sym.symbolId;
+        console.log(`[cTrader] Resolved trendbars symbol "${symbol}" to "${sym.symbolName}" (ID: ${symbolId})`);
 
-        
         const data = await ct.getTrendbars(symbolId, {
             period: periodEnum,
             count: parseInt(count || '100', 10)
         });
 
-        // Map trendbars to Deriv-like candles format
-        // In cTrader, low is the base price, and deltas are added.
-        // Usually, prices are scaled by 100,000 for standard forex, but we can also just rely on the relative values if we divide by 100,000
-        // Wait, cTrader-ts might not scale it. Let's provide both scaled and unscaled to be safe, or just divide by 100000.
-        // Actually, we need the exact symbol's digits to divide correctly, but typically 100000 works for most.
-        // Let's get the symbol digits.
         const divisor = Math.pow(10, sym.digits || 5);
         
         const candles = data.trendbars.map((b: any) => {
