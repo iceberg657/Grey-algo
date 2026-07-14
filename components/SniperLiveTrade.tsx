@@ -151,6 +151,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [showAdvisor, setShowAdvisor] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
+  const [selectedStreamingMode, setSelectedStreamingMode] = useState<'Standard' | 'Advanced'>('Standard');
   const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
   const ctraderDepthRef = React.useRef<{ bids: [number, number][], asks: [number, number][] } | null>(null);
   
@@ -169,27 +170,68 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     ctraderDepthRef.current = null;
   }, [lastAnalyzedAsset]);
 
-    useEffect(() => {
-        // Initialize Daily Market Regime Tracking (AI Pilot)
-        const initRegime = async () => {
-            try {
-                const regime = await getDailyMarketRegime();
-                setDailyRegime(regime);
-            } catch (e) {
-                console.warn("[SniperLiveTrade] Failed to establish AI Pilot link.");
-            }
-        };
-        initRegime();
+  const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
 
+  useEffect(() => {
+    // Force downgrade to Standard streaming if not granted and metadata is loaded
+    if (userMetadata && !isAdvancedStreamingGranted && selectedStreamingMode === 'Advanced') {
+      setSelectedStreamingMode('Standard');
+      try {
         const stored = localStorage.getItem('greyquant_user_settings');
-        if (stored) {
-            try {
-                setUserSettings(JSON.parse(stored));
-            } catch (e) {
-                console.error("Failed to parse user settings", e);
-            }
+        const parsed = stored ? JSON.parse(stored) : {};
+        parsed.streamingMode = 'Standard';
+        localStorage.setItem('greyquant_user_settings', JSON.stringify(parsed));
+        setUserSettings(parsed);
+      } catch (e) {
+        console.error("Failed to force downgrade streaming mode", e);
+      }
+    }
+  }, [userMetadata, isAdvancedStreamingGranted, selectedStreamingMode]);
+
+  useEffect(() => {
+    // Initialize Daily Market Regime Tracking (AI Pilot)
+    const initRegime = async () => {
+        try {
+            const regime = await getDailyMarketRegime();
+            setDailyRegime(regime);
+        } catch (e) {
+            console.warn("[SniperLiveTrade] Failed to establish AI Pilot link.");
         }
-    }, []);
+    };
+    initRegime();
+  }, []);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('greyquant_user_settings');
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored);
+            setUserSettings(parsed);
+            if (parsed.streamingMode) {
+                const actualMode = (parsed.streamingMode === 'Advanced' && isAdvancedStreamingGranted) ? 'Advanced' : 'Standard';
+                setSelectedStreamingMode(actualMode);
+            }
+        } catch (e) {
+            console.error("Failed to parse user settings", e);
+        }
+    }
+  }, [isAdvancedStreamingGranted]);
+
+  const handleStreamingModeChange = (mode: 'Standard' | 'Advanced') => {
+    if (mode === 'Advanced' && !isAdvancedStreamingGranted) {
+      return; // Reject setting to Advanced if not granted
+    }
+    setSelectedStreamingMode(mode);
+    try {
+      const stored = localStorage.getItem('greyquant_user_settings');
+      const parsed = stored ? JSON.parse(stored) : {};
+      parsed.streamingMode = mode;
+      localStorage.setItem('greyquant_user_settings', JSON.stringify(parsed));
+      setUserSettings(parsed);
+    } catch (e) {
+      console.error("Failed to persist streaming mode", e);
+    }
+  };
 
   const scrollRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -352,18 +394,13 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const fetchLivePrice = async (asset: string) => {
     setIsFetchingPrice(true);
     try {
-      // Check user settings for streaming mode
-      let isAdvancedStreaming = false;
+      // Use on-page selected streaming mode
+      let isAdvancedStreaming = selectedStreamingMode === 'Advanced';
       let ctToken = '';
       let ctAccount = '';
       let ctEnvironment = 'demo';
       
       try {
-        const storedSettings = localStorage.getItem('greyquant_user_settings');
-        if (storedSettings) {
-          const parsed = JSON.parse(storedSettings);
-          isAdvancedStreaming = parsed.streamingMode === 'Advanced';
-        }
         ctToken = localStorage.getItem('ctrader_access_token') || '';
         ctAccount = localStorage.getItem('ctrader_account_id') || '';
         ctEnvironment = localStorage.getItem('ctrader_environment') || 'demo';
@@ -994,7 +1031,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
             {/* Style Selector */}
             {/* Advanced Streaming Panel */}
-            {userSettings?.streamingMode === 'Advanced' && lastAnalyzedAsset && (
+            {selectedStreamingMode === 'Advanced' && lastAnalyzedAsset && (
               <div className="mb-4">
                  <CTraderAdvancedData 
                     symbol={lastAnalyzedAsset} 
@@ -1762,6 +1799,48 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       {accessStatus === 'granted' && (
         <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50 dark:from-[#020617] dark:via-[#020617] to-transparent pt-10 pb-6 px-4 transition-colors duration-300">
           <div className="max-w-4xl mx-auto">
+            {/* Streaming Protocol Selection Control */}
+            <div className="flex flex-col items-center gap-1.5 mb-4">
+              <div className="bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-1 flex gap-1 shadow-md backdrop-blur-md">
+                <button
+                  type="button"
+                  onClick={() => handleStreamingModeChange('Standard')}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold transition-all ${
+                    selectedStreamingMode === 'Standard'
+                      ? 'bg-emerald-500 text-white shadow-md'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  }`}
+                >
+                  <div className={`w-1.5 h-1.5 rounded-full ${selectedStreamingMode === 'Standard' ? 'bg-white' : 'bg-slate-400'} animate-pulse`} />
+                  Standard Streaming (Deriv)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleStreamingModeChange('Advanced')}
+                  disabled={!isAdvancedStreamingGranted}
+                  className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold transition-all ${
+                    selectedStreamingMode === 'Advanced'
+                      ? 'bg-indigo-500 text-white shadow-md'
+                      : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                  } ${!isAdvancedStreamingGranted ? 'opacity-40 cursor-not-allowed' : ''}`}
+                >
+                  {!isAdvancedStreamingGranted ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
+                    </svg>
+                  ) : (
+                    <div className={`w-1.5 h-1.5 rounded-full ${selectedStreamingMode === 'Advanced' ? 'bg-white' : 'bg-slate-400'} animate-pulse`} />
+                  )}
+                  Advanced Streaming (cTrader)
+                </button>
+              </div>
+              {!isAdvancedStreamingGranted && (
+                <p className="text-[9px] text-amber-500/80 font-semibold tracking-wide uppercase">
+                  ⚠️ Advanced cTrader Streaming is locked. Request access from the oversight team.
+                </p>
+              )}
+            </div>
+
             <form 
               onSubmit={handleAnalyze}
               className="relative group"

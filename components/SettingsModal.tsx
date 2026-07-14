@@ -28,21 +28,30 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
     const [settings, setSettings] = useState<UserSettings>(DEFAULT_SETTINGS);
     const [saved, setSaved] = useState(false);
     const { user, userMetadata } = useAuthContext();
-    const isAdvancedStreamingGranted = true; // Fully unlock for the user to troubleshoot
+    const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
 
     useEffect(() => {
         const stored = localStorage.getItem('greyquant_user_settings');
         if (stored) {
             try {
+                const parsed = JSON.parse(stored);
+                // Force downgrade to standard streaming if not granted and metadata is loaded
+                if (userMetadata && parsed.streamingMode === 'Advanced' && !isAdvancedStreamingGranted) {
+                    parsed.streamingMode = 'Standard';
+                    localStorage.setItem('greyquant_user_settings', JSON.stringify(parsed));
+                }
                 // Merge stored settings with defaults to ensure new fields like riskPerTrade exist
-                setSettings({ ...DEFAULT_SETTINGS, ...JSON.parse(stored) });
+                setSettings({ ...DEFAULT_SETTINGS, ...parsed });
             } catch (e) {
                 console.error("Failed to parse settings", e);
             }
         }
-    }, []);
+    }, [userMetadata, isAdvancedStreamingGranted]);
 
     const handleChange = (field: keyof UserSettings, value: string | number) => {
+        if (field === 'streamingMode' && value === 'Advanced' && !isAdvancedStreamingGranted) {
+            return; // Reject setting to Advanced if not granted
+        }
         setSettings(prev => ({
             ...prev,
             [field]: typeof prev[field] === 'number' ? Number(value) : value
@@ -60,9 +69,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
             }
         } catch (err) {}
         
-        localStorage.setItem('greyquant_user_settings', JSON.stringify(settings));
+        // Ensure streaming mode is Standard if not granted
+        const finalSettings = { ...settings };
+        if (!isAdvancedStreamingGranted) {
+            finalSettings.streamingMode = 'Standard';
+        }
         
-        const newLang = settings.language || 'English';
+        localStorage.setItem('greyquant_user_settings', JSON.stringify(finalSettings));
+        
+        const newLang = finalSettings.language || 'English';
         if (oldLang !== newLang) {
             const langMap: Record<string, string> = {
                 'English': 'en',
@@ -271,11 +286,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Data Streaming Mode</label>
                                 <select
                                     value={settings.streamingMode || 'Standard'}
+                                    disabled={!isAdvancedStreamingGranted}
                                     onChange={(e) => handleChange('streamingMode', e.target.value)}
-                                    className="w-full px-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white"
+                                    className={`w-full px-4 py-2 bg-gray-50/50 dark:bg-slate-800/50 backdrop-blur-sm border border-gray-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-gray-900 dark:text-white ${!isAdvancedStreamingGranted ? 'opacity-60 cursor-not-allowed' : ''}`}
                                 >
                                     <option value="Standard">Standard Streaming (Deriv 60s)</option>
-                                    <option value="Advanced">Advanced Streaming (cTrader Level 2 / Tick)</option>
+                                    <option value="Advanced" disabled={!isAdvancedStreamingGranted}>
+                                        Advanced Streaming (cTrader Level 2 / Tick) {!isAdvancedStreamingGranted ? '🔒' : ''}
+                                    </option>
                                 </select>
                                 {!isAdvancedStreamingGranted && (
                                     <p className="text-[10px] text-amber-500 mt-1">Requires Admin permission to enable Advanced Streaming.</p>
