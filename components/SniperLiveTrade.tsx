@@ -749,6 +749,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
       result = {
           ...finalSignal,
+          usedBroker: derivData?.usedBroker || 'Deriv',
           insight: antigravityVerdict // Display the full QuantConnect strategy details inside the UI
       };
 
@@ -1697,6 +1698,22 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                                     </p>
                                 </div>
                             )}
+
+                            {/* Data Streaming Technology Identifier */}
+                            <div className="mt-4 flex items-center justify-between bg-slate-100/40 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl px-5 py-3 text-xs font-medium">
+                                <span className="text-slate-500 dark:text-slate-400">Analysis Engine Protocol:</span>
+                                {(!msg.signal.usedBroker || msg.signal.usedBroker.toLowerCase() === 'deriv') ? (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                                        <span className="text-emerald-600 dark:text-emerald-400 font-bold uppercase tracking-widest text-[10px]">Standard Streaming (Deriv)</span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse" />
+                                        <span className="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest text-[10px]">Advanced Streaming (cTrader)</span>
+                                    </div>
+                                )}
+                            </div>
                           </div>
                         ) : (
                           <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-600 dark:text-slate-400 leading-relaxed">

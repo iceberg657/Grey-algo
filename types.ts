@@ -201,6 +201,7 @@ export interface SignalData {
         uri: string;
         title: string;
     }[];
+    usedBroker?: string;
     
     // Extended Trade Setup Fields
     calculatedRR?: string;
