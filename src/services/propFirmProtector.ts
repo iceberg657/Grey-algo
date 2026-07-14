@@ -1,4 +1,4 @@
-import { MetaApiService } from './metaApiService';
+import { MetaApiService } from './metaApiService.js';
 
 export class PropFirmProtector {
     private metaApiService: MetaApiService;

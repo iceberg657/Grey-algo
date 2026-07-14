@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { executeLaneCall, getDeltaPool, EMBEDDING_MODELS } from './retryUtils';
+import { executeLaneCall, getDeltaPool, EMBEDDING_MODELS } from './retryUtils.js';
 import { db, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, getDocs, limit, orderBy } from 'firebase/firestore';
 

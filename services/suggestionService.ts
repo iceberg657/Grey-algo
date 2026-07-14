@@ -1,8 +1,8 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 
-import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils';
+import { executeLaneCall, getSuggestionPool, runWithModelFallback, SUGGESTION_MODELS } from './retryUtils.js';
 import type { MomentumAsset } from '../types';
-import { GREYALPHA_IDENTITY } from './identity';
+import { GREYALPHA_IDENTITY } from './identity.js';
 
 const CACHE_KEY = 'greyquant_asset_suggestions_v3';
 const CACHE_DURATION = 60 * 60 * 1000; // 1-hour refresh cycle
@@ -114,12 +114,12 @@ export async function getOrRefreshSuggestions(force: boolean = false) {
     let cachedData: any = null;
     
     // 1. Retrieve cache first
-    const cachedStr = localStorage.getItem(CACHE_KEY);
+    const cachedStr = typeof window !== 'undefined' ? localStorage.getItem(CACHE_KEY) : null;
     if (cachedStr) {
         try {
             cachedData = JSON.parse(cachedStr);
         } catch (e) {
-            localStorage.removeItem(CACHE_KEY);
+            if (typeof window !== 'undefined') localStorage.removeItem(CACHE_KEY);
         }
     }
 
@@ -141,7 +141,7 @@ export async function getOrRefreshSuggestions(force: boolean = false) {
         
         // Grab token to enrich
         let token = '';
-        const userSettingsRaw = localStorage.getItem('greyquant_user_settings');
+        const userSettingsRaw = typeof window !== 'undefined' ? localStorage.getItem('greyquant_user_settings') : null;
         if (userSettingsRaw) {
             try {
                 token = JSON.parse(userSettingsRaw).derivApiToken || '';
@@ -153,10 +153,12 @@ export async function getOrRefreshSuggestions(force: boolean = false) {
 
         if (enrichedBullish.length > 0 || enrichedBearish.length > 0) {
             // SUCCESS: Update Cache
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-                timestamp: now,
-                data: { bullish: enrichedBullish, bearish: enrichedBearish }
-            }));
+            if (typeof window !== 'undefined') {
+                localStorage.setItem(CACHE_KEY, JSON.stringify({
+                    timestamp: now,
+                    data: { bullish: enrichedBullish, bearish: enrichedBearish }
+                }));
+            }
             return { bullish: enrichedBullish, bearish: enrichedBearish, nextUpdate: now + CACHE_DURATION };
         }
     } catch (error) {

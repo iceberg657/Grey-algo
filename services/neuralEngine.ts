@@ -1,4 +1,4 @@
-import { MathEngine } from './mathEngine';
+import { MathEngine } from './mathEngine.js';
 
 export type RegimeType = 'TREND_BULLISH' | 'TREND_BEARISH' | 'MEAN_REVERSION' | 'CHAOS';
 

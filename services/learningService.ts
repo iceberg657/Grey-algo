@@ -1,11 +1,11 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, getBetaPool, LEARNING_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
+import { executeLaneCall, getBetaPool, LEARNING_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils.js';
 import { db, auth } from '../firebase';
 import { collectionGroup, getDocs, query, orderBy, limit, addDoc, collection, where } from 'firebase/firestore';
 import { Trade } from '../types';
-import { sanitizeForFirestore } from '../utils/firestoreUtils';
-import { GREYALPHA_IDENTITY } from './identity';
+import { sanitizeForFirestore } from '../utils/firestoreUtils.js';
+import { GREYALPHA_IDENTITY } from './identity.js';
 
 const STORAGE_KEY = 'greyalpha_automl_stats';
 const STRATEGIES_KEY = 'greyalpha_learned_strategies';

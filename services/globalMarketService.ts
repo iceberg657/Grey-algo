@@ -1,8 +1,8 @@
 
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
 import type { GlobalMarketAnalysis } from '../types';
-import { runWithModelFallback, executeLaneCall, getBetaPool, MARKET_MODELS } from './retryUtils';
-import { GREYALPHA_IDENTITY } from './identity';
+import { runWithModelFallback, executeLaneCall, getBetaPool, MARKET_MODELS } from './retryUtils.js';
+import { GREYALPHA_IDENTITY } from './identity.js';
 
 const STORAGE_KEY = 'greyquant_global_analysis';
 const UPDATE_INTERVAL = 3600000; // 1 hour in milliseconds

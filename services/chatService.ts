@@ -1,7 +1,7 @@
 
 import { GoogleGenAI, Chat, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils';
-import { BASE_SYSTEM_INSTRUCTION } from './identity';
+import { executeLaneCall, getChatPool, CHAT_MODELS, runWithModelFallback, initializeApiKey } from './retryUtils.js';
+import { BASE_SYSTEM_INSTRUCTION } from './identity.js';
 
 let currentChat: Chat | null = null;
 let currentApiKey = '';

@@ -1,11 +1,11 @@
 
 import { db } from '../firebase';
 import { collection, query, where, getDocs, setDoc, doc, limit } from 'firebase/firestore';
-import { executeLaneCall, getPilotPool, PILOT_MODELS, runWithModelFallback } from './retryUtils';
+import { executeLaneCall, getPilotPool, PILOT_MODELS, runWithModelFallback } from './retryUtils.js';
 import { GoogleGenAI } from '@google/genai';
-import { fetchMarketData } from './twelveDataService';
-import { MarketRegime } from '../utils/marketRegime';
-import { GREYALPHA_IDENTITY } from './identity';
+import { fetchMarketData } from './twelveDataService.js';
+import { MarketRegime } from '../utils/marketRegime.js';
+import { GREYALPHA_IDENTITY } from './identity.js';
 
 export interface DailyRegime {
     id: string; // YYYY-MM-DD-PST

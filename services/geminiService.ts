@@ -14,17 +14,17 @@ import {
     initializeApiKey, 
     getChatPool, 
     CHAT_MODELS 
-} from './retryUtils';
-import { validateAndFixTPSL } from '../utils/riskRewardCalculator';
-import { buildCompleteTradeSetup } from '../utils/tradeSetup';
-import { MARKET_CONFIGS } from '../utils/marketConfigs';
-import { calculateLotSize } from '../utils/lotSizeCalculator';
-import { logTrade } from './tradeLogger';
+} from './retryUtils.js';
+import { validateAndFixTPSL } from '../utils/riskRewardCalculator.js';
+import { buildCompleteTradeSetup } from '../utils/tradeSetup.js';
+import { MARKET_CONFIGS } from '../utils/marketConfigs.js';
+import { calculateLotSize } from '../utils/lotSizeCalculator.js';
+import { logTrade } from './tradeLogger.js';
 import { auth } from '../firebase';
-import { getLearnedStrategies } from './learningService';
-import { detectMarketRegime, MarketRegime } from '../utils/marketRegime';
-import { GREYALPHA_IDENTITY } from './identity';
-import { SignalDataSchema, SniperDataSchema } from './schema';
+import { getLearnedStrategies } from './learningService.js';
+import { detectMarketRegime, MarketRegime } from '../utils/marketRegime.js';
+import { GREYALPHA_IDENTITY } from './identity.js';
+import { SignalDataSchema, SniperDataSchema } from './schema.js';
 export const smcCandlestickLogic = `**SMC/ICT INSTITUTIONAL CANDLESTICK PATTERNS (MANDATORY)**:
 In Smart Money Concepts (SMC) and ICT, candlestick patterns aren't standalone geometric shapes; they are signatures of institutional order flow, liquidity hunts, and inefficiency. You MUST recognize and tag these patterns in 'candlestickPatterns':
 

@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Modality, GenerateContentResponse } from "@google/genai";
-import { executeGeminiCall, runWithRetry, getTtsPool, TTS_MODELS, runWithModelFallback } from './retryUtils';
+import { executeGeminiCall, runWithRetry, getTtsPool, TTS_MODELS, runWithModelFallback } from './retryUtils.js';
 
 // Audio context for playback
 let audioContext: AudioContext | null = null;

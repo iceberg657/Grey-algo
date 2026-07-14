@@ -2,7 +2,7 @@ import { db } from '../firebase';
 import { collection, addDoc, doc, updateDoc, getDocs, query, where, orderBy } from 'firebase/firestore';
 import { Trade, SignalData } from '../types';
 import { auth } from '../firebase';
-import { sanitizeForFirestore } from '../utils/firestoreUtils';
+import { sanitizeForFirestore } from '../utils/firestoreUtils.js';
 
 export const logTrade = async (signalData: SignalData, outcome: Trade['outcome'] = 'Pending', notes: string = ''): Promise<string | null> => {
     const user = auth.currentUser;

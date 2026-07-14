@@ -2,7 +2,7 @@
 import type { SignalData, Trade } from '../types';
 import { db, auth, handleFirestoreError, OperationType } from '../firebase';
 import { collection, addDoc, query, where, orderBy, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
-import { sanitizeForFirestore } from '../utils/firestoreUtils';
+import { sanitizeForFirestore } from '../utils/firestoreUtils.js';
 
 const HISTORY_KEY = 'analysisHistory';
 

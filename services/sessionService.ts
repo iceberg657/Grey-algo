@@ -1,5 +1,5 @@
 import { GoogleGenAI, GenerateContentResponse } from "@google/genai";
-import { executeLaneCall, getGammaPool, SUMMARY_MODELS, runWithModelFallback } from './retryUtils';
+import { executeLaneCall, getGammaPool, SUMMARY_MODELS, runWithModelFallback } from './retryUtils.js';
 
 export async function fetchSessionAnalysis(session: string) {
   return await executeLaneCall(async (apiKey) => {

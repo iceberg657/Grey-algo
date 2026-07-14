@@ -50,7 +50,7 @@ export interface TwelveDataTimeSeries {
 
 export async function fetchMarketData(symbol: string, interval: string = '1h'): Promise<any | null> {
     try {
-        const storedSettings = localStorage.getItem('greyquant_user_settings');
+        const storedSettings = typeof window !== 'undefined' ? localStorage.getItem('greyquant_user_settings') : null;
         const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
         const localKey = userSettings?.twelveDataApiKey;
 
