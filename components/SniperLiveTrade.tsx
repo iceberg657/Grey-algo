@@ -821,13 +821,14 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         setMessages(prev => [...prev, aiMsg]);
       }
     } catch (err: any) {
+      const isGeminiError = err.message?.toLowerCase().includes('gemini') || err.message?.toLowerCase().includes('api key');
       setError(err.message || 'Failed to generate setup. Please try again.');
       // Add error message to chat
       const errorMsgId = (Date.now() + 1).toString();
       const errorMsg: SniperMessage = {
         id: errorMsgId,
         type: 'ai',
-        content: `System Anomaly: ${err.message || 'Neural link failed.'}`,
+        content: `System Anomaly: ${isGeminiError ? 'Gemini AI Key is missing or invalid. Please check your Settings.' : (err.message || 'Neural link failed.')}`,
         timestamp: Date.now()
       };
       

@@ -3006,26 +3006,20 @@ export async function generateMacroContext(
     asset: string,
     multiTimeframe: any
 ): Promise<string> {
-    await initializeApiKey();
-    return await executeLaneCall<string>(async (apiKey) => {
-        const ai = new GoogleGenAI({ apiKey });
-        
-        const formatTf = (tfData: any) => {
-            const candles = tfData?.candles || [];
-            // Sample data to keep prompt size manageable while preserving structure
-            // We take every 5th candle if count is 1000
-            const sampled = candles.filter((_: any, i: number) => i % 5 === 0);
-            return sampled.map((c: any) => ({
-                t: new Date(c.epoch * 1000).toISOString().split('T')[1].substring(0, 5),
-                o: c.open, h: c.high, l: c.low, c: c.close
-            }));
-        };
+    const formatTf = (tfData: any) => {
+        const candles = tfData?.candles || [];
+        const sampled = candles.filter((_: any, i: number) => i % 5 === 0);
+        return sampled.map((c: any) => ({
+            t: new Date(c.epoch * 1000).toISOString().split('T')[1].substring(0, 5),
+            o: c.open, h: c.high, l: c.low, c: c.close
+        }));
+    };
 
-        const entryContext = formatTf(multiTimeframe.entry);
-        const confirmContext = formatTf(multiTimeframe.confirm);
-        const htfContext = formatTf(multiTimeframe.htf);
+    const entryContext = formatTf(multiTimeframe.entry);
+    const confirmContext = formatTf(multiTimeframe.confirm);
+    const htfContext = formatTf(multiTimeframe.htf);
 
-        let prompt = `You are the Multi-Timeframe Context Agent for ${asset}.
+    let prompt = `You are the Multi-Timeframe Context Agent for ${asset}.
 Your task is to analyze market structure across three distinct timeframes to find CONFLUENCE.
 
 Timeframe 1 (Entry/Scalp/M5/H4):
@@ -3047,15 +3041,34 @@ Analysis Objectives:
 Provide a concise, high-impact summary with bullet points. Be blunt. If there is no alignment, say "STRUCTURAL DIVERGENCE DETECTED".
 `;
 
-        const response = await runWithModelFallback<GenerateContentResponse>(
-            ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite', 'gemini-3.5-flash'],
-            (modelId) => ai.models.generateContent({
-                model: modelId,
-                contents: prompt,
-                config: { temperature: 0.1 }
-            })
-        );
+    return await executeLaneCall<string>(async (apiKey) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 60000);
 
-        return response.text?.trim() || "MACRO CONFLUENCE: UNKNOWN. INSUFFICIENT DATA.";
+        try {
+            const proxyRes = await fetch('/api/gemini/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'gemini-3.1-flash-lite',
+                    contents: [{ parts: [{ text: prompt }] }],
+                    apiKey: apiKey
+                }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
+            const data = await proxyRes.json();
+            return data.candidates?.[0]?.content?.parts?.[0]?.text || "MACRO CONFLUENCE: UNKNOWN.";
+        } catch (e) {
+            // Fallback to direct SDK if proxy fails
+            const ai = new GoogleGenAI({ apiKey });
+            const result = await ai.models.generateContent({
+                model: 'gemini-3.1-flash-lite',
+                contents: [{ role: 'user', parts: [{ text: prompt }] }]
+            });
+            return result.text || "MACRO CONFLUENCE: UNKNOWN.";
+        }
     }, getBetaPool);
 }

@@ -126,7 +126,8 @@ const K = {
 
 export async function getApiKey() {
     await initializeApiKey();
-    return K.K9() || API_KEY || '';
+    const key = K.K9() || API_KEY || '';
+    return (typeof key === 'string' && key.length > 5) ? key : '';
 }
 
 // Helper to get unique keys from a list of potential keys
@@ -145,7 +146,11 @@ export const ANALYSIS_MODELS = [
 ];
 
 // 2. SNIPER PAGE
-export const getSniperPool = () => getUniqueKeys([K.K3(), K.K10()]);
+export const getSniperPool = () => {
+    const keys = getUniqueKeys([K.K3(), K.K10()]);
+    // Fallback to primary keys if sniper-specific lanes are empty
+    return keys.length > 0 ? keys : getAnalysisPool();
+};
 export const SNIPER_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
@@ -155,7 +160,10 @@ export const SNIPER_MODELS = [
 ];
 
 // 3. CHAT & LIVE (Key 5)
-export const getChatPool = () => getUniqueKeys([K.K5()]); 
+export const getChatPool = () => {
+    const keys = getUniqueKeys([K.K5()]);
+    return keys.length > 0 ? keys : getAnalysisPool();
+};
 export const CHAT_MODELS = [
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
@@ -169,28 +177,40 @@ export const CHAT_MODELS = [
 export const getAntigravityPool = () => getUniqueKeys([K.K3(), K.K1(), K.K2(), K.K4()]);
 
 // ALPHA (Key 6)
-export const getAlphaPool = () => getUniqueKeys([K.K6()]);
+export const getAlphaPool = () => {
+    const keys = getUniqueKeys([K.K6()]);
+    return keys.length > 0 ? keys : getAnalysisPool();
+};
 // A: AI Pilot / Regime Tracker
 export const PILOT_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash'];
 // B: AI ASSETS SUGGESTION 
 export const SUGGESTION_MODELS = ['gemini-2.5-flash-lite', 'gemini-3-flash-preview'];
 
 // BETA (Key 7)
-export const getBetaPool = () => getUniqueKeys([K.K7()]);
+export const getBetaPool = () => {
+    const keys = getUniqueKeys([K.K7()]);
+    return keys.length > 0 ? keys : getAnalysisPool();
+};
 // A: Global Market Intelligence
 export const MARKET_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash'];
 // B: Neural Learning (Truth Layer)
 export const LEARNING_MODELS = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
 
 // GAMMA (Key 8)
-export const getGammaPool = () => getUniqueKeys([K.K8()]);
+export const getGammaPool = () => {
+    const keys = getUniqueKeys([K.K8()]);
+    return keys.length > 0 ? keys : getAnalysisPool();
+};
 // A: Session Summaries
 export const SUMMARY_MODELS = ['gemini-3.1-flash-lite', 'gemini-2.5-flash-lite'];
 // B: Neural TTS
 export const TTS_MODELS = ['gemini-3.1-flash-tts', 'gemini-2.5-flash-tts']; 
 
 // DELTA (Key 9)
-export const getDeltaPool = () => getUniqueKeys([K.K9()]);
+export const getDeltaPool = () => {
+    const keys = getUniqueKeys([K.K9()]);
+    return keys.length > 0 ? keys : getAnalysisPool();
+};
 // A: Embeddings & Pattern Recognition
 export const EMBEDDING_MODELS = ['gemini-embedding-2'];
 // B: Prompt Optimization
@@ -241,10 +261,14 @@ export async function executeLaneCall<T>(
     const resolvedPool = typeof pool === 'function' ? pool() : (pool || getAnalysisPool());
     
     // Deduplicate and filter pool
-    const uniquePool = Array.from(new Set((resolvedPool || []).filter(k => !!k && k.length > 5)));
+    const uniquePool = Array.from(new Set((resolvedPool || []).filter(k => typeof k === 'string' && k.trim().length > 5)));
     
-    // Fallback if resolved pool is empty
-    const activePool = uniquePool.length > 0 ? uniquePool : [K.K2(), K.K1(), K.P()];
+    // Fallback if resolved pool is empty - Ensure fallbacks are also filtered
+    const activePool = uniquePool.length > 0 ? uniquePool : [K.K2(), K.K1(), K.P()].filter(k => typeof k === 'string' && k.trim().length > 5);
+    
+    if (activePool.length === 0) {
+        throw new Error("Gemini API key is missing. Please provide a valid Gemini API key in Settings.");
+    }
     
     // STRICT MODE OVERRIDE
     if (USE_STRICT_MODE && API_KEY) {

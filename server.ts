@@ -55,18 +55,6 @@ export async function createViteApp() {
   app.post('/api/ctrader/exchange', ctraderExchangeHandler);
   app.get('/api/ctrader/accounts', ctraderAccountsHandler);
   app.get('/api/ctrader/status', ctraderStatusHandler);
-  app.get('/api/debug', (req, res) => {
-    res.json({
-      vercel: !!process.env.VERCEL,
-      nodeEnv: process.env.NODE_ENV,
-      hasCtraderId: !!process.env.CTRADER_CLIENT_ID,
-      hasCtraderSecret: !!process.env.CTRADER_CLIENT_SECRET,
-      hasAccessToken: !!process.env.CTRADER_ACCESS_TOKEN,
-      hasAccountId: !!process.env.CTRADER_ACCOUNT_ID,
-      firebaseApps: admin.apps.length,
-      cwd: process.cwd()
-    });
-  });
   app.get('/api/ctrader/ticks', ctraderTickHistoryHandler);
   app.get('/api/ctrader/stream', ctraderStreamHandler);
   app.get('/api/ctrader/trendbars', ctraderTrendbarsHandler);
