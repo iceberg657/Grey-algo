@@ -2160,6 +2160,18 @@ ${quantData.ctraderTicks ? `- HIGH DENSITY cTRADER TICK DATA: ${quantData.ctrade
 - Predicted Stop Clusters (Liquidity Targets): ${quantData.stopClusters?.map((s: any) => `${s.type} at ${s.price} (Size: ${s.size} Lots, Prob: ${s.probability})`)?.join(' | ') || 'NONE'}
 - Liquidity Sweep Prediction: Next Target: ${quantData.liquidityPrediction?.nextTarget || 'NONE'} | Probability: ${quantData.liquidityPrediction?.probability || 0}% | Imminent: ${quantData.liquidityPrediction?.imminentSweep ? 'YES' : 'NO'}
 - Risk Optimization: Kelly Exec: ${quantData.riskOptimization?.suggestedRiskPercentage?.toFixed(2)}% | Split Orders: ${quantData.riskOptimization?.splitOrders ? 'YES' : 'NO'} | Approval: ${quantData.riskOptimization?.approval ? 'APPROVED' : 'VETOED'}
+${quantData.orderflowMetrics?.l2Metrics && (quantData.orderflowMetrics.l2Metrics as any).bestBid ? `
+**REAL-TIME LEVEL 2 ORDER BOOK (DEPTH OF MARKET - DOM):**
+- Best Bid Price: ${(quantData.orderflowMetrics.l2Metrics as any).bestBid} | Best Ask Price: ${(quantData.orderflowMetrics.l2Metrics as any).bestAsk}
+- Bid/Ask Spread: ${(quantData.orderflowMetrics.l2Metrics as any).spread?.toFixed(5)}
+- Market Liquidity Depth: Bids Depth: ${(quantData.orderflowMetrics.l2Metrics as any).marketDepth?.totalBidSize?.toFixed(2)} Lots | Asks Depth: ${(quantData.orderflowMetrics.l2Metrics as any).marketDepth?.totalAskSize?.toFixed(2)} Lots
+- Order Book Imbalance Percent: ${quantData.orderflowMetrics.l2Metrics.imbalancePercent?.toFixed(2)}%
+- Multiple Bid Levels (Price & Size): ${(quantData.orderflowMetrics.l2Metrics as any).multipleBids?.map((b: any) => `${b[0]} @ ${b[1]} Lots`).join(', ')}
+- Multiple Ask Levels (Price & Size): ${(quantData.orderflowMetrics.l2Metrics as any).multipleAsks?.map((a: any) => `${a[0]} @ ${a[1]} Lots`).join(', ')}
+- Liquidity Walls (Major Price Levels): ${(quantData.orderflowMetrics.l2Metrics as any).liquidityWalls?.map((w: any) => `[${w.type}] ${w.price} (${w.size?.toFixed(2)} Lots)`).join(' | ') || 'None'}
+- Slippage Prediction (50 Lots Block): BUY Slippage: ${(quantData.orderflowMetrics.l2Metrics as any).slippageBuy?.slippagePercent?.toFixed(3)}% | SELL Slippage: ${(quantData.orderflowMetrics.l2Metrics as any).slippageSell?.slippagePercent?.toFixed(3)}%
+- Order Stacking & Pulling: Detected near Walls with high tick velocity.
+` : ''}
 
 **NEURAL REASONING ENGINE:**
 - Classified Regime: ${quantData.neuralAnalysis?.classifiedRegime || 'UNKNOWN'} (Confidence: ${((quantData.neuralAnalysis?.confidence || 0) * 100).toFixed(1)}%)
@@ -2182,6 +2194,7 @@ ${quantData.ctraderTicks ? `- HIGH DENSITY cTRADER TICK DATA: ${quantData.ctrade
 *CRITICAL MATH COMPLIANCE INSTRUCTIONS:*
 - **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 
 - You MUST anchor your Stop Loss EXACTLY using the engine mathematical SL or the Monte Carlo bounds (Lower Bound for BUY, Upper Bound for SELL). 
+- **GUARANTEE HIT TP1 FIRST:** You MUST design the Take Profit 1 (TP1) level as a highly conservative, mathematically optimized high-probability target (using a 1.0x risk-to-reward ratio distance from entry) so we consistently "get our TP1" and secure partial profits before any potential trend reversals.
 - Your Take Profits MUST align with Expected Median Price and the structural Liquidity targets provided. If a user asks for statistical/mathematical projections, ONLY use the Monte Carlo bounds.
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the "ADVANCED MULTI-ASSET ENGINE SIGNAL" is active, you MUST output exactly the signal direction it provided (e.g. if it says "BUY", you MUST output "BUY"). Otherwise, if the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL.
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless the engine explicitly gives Neutral.

@@ -28,7 +28,6 @@ import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroCon
 import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
 import { Loader } from './Loader';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
-import { CTraderAdvancedData } from './CTraderAdvancedData';
 import { saveAnalysis } from '../services/historyService';
 import { generateLessonFromTradeLog, getLearnedStrategies } from '../services/learningService';
 import { db, handleFirestoreError, OperationType } from '../firebase';
@@ -169,6 +168,84 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     // Clear L2 depth cache when switching focus assets
     ctraderDepthRef.current = null;
   }, [lastAnalyzedAsset]);
+
+  // Silent background Level 2 cTrader stream manager
+  useEffect(() => {
+    if (selectedStreamingMode !== 'Advanced' || !isAdvancedStreamingGranted || !lastAnalyzedAsset) {
+      ctraderDepthRef.current = null;
+      return;
+    }
+
+    let es: EventSource | null = null;
+    let reconnectTimeout: any = null;
+
+    const connectStream = () => {
+      try {
+        const token = localStorage.getItem('ctrader_access_token');
+        const accountId = localStorage.getItem('ctrader_account_id');
+        const environment = localStorage.getItem('ctrader_environment') || 'demo';
+
+        if (!token || !accountId) {
+          console.warn("[SniperLiveTrade background L2] cTrader credentials missing.");
+          return;
+        }
+
+        const cleanSymbol = (raw: string) => {
+          let clean = raw.toUpperCase().replace('/', '').replace('-', '');
+          if (clean.startsWith('FRX')) {
+            clean = clean.substring(3);
+          }
+          if (clean === 'GOLD') return 'XAUUSD';
+          if (clean === 'SILVER') return 'XAGUSD';
+          if (clean === 'PLATINUM') return 'XPTUSD';
+          if (clean === 'PALLADIUM') return 'XPDUSD';
+          return clean;
+        };
+
+        const activeSymbol = cleanSymbol(lastAnalyzedAsset);
+        const url = `/api/ctrader/stream?token=${encodeURIComponent(token)}&accountId=${accountId}&environment=${environment}&symbols=${activeSymbol}`;
+
+        es = new EventSource(url);
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'depth' && data.data) {
+              const parsedDepth = {
+                bids: data.data.bids || [],
+                asks: data.data.asks || []
+              };
+              ctraderDepthRef.current = parsedDepth;
+            }
+          } catch (e) {
+            console.error("[SniperLiveTrade background L2] Parse error:", e);
+          }
+        };
+
+        es.onerror = () => {
+          console.warn("[SniperLiveTrade background L2] Connection lost. Reconnecting in 5s...");
+          if (es) {
+            es.close();
+          }
+          reconnectTimeout = setTimeout(connectStream, 5000);
+        };
+      } catch (err) {
+        console.error("[SniperLiveTrade background L2] Error establishing stream:", err);
+      }
+    };
+
+    connectStream();
+
+    return () => {
+      if (es) {
+        es.close();
+      }
+      if (reconnectTimeout) {
+        clearTimeout(reconnectTimeout);
+      }
+      ctraderDepthRef.current = null;
+    };
+  }, [lastAnalyzedAsset, selectedStreamingMode, isAdvancedStreamingGranted]);
 
   const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
 
@@ -1026,17 +1103,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                     Historical logs restrict high-confidence trading on Mondays and Fridays due to lower profitability and market unpredictability. Capital preservation is priority. Proceed with extreme caution or remain flat.
                   </p>
                 </div>
-              </div>
-            )}
-
-            {/* Style Selector */}
-            {/* Advanced Streaming Panel */}
-            {selectedStreamingMode === 'Advanced' && lastAnalyzedAsset && (
-              <div className="mb-4">
-                 <CTraderAdvancedData 
-                    symbol={lastAnalyzedAsset} 
-                    onDepthUpdate={(depth) => { ctraderDepthRef.current = depth; }}
-                 />
               </div>
             )}
 

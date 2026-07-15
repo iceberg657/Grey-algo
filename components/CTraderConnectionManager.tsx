@@ -27,7 +27,7 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
         const init = async () => {
             const status = await checkSystemStatus();
             checkConnection(status);
-            fetchAuthUrl();
+            fetchAuthUrl(status);
         };
         init();
     }, [manualClientId, manualClientSecret]);
@@ -120,19 +120,22 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
         }
     };
 
-    const fetchAuthUrl = async () => {
+    const fetchAuthUrl = async (systemStatus?: any) => {
         try {
             const config = getManualConfig();
-            if (!config?.clientId) {
+            const serverConfigured = systemStatus ? systemStatus.configured : statusData?.configured;
+            if (!config?.clientId && !serverConfigured) {
                 setAuthUrl('');
                 return;
             }
 
             const url = new URL('/api/ctrader/auth-url', window.location.origin);
-            url.searchParams.set('clientId', config.clientId);
-            url.searchParams.set('clientSecret', config.clientSecret);
-            if (config.redirectUri) {
-                url.searchParams.set('redirectUri', config.redirectUri);
+            if (config?.clientId) {
+                url.searchParams.set('clientId', config.clientId);
+                url.searchParams.set('clientSecret', config.clientSecret);
+                if (config.redirectUri) {
+                    url.searchParams.set('redirectUri', config.redirectUri);
+                }
             }
             
             const res = await fetch(url.toString());
@@ -270,7 +273,7 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                             <div className="mb-4 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg">
                                 <p className="text-[10px] text-amber-700 dark:text-amber-400 font-bold mb-1 uppercase tracking-tight">Missing Server Configuration</p>
                                 <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-relaxed">
-                                    Client ID not detected in environment. Ensure <b>VITE_CTRADER_CLIENT_ID</b> and <b>VITE_CTRADER_CLIENT_SECRET</b> are set in your Vercel project settings.
+                                    Client ID not detected in environment. Ensure <b>CTRADER_CLIENT_ID</b> and <b>CTRADER_CLIENT_SECRET</b> are set in your Vercel project settings.
                                 </p>
                                 {statusData && statusData.debug && (
                                     <div className="mt-2">

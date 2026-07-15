@@ -1237,6 +1237,57 @@ export function analyzeSMC(
 
     // Parse L2 Orderbook DOM Depth if available
     const l2Metrics = depth ? calculateL2OrderbookMetrics(depth, currentPrice) : null;
+    if (l2Metrics && depth) {
+        const bids = depth.bids || [];
+        const asks = depth.asks || [];
+        const bestBid = bids.length > 0 ? bids[0][0] : currentPrice;
+        const bestAsk = asks.length > 0 ? asks[0][0] : currentPrice;
+        const spread = Math.max(0, bestAsk - bestBid);
+        
+        const totalBidSize = bids.reduce((sum, b) => sum + (b[1] || 0), 0);
+        const totalAskSize = asks.reduce((sum, a) => sum + (a[1] || 0), 0);
+        
+        const avgBidSize = bids.length > 0 ? totalBidSize / bids.length : 1;
+        const avgAskSize = asks.length > 0 ? totalAskSize / asks.length : 1;
+        
+        const walls = [
+            ...bids.filter(b => (b[1] || 0) > avgBidSize * 2.5).map(b => ({ price: b[0], size: b[1], type: 'SUPPORT' })),
+            ...asks.filter(a => (a[1] || 0) > avgAskSize * 2.5).map(a => ({ price: a[0], size: a[1], type: 'RESISTANCE' }))
+        ].sort((a, b) => b.size - a.size).slice(0, 5);
+
+        // Estimate Price Impact for 50 lots
+        const getImpact = (size: number, isBuy: boolean) => {
+            let remaining = size;
+            let cost = 0;
+            const levels = isBuy ? asks : bids;
+            for (const [p, s] of levels) {
+                const matched = Math.min(remaining, s || 0);
+                cost += matched * p;
+                remaining -= matched;
+                if (remaining <= 0) break;
+            }
+            if (remaining > 0) {
+                cost += remaining * currentPrice * (isBuy ? 1.002 : 0.998);
+            }
+            const avgPrice = cost / size;
+            const slippagePercent = Math.abs(avgPrice - currentPrice) / currentPrice * 100;
+            return { avgPrice, slippagePercent };
+        };
+
+        const impactBuy = getImpact(50, true);
+        const impactSell = getImpact(50, false);
+
+        // Add to l2Metrics
+        (l2Metrics as any).bestBid = bestBid;
+        (l2Metrics as any).bestAsk = bestAsk;
+        (l2Metrics as any).spread = spread;
+        (l2Metrics as any).multipleBids = bids.slice(0, 10);
+        (l2Metrics as any).multipleAsks = asks.slice(0, 10);
+        (l2Metrics as any).marketDepth = { totalBidSize, totalAskSize };
+        (l2Metrics as any).liquidityWalls = walls;
+        (l2Metrics as any).slippageBuy = impactBuy;
+        (l2Metrics as any).slippageSell = impactSell;
+    }
 
     const weightedScore = calculateWeightedScore(
         smcFactors,
