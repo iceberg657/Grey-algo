@@ -154,6 +154,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
   const ctraderDepthRef = React.useRef<{ bids: [number, number][], asks: [number, number][] } | null>(null);
   
+  const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
+
   // Get last analyzed asset
   const lastAnalyzedAsset = React.useMemo(() => {
     for (let i = messages.length - 1; i >= 0; i--) {
@@ -246,8 +248,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       ctraderDepthRef.current = null;
     };
   }, [lastAnalyzedAsset, selectedStreamingMode, isAdvancedStreamingGranted]);
-
-  const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
 
   useEffect(() => {
     // Force downgrade to Standard streaming if not granted and metadata is loaded
