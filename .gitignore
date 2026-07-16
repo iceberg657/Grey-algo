@@ -11,3 +11,5 @@ yarn-error.log*
 .DS_Store
 temp.txt
 replace.js
+bun.lock
+package-lock.json
