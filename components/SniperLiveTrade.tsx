@@ -639,12 +639,14 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     }
   };
 
-  const handleAnalyze = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const currentQuery = query.trim();
+  const handleAnalyze = async (e?: React.FormEvent, directQuery?: string) => {
+    if (e) e.preventDefault();
+    const currentQuery = directQuery ? directQuery.trim() : query.trim();
     if (!currentQuery || isAnalyzing) return;
 
-    setQuery('');
+    if (!directQuery) {
+      setQuery('');
+    }
     setIsAnalyzing(true);
     setError(null);
 
@@ -1912,6 +1914,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               className="relative group"
             >
               <input
+                id="sniper-query-input"
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
