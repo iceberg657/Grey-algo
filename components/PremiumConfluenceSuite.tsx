@@ -125,20 +125,20 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
     
     const connectStream = async () => {
       try {
-        const token = localStorage.getItem('ctrader_token');
+        const token = localStorage.getItem('ctrader_access_token');
         const accountId = localStorage.getItem('ctrader_account_id');
         const environment = localStorage.getItem('ctrader_environment') || 'demo';
-
-        if (!token || !accountId) {
-          return;
-        }
 
         const assetsToWatch = ASSETS_BY_CATEGORY[premiumAssetClass] || [];
         const symbols = assetsToWatch.map(getCTraderSymbol).join(',');
 
         const url = new URL('/api/ctrader/stream', window.location.origin);
-        url.searchParams.append('token', token);
-        url.searchParams.append('accountId', accountId);
+        if (token) {
+          url.searchParams.append('token', token);
+        }
+        if (accountId) {
+          url.searchParams.append('accountId', accountId);
+        }
         url.searchParams.append('environment', environment);
         url.searchParams.append('symbols', symbols);
 

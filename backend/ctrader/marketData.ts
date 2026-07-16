@@ -1,6 +1,45 @@
 import { Request, Response } from 'express';
 import { connect, CTraderConnection, CTraderAuth } from 'ctrader-ts';
 
+const standardToCommonAliases: Record<string, string[]> = {
+    'US100': ['US100', 'NAS100', 'USTEC', 'US TECH 100', 'NQ100', 'NDX', 'TECH100', 'TECH 100', 'US TECH', 'NASDAQ'],
+    'US30': ['US30', 'DJ30', 'WS30', 'DOW', 'WALL ST 30', 'DOW JONES', 'WALLSTREET30'],
+    'US500': ['US500', 'SPX500', 'SP500', 'S&P 500', 'S&P500', 'SPX'],
+    'GER40': ['GER40', 'DAX40', 'DAX', 'DE40', 'GERMANY 40', 'GERMANY40'],
+    'UK100': ['UK100', 'FTSE100', 'FTSE', 'UK 100', 'UK100'],
+    'XAUUSD': ['XAUUSD', 'GOLD', 'XAU', 'GOLDUSD'],
+    'XAGUSD': ['XAGUSD', 'SILVER', 'XAG', 'SILVERUSD'],
+    'BTCUSD': ['BTCUSD', 'BITCOIN', 'BTC'],
+    'ETHUSD': ['ETHUSD', 'ETHEREUM', 'ETH']
+};
+
+export const resolveSymbolFuzzy = (symbol: string, symbolsArray: any[]) => {
+    let sym = symbolsArray.find((s: any) => s.symbolName === symbol);
+    if (sym) return sym;
+
+    const upperSymbol = symbol.toUpperCase().trim();
+    
+    // Check aliases
+    const aliases = standardToCommonAliases[upperSymbol] || [];
+    const searchTerms = [upperSymbol, ...aliases];
+    
+    for (const term of searchTerms) {
+        sym = symbolsArray.find((s: any) => s.symbolName.toUpperCase() === term);
+        if (sym) return sym;
+    }
+    
+    // Fuzzy matching
+    for (const term of searchTerms) {
+        sym = symbolsArray.find((s: any) => {
+            const name = s.symbolName.toUpperCase();
+            return name.includes(term);
+        });
+        if (sym) return sym;
+    }
+    
+    return null;
+};
+
 const envCache = new Map<number, 'live' | 'demo'>();
 
 async function detectAccountEnvironment(clientId: string, clientSecret: string, token: string, accountId: number): Promise<'live' | 'demo' | null> {
@@ -110,14 +149,7 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
                 ? symbolsData 
                 : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
             
-            let sym = symbolsArray.find((s: any) => s.symbolName === symbol);
-            if (!sym) {
-                const upperSymbol = symbol.toUpperCase();
-                sym = symbolsArray.find((s: any) => {
-                    const name = s.symbolName.toUpperCase();
-                    return name === upperSymbol || name.startsWith(upperSymbol) || name.includes(upperSymbol);
-                });
-            }
+            const sym = resolveSymbolFuzzy(symbol, symbolsArray);
             if (sym) {
                 resolvedSymbol = sym.symbolName;
                 console.log(`[cTrader] Resolved tick history symbol "${symbol}" to "${resolvedSymbol}"`);
@@ -191,11 +223,38 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
             environment: resolvedEnv
         });
 
-        await ct.watchSpots(symbols, (spot: any) => {
+        const symbolsData = await ct.getSymbols();
+        const symbolsArray = Array.isArray(symbolsData) 
+            ? symbolsData 
+            : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
+
+        const validSymbols: string[] = [];
+        const originalNameMap: Record<string, string> = {};
+
+        for (const symbol of symbols) {
+            const sym = resolveSymbolFuzzy(symbol, symbolsArray);
+            if (sym) {
+                validSymbols.push(sym.symbolName);
+                originalNameMap[sym.symbolName] = symbol;
+            } else {
+                console.warn(`[cTrader Stream] Symbol not found for ${symbol}`);
+            }
+        }
+
+        if (validSymbols.length === 0) {
+            res.write(`data: ${JSON.stringify({ type: 'error', error: 'System Anomaly: cTrader Error: None of the specified symbols were found in cTrader' })}\n\n`);
+            res.end();
+            await ct.disconnect();
+            return;
+        }
+
+        await ct.watchSpots(validSymbols, (spot: any) => {
+            spot.symbol = originalNameMap[spot.symbol] || spot.symbol;
             res.write(`data: ${JSON.stringify({ type: 'spot', data: spot })}\n\n`);
         });
 
-        await ct.watchDepth(symbols, (depth: any) => {
+        await ct.watchDepth(validSymbols, (depth: any) => {
+            depth.symbol = originalNameMap[depth.symbol] || depth.symbol;
             res.write(`data: ${JSON.stringify({ type: 'depth', data: depth })}\n\n`);
         });
 
@@ -262,14 +321,7 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
             ? symbolsData 
             : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
         
-        let sym = symbolsArray.find((s: any) => s.symbolName === symbol);
-        if (!sym) {
-            const upperSymbol = symbol.toUpperCase();
-            sym = symbolsArray.find((s: any) => {
-                const name = s.symbolName.toUpperCase();
-                return name === upperSymbol || name.startsWith(upperSymbol) || name.includes(upperSymbol);
-            });
-        }
+        const sym = resolveSymbolFuzzy(symbol, symbolsArray);
         
         if (!sym) {
             await ct.disconnect();
