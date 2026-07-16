@@ -2,7 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
     TrendingUp, TrendingDown, RefreshCw, Search, AlertCircle, Info, CheckCircle2, 
-    Compass, Award, Cpu, BookOpen, Activity, ArrowRight, Server, ChevronRight 
+    Compass, Award, Cpu, BookOpen, Activity, ArrowRight, Server, ChevronRight,
+    FileText
 } from 'lucide-react';
 import { GoogleGenAI } from "@google/genai";
 import { initializeApiKey, getSniperKey } from '../services/retryUtils';
@@ -115,6 +116,13 @@ export const TrendScannerPanel: React.FC = () => {
     const [isGeneratingAdvice, setIsGeneratingAdvice] = useState<boolean>(false);
     const [adviceSymbol, setAdviceSymbol] = useState<string>('');
     const [adviceTimeframe, setAdviceTimeframe] = useState<string>('');
+    const [customInstructions, setCustomInstructions] = useState<string>(() => {
+        return localStorage.getItem('greyquant_scanner_custom_instructions') || '';
+    });
+
+    useEffect(() => {
+        localStorage.setItem('greyquant_scanner_custom_instructions', customInstructions);
+    }, [customInstructions]);
 
     // Filtered symbol list
     const filteredAssets = useMemo(() => {
@@ -387,7 +395,7 @@ export const TrendScannerPanel: React.FC = () => {
                 return `[${date}] O:${c.open.toFixed(4)} H:${c.high.toFixed(4)} L:${c.low.toFixed(4)} C:${c.close.toFixed(4)}`;
             }).join('\n');
 
-            const prompt = `You are GreyAlpha, an elite algorithmic, institutional quantitative trading advisor.
+            let prompt = `You are GreyAlpha, an elite algorithmic, institutional quantitative trading advisor.
 Analyze the following technical snapshot and recent market OHLC data retrieved via Deriv for ${selectedSymbol} on the ${timeFrameLabel} timeframe:
 
 MARKET METRICS:
@@ -403,13 +411,20 @@ MARKET METRICS:
 - Institutional Imbalances (FVG): ${activeAnalysis.fvg === 'BULLISH' ? 'BULLISH FVG DETECTED' : activeAnalysis.fvg === 'BEARISH' ? 'BEARISH FVG DETECTED' : 'None Detected'}
 
 RECENT OHLC HISTORICAL CANDLES:
-${recentCandlesDesc}
+${recentCandlesDesc}`;
 
-TASK:
-Provide a highly professional, short, and punchy strategic trading plan giving a clean setup for the ${timeFrameLabel} timeframe. Strictly keep it to 3 clean sections:
-1. **Institutional Trap Analysis**: Formulate a short argument for why this asset is structurally Bullish or Bearish from an institutional perspective (Smart Money Concepts). Focus heavily on analyzing the detected Liquidity Pools and FVGs to identify potential counter-trend Stop Hunts before entry.
+            if (customInstructions && customInstructions.trim()) {
+                prompt += `\n\nADDITIONAL USER ANALYSIS DIRECTIVES & NOTES:
+The user has provided the following custom context or analysis guidelines. You MUST incorporate these notes and follow them strictly in your in-depth analysis:
+"${customInstructions.trim()}"`;
+            }
+
+            prompt += `\n\nTASK:
+Provide a highly professional, highly in-depth, and precise strategic trading plan giving a clean setup for the ${timeFrameLabel} timeframe. Strictly keep it to 4 clean sections:
+1. **Institutional Trap Analysis**: Formulate a comprehensive, in-depth argument for why this asset is structurally Bullish or Bearish from an institutional perspective (Smart Money Concepts). Focus heavily on analyzing the detected Liquidity Pools and FVGs to identify potential counter-trend Stop Hunts before entry.
 2. **Key Battle Zones**: Specify a tactical Entry Zone (POIs/Order Blocks). If Equal Highs/Lows are present, position entries AFTER the expected liquidity sweep. Provide exact mathematical Stop Loss and Take Profit zones.
 3. **Execution Directive**: Give an immediate operational guideline emphasizing Lower Timeframe (LTF) Confirmation (e.g., 'Wait for CHoCH on LTF after liquidity sweep', 'LIMIT BUY at FVG mitigation').
+4. **Timing & Patience Threshold**: Explicitly state if the user should execute/analyze and trade immediately, or wait for some certain amount of time or specific criteria before doing so (e.g., 'WAIT 30-45 minutes for London open', 'WAIT for NY Session sweep', 'WAIT for FVG mitigation', 'TRADE IMMEDIATELY - setup is active'). Give clear temporal suggestions or wait-time criteria.
 
 Be objective, authoritative, and direct. Do not include any standard financial disclaimers or flowery introductions. Use elegant Markdown.`;
 
@@ -999,6 +1014,31 @@ Be objective, authoritative, and direct. Do not include any standard financial d
                                     </button>
                                 </div>
 
+                                {/* Custom Text Input space for sending instructions to AI */}
+                                <div className="flex flex-col gap-2.5 bg-slate-900/40 p-4 rounded-2xl border border-slate-850/60 z-10">
+                                    <div className="flex items-center gap-2 text-xs font-bold text-slate-300">
+                                        <FileText size={14} className="text-emerald-500" />
+                                        <span>Custom Analysis Directives & Prompts</span>
+                                    </div>
+                                    <textarea
+                                        value={customInstructions}
+                                        onChange={(e) => setCustomInstructions(e.target.value)}
+                                        placeholder="e.g., 'Focus on news correlation with USD index; suggest waiting 45 minutes.', or custom prompts like 'Look for liquidity sweeps above the current high...'"
+                                        className="w-full bg-slate-950/80 border border-slate-850 rounded-xl px-3.5 py-2.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/35 transition-all resize-none min-h-[75px]"
+                                    />
+                                    <div className="flex justify-between items-center text-[10px] text-slate-500 font-medium">
+                                        <span>Custom instructions are appended to GreyAlpha's secure Gemini analysis query.</span>
+                                        {customInstructions && (
+                                            <button 
+                                                onClick={() => setCustomInstructions('')}
+                                                className="text-rose-400/80 hover:text-rose-400 transition-colors font-bold"
+                                            >
+                                                Clear Notes
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+
                                 <div className="text-xs leading-relaxed text-slate-300 font-medium">
                                     {isGeneratingAdvice ? (
                                         <div className="flex flex-col gap-3 py-6 items-center justify-center text-slate-500 font-semibold italic">
@@ -1011,7 +1051,11 @@ Be objective, authoritative, and direct. Do not include any standard financial d
                                             <div className="flex flex-col gap-4">
                                                 {aiAdvisorText.split('\n\n').map((paragraph, i) => {
                                                     const cleanText = paragraph.replace(/\*\*/g, '');
-                                                    const isHeading = paragraph.startsWith('**') || paragraph.startsWith('1.') || paragraph.startsWith('2.') || paragraph.startsWith('3.');
+                                                    const isHeading = paragraph.startsWith('**') || 
+                                                                      paragraph.startsWith('1.') || 
+                                                                      paragraph.startsWith('2.') || 
+                                                                      paragraph.startsWith('3.') ||
+                                                                      paragraph.startsWith('4.');
                                                     
                                                     return (
                                                         <div key={i} className={isHeading ? "text-slate-200 font-bold border-l-2 border-emerald-500 pl-3 py-0.5 mt-2" : "pl-1"}>
