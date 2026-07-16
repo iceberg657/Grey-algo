@@ -5,11 +5,11 @@ import {
   Layers, Settings, Sliders, Play, AlertTriangle, Target, HelpCircle
 } from 'lucide-react';
 
-interface PremiumConfluenceSuiteProps {
-  isAdvancedStreamingGranted: boolean;
-  ctraderDepth: { bids: [number, number][], asks: [number, number][] } | null;
-  onAnalyzeAsset: (asset: string) => void;
-}
+  interface PremiumConfluenceSuiteProps {
+    isAdvancedStreamingGranted: boolean;
+    ctraderDepth: { bids: [number, number][], asks: [number, number][] } | null;
+    onAnalyzeAsset: (asset: string, currentPrice?: number) => void;
+  }
 
 // Subscribed assets by category
 const ASSETS_BY_CATEGORY = {
@@ -106,6 +106,83 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
     }
   });
 
+  const getCTraderSymbol = (rawAsset: string) => {
+    const clean = rawAsset.split(' ')[0].toUpperCase();
+    if (clean === 'US30') return 'US30';
+    if (clean === 'NAS100' || clean === 'US100') return 'US100';
+    if (clean === 'US500') return 'US500';
+    if (clean === 'GER40') return 'GER40';
+    if (clean === 'UK100') return 'UK100';
+    if (clean === 'XAUUSD') return 'XAUUSD';
+    return clean;
+  };
+
+  // Connect to live cTrader stream for prices
+  useEffect(() => {
+    if (!isAdvancedStreamingGranted) return;
+
+    let es: EventSource | null = null;
+    
+    const connectStream = async () => {
+      try {
+        const token = localStorage.getItem('ctrader_token');
+        const accountId = localStorage.getItem('ctrader_account_id');
+        const environment = localStorage.getItem('ctrader_environment') || 'demo';
+
+        if (!token || !accountId) {
+          return;
+        }
+
+        const assetsToWatch = ASSETS_BY_CATEGORY[premiumAssetClass] || [];
+        const symbols = assetsToWatch.map(getCTraderSymbol).join(',');
+
+        const url = new URL('/api/ctrader/stream', window.location.origin);
+        url.searchParams.append('token', token);
+        url.searchParams.append('accountId', accountId);
+        url.searchParams.append('environment', environment);
+        url.searchParams.append('symbols', symbols);
+
+        es = new EventSource(url.toString());
+
+        es.onmessage = (event) => {
+          try {
+            const data = JSON.parse(event.data);
+            if (data.type === 'spot' && data.data) {
+              const spot = data.data;
+              const sym = spot.symbol; // The requested symbol from ctrader
+              // Find matching local asset name
+              const localAsset = assetsToWatch.find(a => getCTraderSymbol(a) === sym) || sym;
+              
+              const price = spot.bidDecimal !== undefined ? spot.bidDecimal : (spot.bid ? spot.bid / 100000 : null);
+              if (price !== null && !isNaN(price)) {
+                setLivePrices(prev => {
+                  const prevPrice = prev[localAsset]?.price || price;
+                  return {
+                    ...prev,
+                    [localAsset]: {
+                      price: price,
+                      direction: price > prevPrice ? 'up' : price < prevPrice ? 'down' : 'flat'
+                    }
+                  };
+                });
+              }
+            }
+          } catch (e) {}
+        };
+      } catch (e) {
+        console.error("Stream connection error", e);
+      }
+    };
+
+    connectStream();
+
+    return () => {
+      if (es) {
+        es.close();
+      }
+    };
+  }, [premiumAssetClass, isAdvancedStreamingGranted]);
+
   // Save checklists to localstorage on change
   useEffect(() => {
     localStorage.setItem('greyquant_premium_checklists', JSON.stringify(checklistStates));
@@ -127,36 +204,6 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
       setPremiumTimeframe('15m');
     }
   }, [premiumStyle]);
-
-  // Simulate subtle real-time price fluctuations
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLivePrices(prev => {
-        const next = { ...prev };
-        const assets = ASSETS_BY_CATEGORY[premiumAssetClass];
-        if (!assets) return prev;
-        
-        // Pick one or two random assets to fluctuation
-        const randomAsset = assets[Math.floor(Math.random() * assets.length)];
-        const current = prev[randomAsset];
-        if (current) {
-          const isIndices = premiumAssetClass === 'Indices';
-          const isMetals = premiumAssetClass === 'Metals' && randomAsset === 'XAUUSD';
-          const step = isIndices ? 1.5 : (isMetals ? 0.2 : 0.00015);
-          const up = Math.random() > 0.48;
-          const delta = (Math.random() * step) * (up ? 1 : -1);
-          
-          next[randomAsset] = {
-            price: Math.max(0.001, current.price + delta),
-            direction: up ? 'up' : 'down'
-          };
-        }
-        return next;
-      });
-    }, 2500);
-
-    return () => clearInterval(interval);
-  }, [premiumAssetClass]);
 
   const activeAssets = useMemo(() => {
     return ASSETS_BY_CATEGORY[premiumAssetClass] || [];
@@ -510,7 +557,7 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
               </button>
 
               <button
-                onClick={() => onAnalyzeAsset(selectedAsset)}
+                onClick={() => onAnalyzeAsset(selectedAsset, livePrices[selectedAsset]?.price)}
                 className="flex-1 py-3 px-4 bg-indigo-500 hover:bg-indigo-400 text-white rounded-xl text-xs font-black uppercase tracking-wider transition-all shadow-lg shadow-indigo-500/10 flex items-center justify-center gap-2"
               >
                 <Play size={12} className="fill-white" />

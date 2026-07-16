@@ -77,7 +77,12 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol, onDepthUpdate }) 
                     if (data.type === 'connected') {
                         setStatus('connected');
                     } else if (data.type === 'spot' && data.data) {
-                        setSpot({ bid: data.data.bid, ask: data.data.ask });
+                        const spotData = data.data;
+                        const bid = spotData.bidDecimal !== undefined ? spotData.bidDecimal : (spotData.bid ? spotData.bid / 100000 : undefined);
+                        const ask = spotData.askDecimal !== undefined ? spotData.askDecimal : (spotData.ask ? spotData.ask / 100000 : undefined);
+                        if (bid || ask) {
+                            setSpot({ bid, ask });
+                        }
                     } else if (data.type === 'depth' && data.data) {
                         const parsedDepth = {
                             bids: data.data.bids || [],

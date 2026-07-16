@@ -154,7 +154,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
 
     const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
 
-    const handleLaunchPremiumAnalysis = async (asset: string) => {
+    const handleLaunchPremiumAnalysis = async (asset: string, currentPrice?: number) => {
         if (!userMetadata?.uid) return;
         setIsSaving(true);
         try {
@@ -167,14 +167,28 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 US500: 5310.80, GER40: 18450.10, UK100: 8240.30, XAUUSD: 2345.80,
                 XAGUSD: 29.42, XPTUSD: 985.30, XPDUSD: 920.40
             };
-            const basePrice = localBasePrices[asset] || 1.0;
-            const isIndex = asset.includes('30') || asset.includes('100') || asset.includes('500') || asset.includes('40') || asset.includes('GER') || asset.includes('UK') || asset.includes('US');
-            const isMetal = asset.includes('XAU') || asset.includes('XAG') || asset.includes('GOLD') || asset.includes('SILVER');
+            const basePrice = currentPrice || localBasePrices[asset] || 1.0;
+            const isIndex = ['US30', 'NAS100', 'US500', 'GER40', 'UK100'].includes(asset);
+            const isMetal = ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD'].includes(asset);
+            const isJPY = asset.includes('JPY');
             
-            const pips = isIndex ? 15.0 : (isMetal ? 3.0 : 0.0015);
-            const entry = basePrice + (Math.random() * pips - pips / 2);
-            const stopLoss = direction === 'BUY' ? entry - pips : entry + pips;
-            const takeProfit = direction === 'BUY' ? entry + (pips * 1.5) : entry - (pips * 1.5);
+            let pips = 0.0015; // standard forex
+            let dec = 5; // standard forex decimal places
+            if (isIndex) {
+                pips = 15.0;
+                dec = 2;
+            } else if (isMetal) {
+                pips = 3.0;
+                dec = 2;
+            } else if (isJPY) {
+                pips = 0.15;
+                dec = 3;
+            }
+
+            const rawEntry = basePrice + (Math.random() * (pips * 0.5) * (Math.random() > 0.5 ? 1 : -1));
+            const entry = Number(rawEntry.toFixed(dec));
+            const stopLoss = Number((direction === 'BUY' ? rawEntry - pips : rawEntry + pips).toFixed(dec));
+            const takeProfit = Number((direction === 'BUY' ? rawEntry + (pips * 1.5) : rawEntry - (pips * 1.5)).toFixed(dec));
 
             const newNotif = {
                 asset: asset,
