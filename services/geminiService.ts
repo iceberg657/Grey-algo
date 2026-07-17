@@ -1681,7 +1681,7 @@ export function calculateRRLevels(
     let tp2Label = '';
     let tp3Label = '';
 
-    const hasValidCustomTPs = Array.isArray(customTPs) && 
+    const hasValidCustomTPs = !isScalping && Array.isArray(customTPs) && 
         customTPs.length >= 2 && 
         customTPs[0] > 0 && 
         customTPs[1] > 0 &&
@@ -2585,6 +2585,7 @@ JSON Structure:
                     min: translateValue(originalEntryMin),
                     max: translateValue(originalEntryMax)
                 };
+                const isScalping = style.includes('scalping');
                 let finalSL = translateValue(originalSL);
                 let finalTPs = originalTPs.map(translateValue);
                 let midEntry = (entryRange.min + entryRange.max) / 2;
@@ -2613,7 +2614,7 @@ JSON Structure:
                 if (midEntry === 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
                     finalSignal = 'NEUTRAL';
                     finalReasoning.push(`⚠️ Signal invalidated: AI failed to identify a numerical price level, and no external price data was available. Cannot proceed with a 0.00 entry.`);
-                } else if (diffPercent > 0.02 && targetReferencePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
+                } else if (signal.entryType === 'Market Execution' && diffPercent > 0.02 && targetReferencePrice > 0 && finalSignal !== 'NEUTRAL' && finalSignal !== 'HOLD') {
                     // Do not invalidate signal to NEUTRAL just because of price/broker differences.
                     // Preserve the AI/engine signal bias (BUY/SELL) and recalibrate the entry range to center around the target reference price.
                     const rangeWidth = entryRange.max - entryRange.min;
@@ -2670,7 +2671,9 @@ JSON Structure:
                 }
 
                 // Check if the AI-provided stop loss is already structurally valid and has reasonable breathing room
-                const minSLDistance = scaledAtr ? scaledAtr * 1.0 : midEntry * 0.0005;
+                const minSLDistance = isScalping
+                    ? (scaledAtr ? scaledAtr * 0.2 : midEntry * 0.0001)
+                    : (scaledAtr ? scaledAtr * 0.5 : midEntry * 0.0003);
                 const isAiSlValid = originalSL > 0 &&
                     ((finalSignal === 'BUY' && finalSL < midEntry) || (finalSignal === 'SELL' && finalSL > midEntry)) &&
                     Math.abs(midEntry - finalSL) >= minSLDistance;
@@ -2734,7 +2737,9 @@ JSON Structure:
                 // Final safety valve for Stop Loss (ensure it is on the correct side and not too wide/faulty/tight)
                 const isSlWrongDirection = (finalSignal === 'BUY' && finalSL >= midEntry) || (finalSignal === 'SELL' && finalSL <= midEntry);
                 const isSlTooFar = Math.abs(midEntry - finalSL) > midEntry * 0.35; // Cap stop loss to 35% of price max to prevent extreme wide stops
-                const isSlTooTight = Math.abs(midEntry - finalSL) <= (midEntry * 0.0005); // Force a minimum distance (e.g. 0.05% of price)
+                const isSlTooTight = isScalping
+                    ? Math.abs(midEntry - finalSL) <= (midEntry * 0.00002)
+                    : Math.abs(midEntry - finalSL) <= (midEntry * 0.00005);
                 
                 if (finalSL <= 0 || isSlWrongDirection || isSlTooFar || isSlTooTight) {
                     const atrFallback = (scaledAtr && scaledAtr > 0) ? scaledAtr * 1.5 : Math.max(midEntry * 0.002, 0.01);
@@ -2748,7 +2753,6 @@ JSON Structure:
                 }
 
                 // Apply mathematical RR overrides
-                const isScalping = style.includes('scalping');
                 const rrLevels = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, signal.asset || assetName, isScalping, isAiTpsValid ? finalTPs : undefined);
                 let finalPositionProtocol: string | undefined = undefined;
 
