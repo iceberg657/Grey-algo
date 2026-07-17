@@ -60,6 +60,16 @@ export const RecoveryPlanner: React.FC<RecoveryPlannerProps> = ({ userId }) => {
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
+  // Live countdown timer for trading sessions
+  const [currentTime, setCurrentTime] = useState<Date>(new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+
   // New Trade logger state
   const [logAsset, setLogAsset] = useState<string>('EURUSD');
   const [logDirection, setLogDirection] = useState<'BUY' | 'SELL'>('BUY');
@@ -898,90 +908,223 @@ export const RecoveryPlanner: React.FC<RecoveryPlannerProps> = ({ userId }) => {
           </motion.div>
         )}
 
-        {plannerTab === 'timing' && (
-          <motion.div
-            key="timing"
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="grid grid-cols-1 lg:grid-cols-3 gap-8"
-          >
-            {/* Session 1: London */}
-            <div className="bg-slate-950/40 border border-slate-800 p-6 rounded-2xl">
-              <div className="flex items-center gap-2 text-blue-400 mb-4">
-                <Clock size={18} />
-                <h3 className="text-sm font-black uppercase tracking-wider">London Killzone (07:00 - 10:00 UTC)</h3>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                The absolute best session for Forex pairs like <strong>EURUSD</strong> and <strong>GBPUSD</strong>. Volatility spikes as European institutions log in, creating clean, directional trends. Spreads are at their absolute lowest (often 0-2 points).
-              </p>
-              <div className="bg-slate-900/50 p-3 rounded-xl space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Best Assets:</span>
-                  <span className="font-bold text-white">GBPUSD, EURUSD</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Spreads:</span>
-                  <span className="font-mono text-emerald-400 font-bold">Ultra Tight</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Slippage Risk:</span>
-                  <span className="text-emerald-500">Very Low</span>
-                </div>
-              </div>
-            </div>
+        {plannerTab === 'timing' && (() => {
+          const formatLocalRange = (startHour: number, endHour: number) => {
+            const now = new Date();
+            const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), startHour, 0, 0));
+            const endDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), endHour, 0, 0));
+            return `${startDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })} - ${endDate.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true })}`;
+          };
 
-            {/* Session 2: New York */}
-            <div className="bg-slate-950/40 border border-slate-800 p-6 rounded-2xl">
-              <div className="flex items-center gap-2 text-emerald-400 mb-4">
-                <Clock size={18} />
-                <h3 className="text-sm font-black uppercase tracking-wider">New York Killzone (12:00 - 15:00 UTC)</h3>
-              </div>
-              <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                The most volatile hours of the day. US Stocks open. This is the prime time to trade indices (<strong>US30, US100, US500</strong>) and <strong>Gold (XAUUSD)</strong>. Heavy institutional volume creates powerful breakout confluences.
-              </p>
-              <div className="bg-slate-900/50 p-3 rounded-xl space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Best Assets:</span>
-                  <span className="font-bold text-white">US30, US100, Gold, EURUSD</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Spreads:</span>
-                  <span className="font-mono text-amber-500 font-bold">Normal to Wide</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Slippage Risk:</span>
-                  <span className="text-amber-500">Medium</span>
-                </div>
-              </div>
-            </div>
+          const getSessionStatus = (startHour: number, endHour: number) => {
+            const currentUtcHour = currentTime.getUTCHours();
+            const currentUtcMin = currentTime.getUTCMinutes();
+            const currentUtcSec = currentTime.getUTCSeconds();
+            const currentUtcTotalSecs = currentUtcHour * 3600 + currentUtcMin * 60 + currentUtcSec;
+            
+            const startSecs = startHour * 3600;
+            const endSecs = endHour * 3600;
+            
+            if (currentUtcTotalSecs >= startSecs && currentUtcTotalSecs < endSecs) {
+              const secsLeft = endSecs - currentUtcTotalSecs;
+              const hrs = Math.floor(secsLeft / 3600);
+              const mins = Math.floor((secsLeft % 3600) / 60);
+              const secs = secsLeft % 60;
+              const timeString = `${hrs}h ${mins}m ${secs}s left`;
+              return { active: true, label: '🟢 ACTIVE NOW', timeLeft: timeString, badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30 animate-pulse' };
+            } else {
+              let secsUntil = startSecs - currentUtcTotalSecs;
+              if (secsUntil < 0) {
+                secsUntil += 24 * 3600; // Opens tomorrow
+              }
+              const hrs = Math.floor(secsUntil / 3600);
+              const mins = Math.floor((secsUntil % 3600) / 60);
+              const secs = secsUntil % 60;
+              const timeString = `${hrs}h ${mins}m ${secs}s`;
+              return { active: false, label: '⚪ CLOSED', timeLeft: `Opens in ${timeString}`, badgeColor: 'bg-slate-900 border-slate-800 text-slate-500' };
+            }
+          };
 
-            {/* Session 3: Asian & Late NY (No-Trade zones) */}
-            <div className="bg-red-500/5 border border-red-500/10 p-6 rounded-2xl">
-              <div className="flex items-center gap-2 text-red-400 mb-4">
-                <ShieldAlert size={18} />
-                <h3 className="text-sm font-black uppercase tracking-wider">Avoid: Late NY & Asian Sessions</h3>
+          const londonStatus = getSessionStatus(7, 10);
+          const nyStatus = getSessionStatus(12, 15);
+          const isAnyActive = londonStatus.active || nyStatus.active;
+
+          return (
+            <motion.div
+              key="timing"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6"
+            >
+              {/* Live Session Clock Dashboard */}
+              <div className="bg-slate-950/60 border border-slate-800 rounded-2xl p-6">
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`h-2.5 w-2.5 rounded-full ${isAnyActive ? 'bg-emerald-500 animate-ping' : 'bg-amber-500'}`} />
+                    <div>
+                      <h3 className="text-xs font-black uppercase tracking-widest text-indigo-400">
+                        ⚡ LIVE TRADING SESSIONS DASHBOARD
+                      </h3>
+                      <p className="text-[10px] text-slate-500">
+                        Synchronized with your device timezone: <strong className="text-slate-300 font-mono">{Intl.DateTimeFormat().resolvedOptions().timeZone}</strong>
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-4 text-xs font-mono">
+                    <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">
+                      <span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">Your Local Time</span>
+                      <span className="text-white font-black">{currentTime.toLocaleTimeString()}</span>
+                    </div>
+                    <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl">
+                      <span className="text-[9px] uppercase font-bold text-slate-500 block mb-0.5">UTC / GMT Clock</span>
+                      <span className="text-amber-500 font-black">
+                        {currentTime.getUTCHours().toString().padStart(2, '0')}:
+                        {currentTime.getUTCMinutes().toString().padStart(2, '0')}:
+                        {currentTime.getUTCSeconds().toString().padStart(2, '0')} UTC
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed mb-4">
-                After 19:00 UTC, liquidity dries up. Spreads on indices widen drastically (US30 spread can blow out to 300+ points). Asian session (22:00 - 06:00 UTC) is characterized by slow, choppy consolidations that trap breakout traders.
-              </p>
-              <div className="bg-slate-900/50 p-3 rounded-xl space-y-2 text-xs">
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Assets to Avoid:</span>
-                  <span className="font-bold text-red-400">US30, US100, GBPUSD</span>
+
+              {/* Session cards */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* London */}
+                <div className={`p-6 rounded-2xl border transition-all ${londonStatus.active ? 'bg-indigo-950/10 border-indigo-500/40 shadow-lg shadow-indigo-950/20' : 'bg-slate-950/40 border-slate-800'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-2 text-indigo-400">
+                      <Clock size={18} />
+                      <h3 className="text-sm font-black uppercase tracking-wider">London Killzone</h3>
+                    </div>
+                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 border rounded-full font-mono ${londonStatus.badgeColor}`}>
+                      {londonStatus.label}
+                    </span>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                      <span className="text-[9px] text-slate-500 uppercase font-black block mb-1">Session Hours</span>
+                      <div className="flex justify-between text-[11px] font-mono">
+                        <span className="text-slate-400">UTC: 07:00 - 10:00</span>
+                        <span className="text-white font-black">{formatLocalRange(7, 10)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="text-[10px] text-indigo-400 font-mono font-bold">
+                      ⏱️ {londonStatus.timeLeft}
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      The absolute best time of the day to trade <strong>EURUSD</strong> and <strong>GBPUSD</strong>. Large volume injection from European banks creates high-probability structural setups with the absolute lowest spreads of the day.
+                    </p>
+
+                    <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/40 text-[10px] text-slate-500 space-y-1">
+                      <div><strong className="text-slate-300">Spread:</strong> 0-2 points (Zero cost)</div>
+                      <div><strong className="text-slate-300">Strategy:</strong> Look for London Open sweep of Asia High/Low followed by LTF Shift.</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Spreads:</span>
-                  <span className="font-mono text-red-400 font-bold">Very Wide (Index traps)</span>
+
+                {/* NY */}
+                <div className={`p-6 rounded-2xl border transition-all ${nyStatus.active ? 'bg-emerald-950/10 border-emerald-500/40 shadow-lg shadow-emerald-950/20' : 'bg-slate-950/40 border-slate-800'}`}>
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-2 text-emerald-400">
+                      <Clock size={18} />
+                      <h3 className="text-sm font-black uppercase tracking-wider">NY Killzone</h3>
+                    </div>
+                    <span className={`text-[9px] font-black uppercase px-2 py-0.5 border rounded-full font-mono ${nyStatus.badgeColor}`}>
+                      {nyStatus.label}
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                      <span className="text-[9px] text-slate-500 uppercase font-black block mb-1">Session Hours</span>
+                      <div className="flex justify-between text-[11px] font-mono">
+                        <span className="text-slate-400">UTC: 12:00 - 15:00</span>
+                        <span className="text-white font-black">{formatLocalRange(12, 15)}</span>
+                      </div>
+                    </div>
+
+                    <div className="text-[10px] text-emerald-400 font-mono font-bold">
+                      ⏱️ {nyStatus.timeLeft}
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Massive liquidity influx as USA markets open. Highly volatile period where EURUSD and GBPUSD move rapidly. Perfect for quick sniper entries if the London trend expands or completely reverses.
+                    </p>
+
+                    <div className="bg-slate-900/40 p-2.5 rounded-lg border border-slate-800/40 text-[10px] text-slate-500 space-y-1">
+                      <div><strong className="text-slate-300">Spread:</strong> 2-5 points (Very low)</div>
+                      <div><strong className="text-slate-300">Strategy:</strong> Look for 8:30 AM EST high-impact news sweeps or London Low/High mitigations.</div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-500">Slippage Risk:</span>
-                  <span className="text-red-500 font-bold">High</span>
+
+                {/* Asian Consolidations / Spreads Widen */}
+                <div className="bg-slate-950/40 border border-slate-800 p-6 rounded-2xl">
+                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex items-center gap-2 text-red-400">
+                      <ShieldAlert size={18} />
+                      <h3 className="text-sm font-black uppercase tracking-wider">Strict No-Trade Zones</h3>
+                    </div>
+                    <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-red-500/10 text-red-400 border border-red-500/20 rounded-full font-mono">
+                      🚫 BANNED
+                    </span>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="bg-slate-900/60 p-3 rounded-xl border border-slate-800/50">
+                      <span className="text-[9px] text-slate-500 uppercase font-black block mb-1">Dangerous Periods</span>
+                      <div className="flex justify-between text-[11px] font-mono">
+                        <span className="text-slate-400">UTC: 19:00 - 06:00</span>
+                        <span className="text-white font-black">{formatLocalRange(19, 6)}</span>
+                      </div>
+                    </div>
+
+                    <p className="text-xs text-slate-400 leading-relaxed">
+                      Liquidity completely dries up. Spreads widen up to 10-20x the normal size during the spread-widening rollover hour (17:00 EST / 22:00 UTC). Trading GBPUSD or EURUSD here will result in immediate stop-outs due to spread traps, even if the price doesn't hit your line!
+                    </p>
+
+                    <div className="bg-red-500/10 p-2.5 rounded-lg border border-red-500/10 text-[10px] text-red-400 leading-relaxed font-bold">
+                      ⚠️ Survival Rule: Never, under any circumstances, place or leave trades active during the daily spread-rollover hour. Close all active scalps before 16:45 EST.
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+
+              {/* EURUSD & GBPUSD Golden Rule Sheet */}
+              <div className="bg-indigo-500/5 border border-indigo-500/20 rounded-2xl p-5 space-y-3">
+                <h4 className="text-xs font-black uppercase tracking-wider text-indigo-400">
+                  🎯 The Mechanical Sniper Blueprint for EURUSD & GBPUSD Recovery
+                </h4>
+                <p className="text-[11px] text-slate-400 leading-relaxed">
+                  To scale out of your current <strong>$33.70 buffer</strong> ($4,633.70 down to $4,600.00 floor), you must operate purely as a mechanical system. Follow these four steps daily:
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-[10.5px]">
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 space-y-1">
+                    <span className="text-indigo-400 font-bold block">1. Chart Prep (London)</span>
+                    At 2:00 AM EST, open your charts. Mark yesterday's High and Low, and the Asian Session High and Low. This is your liquidity pool.
+                  </div>
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 space-y-1">
+                    <span className="text-indigo-400 font-bold block">2. Hunt the Sweep</span>
+                    Wait for price to spike above or below those levels. 80% of breakouts are fakeouts. We want the sweep!
+                  </div>
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 space-y-1">
+                    <span className="text-indigo-400 font-bold block">3. The 1-Min Shift</span>
+                    Zoom into the 1-minute chart. Wait for price to shift structure back (breaking a swing high/low with a solid candle body close).
+                  </div>
+                  <div className="bg-slate-950 p-3 rounded-xl border border-slate-800/60 space-y-1">
+                    <span className="text-indigo-400 font-bold block">4. Secure and Protect</span>
+                    Set a 10-pip stop loss and a 25-pip take profit (1:2.5 RR). On a 0.02 Lot size, this is exactly a <strong>$2.00 risk</strong> to win <strong>$5.00</strong>. Secure your wins!
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+          );
+        })()}
 
         {plannerTab === 'roadmap' && (
           <motion.div
