@@ -24,8 +24,8 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
-import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext } from '../services/geminiService';
-import { TradingStyle, SignalData, UserMetadata, UserSettings } from '../types';
+import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal } from '../services/geminiService';
+import { TradingStyle, SignalData, UserMetadata, UserSettings, AntigravityVerdict } from '../types';
 import { Loader } from './Loader';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
 import { saveAnalysis } from '../services/historyService';
@@ -822,30 +822,61 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         return [...filtered, {
             id: Date.now().toString() + '-ag-macro',
             type: 'ai',
-            content: `Macro Context Analyzed.\n\n${macroContextSummary}\n\nInitiating structural engine...`,
+            content: `Macro Context Analyzed.\n\n${macroContextSummary}\n\nRunning high-speed Regular Technical Model (300-candle analysis window) to simulate standard trader bias...`,
             signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
         }];
       });
 
-      // 2. Dispatch Antigravity Agent to pull QuantConnect strategies & run deep analysis
+      // 1.5 Generate the regular/retail preliminary signal using the 300-candle model
+      const retailSignal = await generateRegularRetailSignal(
+        currentQuery,
+        style,
+        derivData,
+        userSettings
+      );
+
+      // 2. Dispatch Antigravity Agent to act as Devil's Advocate (auditing the retail setup with 1,000 candles)
       setMessages(prev => {
           const filtered = prev.filter(m => m.signal?.id !== 'loading');
           return [...filtered, {
               id: Date.now().toString() + '-ag-deep-search',
               type: 'ai',
-              content: `Dispatching Antigravity Agent to query QuantConnect algorithmic database & dynamically select strategy rules...`,
+              content: `Regular setup detected: ${retailSignal.signal} (${retailSignal.confidence}% confidence).\n\nNow dispatching the Antigravity Devil's Advocate (using 1,000-candle institutional database & Level 2 orderbook depth) to audit this setup, locate intraday traps, and find structural reasons to invalidate it...`,
               signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
           }];
       });
 
-      const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData, undefined, macroContextSummary);
+      const antigravityVerdict = await generateAntigravityResearch(currentQuery, asset, quantData, retailSignal, macroContextSummary);
+
+      // 2.5 Conflict Resolution & Override Decision Matrix
+      let overrideNote = '';
+      if (antigravityVerdict.verdict === 'VETO') {
+          overrideNote = `🚨 VETO ACTIVE: The Antigravity Devil's Advocate discovered critical structural/orderbook traps. The setup has been completely invalidated.`;
+      } else if (
+          (retailSignal.signal === 'BUY' && antigravityVerdict.verdict === 'PROCEED_SELL') ||
+          (retailSignal.signal === 'SELL' && antigravityVerdict.verdict === 'PROCEED_BUY')
+      ) {
+          if (antigravityVerdict.confidence > retailSignal.confidence) {
+              const alternativeDirection = antigravityVerdict.verdict === 'PROCEED_SELL' ? 'SELL' : 'BUY';
+              overrideNote = `🔄 ADVERSARIAL OVERRIDE: Antigravity has detected a trap and overridden the regular signal!\n- Regular Bias: ${retailSignal.signal} (Confidence: ${retailSignal.confidence}%)\n- Antigravity Skeptic: ${alternativeDirection} (Confidence: ${antigravityVerdict.confidence}%)\nWe prioritize the deep institutional reverse-play!`;
+          } else {
+              overrideNote = `⚖️ DISCREPANCY DETECTED: Regular analysis saw ${retailSignal.signal} but Antigravity institutional research suggested counter-trend play (${antigravityVerdict.verdict}). Antigravity skepticism did not have enough confidence to force an override. Standard signal remains active.`;
+          }
+      } else if (
+          (retailSignal.signal === 'BUY' && antigravityVerdict.verdict === 'PROCEED_BUY') ||
+          (retailSignal.signal === 'SELL' && antigravityVerdict.verdict === 'PROCEED_SELL')
+      ) {
+          overrideNote = `✅ CONVERGENT CONFLICT RESOLUTION: Both the 300-candle regular model and the 1,000-candle Antigravity Devil's Advocate agree on ${retailSignal.signal}! Setup is highly validated.`;
+      } else {
+          overrideNote = `ℹ️ RESOLVED HYBRID BIAS: Regular signal is ${retailSignal.signal}, Antigravity institutional research suggests ${antigravityVerdict.verdict} (${antigravityVerdict.confidence}% confidence).`;
+      }
 
       setMessages(prev => {
           const filtered = prev.filter(m => m.signal?.id !== 'loading');
           return [...filtered, {
               id: Date.now().toString() + '-ag-compile',
               type: 'ai',
-              content: `QuantConnect strategy pulled successfully!\n\nRunning high-speed compiler model (Gemini 3.5 Flash Lite) with temperature 1.0 to calibrate dynamic lot sizes, entries, and risk-to-reward boundaries...`,
+              content: `Antigravity audit complete!\nVerdict: ${antigravityVerdict.verdict} (${antigravityVerdict.confidence}% confidence)\n\n${overrideNote}\n\nRunning compiler model to structure entry zones, ATR-calibrated stop loss, and dynamic Kelly/Fractional-Kelly position sizing multipliers...`,
               signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
           }];
       });
@@ -863,10 +894,48 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         antigravityVerdict // Pass real QuantConnect-aligned Antigravity research
       );
 
+      // Create rich Markdown details for the UI representation
+      const richInsightMarkdown = `# 🛡️ ANTIGRAVITY DEVIL'S ADVOCATE SYSTEM REPORT
+
+### 📊 REGULAR TECHNICAL SIGNAL (300-CANDLE MODEL)
+- **Bias**: ${retailSignal.signal}
+- **Confidence**: ${retailSignal.confidence}%
+- **Entry Range**: ${retailSignal.entryRange?.min} - ${retailSignal.entryRange?.max}
+- **Stop Loss**: ${retailSignal.stopLoss}
+- **Take Profits**: ${retailSignal.takeProfits?.join(', ') || 'N/A'}
+- **Regular Trend Reasoning**: ${retailSignal.reasoning?.join(' ') || 'None'}
+
+---
+
+### 🧐 ANTIGRAVITY INSTITUTIONAL AUDIT (1,000-CANDLE DEEP RESEARCH)
+- **Skeptic Verdict**: ${antigravityVerdict.verdict}
+- **Skeptic Confidence**: ${antigravityVerdict.confidence}%
+- **Matched QuantConnect Strategy ID**: \`${antigravityVerdict.quantConnectStrategyId}\`
+- **Skeptic Executive Summary**: ${antigravityVerdict.executiveSummary}
+
+#### 🛑 IDENTIFIED STRUCTURAL & ORDERFLOW FLAWS:
+${antigravityVerdict.flawsFound?.map(f => `  * ${f}`).join('\n') || '  * None'}
+
+---
+
+### ⚖️ DECISION MATRIX & OVERRIDE STATUS
+**${overrideNote}**
+
+---
+
+### 💻 ASSIGNED ALGORITHMIC PARADIGM
+- **Dynamic Kelly Lot Multiplier**: \`${antigravityVerdict.dynamicLotMultiplier}\`
+- **Dynamic R:R Boundaries**: \`${antigravityVerdict.dynamicRiskReward}\`
+
+---
+
+## 🔬 DEEP ANTIMARKET ANALYSIS METHODOLOGY
+${antigravityVerdict.deepAnalysisMarkdown}`;
+
       result = {
           ...finalSignal,
           usedBroker: derivData?.usedBroker || 'Deriv',
-          insight: antigravityVerdict // Display the full QuantConnect strategy details inside the UI
+          insight: richInsightMarkdown // Display the full structured report inside the UI
       };
 
       // 4. NEURAL ADVERSARIAL OVERRIDE (Hard Logic Veto) - SUSPENDED

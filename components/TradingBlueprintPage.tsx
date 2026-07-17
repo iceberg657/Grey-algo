@@ -9,8 +9,9 @@ import { db, auth } from '../firebase';
 import ReactMarkdown from 'react-markdown';
 import { Loader } from './Loader';
 import { AutoBacktestPanel } from './AutoBacktestPanel';
-import { History } from 'lucide-react';
+import { History, Target } from 'lucide-react';
 import { TrendScannerPanel } from './TrendScannerPanel';
+import { RecoveryPlanner } from './RecoveryPlanner';
 
 interface TradingBlueprintPageProps {
     onBack: () => void;
@@ -74,7 +75,7 @@ const AVAILABLE_ASSETS = [
 ];
 
 export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'schedule' | 'backtest' | 'trend_scanner'>('schedule');
+    const [activeTab, setActiveTab] = useState<'schedule' | 'backtest' | 'trend_scanner' | 'recovery_planner'>('schedule');
     const [showRiskCalc, setShowRiskCalc] = useState(false);
     const [showCheatSheet, setShowCheatSheet] = useState(false);
     
@@ -282,7 +283,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 </div>
             </header>
 
-            <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0 overflow-x-auto scrollbar-none">
+            <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0 overflow-x-auto scrollbar-none font-sans">
                 <button
                     onClick={() => setActiveTab('schedule')}
                     className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'schedule' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
@@ -300,6 +301,12 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                     className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'trend_scanner' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
                 >
                     <TrendingUp size={14} /> Trend Scanner
+                </button>
+                <button
+                    onClick={() => setActiveTab('recovery_planner')}
+                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'recovery_planner' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
+                >
+                    <Target size={14} className="text-indigo-500 animate-pulse" /> 5K Recovery Planner
                 </button>
             </div>
 
@@ -547,9 +554,13 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 <div className="w-full">
                     <AutoBacktestPanel userId={auth.currentUser?.uid} />
                 </div>
-            ) : (
+            ) : activeTab === 'trend_scanner' ? (
                 <div className="w-full">
                     <TrendScannerPanel />
+                </div>
+            ) : (
+                <div className="w-full">
+                    <RecoveryPlanner userId={auth.currentUser?.uid} />
                 </div>
             )}
 

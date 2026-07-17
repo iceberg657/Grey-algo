@@ -209,3 +209,22 @@ export const SniperDataSchema = {
     "stopLoss", "takeProfits", "formattedLotSize", "recommendedPositions", "positionLotSize", "reasoning", "checklist", "triggerConditions", "timingCalibration"
   ]
 };
+
+export const AntigravityVerdictSchema = {
+  type: Type.OBJECT,
+  properties: {
+    verdict: { type: Type.STRING, enum: ["PROCEED_BUY", "PROCEED_SELL", "VETO"] },
+    confidence: { type: Type.NUMBER },
+    flawsFound: { type: Type.ARRAY, items: { type: Type.STRING } },
+    quantConnectStrategyId: { type: Type.STRING },
+    dynamicLotMultiplier: { type: Type.STRING },
+    dynamicRiskReward: { type: Type.STRING },
+    executiveSummary: { type: Type.STRING },
+    deepAnalysisMarkdown: { type: Type.STRING }
+  },
+  required: [
+    "verdict", "confidence", "flawsFound", "quantConnectStrategyId", 
+    "dynamicLotMultiplier", "dynamicRiskReward", "executiveSummary", "deepAnalysisMarkdown"
+  ]
+};
+

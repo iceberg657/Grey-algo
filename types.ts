@@ -434,3 +434,15 @@ export interface AdminSettings {
     autoTradeLocked: boolean;
     updatedAt: number;
 }
+
+export interface AntigravityVerdict {
+    verdict: 'PROCEED_BUY' | 'PROCEED_SELL' | 'VETO';
+    confidence: number;
+    flawsFound: string[];
+    quantConnectStrategyId: string;
+    dynamicLotMultiplier: string;
+    dynamicRiskReward: string;
+    executiveSummary: string;
+    deepAnalysisMarkdown: string;
+}
+

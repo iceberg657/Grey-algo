@@ -659,15 +659,14 @@ export const calculateWeightedScore = (
     // 2. VOLUME PROFILE / DOM DEPTH (20 pts)
     // The volume profile from Deriv is mathematically fake (all ticks = 1 volume).
     // If we use cTrader, we have the ACTUAL volume data directly from the provider.
-    let volScore = usedBroker === 'cTrader' ? Math.min(vpScore, 12) : 0; // Max 12pts from Volume Profile
+    let volScore = usedBroker === 'cTrader' ? Math.min(vpScore, 12) : Math.min(Math.round(vpScore * 0.6), 8); // Max 12pts from cTrader (actual), max 8pts from Deriv (tick-based)
     let domDepthScore = 0; // Max 8pts from real-time DOM imbalances
 
-    if (usedBroker === 'cTrader') {
-        if (volScore > 0) {
-            breakdown.push(`Volume Profile Confluence (cTrader Actual Vol) +${volScore}`);
-        } else {
-            breakdown.push(`cTrader Actual Vol Profile Aligned`);
-        }
+    if (volScore > 0) {
+        breakdown.push(`Volume Profile Confluence (${usedBroker === 'cTrader' ? 'cTrader Actual Vol' : 'Deriv Tick Vol'}) +${volScore}`);
+    } else {
+        breakdown.push(`${usedBroker} Vol Profile Aligned`);
+    }
 
         if (l2Metrics && direction && direction !== 'NEUTRAL') {
             const imbalancePercent = l2Metrics.imbalancePercent; // (Bids - Asks) / (Bids + Asks) * 100
@@ -689,7 +688,6 @@ export const calculateWeightedScore = (
                 }
             }
         }
-    }
     volScore = Math.max(0, Math.min(volScore + domDepthScore, 20));
 
     // 3. GLOBAL TREND / CORRELATION / DOM CONFLUENCE (20 pts)
@@ -871,7 +869,10 @@ export function analyzeSMC(
     depth?: { bids: [number, number][], asks: [number, number][] } | null
 ) {
     const day = new Date().getDay(); // 0=Sun, 1=Mon, 5=Fri, 6=Sat
-    const isOffDay = (day === 0 || day === 1 || day === 5 || day === 6);
+    const isSynthetic = ['VOLATILITY', 'BOOM', 'CRASH', 'STEP', 'JUMP', 'RANGE', 'R_', 'RB_', 'STP'].some(s => assetSymbol.toUpperCase().includes(s));
+    const isCrypto = ['BTC', 'ETH', 'LTC', 'SOL', 'CRYPTO'].some(s => assetSymbol.toUpperCase().includes(s));
+    const isWeekend = (day === 0 || day === 6); // Sunday = 0, Saturday = 6
+    const isOffDay = isWeekend && !isSynthetic && !isCrypto;
 
     if (!candles || candles.length < 50) return null;
 

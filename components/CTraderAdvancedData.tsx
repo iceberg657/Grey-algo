@@ -24,6 +24,8 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol, onDepthUpdate }) 
     useEffect(() => {
         if (!isGranted || !symbol) return;
 
+        let reconnectTimeout: any = null;
+
         const connectStream = () => {
             const token = localStorage.getItem('ctrader_access_token');
             const accountId = localStorage.getItem('ctrader_account_id');
@@ -105,7 +107,7 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol, onDepthUpdate }) 
                 setStatus('error');
                 setErrorMsg('Connection lost. Reconnecting...');
                 es.close();
-                setTimeout(connectStream, 5000); // Reconnect
+                reconnectTimeout = setTimeout(connectStream, 5000); // Reconnect
             };
         };
 
@@ -114,6 +116,9 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol, onDepthUpdate }) 
         return () => {
             if (eventSourceRef.current) {
                 eventSourceRef.current.close();
+            }
+            if (reconnectTimeout) {
+                clearTimeout(reconnectTimeout);
             }
             if (onDepthUpdate) {
                 onDepthUpdate(null);

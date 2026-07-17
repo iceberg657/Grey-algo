@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, GenerateContentResponse, ThinkingLevel } from "@google/genai";
-import type { AnalysisRequest, SignalData, UserSettings, TradingStyle } from '../types';
+import type { AnalysisRequest, SignalData, UserSettings, TradingStyle, AntigravityVerdict } from '../types';
 import { 
     runWithModelFallback, 
     executeLaneCall, 
@@ -24,7 +24,7 @@ import { auth } from '../firebase';
 import { getLearnedStrategies } from './learningService.js';
 import { detectMarketRegime, MarketRegime } from '../utils/marketRegime.js';
 import { GREYALPHA_IDENTITY } from './identity.js';
-import { SignalDataSchema, SniperDataSchema } from './schema.js';
+import { SignalDataSchema, SniperDataSchema, AntigravityVerdictSchema } from './schema.js';
 export const smcCandlestickLogic = `**SMC/ICT INSTITUTIONAL CANDLESTICK PATTERNS (MANDATORY)**:
 In Smart Money Concepts (SMC) and ICT, candlestick patterns aren't standalone geometric shapes; they are signatures of institutional order flow, liquidity hunts, and inefficiency. You MUST recognize and tag these patterns in 'candlestickPatterns':
 
@@ -1958,13 +1958,116 @@ function calculateLocalLotSize(
  * Generates a high-precision trade setup using Gemini 3.1 Flash Lite and live Deriv data.
  * Focused on Market Execution and Institutional logic.
  */
+export async function generateRegularRetailSignal(
+    query: string,
+    style: TradingStyle,
+    derivData: any,
+    userSettings?: UserSettings
+): Promise<SignalData> {
+    const livePrice = derivData?.price || 0;
+    const assetName = derivData?.symbol || 'Asset';
+    
+    // Slice multiTimeframe candles to last 300 for the "Regular" view
+    const slicedMultiTimeframe = derivData?.multiTimeframe ? {
+        entry: {
+            ...derivData.multiTimeframe.entry,
+            candles: derivData.multiTimeframe.entry?.candles ? derivData.multiTimeframe.entry.candles.slice(-300) : []
+        },
+        confirm: {
+            ...derivData.multiTimeframe.confirm,
+            candles: derivData.multiTimeframe.confirm?.candles ? derivData.multiTimeframe.confirm.candles.slice(-300) : []
+        },
+        htf: {
+            ...derivData.multiTimeframe.htf,
+            candles: derivData.multiTimeframe.htf?.candles ? derivData.multiTimeframe.htf.candles.slice(-300) : []
+        }
+    } : undefined;
+
+    const entryCandles = slicedMultiTimeframe?.entry?.candles || [];
+    const confirmCandles = slicedMultiTimeframe?.confirm?.candles || [];
+    const htfCandles = slicedMultiTimeframe?.htf?.candles || [];
+
+    const prompt = `You are the Regular Technical Analysis Model.
+Your perspective is comprehensive. You can see the last 300 candles of the market data on each timeframe to simulate a standard technical analyst evaluating medium-to-long term trends, key support/resistance zones, and indicators.
+
+Asset: ${assetName}
+Current Price: ${livePrice}
+
+Here is the historical data you can see (300 CANDLES PER TIMEFRAME):
+- Entry Timeframe (Last 300 candles): ${JSON.stringify(entryCandles)}
+- Confirmation Timeframe (Last 300 candles): ${JSON.stringify(confirmCandles)}
+- Higher Timeframe (Last 300 candles): ${JSON.stringify(htfCandles)}
+
+Trading Style requested: ${style}
+
+Your task:
+1. Conduct standard technical analysis on this 300-candle history. Look for key trend structures, moving average alignments/crossings, key support/resistance levels, and structural candlestick patterns (e.g., engulfing, head and shoulders, double bottom/top).
+2. Formulate a robust trading signal: BUY or SELL. (Neutral is NOT allowed; you must lean to a bias based on technical evidence).
+3. Set your confidence level (base it on the alignment of the trend and key structure: 50% - 90% maximum).
+4. Provide a simple reasoning of 2-3 bullet points describing what a professional chart analyst would see here.
+5. Provide Stop Loss and Take Profit levels that are standard technical targets based on the 300-candle structure (e.g. key swing highs/lows, support/resistance levels, or ATR offsets).
+
+Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra text or markdown formatting.`;
+
+    const models = SNIPER_MODELS;
+    
+    return await executeLaneCall<SignalData>(async (apiKey) => {
+        return await runWithModelFallback<SignalData>(
+            models,
+            async (modelId) => {
+                const config: any = {
+                    temperature: 1.0,
+                    responseMimeType: "application/json",
+                    responseSchema: SniperDataSchema
+                };
+
+                let text = '';
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 30000);
+
+                try {
+                    const proxyRes = await fetch('/api/gemini/analyze', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            model: modelId,
+                            contents: [{ parts: [{ text: prompt }] }],
+                            config: config,
+                            apiKey: apiKey
+                        }),
+                        signal: controller.signal
+                    });
+                    clearTimeout(timeoutId);
+                    if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
+                    const data = await proxyRes.json();
+                    text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                } catch (e) {
+                    const ai = new GoogleGenAI({ apiKey });
+                    const result = await ai.models.generateContent({
+                        model: modelId,
+                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        config: config
+                    });
+                    text = result.text || '';
+                }
+
+                const signal = extractJson(text);
+                if (!signal || Object.keys(signal).length === 0) {
+                    throw new Error("Failed to parse retail signal JSON.");
+                }
+                return signal as SignalData;
+            }, getSniperPool
+        );
+    });
+}
+
 export async function generateAntigravityResearch(
     query: string,
     asset: string,
     quantData: any,
     initialAnalysis?: SignalData,
     macroContext?: string
-): Promise<string> {
+): Promise<AntigravityVerdict> {
     const prompt = `You are the Antigravity Agent, an elite institutional deep-research trading agent.
 Your primary objective is to act as a QuantConnect Algorithmic Strategy Router & Dynamic Verification Engine.
 Hardcoded, rigid rules are causing unprofitable bleeding losses. We are transitioning to a fully adaptive, dynamic architecture that maps the current market structure to QuantConnect Lean quantitative algorithms.
@@ -1981,10 +2084,10 @@ ${initialAnalysis ? `
 Flash Lite's Preliminary Structured Analysis:
 - Signal: ${initialAnalysis.signal}
 - Confidence: ${initialAnalysis.confidence}%
-- Entry Points: ${initialAnalysis.entryPoints.join(', ')}
-- Stop Loss: ${initialAnalysis.stopLoss}
-- Take Profits: ${initialAnalysis.takeProfits.join(', ')}
-- Preliminary Reasoning: ${initialAnalysis.reasoning.join(' ')}
+- Entry Range: ${initialAnalysis.entryRange ? `${initialAnalysis.entryRange.min} - ${initialAnalysis.entryRange.max}` : (initialAnalysis.entryPoints ? initialAnalysis.entryPoints.join(', ') : 'N/A')}
+- Stop Loss: ${initialAnalysis.stopLoss || 'N/A'}
+- Take Profits: ${initialAnalysis.takeProfits?.join(', ') || 'N/A'}
+- Preliminary Reasoning: ${initialAnalysis.reasoning?.join(' ') || 'None'}
 ` : ''}
 
 ${smcCandlestickLogic}
@@ -2026,39 +2129,64 @@ YOUR QUANTCONNECT ROUTING & DYNAMIC FORMULATION MISSION:
    - If proceeding, output the exact QuantConnect strategy code concept or dynamic rules block.
 
 IMPORTANT FORMATTING INSTRUCTION:
-You MUST start your response with a clearly labeled summary section:
-### EXECUTIVE SUMMARY
-[Provide a clear, 2-3 sentence high-level summary of your decision, the matched QuantConnect Strategy ID, and the dynamic key parameters. Keep it actionable, bold, and precise.]
+Return your response in a structured JSON object matching the AntigravityVerdictSchema. Ensure the deepAnalysisMarkdown contains a detailed markdown report of your institutional verification process, and executiveSummary has a bold 2-3 sentence high-level overview.`;
 
-Followed by a divider line:
----
-
-And then provide the deep institutional analysis and mathematical formulas under standard headings below the divider.
-
-Keep the response highly structured, institutional, cold, and mathematically rich.`;
-
-    return await executeLaneCall<string>(async (apiKey) => {
+    return await executeLaneCall<AntigravityVerdict>(async (apiKey) => {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 180000); // 3m timeout for agent
+        const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 180000);
 
-        const proxyRes = await fetch('/api/gemini/antigravity', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: prompt }] }],
-                apiKey: apiKey
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
+        const config = {
+            temperature: 0.7,
+            responseMimeType: "application/json",
+            responseSchema: AntigravityVerdictSchema
+        };
 
-        if (!proxyRes.ok) {
-            return `Antigravity agent verification failed (${proxyRes.status}).`;
+        try {
+            const proxyRes = await fetch('/api/gemini/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    model: 'gemini-2.5-flash',
+                    contents: [{ parts: [{ text: prompt }] }],
+                    config: config,
+                    apiKey: apiKey
+                }),
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+
+            if (!proxyRes.ok) {
+                throw new Error(`Proxy failed with status ${proxyRes.status}`);
+            }
+
+            const data = await proxyRes.json();
+            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const parsed = extractJson(text);
+            if (!parsed) throw new Error("Failed to parse Antigravity verdict JSON.");
+            return parsed as AntigravityVerdict;
+        } catch (e) {
+            const ai = new GoogleGenAI({ apiKey });
+            const result = await ai.models.generateContent({
+                model: 'gemini-2.5-flash',
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                config: config
+            });
+            const text = result.text || '';
+            const parsed = extractJson(text);
+            if (!parsed) {
+                return {
+                    verdict: 'VETO',
+                    confidence: 90,
+                    flawsFound: ['Technical link failure: Fallback error in Antigravity Agent JSON parser.'],
+                    quantConnectStrategyId: 'QC-FALLBACK-99',
+                    dynamicLotMultiplier: '0.5x (Safety Mode)',
+                    dynamicRiskReward: '1:1.0 (Capital Preservation)',
+                    executiveSummary: 'Antigravity Agent parsing error. Activating automatic capital preservation veto.',
+                    deepAnalysisMarkdown: 'Verification failed to compile. Recommending NO TRADE due to neural parser exception.'
+                };
+            }
+            return parsed as AntigravityVerdict;
         }
-
-        const data = await proxyRes.json();
-        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-        return text || 'No agent verdict provided.';
     }, getAntigravityPool);
 }
 
@@ -2071,7 +2199,7 @@ export async function generateSniperLiveSignal(
     advancedQuantSignal?: any,
     userSettings?: UserSettings,
     regime?: MarketRegime,
-    antigravityVerdict?: string
+    antigravityVerdict?: AntigravityVerdict
 ): Promise<SignalData> {
     const livePrice = derivData?.price || 0;
     const assetName = derivData?.symbol || 'Asset';
@@ -2121,9 +2249,19 @@ ${advancedQuantSignal ? `
 ` : 'NO ACTIVE ADVANCED CORRELATION SIGNAL'}
 
 ${antigravityVerdict ? `
-**LONG-TERM MACRO CONTEXT (1000 CANDLES):**
-${antigravityVerdict}
-*You must highly weight this deep research macro context in your final decision.*
+**LONG-TERM INSTITUTIONAL MACRO RESEARCH (ANTIGRAVITY DEVIL'S ADVOCATE VERDICT):**
+- **Verdict**: ${antigravityVerdict.verdict}
+- **Confidence**: ${antigravityVerdict.confidence}%
+- **Matched QuantConnect Strategy**: ${antigravityVerdict.quantConnectStrategyId}
+- **Identified Structural/Orderflow Flaws**:
+${antigravityVerdict.flawsFound?.map((f: string) => `  * ${f}`).join('\n') || '  * None'}
+- **Dynamic Sizing Guidance**: Multiplier: ${antigravityVerdict.dynamicLotMultiplier} | R:R: ${antigravityVerdict.dynamicRiskReward}
+- **Executive Summary**: ${antigravityVerdict.executiveSummary}
+
+**DEEP ANTIMARKET ANALYSIS REPORT:**
+${antigravityVerdict.deepAnalysisMarkdown}
+
+*CRITICAL MANDATE*: The Antigravity Agent has conducted deep, multi-timeframe analysis across 1,000 candles to find flaws and invalidate/confirm setups. You MUST heavily weight this devil's advocate context. If the Antigravity Agent raised serious flaws, integrate them as risk mitigations or vetoes!
 ` : ''}
 ${learnedStrategies && learnedStrategies.length > 0 ? `
 **ACTIVE LEARNED STRATEGIES & NEURAL LESSONS (APPLY THESE STRICTLY):**
