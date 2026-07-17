@@ -1666,43 +1666,72 @@ export function calculateRRLevels(
     entry: number,
     stopLoss: number,
     asset: string = 'EURUSD',
-    isScalping: boolean = false
+    isScalping: boolean = false,
+    customTPs?: number[]
 ) {
     const risk = Math.abs(entry - stopLoss);
     if (risk === 0) return null;
 
     const precision = getAssetPrecision(asset);
 
-    const mult1 = 1.0;
-    const mult2 = isScalping ? 1.5 : 2.0;
-    const mult3 = isScalping ? 2.0 : 3.0;
-    const tp1Label = '1:1';
-    const tp2Label = isScalping ? '1:1.5' : '1:2';
-    const tp3Label = isScalping ? '1:2' : '1:3';
+    let tp1 = 0;
+    let tp2 = 0;
+    let tp3 = 0;
+    let tp1Label = '';
+    let tp2Label = '';
+    let tp3Label = '';
 
-    if (signal === 'BUY') {
-        return {
-            risk,
-            riskPips: risk,
-            tp1: parseFloat((entry + risk * mult1).toFixed(precision)),
-            tp2: parseFloat((entry + risk * mult2).toFixed(precision)),
-            tp3: parseFloat((entry + risk * mult3).toFixed(precision)),
-            rrRatios: { tp1: tp1Label, tp2: tp2Label, tp3: tp3Label },
-            breakeven: entry,
-            partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
-        };
+    const hasValidCustomTPs = Array.isArray(customTPs) && 
+        customTPs.length >= 2 && 
+        customTPs[0] > 0 && 
+        customTPs[1] > 0 &&
+        (signal === 'BUY' 
+            ? (customTPs[0] > entry && customTPs[1] > customTPs[0])
+            : (customTPs[0] < entry && customTPs[1] < customTPs[0])
+        );
+
+    if (hasValidCustomTPs) {
+        tp1 = parseFloat(customTPs[0].toFixed(precision));
+        tp2 = parseFloat(customTPs[1].toFixed(precision));
+        tp3 = customTPs[2] ? parseFloat(customTPs[2].toFixed(precision)) : parseFloat((tp2 + (tp2 - tp1)).toFixed(precision));
+        
+        const rr1 = Math.abs(tp1 - entry) / risk;
+        const rr2 = Math.abs(tp2 - entry) / risk;
+        const rr3 = Math.abs(tp3 - entry) / risk;
+
+        tp1Label = `1:${rr1.toFixed(1)}`;
+        tp2Label = `1:${rr2.toFixed(1)}`;
+        tp3Label = `1:${rr3.toFixed(1)}`;
     } else {
-        return {
-            risk,
-            riskPips: risk,
-            tp1: parseFloat((entry - risk * mult1).toFixed(precision)),
-            tp2: parseFloat((entry - risk * mult2).toFixed(precision)),
-            tp3: parseFloat((entry - risk * mult3).toFixed(precision)),
-            rrRatios: { tp1: tp1Label, tp2: tp2Label, tp3: tp3Label },
-            breakeven: entry,
-            partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
-        };
+        const mult1 = 1.0;
+        const mult2 = isScalping ? 1.5 : 2.0;
+        const mult3 = isScalping ? 2.0 : 3.0;
+
+        tp1Label = '1:1.0';
+        tp2Label = isScalping ? '1:1.5' : '1:2.0';
+        tp3Label = isScalping ? '1:2.0' : '1:3.0';
+
+        if (signal === 'BUY') {
+            tp1 = parseFloat((entry + risk * mult1).toFixed(precision));
+            tp2 = parseFloat((entry + risk * mult2).toFixed(precision));
+            tp3 = parseFloat((entry + risk * mult3).toFixed(precision));
+        } else {
+            tp1 = parseFloat((entry - risk * mult1).toFixed(precision));
+            tp2 = parseFloat((entry - risk * mult2).toFixed(precision));
+            tp3 = parseFloat((entry - risk * mult3).toFixed(precision));
+        }
     }
+
+    return {
+        risk,
+        riskPips: risk,
+        tp1,
+        tp2,
+        tp3,
+        rrRatios: { tp1: tp1Label, tp2: tp2Label, tp3: tp3Label },
+        breakeven: entry,
+        partialClose: '50% at TP1, 30% at TP2, 20% at TP3'
+    };
 }
 
 export interface ParsedBrokerInfo {
@@ -2640,32 +2669,54 @@ JSON Structure:
                     }
                 }
 
-                // Apply mathematical pricing bounds from Monte Carlo / QuantData if available
-                if (quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
+                // Check if the AI-provided stop loss is already structurally valid and has reasonable breathing room
+                const minSLDistance = scaledAtr ? scaledAtr * 1.0 : midEntry * 0.0005;
+                const isAiSlValid = originalSL > 0 &&
+                    ((finalSignal === 'BUY' && finalSL < midEntry) || (finalSignal === 'SELL' && finalSL > midEntry)) &&
+                    Math.abs(midEntry - finalSL) >= minSLDistance;
+
+                const isAiTpsValid = Array.isArray(originalTPs) && 
+                    originalTPs.length >= 2 && 
+                    finalTPs[0] > 0 && 
+                    finalTPs[1] > 0 &&
+                    ((finalSignal === 'BUY' && finalTPs[0] > midEntry && finalTPs[1] > finalTPs[0]) ||
+                     (finalSignal === 'SELL' && finalTPs[0] < midEntry && finalTPs[1] < finalTPs[0]));
+
+                // Apply mathematical pricing bounds from Monte Carlo / QuantData as fallback if AI SL is invalid
+                if (!isAiSlValid && quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
                     const mc = quantData.monteCarloPrediction;
                     
                     const scaledMathematicalSL = quantData.mathematicalSL ? quantData.mathematicalSL * finalScale : undefined;
-                    const scaledExpectedPrice = mc.expectedPrice ? mc.expectedPrice * finalScale : undefined;
                     const scaledLowerBound = mc.lowerBound ? mc.lowerBound * finalScale : undefined;
                     const scaledUpperBound = mc.upperBound ? mc.upperBound * finalScale : undefined;
 
                     if (finalSignal === 'BUY') {
                         finalSL = scaledMathematicalSL || scaledLowerBound || (midEntry - (scaledAtr ? scaledAtr * 1.5 : midEntry * 0.002));
-                        finalTPs[0] = (scaledExpectedPrice && scaledExpectedPrice > midEntry) ? scaledExpectedPrice : midEntry * 1.002;
-                        finalTPs[1] = (scaledUpperBound && scaledUpperBound > finalTPs[0]) ? scaledUpperBound : finalTPs[0] * 1.002;
-                        finalReasoning.push(hasBrokerPrice
-                            ? `⚙️ STRICT MATH ENGINE: Anchored BUY SL and TPs exactly to scaled Monte Carlo bounds matching your broker feed.`
-                            : `⚙️ STRICT MATH ENGINE OVERRIDE: Anchored BUY SL to Lower Bound (-1σ) and TPs to Monte Carlo Expected Median Price / Upper Bound (+1σ).`
-                        );
                     } else if (finalSignal === 'SELL') {
                         finalSL = scaledMathematicalSL || scaledUpperBound || (midEntry + (scaledAtr ? scaledAtr * 1.5 : midEntry * 0.002));
+                    }
+                    finalReasoning.push(`🛡️ AI Stop Loss was missing, invalid, or too tight. Recalibrated to mathematical lower/upper bounds.`);
+                } else if (isAiSlValid) {
+                    finalReasoning.push(`🎯 Retaining high-precision AI-generated Stop Loss coordinate at ${finalSL}.`);
+                }
+
+                // Recalibrate Take Profits using Monte Carlo expected paths if AI TPs are invalid
+                if (!isAiTpsValid && quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
+                    const mc = quantData.monteCarloPrediction;
+                    const scaledExpectedPrice = mc.expectedPrice ? mc.expectedPrice * finalScale : undefined;
+                    const scaledLowerBound = mc.lowerBound ? mc.lowerBound * finalScale : undefined;
+                    const scaledUpperBound = mc.upperBound ? mc.upperBound * finalScale : undefined;
+
+                    if (finalSignal === 'BUY') {
+                        finalTPs[0] = (scaledExpectedPrice && scaledExpectedPrice > midEntry) ? scaledExpectedPrice : midEntry * 1.002;
+                        finalTPs[1] = (scaledUpperBound && scaledUpperBound > finalTPs[0]) ? scaledUpperBound : finalTPs[0] * 1.002;
+                    } else if (finalSignal === 'SELL') {
                         finalTPs[0] = (scaledExpectedPrice && scaledExpectedPrice < midEntry) ? scaledExpectedPrice : midEntry * 0.998;
                         finalTPs[1] = (scaledLowerBound && scaledLowerBound < finalTPs[0]) ? scaledLowerBound : finalTPs[0] * 0.998;
-                        finalReasoning.push(hasBrokerPrice
-                            ? `⚙️ STRICT MATH ENGINE: Anchored SELL SL and TPs exactly to scaled Monte Carlo bounds matching your broker feed.`
-                            : `⚙️ STRICT MATH ENGINE OVERRIDE: Anchored SELL SL to Upper Bound (+1σ) and TPs to Monte Carlo Expected Median Price / Lower Bound (-1σ).`
-                        );
                     }
+                    finalReasoning.push(`🛡️ AI Take Profits were missing or invalid. Recalibrated using Monte Carlo expected paths.`);
+                } else if (isAiTpsValid) {
+                    finalReasoning.push(`🎯 Retaining high-precision AI-generated Take Profit coordinates.`);
                 }
 
                 const rawConf = signal.confidence || 50;
@@ -2674,8 +2725,8 @@ JSON Structure:
                     finalConfidence = Math.max(0, Math.min(100, finalConfidence + signal.neuralFilter.confidenceBoost));
                 }
 
-                // SL Validation against ATR if quantData is present
-                if (quantData?.atr) {
+                // SL Validation against ATR if quantData is present and AI SL is not already valid
+                if (quantData?.atr && !isAiSlValid) {
                     finalSL = validateSL(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, scaledAtr || quantData.atr, signal.asset || assetName);
                     finalReasoning.push(`🛡️ Stop loss validated using live ATR logic (Min 1.5x ATR distance).`);
                 }
@@ -2698,7 +2749,7 @@ JSON Structure:
 
                 // Apply mathematical RR overrides
                 const isScalping = style.includes('scalping');
-                const rrLevels = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, signal.asset || assetName, isScalping);
+                const rrLevels = calculateRRLevels(finalSignal as 'BUY' | 'SELL', midEntry, finalSL, signal.asset || assetName, isScalping, isAiTpsValid ? finalTPs : undefined);
                 let finalPositionProtocol: string | undefined = undefined;
 
                 if (rrLevels) {
