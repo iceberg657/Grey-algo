@@ -583,7 +583,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                 className={`w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-10 flex-grow flex flex-col ${broadcasts.length > 0 ? 'pt-20' : ''}`}
             >
                 <header className="flex flex-col items-center mb-16 relative">
-                    <div className="absolute top-0 right-0 flex items-center gap-3">
+                    <div className="relative sm:absolute sm:top-0 sm:right-0 flex items-center justify-end gap-3 w-full sm:w-auto mb-6 sm:mb-0">
                         {isTwelveDataConfigured !== null && (
                             <button 
                                 onClick={handleOpenSettings}
@@ -620,7 +620,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                     </div>
                 </header>
 
-                <nav className="mb-16 grid grid-cols-5 sm:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
+                <nav className="mb-16 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
                     {navItems.map((item, idx) => (
                         <NavButton
                             key={item.label}

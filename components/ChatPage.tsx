@@ -808,7 +808,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 type="button" 
                                 onClick={() => fileInputRef.current?.click()} 
                                 disabled={isLoading || retrySeconds > 0} 
-                                className="p-3 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all"
+                                className="p-3 text-slate-400 hover:text-emerald-500 dark:hover:text-emerald-400 transition-all flex-shrink-0"
                             >
                                 <ImageIcon size={22} />
                             </button>
@@ -820,12 +820,12 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 onChange={(e) => setInput(e.target.value)} 
                                 placeholder={retrySeconds > 0 ? `System Recovery (${retrySeconds}s)...` : "Consult the Oracle..."} 
                                 disabled={isLoading || retrySeconds > 0} 
-                                className="flex-grow bg-transparent text-slate-900 dark:text-white px-2 py-3 text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-600" 
+                                className="flex-grow min-w-0 bg-transparent text-slate-900 dark:text-white px-2 py-3 text-sm focus:outline-none placeholder-slate-400 dark:placeholder-slate-600" 
                             />
                             
-                            <div className="flex items-center gap-1">
+                            <div className="flex items-center gap-1 flex-shrink-0">
                                 {input.trim() === '' && imageFiles.length === 0 && !isLoading && (
-                                     <button onClick={onNewChat} type="button" className="p-3 text-slate-400 hover:text-blue-500 transition-all" title="New Link">
+                                     <button onClick={onNewChat} type="button" className="p-3 text-slate-400 hover:text-blue-500 transition-all flex-shrink-0" title="New Link">
                                         <RefreshCcw size={20} />
                                     </button>
                                 )}
@@ -833,7 +833,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                 <button 
                                     type="submit" 
                                     disabled={isLoading || retrySeconds > 0 || (!input.trim() && imageFiles.length === 0)} 
-                                    className={`relative flex items-center justify-center h-12 w-12 rounded-full transition-all duration-300 ${
+                                    className={`relative flex items-center justify-center h-12 w-12 rounded-full transition-all duration-300 flex-shrink-0 ${
                                         isLoading 
                                         ? 'bg-slate-100 dark:bg-white/5' 
                                         : 'bg-emerald-500 hover:bg-emerald-400 text-white shadow-lg shadow-emerald-500/20 active:scale-95'

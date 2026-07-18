@@ -77,8 +77,8 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-5 pointer-events-none"></div>
             
             {/* Radar Chart */}
-            <div className="relative z-10 animate-fade-in">
-                <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+            <div className="relative z-10 animate-fade-in w-full max-w-[300px] aspect-square flex items-center justify-center">
+                <svg width="100%" height="100%" viewBox={`0 0 ${size} ${size}`}>
                     {/* Background Grid (Concentric) */}
                     {[25, 50, 75, 100].map((level, idx) => {
                         const levelPoints = METRICS.map((_, i) => getCoordinates(level, i, METRICS.length))

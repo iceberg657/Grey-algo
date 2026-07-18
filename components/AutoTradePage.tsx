@@ -169,22 +169,29 @@ export const AutoTradePage: React.FC<AutoTradePageProps> = ({ onBack, userMetada
     return (
         <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in bg-slate-50/15 dark:bg-[#070b14]/50 backdrop-blur-xl">
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
-                <header className="relative mb-8 flex justify-between items-center">
-                    <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                        </svg>
-                        Back
-                    </button>
-                    <div className="text-center">
-                        <h1 className="text-2xl md:text-3xl font-black text-gray-800 dark:text-white uppercase tracking-widest">
+                <header className="relative mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+                        <button onClick={onBack} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                            </svg>
+                            Back
+                        </button>
+                        <div className="sm:hidden">
+                            <ThemeToggleButton />
+                        </div>
+                    </div>
+                    <div className="text-center flex-grow">
+                        <h1 className="text-xl sm:text-2xl md:text-3xl font-black text-gray-800 dark:text-white uppercase tracking-widest">
                             Auto Trade Center
                         </h1>
-                        <p className="text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-[0.3em] mt-1">
+                        <p className="text-[10px] sm:text-xs font-bold text-green-600 dark:text-green-400 uppercase tracking-[0.3em] mt-1">
                             Algorithmic Trading Hub
                         </p>
                     </div>
-                    <ThemeToggleButton />
+                    <div className="hidden sm:block">
+                        <ThemeToggleButton />
+                    </div>
                 </header>
 
                 <div className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-xl p-6 rounded-2xl border border-gray-200 dark:border-white/10 shadow-[0_8px_32px_0_rgba(0,0,0,0.3)]">

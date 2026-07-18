@@ -558,17 +558,26 @@ const App: React.FC = () => {
             content = (
                 <div className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 animate-fade-in">
                     <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
-                        <header className="relative mb-6 flex justify-between items-center">
-                            <button onClick={handleNavigateToHome} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
-                                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                                </svg>
-                                Back
-                            </button>
-                            <h1 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-green-400">
+                        <header className="relative mb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div className="flex items-center justify-between sm:justify-start gap-4 w-full sm:w-auto">
+                                <button onClick={handleNavigateToHome} className="flex items-center text-sm font-semibold text-gray-600 dark:text-green-400 hover:underline">
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                                    </svg>
+                                    Back
+                                </button>
+                                <button
+                                    onClick={handleLogout}
+                                    className="sm:hidden text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium"
+                                    aria-label="Logout"
+                                >
+                                    Logout
+                                </button>
+                            </div>
+                            <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-gray-800 dark:text-green-400 text-center sm:text-left flex-grow">
                                 Trade Journal & Neural Lessons
                             </h1>
-                            <div className="flex items-center space-x-2">
+                            <div className="hidden sm:flex items-center space-x-2">
                                 <button
                                     onClick={handleLogout}
                                     className="text-gray-500 dark:text-green-400 hover:text-gray-900 dark:hover:text-green-300 transition-colors text-sm font-medium"

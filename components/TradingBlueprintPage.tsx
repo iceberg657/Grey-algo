@@ -258,25 +258,25 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
 
     return (
         <div className="min-h-screen bg-slate-50/10 dark:bg-slate-950/10 text-slate-800 dark:text-slate-200 p-6 flex flex-col relative backdrop-blur-3xl">
-            <header className="flex items-center justify-between mb-8">
+            <header className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
                 <div className="flex items-center gap-4">
                     <button onClick={onBack} className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
                         <ChevronLeft size={20} />
                     </button>
                     <div>
-                        <h1 className="text-2xl font-black uppercase tracking-tighter flex items-center gap-3 text-slate-900 dark:text-white">
-                            <Compass className="text-blue-500" /> Trading Blueprint
+                        <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tighter flex items-center gap-2 sm:gap-3 text-slate-900 dark:text-white">
+                            <Compass className="text-blue-500 flex-shrink-0" /> Trading Blueprint
                         </h1>
-                        <p className="text-sm text-slate-500 dark:text-slate-400 font-medium">Your Everyday Structural Trading Plan.</p>
+                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Your Everyday Structural Trading Plan.</p>
                     </div>
                 </div>
                 
-                <div className="flex gap-3">
-                    <button onClick={() => setShowRiskCalc(true)} className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors border border-indigo-200 dark:border-indigo-500/30">
+                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                    <button onClick={() => setShowRiskCalc(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors border border-indigo-200 dark:border-indigo-500/30 w-full sm:w-auto">
                         <Calculator size={18} />
                         <span className="text-xs font-bold uppercase tracking-wider">Risk Calculator</span>
                     </button>
-                    <button onClick={() => setShowCheatSheet(true)} className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors border border-emerald-200 dark:border-emerald-500/30">
+                    <button onClick={() => setShowCheatSheet(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors border border-emerald-200 dark:border-emerald-500/30 w-full sm:w-auto">
                         <BookOpen size={18} />
                         <span className="text-xs font-bold uppercase tracking-wider">Tactical Academy</span>
                     </button>

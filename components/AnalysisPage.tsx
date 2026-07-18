@@ -62,16 +62,28 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
             className="min-h-screen text-gray-800 dark:text-dark-text font-sans flex flex-col transition-colors duration-300 pb-20"
         >
             <div className="w-full max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 flex-grow flex flex-col">
-                <header className="relative mb-12 flex justify-between items-center">
-                    <button onClick={onBack} className="group flex items-center text-sm font-black text-gray-700 dark:text-green-400 hover:text-green-300 transition-all uppercase tracking-widest">
-                        <div className="bg-gray-200 dark:bg-green-500/10 p-2 rounded-full mr-3 group-hover:scale-110 transition-transform">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
-                            </svg>
+                <header className="relative mb-12 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex items-center justify-between w-full md:w-auto">
+                        <button onClick={onBack} className="group flex items-center text-sm font-black text-gray-700 dark:text-green-400 hover:text-green-300 transition-all uppercase tracking-widest">
+                            <div className="bg-gray-200 dark:bg-green-500/10 p-2 rounded-full mr-3 group-hover:scale-110 transition-transform">
+                                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" />
+                                </svg>
+                            </div>
+                            GreyAlpha
+                        </button>
+                        <div className="flex items-center gap-2 md:hidden">
+                            <ThemeToggleButton />
+                            <button
+                                onClick={onLogout}
+                                className="bg-white/80 dark:bg-slate-800/40 backdrop-blur-sm border border-gray-200 dark:border-white/10 text-gray-700 dark:text-green-400 hover:bg-red-500/20 hover:text-red-400 px-3 py-1.5 rounded-lg transition-all text-[10px] font-black uppercase tracking-widest shadow-md"
+                                aria-label="Logout"
+                            >
+                                Exit
+                            </button>
                         </div>
-                        GreyAlpha
-                    </button>
-                    <div className="flex flex-col items-center">
+                    </div>
+                    <div className="flex flex-col items-center flex-grow">
                          <h1 className={`text-2xl md:text-3xl font-black uppercase tracking-[-0.05em] italic ${isBuy ? 'text-green-500' : isSell ? 'text-red-500' : 'text-blue-500'}`}>
                             QUANT DOSSIER
                         </h1>
@@ -89,7 +101,7 @@ export const AnalysisPage: React.FC<AnalysisPageProps> = ({ data, image, onBack,
                             </div>
                         )}
                     </div>
-                    <div className="flex items-center space-x-3">
+                    <div className="hidden md:flex items-center space-x-3">
                         <ThemeToggleButton />
                         <button
                             onClick={onLogout}

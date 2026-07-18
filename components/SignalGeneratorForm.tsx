@@ -9,45 +9,81 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
+            const dataUrl = event.target?.result as string;
+            if (!dataUrl) {
+                reject(new Error("Failed to read file as DataURL"));
+                return;
+            }
+            
             const img = new Image();
             img.onload = () => {
-                const canvas = document.createElement('canvas');
-                let width = img.width;
-                let height = img.height;
-                
-                // Max dimensions for Gemini
-                const MAX_DIMENSION = 2048;
-                if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-                    if (width > height) {
-                        height = Math.round((height * MAX_DIMENSION) / width);
-                        width = MAX_DIMENSION;
+                try {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // Max dimensions for Gemini
+                    const MAX_DIMENSION = 2048;
+                    if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
+                        if (width > height) {
+                            height = Math.round((height * MAX_DIMENSION) / width);
+                            width = MAX_DIMENSION;
+                        } else {
+                            width = Math.round((width * MAX_DIMENSION) / height);
+                            height = MAX_DIMENSION;
+                        }
+                    }
+                    
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        // fallback to direct base64
+                        const data = dataUrl.split(',')[1];
+                        if (data) {
+                            resolve({ data, mimeType: file.type || 'image/jpeg' });
+                        } else {
+                            reject(new Error("Failed to get canvas context"));
+                        }
+                        return;
+                    }
+                    ctx.drawImage(img, 0, 0, width, height);
+                    
+                    // Compress to JPEG with 0.8 quality
+                    const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                    const data = compressedDataUrl.split(',')[1];
+                    
+                    if (!data) {
+                        // fallback to direct base64
+                        const fbData = dataUrl.split(',')[1];
+                        if (fbData) {
+                            resolve({ data: fbData, mimeType: file.type || 'image/jpeg' });
+                        } else {
+                            reject(new Error("Invalid file format."));
+                        }
+                        return;
+                    }
+                    resolve({ data, mimeType: 'image/jpeg' });
+                } catch (err) {
+                    // fallback to direct base64
+                    const fbData = dataUrl.split(',')[1];
+                    if (fbData) {
+                        resolve({ data: fbData, mimeType: file.type || 'image/jpeg' });
                     } else {
-                        width = Math.round((width * MAX_DIMENSION) / height);
-                        height = MAX_DIMENSION;
+                        reject(err);
                     }
                 }
-                
-                canvas.width = width;
-                canvas.height = height;
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    reject(new Error("Failed to get canvas context"));
-                    return;
-                }
-                ctx.drawImage(img, 0, 0, width, height);
-                
-                // Compress to JPEG with 0.8 quality
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
-                const data = dataUrl.split(',')[1];
-                
-                if (!data) {
-                    reject(new Error("Invalid file format."));
-                    return;
-                }
-                resolve({ data, mimeType: 'image/jpeg' });
             };
-            img.onerror = () => reject(new Error("Failed to load image"));
-            img.src = event.target?.result as string;
+            img.onerror = () => {
+                // If image loading fails, try to fall back to direct base64 of the file
+                const fbData = dataUrl.split(',')[1];
+                if (fbData) {
+                    resolve({ data: fbData, mimeType: file.type || 'image/jpeg' });
+                } else {
+                    reject(new Error("Failed to load image and fallback failed"));
+                }
+            };
+            img.src = dataUrl;
         };
         reader.onerror = error => reject(error);
     });

@@ -411,7 +411,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white font-sans transition-colors duration-300 pb-20">
             <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
-                <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between">
+                <div className="max-w-6xl mx-auto px-4 min-h-16 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                         <button 
                             onClick={onBack}
@@ -420,20 +420,22 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                             <ArrowLeft size={20} className="text-slate-500" />
                         </button>
                         <div>
-                            <h1 className="font-black uppercase tracking-widest text-lg flex items-center gap-2">
+                            <h1 className="font-black uppercase tracking-widest text-base sm:text-lg flex items-center gap-2">
                                 <Bell className="text-emerald-500" size={18} /> Trade Notifications
                             </h1>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
+                            <p className="text-[9px] sm:text-[10px] text-slate-500 font-bold uppercase tracking-widest">
                                 Live Algorithmic Broadcasts
                             </p>
                         </div>
                     </div>
-                    <ThemeToggleButton />
+                    <div className="flex justify-end sm:block">
+                        <ThemeToggleButton />
+                    </div>
                 </div>
             </header>
 
             <div className="max-w-6xl mx-auto px-4 mt-8">
-                <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0">
+                <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0 overflow-x-auto scrollbar-none whitespace-nowrap">
                     <button
                         onClick={() => setActiveTab('config')}
                         className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 ${activeTab === 'config' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}

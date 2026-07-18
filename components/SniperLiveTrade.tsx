@@ -147,7 +147,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [livePrice, setLivePrice] = useState<any>(null);
   const [isFetchingPrice, setIsFetchingPrice] = useState(false);
   const [showAssets, setShowAssets] = useState(false);
-  const [showAdvisor, setShowAdvisor] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
   const [selectedStreamingMode, setSelectedStreamingMode] = useState<'Standard' | 'Advanced'>('Standard');
@@ -1096,31 +1095,71 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
   return (
     <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-800 dark:text-slate-200 font-sans selection:bg-emerald-500/30 transition-colors duration-300 backdrop-blur-xl">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 px-4 py-4 transition-colors duration-300">
-        <div className="max-w-4xl mx-auto flex items-center justify-between">
-          <button 
-            onClick={onBack}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-colors group"
-          >
-            <ArrowLeft className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
-          </button>
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 px-4 py-3 transition-colors duration-300">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+            <button 
+              onClick={onBack}
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-colors group"
+            >
+              <ArrowLeft className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
+            </button>
+            <div className="flex items-center gap-2 sm:hidden">
+              {messages.length > 0 && (
+                <div className="relative">
+                  <AnimatePresence>
+                    {showDeleteConfirm && (
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.9, x: 10 }}
+                        animate={{ opacity: 1, scale: 1, x: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, x: 10 }}
+                        className="absolute right-full mr-2 top-0 bottom-0 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 shadow-xl z-10 whitespace-nowrap"
+                      >
+                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Clear History?</span>
+                        <button 
+                          onClick={handleClearChat}
+                          className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          Confirm
+                        </button>
+                        <button 
+                          onClick={() => setShowDeleteConfirm(false)}
+                          className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded-lg transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                  <button 
+                    onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
+                    className={`p-2 rounded-xl transition-colors group ${showDeleteConfirm ? 'bg-rose-100 dark:bg-rose-500/20' : 'hover:bg-rose-100 dark:hover:bg-rose-500/10'}`}
+                    title="Clear Neural History"
+                  >
+                    <Trash2 className={`w-5 h-5 transition-colors ${showDeleteConfirm ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400 group-hover:text-rose-500'}`} />
+                  </button>
+                </div>
+              )}
+              <ThemeToggleButton />
+            </div>
+          </div>
           
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]">
-              <Target className="w-6 h-6 text-emerald-500" />
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] flex-shrink-0">
+              <Target className="w-5 h-5 sm:w-6 h-6 text-emerald-500" />
             </div>
             <div>
-              <h1 className="text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-base sm:text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
                 Sniper Live Trade
               </h1>
               <div className="flex items-center gap-2">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-500/70">Live Market Feed</span>
+                <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-500/70">Live Market Feed</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-2">
             {messages.length > 0 && (
               <div className="relative">
                 <AnimatePresence>
@@ -1233,145 +1272,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               </div>
             </div>
 
-            {/* Lagos Timetable Suitability Advisor Toggle Banner */}
-            <div className="mb-8 p-1.5 bg-gradient-to-r from-emerald-500/10 via-teal-500/5 to-transparent border border-emerald-500/20 rounded-2xl flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-sm">
-              <div className="flex items-center gap-3 px-3 py-1.5">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center border border-emerald-500/30 text-emerald-500 animate-pulse">
-                  <Shield className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                    Lagos Timetable Suitability Advisor & Risk Shields
-                    <span className="text-[9px] font-black uppercase bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded">Active</span>
-                  </h4>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
-                    Specifically calibrated to optimize your 6 daily timetabled trading sessions and stop bleed-losses.
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowAdvisor(!showAdvisor)}
-                className="mx-3 md:mx-0 px-4 py-2 bg-slate-900 hover:bg-slate-800 dark:bg-slate-800 dark:hover:bg-slate-700 text-white dark:text-slate-100 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all w-fit"
-              >
-                {showAdvisor ? 'Hide Advisor' : 'Reveal Insights'}
-              </button>
-            </div>
 
-            <AnimatePresence>
-              {showAdvisor && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0, scale: 0.98 }}
-                  animate={{ height: 'auto', opacity: 1, scale: 1 }}
-                  exit={{ height: 0, opacity: 0, scale: 0.98 }}
-                  className="overflow-hidden mb-8"
-                >
-                  <div className="bg-white dark:bg-slate-900/60 border border-emerald-500/20 rounded-3xl p-6 shadow-xl relative backdrop-blur-xl">
-                    <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-2xl" />
-                    
-                    <h3 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-wider mb-2 flex items-center gap-2">
-                      <Zap className="w-4 h-4 text-emerald-500" /> Custom Optimization Blueprint (Lagos Session Hours)
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                      Lagos/GMT+1 timetabled slots represent key institutional opening and closing sessions. Trading stock indices and currencies during these brief windows with market orders is highly dangerous due to initial "liquidity sweeps". Below is your suitability map:
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      <div className="space-y-3.5">
-                        <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                          Morning Sessions (Lagos Time GMT+1)
-                        </h4>
-                        
-                        <div className="bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Session 1 • 07:00 - 08:30</span>
-                            <span className="text-[9px] font-black text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded">HIGH VOLATILITY</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            <strong>Recommended Assets:</strong> EURUSD, GBPUSD. <br/>
-                            <strong>Strategy:</strong> London open sweep. <em>Never enter with market execution immediately</em>. Use Buy/Sell Limits slightly below/above local Fair Value Gaps (FVGs).
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Session 2 • 08:30 - 10:00</span>
-                            <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">OPTIMAL SMC</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            <strong>Recommended Assets:</strong> EURUSD, GBPUSD, GBPJPY. <br/>
-                            <strong>Strategy:</strong> Order block retests and FVG filling. Highly suited for 1:1 Scalps. Our recalibrated <strong>1:1.0 TP1 Shield</strong> is extremely high probability here.
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Session 3 • 10:00 - 11:30</span>
-                            <span className="text-[9px] font-black text-slate-400 bg-slate-500/10 px-1.5 py-0.5 rounded">TRENDING STAGE</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            <strong>Recommended Assets:</strong> UK100, Germany 40, EURGBP. <br/>
-                            <strong>Strategy:</strong> London mid-session trends. Look for structural continuation setups (MSS/CHoCH) on the M5 or M15 charts.
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3.5">
-                        <h4 className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800 pb-1.5">
-                          Afternoon Sessions (Lagos Time GMT+1)
-                        </h4>
-
-                        <div className="bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Session 4 • 13:30 - 15:00</span>
-                            <span className="text-[9px] font-black text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded">TURTLE SOUP DANGER</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            <strong>Recommended Assets:</strong> US30, NAS100, US500, XAUUSD. <br/>
-                            <strong>Strategy:</strong> NY Open liquidity hunt. <strong>Indices have massive spreads and wild wicks</strong>. Use pending limit orders with a 2.0x ATR Stop Loss to survive.
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Session 5 • 15:00 - 16:30</span>
-                            <span className="text-[9px] font-black text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded">NY ORDERFLOW</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            <strong>Recommended Assets:</strong> NAS100, US30, GBPUSD, XAUUSD. <br/>
-                            <strong>Strategy:</strong> Main NY session volume. Trade breakouts with pullback limit entries. Move SL to entry as soon as price moves halfway to TP1.
-                          </p>
-                        </div>
-
-                        <div className="bg-slate-50/50 dark:bg-slate-950/40 p-3.5 rounded-2xl border border-slate-150 dark:border-slate-800">
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Session 6 • 16:30 - 18:00</span>
-                            <span className="text-[9px] font-black text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">NY AM RETEST</span>
-                          </div>
-                          <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
-                            <strong>Recommended Assets:</strong> US30, NAS100, EURUSD. <br/>
-                            <strong>Strategy:</strong> Session wrap-up. Clear out all positions before the spread increases at 21:00 Lagos time. Limit trading to H1 charts.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-2xl flex items-start gap-3">
-                      <Shield className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
-                      <div>
-                        <h4 className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-1">
-                          Lagos Anti-Loss Shield Rules
-                        </h4>
-                        <ul className="text-[11px] text-slate-600 dark:text-slate-300 space-y-1.5 list-disc list-inside leading-relaxed">
-                          <li><strong>Conservative TP1 Active:</strong> The Sniper Live Trade page now generates tighter Take Profit 1 targets at <strong>1:1.0 Risk-to-Reward ratio</strong>. This makes TP1 highly realistic and easily hit, raising your winrate to 3/6 or 4/6 wins daily.</li>
-                          <li><strong>Break-Even Risk-Shield:</strong> Always move your Stop Loss to the Entry price the moment the market covers 50% of the distance to TP1, or hits TP1. This completely eliminates losses from late-session reversals!</li>
-                          <li><strong>Indices execution style:</strong> Avoid entering US30, NAS100, and UK100 via Market orders during session open times (07:00, 10:00, 13:30 Lagos). Select the <strong>"Scalp" or "Day" style</strong>, and place <strong>Buy Limits/Sell Limits</strong> to let price pull back to your entries.</li>
-                        </ul>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
 
             {/* Results Area */}
             <div className="space-y-8 min-h-[400px]">
