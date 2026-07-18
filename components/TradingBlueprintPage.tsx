@@ -258,56 +258,81 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
 
     return (
         <div className="min-h-screen bg-slate-50/10 dark:bg-slate-950/10 text-slate-800 dark:text-slate-200 p-6 flex flex-col relative backdrop-blur-3xl">
-            <header className="flex flex-col lg:flex-row lg:items-center justify-between mb-8 gap-6">
+            <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-5">
                 <div className="flex items-center gap-4">
-                    <button onClick={onBack} className="p-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                    <motion.button 
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={onBack} 
+                        className="p-3 bg-white/40 dark:bg-slate-900/40 border border-slate-200/50 dark:border-slate-800/60 rounded-2xl hover:bg-white/60 dark:hover:bg-slate-800/60 transition-colors backdrop-blur-xl shadow-lg flex items-center justify-center text-slate-800 dark:text-slate-200"
+                    >
                         <ChevronLeft size={20} />
-                    </button>
+                    </motion.button>
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tighter flex items-center gap-2 sm:gap-3 text-slate-900 dark:text-white">
-                            <Compass className="text-blue-500 flex-shrink-0" /> Trading Blueprint
+                        <div className="flex items-center gap-2">
+                            <span className="px-2 py-0.5 text-[9px] font-black tracking-widest text-blue-500 bg-blue-500/10 border border-blue-500/20 rounded-md uppercase">SYSTEM PORTAL</span>
+                        </div>
+                        <h1 className="text-xl sm:text-2xl font-black uppercase tracking-tight flex items-center gap-2.5 text-slate-900 dark:text-white mt-1">
+                            <Compass className="text-blue-500 flex-shrink-0 animate-spin-slow" size={24} /> Trading Blueprint
                         </h1>
-                        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium">Your Everyday Structural Trading Plan.</p>
+                        <p className="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 font-medium tracking-wide">YOUR EVERYDAY STRUCTURAL TRADING TIMETABLE</p>
                     </div>
                 </div>
                 
-                <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                    <button onClick={() => setShowRiskCalc(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl hover:bg-indigo-100 dark:hover:bg-indigo-500/20 transition-colors border border-indigo-200 dark:border-indigo-500/30 w-full sm:w-auto">
-                        <Calculator size={18} />
-                        <span className="text-xs font-bold uppercase tracking-wider">Risk Calculator</span>
-                    </button>
-                    <button onClick={() => setShowCheatSheet(true)} className="flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors border border-emerald-200 dark:border-emerald-500/30 w-full sm:w-auto">
-                        <BookOpen size={18} />
-                        <span className="text-xs font-bold uppercase tracking-wider">Tactical Academy</span>
-                    </button>
+                <div className="grid grid-cols-2 gap-3 w-full md:w-auto">
+                    <motion.button 
+                        whileHover={{ y: -1, scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowRiskCalc(true)} 
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-indigo-500/10 hover:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 rounded-2xl transition-all border border-indigo-500/20 dark:border-indigo-500/30 text-xs font-black uppercase tracking-wider shadow-[0_8px_20px_-6px_rgba(99,102,241,0.15)] cursor-pointer"
+                    >
+                        <Calculator size={16} className="text-indigo-500" />
+                        <span>Risk Calc</span>
+                    </motion.button>
+                    <motion.button 
+                        whileHover={{ y: -1, scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={() => setShowCheatSheet(true)} 
+                        className="flex items-center justify-center gap-2 px-4 py-3 bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-2xl transition-all border border-emerald-500/20 dark:border-emerald-500/30 text-xs font-black uppercase tracking-wider shadow-[0_8px_20px_-6px_rgba(16,185,129,0.15)] cursor-pointer"
+                    >
+                        <BookOpen size={16} className="text-emerald-500" />
+                        <span>Academy</span>
+                    </motion.button>
                 </div>
             </header>
 
-            <div className="flex gap-6 mb-8 border-b border-slate-200 dark:border-slate-800 pb-0 overflow-x-auto scrollbar-none font-sans">
-                <button
-                    onClick={() => setActiveTab('schedule')}
-                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'schedule' ? 'border-blue-500 text-blue-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                >
-                    <Compass size={14} /> Trading Schedule
-                </button>
-                <button
-                    onClick={() => setActiveTab('backtest')}
-                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'backtest' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                >
-                    <History size={14} /> Mechanical Backtester
-                </button>
-                <button
-                    onClick={() => setActiveTab('trend_scanner')}
-                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'trend_scanner' ? 'border-emerald-500 text-emerald-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                >
-                    <TrendingUp size={14} /> Trend Scanner
-                </button>
-                <button
-                    onClick={() => setActiveTab('recovery_planner')}
-                    className={`pb-4 px-2 text-xs font-black uppercase tracking-widest border-b-2 transition-colors flex items-center gap-2 whitespace-nowrap ${activeTab === 'recovery_planner' ? 'border-indigo-500 text-indigo-500' : 'border-transparent text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'}`}
-                >
-                    <Target size={14} className="text-indigo-500 animate-pulse" /> 5K Recovery Planner
-                </button>
+            {/* Glassmorphic Tab Selector with Morphing Sliding Pill */}
+            <div className="relative p-1.5 bg-slate-200/50 dark:bg-slate-950/40 border border-slate-300/30 dark:border-slate-850/60 rounded-3xl mb-12 flex gap-1 overflow-x-auto scrollbar-none shadow-inner backdrop-blur-xl">
+                {[
+                    { id: 'schedule', label: 'Trading Schedule', icon: Compass, color: 'text-blue-500' },
+                    { id: 'backtest', label: 'Mechanical Backtester', icon: History, color: 'text-indigo-500' },
+                    { id: 'trend_scanner', label: 'Trend Scanner', icon: TrendingUp, color: 'text-emerald-500' },
+                    { id: 'recovery_planner', label: '5K Recovery Planner', icon: Target, color: 'text-rose-500' }
+                ].map(tab => {
+                    const isActive = activeTab === tab.id;
+                    const Icon = tab.icon;
+                    return (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id as any)}
+                            className={`relative flex items-center gap-2.5 px-6 py-3.5 rounded-2xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 z-10 flex-1 justify-center whitespace-nowrap min-w-[140px] ${
+                                isActive 
+                                    ? 'text-slate-900 dark:text-white' 
+                                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                            }`}
+                        >
+                            {isActive && (
+                                <motion.div
+                                    layoutId="activeBlueprintTab"
+                                    transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                                    className="absolute inset-0 bg-white dark:bg-slate-900/80 border border-slate-300/40 dark:border-slate-800/80 rounded-2xl shadow-md backdrop-blur-md z-[-1]"
+                                />
+                            )}
+                            <Icon size={14} className={`${tab.color} ${isActive ? 'animate-pulse' : ''}`} />
+                            <span>{tab.label}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             {activeTab === 'schedule' ? (
