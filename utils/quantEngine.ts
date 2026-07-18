@@ -132,7 +132,10 @@ export interface LeadLagContext {
     leadingBias: 'BULLISH' | 'BEARISH' | 'NEUTRAL';
 }
 
-export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => {
+export const calculateQuantMathematics = (
+    candles: OHLC[],
+    depth?: { bids: [number, number][], asks: [number, number][] } | null
+): QuantMathematics => {
     if (candles.length < 50) return {
         zScoreDispersion: 0, hurstExponentApproximation: 0.5, regimeProbability: 'RANDOM_WALK', fakeoutProbability: 0.5, statisticalNoiseRatio: 1
     };
@@ -164,7 +167,7 @@ export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => 
 
     // 4. MS-GARCH Volatility
     const msGarch = new MSGARCH();
-    const msGarchVol = msGarch.predictVolatility(returns, gmmRegime as 0 | 1);
+    let msGarchVol = msGarch.predictVolatility(returns, gmmRegime as 0 | 1);
 
     const meanReturn = returns.reduce((a, b) => a + b, 0) / returns.length;
     let variance = returns.reduce((acc, val) => acc + Math.pow(val - meanReturn, 2), 0) / returns.length;
@@ -199,6 +202,60 @@ export const calculateQuantMathematics = (candles: OHLC[]): QuantMathematics => 
         fakeoutProbability = 0.85; // High trap probability
     } else if (Math.abs(zScoreDispersion) > 2.0 && regimeProbability === 'RANDOM_WALK') {
         fakeoutProbability = 0.65;
+    }
+
+    // --- REAL-TIME LEVEL 2 FOREX DEPTH CALIBRATION ---
+    if (depth && (depth.bids?.length || depth.asks?.length)) {
+        const bids = depth.bids || [];
+        const asks = depth.asks || [];
+        const totalBids = bids.reduce((sum, b) => sum + (b[1] || 0), 0);
+        const totalAsks = asks.reduce((sum, a) => sum + (a[1] || 0), 0);
+        const totalL2Depth = totalBids + totalAsks;
+        const currentPrice = closes[closes.length - 1];
+        
+        if (totalL2Depth > 0) {
+            const l2Imbalance = (totalBids - totalAsks) / totalL2Depth; // -1 to +1
+            
+            // Adjust LSTM sequential memory state with real-time leading order book imbalance
+            lstmState = lstmState * 0.7 + l2Imbalance * 0.3;
+            
+            // Refine GMM classification when there's an overwhelming orderbook bias
+            if (Math.abs(l2Imbalance) > 0.4) {
+                // Skew towards trending regime
+                regimeProbability = 'TRENDING';
+            }
+
+            // Adjust fakeout probability based on actual Level 2 DOM imbalances
+            const isBullishBreakout = zScoreDispersion > 1.5;
+            const isBearishBreakout = zScoreDispersion < -1.5;
+            
+            if (isBullishBreakout) {
+                if (l2Imbalance > 0.15) {
+                    // Bids are supporting breakout, reduce trap risk
+                    fakeoutProbability = Math.max(0.05, fakeoutProbability - 0.25);
+                } else if (l2Imbalance < -0.15) {
+                    // Asks holding a sell wall, high risk of fakeout rejection
+                    fakeoutProbability = Math.min(0.95, fakeoutProbability + 0.3);
+                }
+            } else if (isBearishBreakout) {
+                if (l2Imbalance < -0.15) {
+                    // Asks are pushing breakdown, reduce trap risk
+                    fakeoutProbability = Math.max(0.05, fakeoutProbability - 0.25);
+                } else if (l2Imbalance > 0.15) {
+                    // Bids holding a buy wall, high risk of fakeout rejection
+                    fakeoutProbability = Math.min(0.95, fakeoutProbability + 0.3);
+                }
+            }
+        }
+
+        // Adjust MS-GARCH volatility based on spread widening (highly critical for Forex during news/rollover)
+        if (bids.length > 0 && asks.length > 0) {
+            const spread = Math.max(0, asks[0][0] - bids[0][0]);
+            const avgSpreadHeuristic = currentPrice * 0.00015; // standard forex spread baseline ~1.5 pips
+            if (spread > avgSpreadHeuristic * 2.0) {
+                msGarchVol = (msGarchVol || 0.02) * 1.5; // Scale up volatility to handle tail risk
+            }
+        }
     }
 
     return { 
@@ -1214,7 +1271,7 @@ export function analyzeSMC(
     const liquidityBonus = (liquidityHeatmap.priceJustSweptSSL && trend === 'BULLISH') ||
         (liquidityHeatmap.priceJustSweptBSL && trend === 'BEARISH') ? 15 : 0;
 
-    const quantMath = calculateQuantMathematics(candles);
+    const quantMath = calculateQuantMathematics(candles, depth);
 
     // Mock news risk since no API is connected
     let newsRisk: 'HIGH' | 'MEDIUM' | 'LOW' | 'CLEAR' = 'CLEAR';
@@ -1362,7 +1419,7 @@ export function analyzeSMC(
     }
 
     // 5. Markov Chain Regime Engine
-    const markovRegime = calculateMarkovRegime(candles, 20);
+    const markovRegime = calculateMarkovRegime(candles, 20, depth);
     if (markovRegime && signalValid) {
         // Boost score if markov aligns with the setup
         if (explicitSignal === 'BUY' && markovRegime.signal === 'BUY' && quantMath.regimeProbability !== 'MEAN_REVERTING') {

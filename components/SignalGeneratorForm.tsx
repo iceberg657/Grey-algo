@@ -15,8 +15,38 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
                 return;
             }
             
+            const base64Data = dataUrl.split(',')[1];
+            if (!base64Data) {
+                reject(new Error("Failed to parse base64 data from file"));
+                return;
+            }
+
+            // Identify MIME Type
+            let mimeType = file.type || 'image/jpeg';
+            const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+            if (isHeic) {
+                mimeType = 'image/heic';
+            }
+
+            // If it's HEIC or HEIF, do not try to load into HTML5 Image (browsers don't support HEIC rendering natively),
+            // instead resolve with direct base64 immediately! This is extremely robust!
+            if (mimeType === 'image/heic' || mimeType === 'image/heif') {
+                resolve({ data: base64Data, mimeType });
+                return;
+            }
+
             const img = new Image();
+            
+            // Set a timeout of 1.5 seconds. If the image doesn't load/render in 1.5 seconds,
+            // resolve immediately with the raw base64 data instead of failing!
+            const timeoutId = setTimeout(() => {
+                img.onload = null;
+                img.onerror = null;
+                resolve({ data: base64Data, mimeType });
+            }, 1500);
+
             img.onload = () => {
+                clearTimeout(timeoutId);
                 try {
                     const canvas = document.createElement('canvas');
                     let width = img.width;
@@ -38,13 +68,7 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     if (!ctx) {
-                        // fallback to direct base64
-                        const data = dataUrl.split(',')[1];
-                        if (data) {
-                            resolve({ data, mimeType: file.type || 'image/jpeg' });
-                        } else {
-                            reject(new Error("Failed to get canvas context"));
-                        }
+                        resolve({ data: base64Data, mimeType });
                         return;
                     }
                     ctx.drawImage(img, 0, 0, width, height);
@@ -54,34 +78,17 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
                     const data = compressedDataUrl.split(',')[1];
                     
                     if (!data) {
-                        // fallback to direct base64
-                        const fbData = dataUrl.split(',')[1];
-                        if (fbData) {
-                            resolve({ data: fbData, mimeType: file.type || 'image/jpeg' });
-                        } else {
-                            reject(new Error("Invalid file format."));
-                        }
+                        resolve({ data: base64Data, mimeType });
                         return;
                     }
                     resolve({ data, mimeType: 'image/jpeg' });
                 } catch (err) {
-                    // fallback to direct base64
-                    const fbData = dataUrl.split(',')[1];
-                    if (fbData) {
-                        resolve({ data: fbData, mimeType: file.type || 'image/jpeg' });
-                    } else {
-                        reject(err);
-                    }
+                    resolve({ data: base64Data, mimeType });
                 }
             };
             img.onerror = () => {
-                // If image loading fails, try to fall back to direct base64 of the file
-                const fbData = dataUrl.split(',')[1];
-                if (fbData) {
-                    resolve({ data: fbData, mimeType: file.type || 'image/jpeg' });
-                } else {
-                    reject(new Error("Failed to load image and fallback failed"));
-                }
+                clearTimeout(timeoutId);
+                resolve({ data: base64Data, mimeType });
             };
             img.src = dataUrl;
         };

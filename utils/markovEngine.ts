@@ -19,7 +19,11 @@ export interface MarkovRegimeResult {
     confidence: number;
 }
 
-export const calculateMarkovRegime = (candles: OHLC[], period: number = 20): MarkovRegimeResult | null => {
+export const calculateMarkovRegime = (
+    candles: OHLC[], 
+    period: number = 20,
+    depth?: { bids: [number, number][], asks: [number, number][] } | null
+): MarkovRegimeResult | null => {
     if (!candles || candles.length < period * 2) return null;
 
     const returns: number[] = [];
@@ -71,14 +75,59 @@ export const calculateMarkovRegime = (candles: OHLC[], period: number = 20): Mar
         }
     };
 
+    const currentState = adaptiveStates[adaptiveStates.length - 1];
+
+    // --- REAL-TIME L2 ORDERBOOK DEPT SKEWING FOR FOREX PAIRS ---
+    if (depth && (depth.bids?.length || depth.asks?.length)) {
+        const bids = depth.bids || [];
+        const asks = depth.asks || [];
+        const totalBids = bids.reduce((sum, b) => sum + (b[1] || 0), 0);
+        const totalAsks = asks.reduce((sum, a) => sum + (a[1] || 0), 0);
+        const totalL2Depth = totalBids + totalAsks;
+        if (totalL2Depth > 0) {
+            const l2Imbalance = totalBids / (totalAsks || 1);
+            const skewFactor = Math.min(0.15, Math.abs(Math.log(l2Imbalance)) * 0.08); // Precision Forex weighting
+            
+            if (l2Imbalance > 1.1) {
+                // Bull transitions are more likely; bear transitions are less likely
+                transitionMatrix.BULL.BULL = Math.min(0.95, transitionMatrix.BULL.BULL + skewFactor);
+                transitionMatrix.BEAR.BULL = Math.min(0.95, transitionMatrix.BEAR.BULL + skewFactor);
+                transitionMatrix.SIDEWAYS.BULL = Math.min(0.95, transitionMatrix.SIDEWAYS.BULL + skewFactor);
+                
+                transitionMatrix.BULL.BEAR = Math.max(0.01, transitionMatrix.BULL.BEAR - skewFactor);
+                transitionMatrix.BEAR.BEAR = Math.max(0.01, transitionMatrix.BEAR.BEAR - skewFactor);
+                transitionMatrix.SIDEWAYS.BEAR = Math.max(0.01, transitionMatrix.SIDEWAYS.BEAR - skewFactor);
+            } else if (l2Imbalance < 0.9) {
+                // Bear transitions are more likely; bull transitions are less likely
+                transitionMatrix.BULL.BEAR = Math.min(0.95, transitionMatrix.BULL.BEAR + skewFactor);
+                transitionMatrix.BEAR.BEAR = Math.min(0.95, transitionMatrix.BEAR.BEAR + skewFactor);
+                transitionMatrix.SIDEWAYS.BEAR = Math.min(0.95, transitionMatrix.SIDEWAYS.BEAR + skewFactor);
+                
+                transitionMatrix.BULL.BULL = Math.max(0.01, transitionMatrix.BULL.BULL - skewFactor);
+                transitionMatrix.BEAR.BULL = Math.max(0.01, transitionMatrix.BEAR.BULL - skewFactor);
+                transitionMatrix.SIDEWAYS.BULL = Math.max(0.01, transitionMatrix.SIDEWAYS.BULL - skewFactor);
+            }
+            
+            // Re-normalize rows to ensure transition probabilities sum to 1
+            const states: MarkovState[] = ['BULL', 'BEAR', 'SIDEWAYS'];
+            for (const rowState of states) {
+                const row = transitionMatrix[rowState];
+                const sum = row.BULL + row.BEAR + row.SIDEWAYS;
+                if (sum > 0) {
+                    row.BULL = row.BULL / sum;
+                    row.BEAR = row.BEAR / sum;
+                    row.SIDEWAYS = row.SIDEWAYS / sum;
+                }
+            }
+        }
+    }
+
     // 3. Stickiness (Persistence)
     const persistence = {
         BULL: transitionMatrix.BULL.BULL,
         BEAR: transitionMatrix.BEAR.BEAR,
         SIDEWAYS: transitionMatrix.SIDEWAYS.SIDEWAYS
     };
-
-    const currentState = adaptiveStates[adaptiveStates.length - 1];
 
     // 4. Current Probabilities
     const currentProbabilities = {

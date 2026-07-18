@@ -669,7 +669,11 @@ export class SingleAssetRegimeEngine {
         this.lookback = lookbackBars;
     }
 
-    public evaluate(series: MarketSeries, newsSentiment: number): Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } {
+    public evaluate(
+        series: MarketSeries, 
+        newsSentiment: number,
+        depth?: { bids: [number, number][], asks: [number, number][] } | null
+    ): Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } {
         const data = QuantMath.extractArrays(series);
         const t = data.closes.length - 1;
         const breakdown: string[] = [];
@@ -722,7 +726,48 @@ export class SingleAssetRegimeEngine {
         }
         
         let sessionTiming = 15;
-        const totalScore = globalTrend + smcStructure + volumeProfile + newsSentiment + sessionTiming;
+        
+        let l2Bonus = 0;
+        let l2Notes = '';
+        if (depth && (depth.bids?.length || depth.asks?.length)) {
+            const bids = depth.bids || [];
+            const asks = depth.asks || [];
+            const totalBids = bids.reduce((sum, b) => sum + (b[1] || 0), 0);
+            const totalAsks = asks.reduce((sum, a) => sum + (a[1] || 0), 0);
+            const totalDepth = totalBids + totalAsks;
+            if (totalDepth > 0) {
+                const l2Imbalance = (totalBids - totalAsks) / totalDepth; // -1 to +1
+                const imbalancePercent = l2Imbalance * 100;
+                
+                if (trendDir === 'BUY') {
+                    if (l2Imbalance > 0.15) {
+                        l2Bonus = 15;
+                        l2Notes = `L2 ORDERBOOK CONFLUENCE: Bids dominate asks by ${imbalancePercent.toFixed(1)}%. Real-time support confirms institutional buying volume (+15).`;
+                    } else if (l2Imbalance < -0.15) {
+                        l2Bonus = -15;
+                        l2Notes = `L2 ORDERBOOK CONFLICT: Asks dominate bids by ${Math.abs(imbalancePercent).toFixed(1)}%. Strong selling walls indicate structural exhaustion (-15).`;
+                    } else {
+                        l2Notes = `L2 ORDERBOOK BALANCED: No dominant side.`;
+                    }
+                } else if (trendDir === 'SELL') {
+                    if (l2Imbalance < -0.15) {
+                        l2Bonus = 15;
+                        l2Notes = `L2 ORDERBOOK CONFLUENCE: Asks dominate bids by ${Math.abs(imbalancePercent).toFixed(1)}%. Real-time resistance confirms institutional selling volume (+15).`;
+                    } else if (l2Imbalance > 0.15) {
+                        l2Bonus = -15;
+                        l2Notes = `L2 ORDERBOOK CONFLICT: Bids dominate asks by ${imbalancePercent.toFixed(1)}%. Strong buying walls indicate short-covering exhaustion (-15).`;
+                    } else {
+                        l2Notes = `L2 ORDERBOOK BALANCED: No dominant side.`;
+                    }
+                }
+            }
+        }
+
+        const rawScore = globalTrend + smcStructure + volumeProfile + newsSentiment + sessionTiming;
+        const totalScore = Math.max(0, Math.min(100, rawScore + l2Bonus));
+        if (l2Notes) {
+            breakdown.push(l2Notes);
+        }
         
         let grade: StrategyTier = 'NO TRADE';
         let suggestedRiskPercent = 0;
@@ -737,7 +782,11 @@ export class SingleAssetRegimeEngine {
 }
 
 export class SingleAssetMomentumEngine {
-    public evaluate(series: MarketSeries, newsSentiment: number): Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } {
+    public evaluate(
+        series: MarketSeries, 
+        newsSentiment: number,
+        depth?: { bids: [number, number][], asks: [number, number][] } | null
+    ): Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } {
         const data = QuantMath.extractArrays(series);
         const t = data.closes.length - 1;
         const breakdown: string[] = [];
@@ -772,7 +821,44 @@ export class SingleAssetMomentumEngine {
         
         const volumeProfile = 15;
         const sessionTiming = 15;
-        const totalScore = globalTrend + smcStructure + volumeProfile + newsSentiment + sessionTiming;
+        
+        let l2Bonus = 0;
+        let l2Notes = '';
+        if (depth && (depth.bids?.length || depth.asks?.length)) {
+            const bids = depth.bids || [];
+            const asks = depth.asks || [];
+            const totalBids = bids.reduce((sum, b) => sum + (b[1] || 0), 0);
+            const totalAsks = asks.reduce((sum, a) => sum + (a[1] || 0), 0);
+            const totalDepth = totalBids + totalAsks;
+            if (totalDepth > 0) {
+                const l2Imbalance = (totalBids - totalAsks) / totalDepth; // -1 to +1
+                const imbalancePercent = l2Imbalance * 100;
+                
+                if (direction === 'BUY') {
+                    if (l2Imbalance > 0.15) {
+                        l2Bonus = 15;
+                        l2Notes = `L2 ORDERBOOK CONFLUENCE: Bids dominate asks by ${imbalancePercent.toFixed(1)}%. Bullish momentum verified with high-fidelity depth support (+15).`;
+                    } else if (l2Imbalance < -0.15) {
+                        l2Bonus = -20;
+                        l2Notes = `L2 ORDERBOOK CONFLICT: Asks dominate bids by ${Math.abs(imbalancePercent).toFixed(1)}%. Fakeout alert - momentum lacks actual depth backing (-20).`;
+                    }
+                } else if (direction === 'SELL') {
+                    if (l2Imbalance < -0.15) {
+                        l2Bonus = 15;
+                        l2Notes = `L2 ORDERBOOK CONFLUENCE: Asks dominate bids by ${Math.abs(imbalancePercent).toFixed(1)}%. Bearish momentum verified with high-fidelity depth resistance (+15).`;
+                    } else if (l2Imbalance > 0.15) {
+                        l2Bonus = -20;
+                        l2Notes = `L2 ORDERBOOK CONFLICT: Bids dominate asks by ${imbalancePercent.toFixed(1)}%. Fakeout alert - momentum lacks actual depth backing (-20).`;
+                    }
+                }
+            }
+        }
+
+        const rawScore = globalTrend + smcStructure + volumeProfile + newsSentiment + sessionTiming;
+        const totalScore = Math.max(0, Math.min(100, rawScore + l2Bonus));
+        if (l2Notes) {
+            breakdown.push(l2Notes);
+        }
         
         let grade: StrategyTier = 'NO TRADE';
         let suggestedRiskPercent = 0;
@@ -818,7 +904,8 @@ export class QuantEnginePipeline {
         dataB: MarketSeries,
         dataC: MarketSeries,
         newsSentimentScore: number,
-        accountBalance: number
+        accountBalance: number,
+        depth?: { bids: [number, number][], asks: [number, number][] } | null
     ): TieredSignal | null {
         
         let score: Partial<WeightedScore> & { direction?: 'BUY' | 'SELL' } = { grade: 'NO TRADE' };
@@ -895,7 +982,7 @@ export class QuantEnginePipeline {
                 
             case 'SINGLE_ASSET_REGIME':
                 const regimeEngine = new SingleAssetRegimeEngine();
-                score = regimeEngine.evaluate(dataA, newsSentimentScore);
+                score = regimeEngine.evaluate(dataA, newsSentimentScore, depth);
                 signalDirection = score.direction || 'BUY';
                 entryPrice = arraysA.closes[tA];
                 stopLossPrice = setStopLoss(signalDirection, entryPrice, atrA);
@@ -903,7 +990,7 @@ export class QuantEnginePipeline {
                 
             case 'SINGLE_ASSET_MOMENTUM':
                 const momentumEngine = new SingleAssetMomentumEngine();
-                score = momentumEngine.evaluate(dataA, newsSentimentScore);
+                score = momentumEngine.evaluate(dataA, newsSentimentScore, depth);
                 signalDirection = score.direction || 'BUY';
                 entryPrice = arraysA.closes[tA];
                 stopLossPrice = setStopLoss(signalDirection, entryPrice, atrA);

@@ -751,7 +751,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                       const sig = pipeline.processLiveExecution(
                           strategy as any, mSeries, mSeries, mSeries,
                           granularity / 60, // period parameter if applicable
-                          userSettings?.autotrade?.maxRiskPerTrade || 10000
+                          userSettings?.autotrade?.maxRiskPerTrade || 10000,
+                          ctraderDepthRef.current
                       );
                       if (sig && sig.signal !== 'NEUTRAL') {
                           signals.push({ strategy, ...sig });
