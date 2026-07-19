@@ -1094,7 +1094,10 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
   );
 
   return (
-    <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-800 dark:text-slate-200 font-sans selection:bg-emerald-500/30 transition-colors duration-300 backdrop-blur-xl">
+    <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-800 dark:text-slate-200 font-sans selection:bg-emerald-500/30 transition-colors duration-300 backdrop-blur-xl relative overflow-hidden">
+      {/* Ambient Background Auras */}
+      <div className="live-broadcast-aura top-[-100px] left-[-50px] opacity-70" />
+      <div className="live-broadcast-aura bottom-[100px] right-[-100px] opacity-40" />
       {/* Header */}
       <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 px-4 py-3 transition-colors duration-300">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -1256,7 +1259,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 )}
               </AnimatePresence>
 
-              <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
+              <div className="grid grid-cols-3 gap-2 premium-glass-card p-1 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
                 {tradingStyles.map((s) => (
                   <button
                     key={s.id}
@@ -1283,7 +1286,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                   animate={{ opacity: 1, y: 0 }}
                   className="flex flex-col items-center justify-center py-20 text-center"
                 >
-                  <div className="w-20 h-20 bg-white dark:bg-slate-900 rounded-3xl flex items-center justify-center mb-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+                  <div className="w-20 h-20 premium-glass-card rounded-3xl flex items-center justify-center mb-6 border border-slate-200 dark:border-slate-800 shadow-sm">
                     <Activity className="w-10 h-10 text-slate-300 dark:text-slate-700" />
                   </div>
                   <h2 className="text-xl font-bold text-slate-400 mb-2">Neural Link Ready</h2>
@@ -1840,7 +1843,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
           <div className="max-w-4xl mx-auto">
             {/* Streaming Protocol Selection Control */}
             <div className="flex flex-col items-center gap-1.5 mb-4">
-              <div className="bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-1 flex gap-1 shadow-md backdrop-blur-md">
+              <div className="bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-1 flex gap-1 shadow-md premium-glass-card">
                 <button
                   type="button"
                   onClick={() => handleStreamingModeChange('Standard')}
@@ -1890,7 +1893,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Asset + Broker Price (e.g. US30 @ 39550 or EURUSD)"
-                className="w-full bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 backdrop-blur-xl shadow-xl dark:shadow-none text-slate-900 dark:text-slate-100"
+                className="w-full premium-glass-card border border-slate-200 dark:border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 shadow-xl dark:shadow-none text-slate-900 dark:text-slate-100"
                 disabled={isAnalyzing}
               />
               <button

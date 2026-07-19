@@ -349,11 +349,11 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
 
   const getBadgeColor = (score: number) => {
     if (score >= 3) {
-      return 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30';
+      return 'badge-emerald';
     } else if (score === 2) {
-      return 'bg-amber-500/15 text-amber-500 border-amber-500/30';
+      return 'badge-amber';
     } else {
-      return 'bg-rose-500/15 text-rose-500 border-rose-500/30';
+      return 'badge-red';
     }
   };
 
@@ -364,7 +364,7 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
   };
 
   return (
-    <div className="bg-white dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/80 rounded-[2.5rem] p-6 shadow-xl relative overflow-hidden transition-all duration-300 backdrop-blur-xl">
+    <div className="premium-glass-card border border-slate-200 dark:border-slate-800/80 rounded-[2.5rem] p-6 shadow-xl relative overflow-hidden transition-all duration-300">
       {/* Locked overlay if not granted */}
       {!isAdvancedStreamingGranted && (
         <div className="absolute inset-0 bg-[#070a13]/85 backdrop-blur-md z-40 flex flex-col items-center justify-center p-8 text-center">
@@ -485,10 +485,10 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
                 <button
                   key={asset}
                   onClick={() => setSelectedAsset(asset)}
-                  className={`p-4 rounded-3xl border text-left flex flex-col justify-between transition-all relative overflow-hidden group ${
+                  className={`p-4 rounded-3xl border text-left flex flex-col justify-between transition-all relative overflow-hidden group notification-card ${
                     isSelected 
-                      ? 'bg-slate-50 dark:bg-slate-850 border-indigo-500/50 shadow-md dark:shadow-indigo-500/5' 
-                      : 'bg-white dark:bg-slate-900/30 border-slate-150 dark:border-slate-850 hover:bg-slate-50 dark:hover:bg-slate-850/40 hover:border-slate-300 dark:hover:border-slate-800'
+                      ? 'border-indigo-500/50 shadow-md dark:shadow-indigo-500/5' 
+                      : 'border-slate-150 dark:border-slate-850 hover:border-slate-300 dark:hover:border-slate-800'
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2 w-full mb-2">
@@ -531,7 +531,7 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
             })}
           </div>
 
-          <div className="p-3.5 bg-indigo-500/5 border border-indigo-500/10 rounded-2xl flex items-center gap-3">
+          <div className="p-3.5 info-banner border border-indigo-500/10 rounded-2xl flex items-center gap-3">
             <Shield size={16} className="text-indigo-500 flex-shrink-0" />
             <p className="text-[10px] text-slate-500 dark:text-slate-400 leading-relaxed">
               <strong>Scoping Threshold:</strong> Red background indicates highly risky conditions. Wait for at least 3 checklist items to form.
@@ -540,7 +540,7 @@ export const PremiumConfluenceSuite: React.FC<PremiumConfluenceSuiteProps> = ({
         </div>
 
         {/* Dynamic Checklist & L2 Imbalance Scanner (Right 7 Columns) */}
-        <div className="lg:col-span-7 bg-slate-50/50 dark:bg-slate-900/20 border border-slate-200/50 dark:border-slate-850 p-6 rounded-[2rem] flex flex-col justify-between">
+        <div className="lg:col-span-7 active-poi-monitor border border-slate-200/50 dark:border-slate-850 p-6 rounded-[2rem] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-850 pb-4 mb-4">
               <div>

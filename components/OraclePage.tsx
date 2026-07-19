@@ -506,6 +506,10 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
             <NeuralBackground />
           </div>
           
+          {/* Ambient Background Auras */}
+          <div className="live-broadcast-aura top-[-100px] left-[-50px] opacity-70" />
+          <div className="live-broadcast-aura bottom-[100px] right-[-100px] opacity-40" />
+          
           {/* Glowing Edge Effect */}
           <AnimatePresence>
             {isActive && (
@@ -536,7 +540,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
           <div className="relative z-10 flex-grow flex flex-col items-center justify-center max-w-4xl mx-auto w-full">
             
             {!isActive ? (
-              <div className="flex flex-col items-center gap-8 bg-white/40 dark:bg-black/50 p-10 rounded-3xl border border-slate-200 dark:border-white/10 backdrop-blur-xl shadow-2xl dark:shadow-none">
+              <div className="flex flex-col items-center gap-8 premium-glass-card p-10 rounded-3xl border border-slate-200 dark:border-white/10 shadow-2xl">
                 <div className="w-64 h-64 rounded-full border-2 border-slate-200 dark:border-white/10 flex items-center justify-center relative bg-white/50 dark:bg-slate-900/50 backdrop-blur-sm">
                   <div className="absolute inset-0 rounded-full border border-blue-500/20 blur-sm" />
                   <div className="text-center p-6">
@@ -608,7 +612,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                 </div>
 
                 {/* Transcription Feed */}
-                <div className="w-full max-w-2xl bg-white/60 dark:bg-black/40 border border-blue-500/20 dark:border-blue-500/30 p-6 rounded-[32px] backdrop-blur-xl max-h-64 overflow-y-auto shadow-xl dark:shadow-none">
+                <div className="w-full max-w-2xl premium-glass-card border border-blue-500/20 dark:border-blue-500/30 p-6 rounded-[32px] max-h-64 overflow-y-auto shadow-xl">
                   <h3 className="text-[10px] tracking-widest text-blue-600 dark:text-blue-400 uppercase font-black mb-4">Neural Data Stream</h3>
                   {modelMessage ? (
                     <p className="font-mono text-sm leading-relaxed text-slate-700 dark:text-slate-300">
@@ -623,7 +627,7 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                 </div>
 
                 {/* Text/Mic Controls */}
-                <div className="flex items-center gap-4 bg-white/80 dark:bg-slate-900/80 p-2 rounded-full border border-slate-200 dark:border-blue-500/30 shadow-2xl dark:shadow-none">
+                <div className="flex items-center gap-4 premium-glass-card p-2 rounded-full border border-slate-200 dark:border-blue-500/30 shadow-2xl">
                   <button 
                       onClick={() => setInputModeWithRef(inputMode === 'voice' ? 'text' : 'voice')}
                       className={`p-3 rounded-full transition-all duration-300 ${inputMode === 'text' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-900 dark:hover:text-white'}`}

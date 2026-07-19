@@ -409,7 +409,10 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
     };
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white font-sans transition-colors duration-300 pb-20">
+        <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-white font-sans transition-colors duration-300 pb-20 relative overflow-hidden">
+            {/* Ambient Background Auras */}
+            <div className="live-broadcast-aura top-[-100px] left-[-50px] opacity-70" />
+            <div className="live-broadcast-aura bottom-[100px] right-[-100px] opacity-40" />
             <header className="sticky top-0 z-40 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
                 <div className="max-w-6xl mx-auto px-4 min-h-16 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -462,9 +465,9 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                 </div>
 
                 {activeTab === 'config' && (
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10">
                         {/* Config Panel */}
-                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
+                        <div className="premium-glass-card border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
                             <div className="flex items-center justify-between mb-8">
                                 <h3 className="font-bold text-lg">System Parameters</h3>
                                 <label className="relative inline-flex items-center cursor-pointer">
@@ -645,7 +648,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
 
                         {/* Summary / Stats */}
                         <div>
-                            <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-3xl p-6 mb-6">
+                            <div className="info-banner border border-emerald-500/20 rounded-3xl p-6 mb-6">
                                 <div className="flex items-center justify-between mb-2">
                                     <h4 className="font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2">
                                         <Target size={18} /> System Ready
@@ -719,19 +722,19 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                     initial={{ opacity: 0, y: 10 }}
                                     animate={{ opacity: 1, y: 0 }}
                                     key={notif.id} 
-                                    className={`p-6 rounded-3xl border ${
+                                    className={`p-6 rounded-3xl border notification-card relative z-10 ${
                                         notif.status === 'ACTIVE' 
-                                            ? 'bg-emerald-500/5 border-emerald-500/30 shadow-lg shadow-emerald-500/5' 
+                                            ? 'border-emerald-500/30 shadow-lg shadow-emerald-500/5' 
                                             : notif.status === 'MISSED'
-                                            ? 'bg-rose-500/5 border-rose-500/20 opacity-70'
-                                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 opacity-80'
+                                            ? 'border-rose-500/20 opacity-70'
+                                            : 'border-slate-200 dark:border-slate-800 opacity-80'
                                     }`}
                                 >
                                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
                                         <div>
                                             <div className="flex items-center gap-3 mb-2 flex-wrap">
                                                 <span className={`text-xs font-black uppercase tracking-widest px-3 py-1 rounded-full border ${
-                                                    notif.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'
+                                                    notif.direction === 'BUY' ? 'badge-emerald' : 'badge-red'
                                                 }`}>
                                                     {notif.direction}
                                                 </span>
@@ -739,7 +742,7 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                                 <span className="text-slate-400">•</span>
                                                 <span className="text-sm font-bold text-slate-500">{notif.timeframe}</span>
                                                 <span className="text-slate-400">•</span>
-                                                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                                <span className="text-[10px] font-black uppercase tracking-widest px-2.5 py-0.5 rounded-md border badge-indigo">
                                                     {notif.executionType || 'Market Execution'}
                                                 </span>
                                             </div>
@@ -753,9 +756,9 @@ export const TradeNotificationPage: React.FC<TradeNotificationPageProps> = ({ on
                                         
                                         <div className="flex items-center gap-3">
                                             <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${
-                                                notif.status === 'ACTIVE' ? 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20 animate-pulse' :
-                                                notif.status === 'MISSED' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
-                                                'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                                                notif.status === 'ACTIVE' ? 'badge-amber animate-pulse' :
+                                                notif.status === 'MISSED' ? 'badge-red' :
+                                                'badge-indigo'
                                             }`}>
                                                 {notif.status}
                                             </div>

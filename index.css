@@ -476,3 +476,84 @@ body.dark nav {
         stroke-dashoffset: 0;
     }
 }
+
+/* ==========================================
+   iOS 27 BETA LIQUID GLASS & AMBIENT AURA
+   ========================================== */
+
+/* Translucent Smoked Glass Plates for Cards, Panels, and Banners */
+.notification-card, .info-banner, .active-poi-monitor, .premium-glass-card {
+    backdrop-filter: blur(14px) saturate(180%) !important;
+    -webkit-backdrop-filter: blur(14px) saturate(180%) !important;
+    transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+body:not(.dark) .notification-card, 
+body:not(.dark) .info-banner, 
+body:not(.dark) .active-poi-monitor,
+body:not(.dark) .premium-glass-card {
+    background: rgba(255, 255, 255, 0.45) !important;
+    border: 1px solid rgba(15, 23, 42, 0.06) !important;
+    box-shadow: 
+        0 10px 30px -5px rgba(15, 23, 42, 0.04),
+        inset 0 1px 1px 0 rgba(255, 255, 255, 0.75) !important;
+}
+
+body.dark .notification-card, 
+body.dark .info-banner, 
+body.dark .active-poi-monitor,
+body.dark .premium-glass-card {
+    background: rgba(15, 23, 42, 0.45) !important;
+    border: 1px solid rgba(255, 255, 255, 0.06) !important;
+    box-shadow: 
+        0 20px 50px -15px rgba(0, 0, 0, 0.5),
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Glowing, Colored Gem Badge Overlays (Subtle, High Contrast) */
+.badge-red, .premium-badge-red {
+    background: rgba(239, 68, 68, 0.15) !important;
+    border: 1px solid rgba(239, 68, 68, 0.3) !important;
+    color: #f87171 !important;
+    text-shadow: 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+.badge-amber, .premium-badge-amber {
+    background: rgba(245, 158, 11, 0.15) !important;
+    border: 1px solid rgba(245, 158, 11, 0.3) !important;
+    color: #fbbf24 !important;
+    text-shadow: 0 0 8px rgba(245, 158, 11, 0.2);
+}
+
+.badge-emerald, .premium-badge-emerald {
+    background: rgba(16, 185, 129, 0.15) !important;
+    border: 1px solid rgba(16, 185, 129, 0.3) !important;
+    color: #34d399 !important;
+    text-shadow: 0 0 8px rgba(16, 185, 129, 0.2);
+}
+
+.badge-indigo, .premium-badge-indigo {
+    background: rgba(99, 102, 241, 0.15) !important;
+    border: 1px solid rgba(99, 102, 241, 0.3) !important;
+    color: #818cf8 !important;
+    text-shadow: 0 0 8px rgba(99, 102, 241, 0.2);
+}
+
+/* Live Broadcast Ambient Background Aura */
+.live-broadcast-aura {
+    position: absolute;
+    width: 450px;
+    height: 450px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, rgba(99, 102, 241, 0.08) 45%, rgba(139, 92, 246, 0.02) 70%, transparent 100%);
+    filter: blur(80px);
+    pointer-events: none;
+    z-index: 0;
+    animation: float-broadcast 16s ease-in-out infinite alternate;
+}
+
+@keyframes float-broadcast {
+    0% { transform: translate(-20px, -20px) scale(1) rotate(0deg); }
+    50% { transform: translate(40px, 30px) scale(1.1) rotate(180deg); }
+    100% { transform: translate(-10px, 50px) scale(0.95) rotate(360deg); }
+}

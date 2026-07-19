@@ -612,6 +612,10 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
         <div className="h-[100dvh] bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-200 font-sans flex flex-col relative overflow-hidden">
             <NeuralBackground />
             
+            {/* Ambient Background Auras */}
+            <div className="live-broadcast-aura top-[-100px] left-[-50px] opacity-70" />
+            <div className="live-broadcast-aura bottom-[100px] right-[-100px] opacity-40" />
+            
             <AnimatePresence>
                 {isLocked && (
                     <motion.div 
@@ -800,7 +804,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     <div className="w-full pointer-events-auto relative group">
                         <form 
                             onSubmit={handleSendMessage} 
-                            className={`relative flex items-center bg-white dark:bg-slate-900 rounded-[28px] border border-slate-200 dark:border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.1)] focus-within:border-emerald-500/50 focus-within:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all duration-500 p-1.5 ${retrySeconds > 0 ? 'opacity-50 grayscale' : ''}`}
+                            className={`relative flex items-center premium-glass-card rounded-[28px] border border-slate-200 dark:border-white/5 shadow-[0_10px_40px_rgba(0,0,0,0.1)] focus-within:border-emerald-500/50 focus-within:shadow-[0_0_30px_rgba(16,185,129,0.1)] transition-all duration-500 p-1.5 ${retrySeconds > 0 ? 'opacity-50 grayscale' : ''}`}
                         >
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" multiple onChange={handleFileChange} />
                             
