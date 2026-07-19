@@ -76,10 +76,10 @@ const NavButton: React.FC<{
         transition={{ delay: index * 0.03, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
         onClick={onClick}
         aria-label={ariaLabel}
-        className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-3xl transition-all duration-500 border backdrop-blur-3xl hover:-translate-y-1 hover:scale-105 active:scale-95 shadow-xl premium-glass-card ${
+        className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-3xl transition-all duration-500 border backdrop-blur-3xl hover:-translate-y-1 hover:scale-105 active:scale-95 shadow-xl ${
             highlight 
                 ? 'bg-emerald-500/80 text-white border-emerald-400/50 hover:bg-emerald-500/90 shadow-emerald-500/30' 
-                : 'text-slate-600 dark:text-slate-300 border-white/40 dark:border-white/10 hover:bg-white/80 dark:hover:bg-slate-700/60 hover:text-emerald-500 dark:hover:text-emerald-400'
+                : 'text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-slate-800/50 border-white/40 dark:border-white/10 hover:bg-white/80 dark:hover:bg-slate-700/60 hover:text-emerald-500 dark:hover:text-emerald-400'
         }`}
     >
         {isLocked && (
@@ -540,12 +540,8 @@ export const HomePage: React.FC<HomePageProps> = ({
     ];
 
     return (
-        <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-800 dark:text-slate-200 font-sans flex flex-col transition-colors duration-500 pb-20 overflow-x-hidden backdrop-blur-xl relative">
+        <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-800 dark:text-slate-200 font-sans flex flex-col transition-colors duration-500 pb-20 overflow-x-hidden backdrop-blur-xl">
             <PacificTimeClock />
-            
-            {/* Ambient Background Auras */}
-            <div className="live-broadcast-aura top-[-100px] left-[-50px] opacity-70" />
-            <div className="live-broadcast-aura bottom-[100px] right-[-100px] opacity-40" />
             
             {/* Broadcast Banner */}
             <AnimatePresence>
@@ -672,7 +668,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Signals Scanner</span>
                         </div>
 
-                        <div className="premium-glass-card p-6 sm:p-8 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
+                        <div className="bg-white dark:bg-slate-950 p-6 sm:p-8 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-30" />
                             
                             <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
@@ -768,7 +764,7 @@ export const HomePage: React.FC<HomePageProps> = ({
                             <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Analysis Core</span>
                         </div>
 
-                        <div className="premium-glass-card p-6 sm:p-10 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
+                        <div className="bg-white dark:bg-slate-950 p-6 sm:p-10 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
                              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-30" />
                              
                             {error ? (

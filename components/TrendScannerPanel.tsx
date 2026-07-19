@@ -665,7 +665,7 @@ Be objective, authoritative, and direct. Do not include any standard financial d
         <div className="w-full flex flex-col gap-6">
             
             {/* Control Hub Banner */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 premium-glass-card p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-50 dark:bg-slate-900/40 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800">
                 <div className="flex flex-col gap-1.5 w-full md:w-auto">
                     <h3 className="font-black text-sm uppercase tracking-widest text-slate-900 dark:text-white flex items-center gap-2">
                         <Cpu className="text-emerald-500 animate-pulse" size={18} /> Deriv Live Trend Scanner
@@ -725,7 +725,7 @@ Be objective, authoritative, and direct. Do not include any standard financial d
             <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
                 
                 {/* Left Side: Asset Browser (35% on Desktop) */}
-                <div className="xl:col-span-4 flex flex-col gap-4 premium-glass-card p-5 rounded-3xl border border-slate-200/60 dark:border-slate-800">
+                <div className="xl:col-span-4 flex flex-col gap-4 bg-white dark:bg-slate-900/40 p-5 rounded-3xl border border-slate-200/60 dark:border-slate-800">
                     <div className="relative">
                         <input
                             type="text"
@@ -809,7 +809,7 @@ Be objective, authoritative, and direct. Do not include any standard financial d
                         <div className="flex flex-col gap-6">
                             
                             {/* Big Stats Ribbon */}
-                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 premium-glass-card p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800">
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 bg-white dark:bg-slate-900/40 p-6 rounded-3xl border border-slate-200/60 dark:border-slate-800">
                                 <div className="flex flex-col gap-1.5">
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Current Quote</span>
                                     <span className="font-mono text-xl font-black text-slate-950 dark:text-white">
@@ -897,7 +897,7 @@ Be objective, authoritative, and direct. Do not include any standard financial d
                             {/* Indicators Bento Grid */}
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Core Technical Matrix */}
-                                <div className="premium-glass-card border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 flex flex-col gap-4">
+                                <div className="bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 flex flex-col gap-4">
                                     <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-850 pb-2">
                                         Quantitative Signposts
                                     </h4>
@@ -937,7 +937,7 @@ Be objective, authoritative, and direct. Do not include any standard financial d
                                 </div>
 
                                 {/* RSI Gauge Detail */}
-                                <div className="premium-glass-card border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 flex flex-col justify-between gap-4">
+                                <div className="bg-white dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800 rounded-3xl p-6 flex flex-col justify-between gap-4">
                                     <div>
                                         <h4 className="text-xs font-black uppercase tracking-widest text-slate-400 border-b border-slate-100 dark:border-slate-850 pb-2 mb-4">
                                             Relative Strength momentum
@@ -980,7 +980,7 @@ Be objective, authoritative, and direct. Do not include any standard financial d
                             </div>
 
                             {/* Advisor AI block */}
-                            <div className="active-poi-monitor text-white rounded-3xl p-6 border border-slate-850 flex flex-col gap-4 relative overflow-hidden">
+                            <div className="bg-slate-950 text-white rounded-3xl p-6 border border-slate-850 flex flex-col gap-4 relative overflow-hidden">
                                 <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
                                 <div className="absolute -left-20 -top-20 w-80 h-80 bg-blue-500/5 rounded-full blur-3xl pointer-events-none" />
 
@@ -1076,7 +1076,7 @@ Be objective, authoritative, and direct. Do not include any standard financial d
 
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-20 premium-glass-card rounded-3xl border border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500 italic gap-3">
+                        <div className="flex flex-col items-center justify-center py-20 bg-white dark:bg-slate-900/40 rounded-3xl border border-slate-200/60 dark:border-slate-800 text-slate-400 dark:text-slate-500 italic gap-3">
                             <Activity className="animate-pulse" size={32} />
                             <span>Scan asset from the sidebar to visualize historical data, plot mathematical indicators, and formulate tactical institutional advice.</span>
                         </div>
