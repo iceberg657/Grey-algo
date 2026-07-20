@@ -10,10 +10,11 @@ export default async function handler(req: Request, res: Response) {
   
   const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
-  // Prioritize client key
-  const apiKey = (isValid(clientApiKey)) 
-    ? clientApiKey.trim() 
-    : (process.env.API_KEY_3 || process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY)?.trim();
+  // Prioritize API_KEY_10 (as requested for the AI Analyst) and GEMINI_API_KEY_10, then fallback to client key or standard GEMINI_API_KEY
+  const apiKey = (process.env.API_KEY_10 || process.env.GEMINI_API_KEY_10)?.trim() || 
+    ((isValid(clientApiKey)) 
+      ? clientApiKey.trim() 
+      : (process.env.API_KEY_3 || process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY)?.trim());
   
   if (!apiKey || apiKey.length < 5) {
     console.error('[AntigravityProxy] No valid API key found.');

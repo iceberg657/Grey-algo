@@ -7,12 +7,15 @@ export default async function handler(req: Request, res: Response) {
 
   const { model, contents, config, apiKey: clientApiKey } = req.body;
   
+  const cleanModel = typeof model === 'string' ? model.replace(/^models\//, '') : 'gemini-2.5-flash';
+  
   const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
-  // Prioritize client key (rotated by frontend), fallback to standard GEMINI_API_KEY, then others
-  const apiKey = (isValid(clientApiKey)) 
-    ? clientApiKey.trim() 
-    : (process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY)?.trim();
+  // Prioritize API_KEY_10 (as requested for the AI Analyst) and GEMINI_API_KEY_10, then fallback to client key or standard GEMINI_API_KEY
+  const apiKey = (process.env.API_KEY_10 || process.env.GEMINI_API_KEY_10)?.trim() || 
+    ((isValid(clientApiKey)) 
+      ? clientApiKey.trim() 
+      : (process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY)?.trim());
   
   if (!apiKey || apiKey.length < 5) {
     console.error('[GeminiProxy] No valid API key found. Checked client key and environment variables.');
@@ -20,7 +23,7 @@ export default async function handler(req: Request, res: Response) {
   }
 
   try {
-    console.log(`[GeminiProxy] Analyzing with model: ${model}...`);
+    console.log(`[GeminiProxy] Analyzing with model: ${cleanModel}...`);
     
     // Extract root-level properties from config
     const { tools, systemInstruction, ...generationConfig } = config || {};
@@ -36,7 +39,7 @@ export default async function handler(req: Request, res: Response) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 120000);
 
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
