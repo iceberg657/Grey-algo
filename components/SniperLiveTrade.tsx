@@ -21,7 +21,9 @@ import {
   Trash2,
   User,
   Bot,
-  ChevronDown
+  ChevronDown,
+  Bell,
+  BellOff
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
 import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal } from '../services/geminiService';
@@ -153,6 +155,85 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
   const [ctraderConnectionError, setCTraderConnectionError] = useState<string | null>(null);
   const ctraderDepthRef = React.useRef<{ bids: [number, number][], asks: [number, number][] } | null>(null);
+  
+  const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
+    typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
+  );
+  const notifiedMsgIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      setNotificationPermission(Notification.permission);
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().then((permission) => {
+          setNotificationPermission(permission);
+        });
+      }
+    }
+  }, []);
+
+  const handleToggleNotifications = async () => {
+    if (typeof window === 'undefined' || !('Notification' in window)) {
+      alert("This browser does not support push notifications.");
+      return;
+    }
+    
+    if (Notification.permission === 'denied') {
+      alert("Notifications are blocked by your browser. Please clear or reset your notification permissions in your browser's site settings to activate signal alerts.");
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    setNotificationPermission(permission);
+
+    if (permission === 'granted') {
+      try {
+        new Notification("Sniper Live Alerts Active", {
+          body: "You will receive push notifications for all live trade setups.",
+          icon: "/signal_buy_icon.png"
+        });
+      } catch (e) {
+        console.error("Failed to show permission notification", e);
+      }
+    }
+  };
+
+  const showPushNotification = (msg: SniperMessage) => {
+    if (!msg.signal) return;
+    const s = msg.signal;
+    if (typeof window === 'undefined' || !('Notification' in window) || Notification.permission !== 'granted') {
+      return;
+    }
+
+    const isBuy = s.signal === 'BUY';
+    const isSell = s.signal === 'SELL';
+    if (!isBuy && !isSell) return;
+
+    const emoji = isBuy ? '🟢 [BUY]' : '🔴 [SELL]';
+    const title = `${emoji} Sniper Signal: ${s.asset}`;
+
+    const directionWord = isBuy ? 'BUY SETUP' : 'SELL SETUP';
+    const entryMin = s.entryRange?.min || s.priceAtSignal || 'Market';
+    const entryMax = s.entryRange?.max ? ` - ${s.entryRange.max}` : '';
+    const stopLossValue = s.stopLoss || 'None';
+    const takeProfitsList = s.takeProfits && s.takeProfits.length > 0 ? s.takeProfits.join(', ') : 'None';
+
+    const options: NotificationOptions = {
+      body: `🎯 Direction: ${directionWord}\n💵 Entry zone: ${entryMin}${entryMax}\n🛡️ Stop loss: ${stopLossValue}\n💰 Take Profit(s): ${takeProfitsList}\n🔥 Confidence: ${s.confidence || 0}%`,
+      tag: `sniper-${msg.id}`,
+      requireInteraction: true
+    };
+
+    try {
+      const notification = new Notification(title, options);
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    } catch (err) {
+      console.error("Failed to show web Notification:", err);
+    }
+  };
   
   const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
 
@@ -333,6 +414,20 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         ...doc.data(),
         id: doc.id
       })) as SniperMessage[];
+      
+      // Push Notification trigger system for real-time live trading signals
+      msgs.forEach((msg) => {
+        if (msg.type === 'ai' && msg.signal && (msg.signal.signal === 'BUY' || msg.signal.signal === 'SELL')) {
+          const isRecent = Date.now() - (msg.timestamp || 0) < 60000;
+          if (isRecent && !notifiedMsgIdsRef.current.has(msg.id)) {
+            notifiedMsgIdsRef.current.add(msg.id);
+            showPushNotification(msg);
+          } else {
+            notifiedMsgIdsRef.current.add(msg.id);
+          }
+        }
+      });
+
       setMessages(msgs);
     }, (err) => {
       handleFirestoreError(err, OperationType.GET, path);
@@ -1157,6 +1252,31 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               <ArrowLeft className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
             </button>
             <div className="flex items-center gap-2 sm:hidden">
+              {typeof window !== 'undefined' && 'Notification' in window && (
+                <button
+                  onClick={handleToggleNotifications}
+                  className={`p-2 rounded-xl transition-all group ${
+                    notificationPermission === 'granted'
+                      ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20'
+                      : notificationPermission === 'denied'
+                      ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 opacity-60'
+                      : 'bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 animate-pulse'
+                  }`}
+                  title={
+                    notificationPermission === 'granted'
+                      ? "Notifications Active"
+                      : notificationPermission === 'denied'
+                      ? "Notifications Blocked"
+                      : "Subscribe to Trade Alerts"
+                  }
+                >
+                  {notificationPermission === 'granted' ? (
+                    <Bell className="w-5 h-5 text-emerald-500" />
+                  ) : (
+                    <BellOff className="w-5 h-5" />
+                  )}
+                </button>
+              )}
               {messages.length > 0 && (
                 <div className="relative">
                   <AnimatePresence>
@@ -1212,6 +1332,31 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
+            {typeof window !== 'undefined' && 'Notification' in window && (
+              <button
+                onClick={handleToggleNotifications}
+                className={`p-2 rounded-xl transition-all group ${
+                  notificationPermission === 'granted'
+                    ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20'
+                    : notificationPermission === 'denied'
+                    ? 'bg-rose-500/10 text-rose-500 border border-rose-500/20 opacity-60'
+                    : 'bg-amber-500/10 text-amber-500 border border-amber-500/20 hover:bg-amber-500/20 animate-pulse'
+                }`}
+                title={
+                  notificationPermission === 'granted'
+                    ? "Trade Alerts Enabled (Active)"
+                    : notificationPermission === 'denied'
+                    ? "Trade Alerts Blocked"
+                    : "Subscribe to Trade Alerts"
+                }
+              >
+                {notificationPermission === 'granted' ? (
+                  <Bell className="w-5 h-5 text-emerald-500" />
+                ) : (
+                  <BellOff className="w-5 h-5" />
+                )}
+              </button>
+            )}
             {messages.length > 0 && (
               <div className="relative">
                 <AnimatePresence>

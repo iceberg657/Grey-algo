@@ -23,7 +23,8 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
 
             // Identify MIME Type
             let mimeType = file.type || 'image/jpeg';
-            const isHeic = file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif');
+            const fileName = file.name || '';
+            const isHeic = fileName.toLowerCase().endsWith('.heic') || fileName.toLowerCase().endsWith('.heif');
             if (isHeic) {
                 mimeType = 'image/heic';
             }
@@ -312,7 +313,8 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             }, images.primary);
 
         } catch(err) {
-            setError('Failed to process one of the image files. Please try again.');
+            console.error("Image processing error details:", err);
+            setError(err instanceof Error ? `Image Processing Error: ${err.message}` : 'Failed to process one of the image files. Please try again.');
         }
     };
 
