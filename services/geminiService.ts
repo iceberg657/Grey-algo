@@ -2582,7 +2582,28 @@ JSON Structure:
     "breakoutLevel": number,
     "retestLogic": "string (keep to 10 words max)",
     "entryTriggerCandle": string
-  }
+  },
+  "trendLines": [
+    {
+      "name": "Major/Sub Trend Line name",
+      "type": "major" | "sub",
+      "slope": "ascending" | "descending" | "horizontal",
+      "priceStart": number, // Price level where trend line begins
+      "priceEnd": number, // Price level where trend line ends / projects
+      "timeframe": "Timeframe of the trend line (e.g. H1, M15)",
+      "description": "Short explanation of structural validation (e.g., 'Connecting higher lows of NY session structure')"
+    }
+  ],
+  "scalingEntries": [
+    {
+      "levelName": "e.g., Scale-In added position 1 (FVG Mitigated Pullback)",
+      "triggerPrice": number, // Added position entry price (must be in direction of TP, e.g. lower than entry for SELL, higher for BUY)
+      "stopLoss": number, // Stop loss for this added position
+      "takeProfit": number, // Target profit for this added position
+      "lotSizePercentage": number, // Suggested percentage of original lot size (e.g. 50 for 50%)
+      "reasoning": "SMC/ICT reasoning for adding positions here (e.g. 'Mitigation of minor M5 Breaker block')"
+    }
+  ]
 }`;
 
     return await executeLaneCall<SignalData>(async (apiKey) => {

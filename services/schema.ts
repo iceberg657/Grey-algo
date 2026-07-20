@@ -202,6 +202,39 @@ export const SniperDataSchema = {
             triggerHourUtc: { type: Type.STRING }
         },
         required: ["optimalSession", "timeBasedEntryScore", "interestWindow", "hftActivityLevel", "institutionalVolumeExpected", "setupValidityDuration", "triggerHourUtc"]
+    },
+    trendLines: {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                name: { type: Type.STRING },
+                type: { type: Type.STRING, enum: ["major", "sub"] },
+                slope: { type: Type.STRING, enum: ["ascending", "descending", "horizontal"] },
+                priceStart: { type: Type.NUMBER },
+                priceEnd: { type: Type.NUMBER },
+                timeframe: { type: Type.STRING },
+                description: { type: Type.STRING }
+            },
+            required: ["name", "type", "slope", "priceStart", "priceEnd", "timeframe", "description"]
+        },
+        nullable: true
+    },
+    scalingEntries: {
+        type: Type.ARRAY,
+        items: {
+            type: Type.OBJECT,
+            properties: {
+                levelName: { type: Type.STRING },
+                triggerPrice: { type: Type.NUMBER },
+                stopLoss: { type: Type.NUMBER },
+                takeProfit: { type: Type.NUMBER },
+                lotSizePercentage: { type: Type.NUMBER },
+                reasoning: { type: Type.STRING }
+            },
+            required: ["levelName", "triggerPrice", "stopLoss", "takeProfit", "lotSizePercentage", "reasoning"]
+        },
+        nullable: true
     }
   },
   required: [

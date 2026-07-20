@@ -308,6 +308,23 @@ export interface SignalData {
         setupValidityDuration: string;
         triggerHourUtc: string;
     };
+    trendLines?: {
+        name: string;
+        type: 'major' | 'sub';
+        slope: 'ascending' | 'descending' | 'horizontal';
+        priceStart: number;
+        priceEnd: number;
+        timeframe: string;
+        description: string;
+    }[];
+    scalingEntries?: {
+        levelName: string;
+        triggerPrice: number;
+        stopLoss: number;
+        takeProfit: number;
+        lotSizePercentage: number;
+        reasoning: string;
+    }[];
 }
 
 export interface MomentumAsset {

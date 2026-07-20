@@ -1754,6 +1754,120 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                               </div>
                             )}
                             
+                            {/* Trendline & Multi-Entry Scaling Section */}
+                            {msg.signal.signal !== 'NEUTRAL' && (msg.signal.trendLines || msg.signal.scalingEntries) && (
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                {/* Trend Line Analysis */}
+                                {msg.signal.trendLines && msg.signal.trendLines.length > 0 && (
+                                  <div className="bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                                      <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> Trend Line Dynamics
+                                    </h3>
+                                    <div className="space-y-4">
+                                      {msg.signal.trendLines.map((line, idx) => (
+                                        <div key={idx} className="bg-white/40 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 relative overflow-hidden group">
+                                          <div className="flex justify-between items-start mb-2">
+                                            <div className="flex items-center gap-1.5">
+                                              <span className={`w-2 h-2 rounded-full ${line.type === 'major' ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
+                                              <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                                {line.name}
+                                              </span>
+                                            </div>
+                                            <span className="text-[9px] font-black uppercase tracking-widest bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full text-slate-500">
+                                              {line.timeframe}
+                                            </span>
+                                          </div>
+                                          
+                                          <div className="grid grid-cols-2 gap-2 my-2 text-xs font-mono">
+                                            <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
+                                              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Start boundary</span>
+                                              <span className="text-slate-800 dark:text-slate-300 font-bold">{line.priceStart}</span>
+                                            </div>
+                                            <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
+                                              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Projected end</span>
+                                              <span className="text-slate-800 dark:text-slate-300 font-bold">{line.priceEnd}</span>
+                                            </div>
+                                          </div>
+
+                                          <div className="flex items-center justify-between text-[10px] mt-2 border-t border-slate-200/40 dark:border-slate-800/40 pt-2 text-slate-500">
+                                            <span className="flex items-center gap-1 capitalize font-semibold">
+                                              {line.slope === 'ascending' ? (
+                                                <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+                                              ) : line.slope === 'descending' ? (
+                                                <TrendingDown className="w-3.5 h-3.5 text-rose-500" />
+                                              ) : (
+                                                <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                                              )}
+                                              {line.slope} Slope
+                                            </span>
+                                            <span className="text-[9px] font-bold uppercase text-slate-400">{line.type} Structure</span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-500 mt-2 leading-relaxed italic">
+                                            "{line.description}"
+                                          </p>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Multi-Entry Scale-In Blueprint */}
+                                {msg.signal.scalingEntries && msg.signal.scalingEntries.length > 0 && (
+                                  <div className="bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
+                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
+                                      <Zap className="w-3.5 h-3.5 text-emerald-500" /> Multi-Entry Scaling Blueprint
+                                    </h3>
+                                    <div className="space-y-4">
+                                      {msg.signal.scalingEntries.map((entry, idx) => (
+                                        <div key={idx} className="bg-white/40 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 relative overflow-hidden group">
+                                          <div className="flex justify-between items-center mb-2">
+                                            <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-1">
+                                              <span className="bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded text-[9px] font-black">
+                                                +{entry.lotSizePercentage}%
+                                              </span>
+                                              {entry.levelName}
+                                            </span>
+                                            <button 
+                                              onClick={() => copyToClipboard(entry.triggerPrice.toString(), `scale-${idx}-${msg.id}`)} 
+                                              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition-colors"
+                                            >
+                                              {copied === `scale-${idx}-${msg.id}` ? (
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                              ) : (
+                                                <Copy className="w-3.5 h-3.5 text-slate-500" />
+                                              )}
+                                            </button>
+                                          </div>
+
+                                          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight my-1">
+                                            {entry.triggerPrice}
+                                          </div>
+
+                                          <div className="grid grid-cols-2 gap-2 my-2 text-[10px] font-semibold uppercase tracking-tight">
+                                            <div className="bg-rose-500/5 border border-rose-500/10 px-2 py-1.5 rounded-xl text-center">
+                                              <span className="text-[8px] font-black text-rose-500/60 block">Scale SL</span>
+                                              <span className="font-mono text-rose-500">{entry.stopLoss}</span>
+                                            </div>
+                                            <div className="bg-emerald-500/5 border border-emerald-500/10 px-2 py-1.5 rounded-xl text-center">
+                                              <span className="text-[8px] font-black text-emerald-500/60 block">Scale TP</span>
+                                              <span className="font-mono text-emerald-500">{entry.takeProfit}</span>
+                                            </div>
+                                          </div>
+
+                                          <p className="text-[10px] text-slate-500 leading-relaxed mt-2 border-t border-slate-200/40 dark:border-slate-800/40 pt-2">
+                                            {entry.reasoning}
+                                          </p>
+                                        </div>
+                                      ))}
+                                      <div className="bg-amber-500/5 border border-amber-500/20 rounded-xl px-3 py-2 text-[9px] font-bold text-amber-500/80 text-center uppercase tracking-wide">
+                                        ⚠️ Only scale in when the trade structure continues to print HL/LH in direction of targets
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
                             {/* Demand Zones / Liquidity Heatmap */}
                             {msg.signal.heatmapData && msg.signal.heatmapData.length > 0 && (
                                 <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
