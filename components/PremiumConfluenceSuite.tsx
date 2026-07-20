@@ -628,30 +628,39 @@ JSON Schema:
   "summary": string // A concise, high-conviction quantitative executive summary (1-2 sentences) of the grounded findings.
 }`;
 
-      const response = await fetch('/api/gemini/analyze', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          model: 'models/gemini-2.5-flash', // fast & accurate
-          contents: [{
-            role: 'user',
-            parts: [{ text: promptText }]
-          }],
-          config: {
-            responseMimeType: 'application/json',
-            temperature: 0.1
+      let rawData;
+      const fetchWithModel = async (modelName: string) => {
+        const response = await fetch('/api/gemini/analyze', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
           },
-          apiKey: clientApiKey
-        })
-      });
+          body: JSON.stringify({
+            model: modelName,
+            contents: [{
+              role: 'user',
+              parts: [{ text: promptText }]
+            }],
+            config: {
+              responseMimeType: 'application/json',
+              temperature: 0.1
+            },
+            apiKey: clientApiKey
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`Proxy response error: ${response.status}`);
+        }
+        return response.json();
+      };
 
-      if (!response.ok) {
-        throw new Error(`Proxy response error: ${response.status}`);
+      try {
+        rawData = await fetchWithModel('models/gemini-2.5-flash'); // fast & accurate primary
+      } catch (primaryErr) {
+        console.warn('Primary L2 analyst model failed, falling back to gemini-3.1-flash-lite:', primaryErr);
+        rawData = await fetchWithModel('models/gemini-3.1-flash-lite');
       }
 
-      const rawData = await response.json();
       const textResponse = rawData?.candidates?.[0]?.content?.parts?.[0]?.text;
       if (!textResponse) {
         throw new Error('Empty model response');

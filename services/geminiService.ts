@@ -25,91 +25,9 @@ import { getLearnedStrategies } from './learningService.js';
 import { detectMarketRegime, MarketRegime } from '../utils/marketRegime.js';
 import { GREYALPHA_IDENTITY } from './identity.js';
 import { SignalDataSchema, SniperDataSchema, AntigravityVerdictSchema } from './schema.js';
-export const smcCandlestickLogic = `**SMC/ICT INSTITUTIONAL CANDLESTICK PATTERNS (MANDATORY)**:
-In Smart Money Concepts (SMC) and ICT, candlestick patterns aren't standalone geometric shapes; they are signatures of institutional order flow, liquidity hunts, and inefficiency. You MUST recognize and tag these patterns in 'candlestickPatterns':
-
-1. Structural Order Blocks & Mitigation
-- Order Block (OB): The last opposite-close candle before a sharp displacement. Reaction expected at 50% mean threshold.
-- Propulsion Block: A candle that mitigates a previous OB and immediately rejects away with aggressive expansion.
-- Rejection Block: A candle with a long wick sweeping liquidity but closing inside previous range; signals reversal.
-- Mitigation Block: A failed OB that didn't sweep liquidity but shifted structure; traded on return to breakeven.
-- Breaker Block: A failed OB that DID sweep liquidity before a structural shift. High probability on retest.
-
-2. Inefficiencies & Gaps
-- Fair Value Gap (FVG): A 3-candle sequence leaving an empty gap (imbalance). Price targets the 50% Consequent Encroachment.
-- Inverted FVG (iFVG): An FVG that price completely closes through and violates, flipping its polarity (e.g. from support to resistance).
-- Balanced Price Range (BPR): Overlapping bullish and bearish FVGs. A major pivot level that acts as a strict barrier.
-- Volume Imbalance (VI): Gap between the closing price of one candle and opening of next, wicks overlap but bodies don't.
-
-3. Liquidity Purges & Signatures
-- Judas Swing / Turtle Soup: Sharp, deceptive opening candle (often session open) driving past a prominent high/low, only to rapidly reverse.
-- SMT Divergence Candle: Correlated assets fail to mirror highs/lows. Reveals accumulation/distribution hiding in one asset.
-- Sweeping Candle (Liquidity Grab): Expansive candle with a prominent wick extending deeply past support/resistance, closing neutral/opposite.
-
-4. Momentum & Structural Shifts
-- Displacement Candle: Exceptionally large, wide-range candle with minimal wicks closing near its absolute high/low. Validates MSS/BOS.
-- Change of Character (CHoCH) Candle: The specific candle breaking the last minor swing high/low against prevailing trend.
-- Break of Structure (BOS) Candle: The candle closing firmly beyond a major structural swing high/low, confirming trend continuation.
-
-5. Specialty & Session Signatures
-- Midnight Open / Killzone Open: Key institutional windows injecting massive volatility.
-- CBDR Cluster: Tight consolidating candles between 14:00 and 20:00 EST. 
-- Exhaustion Candle: Massive candle hitting a HTF array (like Daily OB) leaving a massive wick on high volume.
-- Inside Bar (Inducement Footprint): Entire high-to-low range sits within preceding candle. Represents engineered liquidity; wait for sweep.`;
-export const retailCandlestickLogic = `**CLASSIC PRICE ACTION CANDLESTICK PATTERNS (MANDATORY)**:
-Unlike SMC/ICT which focuses on institutional algorithmic zones, retail price action treats these patterns as visual representations of the immediate psychological battle between buyers (bulls) and sellers (bears). You MUST also recognize and tag these patterns in 'candlestickPatterns':
-
-1. Single-Candle Patterns (Reversals & Pauses)
-- Pin Bar (Hammer / Shooting Star): Small body at one end with a long wick (at least 2/3 total length). Shows sharp, sudden rejection of price.
-- Hanging Man: Visually identical to a bullish Hammer but forms at the peak of an uptrend. Warns buyers' grip is loosening.
-- Inverted Hammer: Small body at bottom with long upper wick at the bottom of a downtrend. Early buying interest.
-- Marubozu (Bullish / Bearish): Long, thick solid body with virtually zero wicks. Total dominance by one side.
-- Doji: Open and close are virtually identical. Complete equilibrium and indecision.
-- Dragonfly Doji: T-shaped (open, high, close at top) leaving long lower wick. Reliable bullish reversal at support.
-- Gravestone Doji: Upside-down T-shaped (open, low, close at bottom) leaving long upper wick. Bearish reversal at resistance.
-- Spinning Top: Small real body in the middle of two symmetrical, modest wicks. Pause and indecision.
-
-2. Two-Candle Patterns
-- Bullish Engulfing: Small bearish candle followed by larger bullish candle completely swallowing the first. Aggressive buying.
-- Bearish Engulfing: Small bullish candle followed by larger bearish candle completely swallowing the first. Aggressive supply.
-- Tweezer Bottoms: Two consecutive candles whose lower wicks/bodies hit the exact same price floor. Strong short-term support.
-- Tweezer Tops: Two consecutive candles whose upper wicks/bodies hit the exact same price ceiling. Strong resistance.
-- Dark Cloud Cover: Bearish reversal where 2nd (bearish) candle opens above 1st's high but closes >50% deep into its body.
-- Piercing Line: Bullish mirror of Dark Cloud. 2nd (bullish) candle opens below 1st's low but closes >50% deep into its body.
-- Inside Bar: Entire range is completely nested inside the previous candle's range. Consolidation preparing for breakout.
-
-3. Three-Candle Patterns
-- Morning Star: Long bearish, small stalling middle candle, large bullish closing deep into 1st candle. Bullish U-turn.
-- Evening Star: Long bullish, small stalling middle candle, large bearish closing deep into 1st candle. Classic top reversal.
-- Three White Soldiers: Three consecutive strong bullish candles opening within previous body and closing higher. Sustained trend.
-- Three Black Crows: Three consecutive strong bearish candles closing lower than the last. Aggressive distribution.
-- Three Line Strike (Bullish Continuous): Three bullish candles followed by a massive 4th bearish candle that plunges below 1st's open. Flush out of retail buyers, continuation.`;
-export const combinedCandlestickLogic = `**COMBINED CANDLESTICK & CHART PATTERNS (MANDATORY)**:
-When combining candlestick patterns (micro-level execution triggers) with chart patterns (macro-level market structures), you bridge the gap between what the market is doing structurally and when to execute. You MUST recognize these fused patterns:
-
-1. Classical Chart Patterns + Price Action Candlestick Triggers
-- Double Bottom + Dragonfly Doji / Pin Bar: The macro floor is confirmed by a long lower wick rejecting a second break.
-- Double Top + Gravestone Doji / Shooting Star: The macro ceiling is confirmed by upper-wick exhaustion.
-- Head and Shoulders + Bearish Engulfing (Right Shoulder): The right shoulder prints a massive Bearish Engulfing candle, signaling momentum shift before the neckline breaks.
-- Inverse Head and Shoulders + Morning Star (Right Shoulder): Morning Star confirms exact pivot where buying takes control.
-- Bull Flag + Marubozu Breakout: A thick Bullish Marubozu explodes out of the flag's upper boundary.
-- Bear Flag + Three Black Crows: Breakdown out of the channel driven by three consecutive strong red candles.
-- Ascending Triangle + Bullish Engulfing (At Support): Pullback to the rising trendline prints a clean Bullish Engulfing.
-- Descending Triangle + Marubozu Breakdown: Bearish Marubozu closes firmly below the flat support level.
-- Symmetrical Triangle + Inside Bar Breakout: Price compresses into an Inside Bar at the apex before breaking out.
-- Rectangle Range + Tweezer Bottoms (At Range Demand): Tweezer Bottoms print directly on the horizontal support line.
-
-2. Smart Money Concepts (SMC) Structure + Candlestick Footprints
-- Market Structure Shift (MSS) + Displacement Candle: Wide-range, high-volume Displacement Candle forces the break.
-- Liquidity Sweep + Rejection Block: Sweeping candle leaves massive wick past the level and closes back inside.
-- SMT Divergence + Pin Bar: The asset failing to make a new high/low prints a Pin Bar/Shooting Star at secondary peak.
-- Order Block Mitigation + Fair Value Gap Fill: Retracement fills a lower-timeframe FVG nestled right inside a HTF Order Block.
-- Breaker Block Test + iFVG Confluence: Retest area lines up perfectly with an Inverted FVG.
-- Quasi-Short (QM) / QML + Bearish Engulfing: Price rallies to left shoulder and prints a sharp Bearish Engulfing.
-- Wyckoff Accumulation Spring + Dragonfly Doji: Spring candle prints a Dragonfly Doji closing firmly inside the trading range.
-- Balanced Price Range (BPR) + Spinning Top Rest: Price returns to BPR and prints a tiny Spinning Top or Doji respecting boundaries.
-- Judas Swing + Bullish Piercing Line: Judas Swing drives below Midnight Open and prints a Bullish Piercing Line.
-- Premium/Discount Array Alignment + Exhaustion Candle: Final down-candle into Discount zone is a massive Exhaustion Candle leaving a long wick on high volume.`;
+export const smcCandlestickLogic = ``;
+export const retailCandlestickLogic = ``;
+export const combinedCandlestickLogic = ``;
 
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime, advancedQuantSignal?: any) => {
     const date = currentDate || new Date();
@@ -522,19 +440,14 @@ ${weekendInstruction}
 
 ---
 
-🏛️ **INSTITUTIONAL TRADING FRAMEWORK (SMC/ICT APEX):**
-You MUST analyze the market through the lens of Institutional Order Flow:
-1. **POI (Point of Interest):** Identify the "Higher Timeframe" zone (H4/H1) where institutions are likely to enter.
-2. **Liquidity Engineering:** Look for "Inducement" (IDM) and "Liquidity Sweeps" (BSL/SSL). Institutions NEED liquidity to fill large orders.
-3. **Market Structure Shift (MSS):** Look for a decisive break of structure with **Displacement** (large, energetic candles).
-4. **Order Blocks & Breakers:** Distinguish between a standard Order Block (OB) and a **Breaker Block** (a failed OB that now acts as support/resistance).
-5. **Mitigation & Zones:** Check if the zone has already been "mitigated" (touched). Fresh zones have higher probability. **CRITICAL: Apply Premium and Discount zones**. Always map the dealing range (Swing High to Swing Low) to find equilibrium. You MUST Buy in Discount (<50%) and Sell in Premium (>50%) for high probability entries.
+🏛️ **4 RULES TO FIX ENTRY TIMING (MANDATORY APEX FRAMEWORK):**
+1. **Separate Analysis Timeframe from Execution Timeframe:** Do not place market orders based on HTF (4H/1H) zones directly. Let price reach the HTF zone, but ONLY trigger entry after confirming a LTF (15m/5m) Market Structure Shift (MSS/CHoCH).
+2. **Move from "Anticipating" to "Confirming":** Never enter just because a zone is tapped. Wait for the zone tap, the local sweep, the structural break, and enter on the pullback (retest).
+3. **Work Backward from Invalidation:** Identify the exact Stop Loss invalidation point first. Set your entry (Limit Order) at the price that guarantees at least a 1:2.5 Risk-to-Reward ratio. If price runs away without pulling back, let it go. Do not chase.
+4. **Account for Session Liquidity Sweeps:** Avoid taking entries in low-volume pre-session consolidation. Wait for the initial session liquidity sweep (false move) to clear stops, and enter on the real directional expansion that follows.
 
-📊 **QUANTITATIVE & STATISTICAL ARBITRAGE LAYER:**
-Use the Twelve Data "Mathematical Truth" to perform statistical analysis:
-1. **Mean Reversion (SMA/STDDEV):** If price is > 2 Standard Deviations from the 20-period SMA, look for a mean reversion setup.
-2. **Volatility Arbitrage (ATR):** If ATR is expanding, expect trend continuation. If ATR is contracting, expect a breakout or reversal.
-3. **Equilibrium Validation:** Evaluate if the asset has returned to the Equilibrium (50% mark) of the recent structural leg.
+📊 **QUANTITATIVE & STATISTICAL LAYER (Rely on Engine Data):**
+Do NOT invent patterns. Use the Twelve Data "Mathematical Truth" provided by the engine to validate your setup. If the engine detects mean reversion or volatility expansion, align your entry with it.
 
 📜 **ORACLE ANALYSIS COMMANDMENTS (THOU SHALT FOLLOW):**
 1. **THOU SHALT NOT BE AMBIGUOUS:** Your signal MUST be BUY or SELL in almost all cases. 
@@ -2361,6 +2274,12 @@ ${quantData.orderflowMetrics?.l2Metrics && (quantData.orderflowMetrics.l2Metrics
 - Pre-Trade Volatility Circuit Breaker Active: ${quantData.institutionalExecution?.preTradeRisk?.volatilityCircuitBreaker ? 'YES 🛑' : 'NO'}
 - Estimated Execution Slippage (TCA): ${quantData.institutionalExecution?.tca?.estimatedSlippage?.toFixed(3) || '0'}%
 
+**4 STRICT RULES FOR ENTRY TIMING PRECISION:**
+1. **Separate Analysis Timeframe from Execution Timeframe:** Do not enter immediately upon touching a HTF zone. Ensure the mathematical engine has confirmed an LTF Market Structure Shift (MSS/CHoCH) prior to issuing market execution.
+2. **Confirm, Do Not Anticipate:** Do NOT execute directly into momentum. Verify that price has tapped the zone, swept the local low/high, and broken structural resistance/support before firing an entry.
+3. **Work Backward from Invalidation:** Identify the exact Stop Loss invalidation point first. Ensure entry levels are calibrated to maintain at least the required Risk-to-Reward ratio (e.g. 1:2.5). If market price has run too far, mandate a LIMIT ORDER pullback entry instead of market chasing.
+4. **Account for Session Liquidity Sweeps:** Avoid entering in low-volume pre-session consolidation. Wait for the initial session liquidity sweep (false move) to clear stops, and enter on the real directional expansion that follows. Buy the retest, never buy expansion candles into resistance.
+
 *CRITICAL MATH COMPLIANCE INSTRUCTIONS:*
 - **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 
 - You MUST anchor your Stop Loss EXACTLY using the engine mathematical SL or the Monte Carlo bounds (Lower Bound for BUY, Upper Bound for SELL). 
@@ -2796,7 +2715,6 @@ JSON Structure:
                 }
 
                 // --- FINAL SNIPER CONSTRAINTS ---
-
                 let enforcedByEngine = false;
 
                 // Strict Math Engine Enforcement Override
@@ -2804,6 +2722,15 @@ JSON Structure:
                     finalSignal = advancedQuantSignal.signal;
                     enforcedByEngine = true;
                     finalReasoning.push(`⚙️ ADVANCED QUANT ENGINE: Direction mathematically locked to ${finalSignal} via algorithmic arbitrage analysis.`);
+                    
+                    if (advancedQuantSignal.entry > 0 && advancedQuantSignal.stopLoss > 0) {
+                        midEntry = advancedQuantSignal.entry;
+                        finalSL = advancedQuantSignal.stopLoss;
+                        finalEntryRange = { min: midEntry, max: midEntry };
+                        finalTPs = [advancedQuantSignal.tp1, advancedQuantSignal.tp2, advancedQuantSignal.tp3].filter(t => t && t > 0);
+                        if (finalTPs.length === 0) finalTPs = originalTPs;
+                        finalReasoning.push(`🎯 QUANT TARGETS ENFORCED: Entry, Stop Loss, and Take Profits overwritten using precise algorithmic bounds.`);
+                    }
                 } else if (quantData?.explicitSignal && quantData.explicitSignal !== 'NEUTRAL') {
                     finalSignal = quantData.explicitSignal;
                     enforcedByEngine = true;

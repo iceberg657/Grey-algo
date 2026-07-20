@@ -900,11 +900,12 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           throw new Error(`No market data received from ${usedBroker} API.`);
       }
 
-      // Staleness Detection (Max 1 hour for indices, 15m for others)
+      // Staleness Detection (account for candle granularity)
       const nowSeconds = Math.floor(Date.now() / 1000);
       const candleAge = nowSeconds - lastCandle.epoch;
       const isMajorAsset = ['OTC_DJI', 'OTC_NDX', 'OTC_SPC', 'OTC_FTSE', 'frxXAUUSD', 'frxEURUSD', 'frxGBPUSD', 'cryBTCUSD', 'cryETHUSD'].includes(asset) || asset.includes('US30') || asset.includes('NAS100');
-      const maxAge = isMajorAsset ? 3600 : 900; 
+      // Max age should be at least the duration of one candle + a buffer, otherwise it will falsely flag large timeframes
+      const maxAge = Math.max(isMajorAsset ? 3600 : 900, timeframes.entry + 600); 
 
       if (candleAge > maxAge) {
           const ageMinutes = Math.floor(candleAge / 60);

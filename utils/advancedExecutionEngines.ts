@@ -1011,9 +1011,10 @@ export class QuantEnginePipeline {
     ): TieredSignal {
         const risk = Math.abs(entry - stopLoss);
 
-        const tp1 = signal === 'BUY' ? parseFloat((entry + risk * 1.5).toFixed(5)) : parseFloat((entry - risk * 1.5).toFixed(5));
-        const tp2 = signal === 'BUY' ? parseFloat((entry + risk * 2.0).toFixed(5)) : parseFloat((entry - risk * 2.0).toFixed(5));
-        const tp3 = signal === 'BUY' ? parseFloat((entry + risk * 3.0).toFixed(5)) : parseFloat((entry - risk * 3.0).toFixed(5));
+        // Updated targeting: TP1 at 1.25x (conservative), TP2 at 2.5x (optimal), TP3 at 3.5x (runner)
+        const tp1 = signal === 'BUY' ? parseFloat((entry + risk * 1.25).toFixed(5)) : parseFloat((entry - risk * 1.25).toFixed(5));
+        const tp2 = signal === 'BUY' ? parseFloat((entry + risk * 2.5).toFixed(5)) : parseFloat((entry - risk * 2.5).toFixed(5));
+        const tp3 = signal === 'BUY' ? parseFloat((entry + risk * 3.5).toFixed(5)) : parseFloat((entry - risk * 3.5).toFixed(5));
 
         const riskAmount = accountBalance * ((weightedScore.suggestedRiskPercent || 1) / 100);
         const pipRisk = Math.max(1, Math.abs(entry - stopLoss) * 10000);
