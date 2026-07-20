@@ -2238,15 +2238,18 @@ export async function generateSniperLiveSignal(
     }
 
     const quantContext = quantData ? `
-**ADVANCED MULTI-ASSET ENGINE SIGNAL:**
+**ADVANCED AUTO-SELECTED QUANT STRATEGY SIGNAL:**
 ${advancedQuantSignal ? `
+- **Selected Strategy Name**: ${advancedQuantSignal.strategyName || advancedQuantSignal.strategy || 'UNKNOWN'}
+- **Strategy Suitability Score**: ${advancedQuantSignal.suitabilityScore || 100}%
+- **Suitability Rationale**: ${advancedQuantSignal.suitabilityRationale || 'Auto-selected based on asset and regime alignment.'}
 - **Signal**: ${advancedQuantSignal.signal}
 - **Grade/Tier**: ${advancedQuantSignal.tier} (Score: ${advancedQuantSignal.totalScore}/100)
 - **Breakdown**: ${advancedQuantSignal.scoreBreakdown?.join('\\n  * ')}
 - **Entry Zone**: ${advancedQuantSignal.entry}
 - **Stop Loss**: ${advancedQuantSignal.stopLoss}
 - **Take Profits**: TP1: ${advancedQuantSignal.tp1}, TP2: ${advancedQuantSignal.tp2}, TP3: ${advancedQuantSignal.tp3}
-` : 'NO ACTIVE ADVANCED CORRELATION SIGNAL'}
+` : 'NO ACTIVE ADVANCED QUANT SIGNAL'}
 
 ${antigravityVerdict ? `
 **LONG-TERM INSTITUTIONAL MACRO RESEARCH (ANTIGRAVITY DEVIL'S ADVOCATE VERDICT):**
@@ -2361,8 +2364,8 @@ ${quantData.orderflowMetrics?.l2Metrics && (quantData.orderflowMetrics.l2Metrics
 *CRITICAL MATH COMPLIANCE INSTRUCTIONS:*
 - **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 
 - You MUST anchor your Stop Loss EXACTLY using the engine mathematical SL or the Monte Carlo bounds (Lower Bound for BUY, Upper Bound for SELL). 
-- **GUARANTEE HIT TP1 FIRST:** You MUST design the Take Profit 1 (TP1) level as a highly conservative, mathematically optimized high-probability target (using a 1.0x risk-to-reward ratio distance from entry) so we consistently "get our TP1" and secure partial profits before any potential trend reversals.
-- Your Take Profits MUST align with Expected Median Price and the structural Liquidity targets provided. If a user asks for statistical/mathematical projections, ONLY use the Monte Carlo bounds.
+- **DAY TRADING 1:2.5 R:R RATIO TARGET:** You MUST design the Take Profit targets to achieve an average of 1:2.5 Risk-to-Reward ratio (Risk 1 unit to Reward 2.5 units). Set Take Profit 1 (TP1) as a conservative first target around a 1.25x to 1.5x risk-to-reward distance from entry to lock in profits early, and set Take Profit 2 (TP2) exactly at a 2.5x risk-to-reward distance (ratio of 1:2.5) to hit the optimal high-profit target requested by the user. Take Profit 3 (TP3) should act as a runner at 3.0x to 3.5x risk-to-reward.
+- Your Take Profits MUST align with Expected Median Price, the 1:2.5 target, and the structural Liquidity targets provided. If a user asks for statistical/mathematical projections, ONLY use the Monte Carlo bounds.
 - **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the "ADVANCED MULTI-ASSET ENGINE SIGNAL" is active, you MUST output exactly the signal direction it provided (e.g. if it says "BUY", you MUST output "BUY"). Otherwise, if the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL.
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless the engine explicitly gives Neutral.
 - **EXECUTION COMPLIANCE:** If the ENGINE MANDATED EXECUTION is "LIMIT", you MUST use Pending Orders ("Buy Limit" or "Sell Limit") instead of Market Execution to protect against overextension traps.

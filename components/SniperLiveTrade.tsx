@@ -125,6 +125,170 @@ const AntigravityVerdictDisplay: React.FC<{ insight: string }> = ({ insight }) =
   );
 };
 
+export interface GroundedStrategyMatch {
+  strategyId: string;
+  name: string;
+  description: string;
+  score: number;
+  rationale: string;
+}
+
+export function getStrategySuitability(
+  strategyId: string,
+  asset: string,
+  quantData: any,
+  style: string
+): GroundedStrategyMatch {
+  let score = 50; // base baseline score
+  let rationale = "Standard single-asset application.";
+  let name = strategyId;
+  let description = "";
+
+  const isIndex = ['US30', 'NAS100', 'SPX500', 'UK100', 'FTSE', 'DAX', 'GDAXI', 'CAC', 'N225', 'AS51', 'DJI', 'NDX', 'SPC'].some(s => asset.toUpperCase().includes(s));
+  const isSynthetic = ['VOLATILITY', 'BOOM', 'CRASH', 'STEP', 'JUMP', 'RANGE', 'R_', 'RB_', 'STP'].some(s => asset.toUpperCase().includes(s));
+  const isForex = !isIndex && !isSynthetic && ['EUR', 'GBP', 'USD', 'JPY', 'CHF', 'AUD', 'NZD', 'CAD'].some(cur => asset.toUpperCase().includes(cur));
+  const isCrypto = ['BTC', 'ETH', 'LTC', 'SOL'].some(s => asset.toUpperCase().includes(s));
+
+  const trend = quantData?.trend || 'RANGING';
+  const noise = quantData?.quantMath?.statisticalNoiseRatio || 0.5;
+  const hurst = quantData?.quantMath?.hurstExponentApproximation || 0.5;
+  const tickCount = quantData?.ctraderTicks?.length || 0;
+
+  switch (strategyId) {
+    case 'INDEX_SMT':
+      name = "Index Smart Money Theory (I-SMT)";
+      description = "Divergence analysis between major correlated equity indices (DJI vs NDX vs SPX).";
+      if (isIndex) {
+        score += 40;
+        rationale = "High suitability: Asset is a major index. Correlated flows provide institutional SMT footprints.";
+      } else {
+        score -= 40;
+        rationale = "Low suitability: Only applicable to global equity indices.";
+      }
+      break;
+
+    case 'INDEX_STAT_ARB':
+      name = "Index Statistical Spread Arbitrage";
+      description = "Mean-reversion trading of statistical price spreads across correlated global index pairs.";
+      if (isIndex) {
+        score += 35;
+        if (trend === 'RANGING') {
+          score += 15;
+          rationale = "High suitability: Index in ranging state is highly optimal for spread-reversion statistical arbitrage.";
+        } else {
+          rationale = "Moderate-high suitability: Index-specific spread model, adjusted for active trend.";
+        }
+      } else {
+        score -= 45;
+        rationale = "Low suitability: Requires highly cointegrated equity indices.";
+      }
+      break;
+
+    case 'INDEX_LEAD_LAG':
+      name = "Index Predictive Lead-Lag Engine";
+      description = "Identifies leadership momentum and lagged execution timing across indices (NDX leading SPX).";
+      if (isIndex) {
+        score += 35;
+        if (trend !== 'RANGING') {
+          score += 15;
+          rationale = "High suitability: Trending equity indices exhibit highly predictable lead-lag momentum cascades.";
+        } else {
+          rationale = "Moderate suitability: Ranging indices exhibit reduced lead-lag efficacy.";
+        }
+      } else {
+        score -= 45;
+        rationale = "Low suitability: Requires lead-lag index mapping.";
+      }
+      break;
+
+    case 'SMT':
+      name = "Smart Money Divergence Correlation";
+      description = "Institutional correlation matrix (e.g., Gold vs Silver, EURUSD vs GBPUSD vs DXY) detecting retail trap sweeps.";
+      if (isForex || isCrypto || asset.toUpperCase().includes('GOLD')) {
+        score += 30;
+        rationale = "High suitability: Forex, Crypto, or Gold exhibits strong correlation with major basket proxies.";
+      } else {
+        score -= 20;
+        rationale = "Low suitability: Prefer specialized index engines for equities.";
+      }
+      break;
+
+    case 'STAT_ARB':
+      name = "Statistical Pairs Arbitrage";
+      description = "Examines structural cointegration spreads between correlated assets and fades standard deviations.";
+      if (isForex || isCrypto) {
+        score += 25;
+        if (trend === 'RANGING') {
+          score += 15;
+          rationale = "High suitability: Ranging forex/crypto pairs are optimal for statistical mean-reversion arbitrage.";
+        } else {
+          rationale = "Moderate suitability: Pair spread trading adjusted for trend continuation.";
+        }
+      } else {
+        score -= 15;
+        rationale = "Low suitability: High-trend or index assets are better matched with momentum or index models.";
+      }
+      break;
+
+    case 'VELOCITY':
+      name = "High-Frequency Velocity & Lag Engine";
+      description = "Measures tick density, orderbook sweep velocity, and micro-impulse volume expansion.";
+      if (isSynthetic || tickCount > 100) {
+        score += 40;
+        rationale = "High suitability: Synthetic indices and high-density tick environments require millisecond momentum tracking.";
+      } else if (trend !== 'RANGING') {
+        score += 15;
+        rationale = "Moderate suitability: High-volatility trend continuation.";
+      } else {
+        score -= 10;
+        rationale = "Low-moderate suitability: Low-volatility ranging states are prone to velocity fakeouts.";
+      }
+      break;
+
+    case 'SINGLE_ASSET_MOMENTUM':
+      name = "Single Asset Micro-Momentum Expansion";
+      description = "ATR-volatility breakouts, MACD divergence, and RSI strength follow-through.";
+      if (trend !== 'RANGING') {
+        score += 30;
+        if (hurst > 0.6) {
+          score += 15;
+          rationale = "High suitability: Strong directional persistence (Hurst > 0.60) confirms trend expansion.";
+        } else {
+          rationale = "Moderate-high suitability: Supported by active trend structure.";
+        }
+      } else {
+        score -= 25;
+        rationale = "Low suitability: Ranging environments trigger frequent breakout false-signals.";
+      }
+      break;
+
+    case 'SINGLE_ASSET_REGIME':
+      name = "Single Asset Markov Regime-Switching Reversion";
+      description = "Identifies shifts between low-volatility accumulation and high-volatility distribution, optimizing buy-low/sell-high zones.";
+      if (trend === 'RANGING') {
+        score += 35;
+        if (hurst < 0.45) {
+          score += 15;
+          rationale = "High suitability: Mean-reverting regime (Hurst < 0.45) is optimal for buying low and selling high.";
+        } else {
+          rationale = "Moderate-high suitability: Perfect for ranging zones.";
+        }
+      } else {
+        score -= 15;
+        rationale = "Moderate-low suitability: Trending markets may experience runaway expansion against range boundaries.";
+      }
+      break;
+  }
+
+  return {
+    strategyId,
+    name,
+    description,
+    score: Math.min(100, Math.max(0, score)),
+    rationale
+  };
+}
+
 interface SniperMessage {
   id: string;
   type: 'user' | 'ai';
@@ -141,7 +305,7 @@ interface SniperLiveTradeProps {
 
 export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata, isLocked }) => {
   const [query, setQuery] = useState('');
-  const [style, setStyle] = useState<TradingStyle>('scalping(1 to 15mins)');
+  const [style, setStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [messages, setMessages] = useState<SniperMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -886,33 +1050,71 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               const assetClass = isForex ? 'FOREX' : 'INDICES';
               const granularity = derivData.multiTimeframe?.entry?.granularity || 900;
               
-              // We are operating in a single asset context, so we must use regime/momentum models
-              // rather than passing the same asset multiple times to spread/arbitrage models.
-              const strategies: ('SINGLE_ASSET_REGIME' | 'SINGLE_ASSET_MOMENTUM')[] = ['SINGLE_ASSET_REGIME', 'SINGLE_ASSET_MOMENTUM'];
+              // GROUNDED STRATEGY AUTO-SELECTION SYSTEM
+              const allStrategies = [
+                  'SMT',
+                  'STAT_ARB',
+                  'VELOCITY',
+                  'INDEX_SMT',
+                  'INDEX_STAT_ARB',
+                  'INDEX_LEAD_LAG',
+                  'SINGLE_ASSET_REGIME',
+                  'SINGLE_ASSET_MOMENTUM'
+              ];
+
+              const evaluatedStrategies = allStrategies.map(stratId => {
+                  return getStrategySuitability(stratId, asset, quantData, style);
+              });
+
+              // Sort by suitability score descending
+              evaluatedStrategies.sort((a, b) => b.score - a.score);
+              const bestMatch = evaluatedStrategies[0];
+              console.log(`[SniperLiveTrade] Grounded Strategy Auto-Selector matched:`, bestMatch);
+
+              try {
+                  const sig = pipeline.processLiveExecution(
+                      bestMatch.strategyId as any, mSeries, mSeries, mSeries,
+                      granularity / 60, // period parameter if applicable
+                      userSettings?.autotrade?.maxRiskPerTrade || 10000,
+                      ctraderDepthRef.current
+                  );
+                  if (sig) {
+                      advancedQuantSignal = {
+                          ...sig,
+                          strategy: bestMatch.strategyId,
+                          strategyName: bestMatch.name,
+                          suitabilityScore: bestMatch.score,
+                          suitabilityRationale: bestMatch.rationale,
+                          strategyDescription: bestMatch.description
+                      };
+                      console.log(`[SniperLiveTrade] Auto-Selected Strategy Executed:`, advancedQuantSignal);
+                  }
+              } catch (e) {
+                  console.warn(`Quant execution failed for auto-selected strategy ${bestMatch.strategyId}:`, e);
                   
-              const signals = [];
-              for (const strategy of strategies) {
+                  // Fallback: Try SINGLE_ASSET_REGIME or SINGLE_ASSET_MOMENTUM if the complex strategy execution fails
+                  const fallbackStrat = quantData?.trend === 'RANGING' ? 'SINGLE_ASSET_REGIME' : 'SINGLE_ASSET_MOMENTUM';
                   try {
-                      // Process using single asset strategies
                       const sig = pipeline.processLiveExecution(
-                          strategy as any, mSeries, mSeries, mSeries,
-                          granularity / 60, // period parameter if applicable
+                          fallbackStrat as any, mSeries, mSeries, mSeries,
+                          granularity / 60,
                           userSettings?.autotrade?.maxRiskPerTrade || 10000,
                           ctraderDepthRef.current
                       );
-                      if (sig && sig.signal !== 'NEUTRAL') {
-                          signals.push({ strategy, ...sig });
+                      if (sig) {
+                          const suitability = getStrategySuitability(fallbackStrat, asset, quantData, style);
+                          advancedQuantSignal = {
+                              ...sig,
+                              strategy: fallbackStrat,
+                              strategyName: suitability.name,
+                              suitabilityScore: suitability.score,
+                              suitabilityRationale: `Fallback execution: ${suitability.rationale}`,
+                              strategyDescription: suitability.description
+                          };
                       }
-                  } catch (e) {
-                      console.warn(`Quant execution failed for ${strategy}:`, e);
+                  } catch (fallbackErr) {
+                      console.error("Fallback strategy execution failed:", fallbackErr);
                   }
-              }
-
-              // Pick the signal with the highest score
-              if (signals.length > 0) {
-                  signals.sort((a, b) => (b.totalScore || 0) - (a.totalScore || 0));
-                  advancedQuantSignal = signals[0];
-                  console.log(`[SniperLiveTrade] Selected Advanced Signal from ${advancedQuantSignal.strategy}:`, advancedQuantSignal);
               }
           }
       } catch (e) {
@@ -1042,6 +1244,14 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
       // Create rich Markdown details for the UI representation
       const richInsightMarkdown = `# 🛡️ ANTIGRAVITY DEVIL'S ADVOCATE SYSTEM REPORT
+
+### 🧬 GROUNDED ALGORITHMIC AUTO-SELECTION
+- **Selected Quant Engine Strategy**: ${advancedQuantSignal?.strategyName || 'None'}
+- **Suitability Match Score**: ${advancedQuantSignal?.suitabilityScore || 100}%
+- **Suitability Matching Rationale**: ${advancedQuantSignal?.suitabilityRationale || 'N/A'}
+- **Strategy Mathematical Profile**: ${advancedQuantSignal?.strategyDescription || 'N/A'}
+
+---
 
 ### 📊 REGULAR TECHNICAL SIGNAL (300-CANDLE MODEL)
 - **Bias**: ${retailSignal.signal}
