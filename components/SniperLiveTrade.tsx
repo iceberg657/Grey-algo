@@ -1466,16 +1466,26 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                               {/* Price Levels Grid */}
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                                 {/* Entry */}
-                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors relative overflow-hidden">
+                                <div className={`border p-5 rounded-3xl group transition-all duration-300 relative overflow-hidden ${
+                                  msg.signal.signal === 'BUY' 
+                                    ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40' 
+                                    : msg.signal.signal === 'SELL' 
+                                    ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20 hover:border-rose-500/40' 
+                                    : 'bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/50 hover:border-slate-300'
+                                }`}>
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                      msg.signal.signal === 'BUY' ? 'text-emerald-500/80 dark:text-emerald-400/80' : msg.signal.signal === 'SELL' ? 'text-rose-500/80 dark:text-rose-400/80' : 'text-slate-500'
+                                    }`}>
                                       {msg.signal.entryType === 'Market Execution' ? 'Execution Range' : 'Sniper Entry Range'}
                                     </span>
                                     <button onClick={() => copyToClipboard(msg.signal?.entryRange ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` : (msg.signal?.entryPoints?.join(' - ') || ''), `Entry-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `Entry-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
-                                  <div className="text-2xl font-black tracking-tighter text-slate-900 dark:text-white flex items-baseline gap-2">
+                                  <div className={`text-2xl font-black tracking-tighter flex items-baseline gap-2 ${
+                                    msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : msg.signal.signal === 'SELL' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+                                  }`}>
                                     {msg.signal?.entryRange 
                                         ? `${msg.signal.entryRange.min} - ${msg.signal.entryRange.max}` 
                                         : msg.signal?.entryPoints?.length > 1 
@@ -1486,7 +1496,9 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                     )}
                                   </div>
                                   {msg.signal?.triggerConditions && (
-                                    <div className="mt-2 text-[9px] font-bold text-emerald-500/70 uppercase tracking-tighter flex items-center gap-1">
+                                    <div className={`mt-2 text-[9px] font-bold uppercase tracking-tighter flex items-center gap-1 ${
+                                      msg.signal.signal === 'BUY' ? 'text-emerald-500/70' : 'text-rose-500/70'
+                                    }`}>
                                       <Zap className="w-2.5 h-2.5" />
                                       {msg.signal.triggerConditions.entryTriggerCandle || 'Neural Trigger Active'}
                                     </div>
@@ -1515,52 +1527,100 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                 </div>
 
                                 {/* Stop Loss */}
-                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-rose-500/30 transition-colors">
+                                <div className={`border p-5 rounded-3xl group transition-all duration-300 ${
+                                  msg.signal.signal === 'BUY' 
+                                    ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40' 
+                                    : msg.signal.signal === 'SELL' 
+                                    ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20 hover:border-rose-500/40' 
+                                    : 'bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/50 hover:border-slate-300'
+                                }`}>
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-rose-500/70">Stop Loss</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                      msg.signal.signal === 'BUY' ? 'text-emerald-500/80 dark:text-emerald-400/80' : msg.signal.signal === 'SELL' ? 'text-rose-500/80 dark:text-rose-400/80' : 'text-slate-500'
+                                    }`}>Stop Loss</span>
                                     <button onClick={() => copyToClipboard(msg.signal!.stopLoss.toString(), `SL-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `SL-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
-                                  <div className="text-2xl font-black tracking-tighter text-rose-500 dark:text-rose-400">{msg.signal.stopLoss}</div>
+                                  <div className={`text-2xl font-black tracking-tighter ${
+                                    msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : msg.signal.signal === 'SELL' ? 'text-rose-500 dark:text-rose-400' : 'text-slate-500'
+                                  }`}>{msg.signal.stopLoss}</div>
                                 </div>
 
                                 {/* Take Profit 1 */}
-                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                                <div className={`border p-5 rounded-3xl group transition-all duration-300 ${
+                                  msg.signal.signal === 'BUY' 
+                                    ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40' 
+                                    : msg.signal.signal === 'SELL' 
+                                    ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20 hover:border-rose-500/40' 
+                                    : 'bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/50 hover:border-slate-300'
+                                }`}>
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 1</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                      msg.signal.signal === 'BUY' ? 'text-emerald-500/80 dark:text-emerald-400/80' : msg.signal.signal === 'SELL' ? 'text-rose-500/80 dark:text-rose-400/80' : 'text-slate-500'
+                                    }`}>Take Profit 1</span>
                                     <button onClick={() => copyToClipboard(msg.signal!.takeProfits[0].toString(), `TP1-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `TP1-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
-                                  <div className="text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{msg.signal.takeProfits[0]}</div>
+                                  <div className={`text-2xl font-black tracking-tighter ${
+                                    msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : msg.signal.signal === 'SELL' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
+                                  }`}>{msg.signal.takeProfits[0]}</div>
                                 </div>
 
                                 {/* Take Profit 2 */}
-                                <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-5 rounded-3xl group hover:border-emerald-500/30 transition-colors">
+                                <div className={`border p-5 rounded-3xl group transition-all duration-300 ${
+                                  msg.signal.signal === 'BUY' 
+                                    ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40' 
+                                    : msg.signal.signal === 'SELL' 
+                                    ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20 hover:border-rose-500/40' 
+                                    : 'bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/50 hover:border-slate-300'
+                                }`}>
                                   <div className="flex justify-between items-center mb-2">
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500/70">Take Profit 2</span>
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${
+                                      msg.signal.signal === 'BUY' ? 'text-emerald-500/80 dark:text-emerald-400/80' : msg.signal.signal === 'SELL' ? 'text-rose-500/80 dark:text-rose-400/80' : 'text-slate-500'
+                                    }`}>Take Profit 2</span>
                                     <button onClick={() => copyToClipboard(msg.signal!.takeProfits[1].toString(), `TP2-${msg.id}`)} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
                                       {copied === `TP2-${msg.id}` ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5 text-slate-500" />}
                                     </button>
                                   </div>
-                                  <div className="text-2xl font-black tracking-tighter text-emerald-600 dark:text-emerald-400">{msg.signal.takeProfits[1]}</div>
+                                  <div className={`text-2xl font-black tracking-tighter ${
+                                    msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : msg.signal.signal === 'SELL' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500'
+                                  }`}>{msg.signal.takeProfits[1]}</div>
                                 </div>
                               </div>
 
                               {/* RR Levels */}
                               {msg.signal.rrLevels && (
-                                  <div className="mt-4 mb-8 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
-                                      <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4">
+                                  <div className={`mt-4 mb-8 border rounded-[2rem] p-6 backdrop-blur-xl transition-all duration-300 ${
+                                    msg.signal.signal === 'BUY' 
+                                      ? 'bg-emerald-500/[0.03] dark:bg-emerald-950/10 border-emerald-500/10' 
+                                      : msg.signal.signal === 'SELL' 
+                                      ? 'bg-rose-500/[0.03] dark:bg-rose-950/10 border-rose-500/10' 
+                                      : 'bg-white/50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/50'
+                                  }`}>
+                                      <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 ${
+                                        msg.signal.signal === 'BUY' ? 'text-emerald-500' : msg.signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-500'
+                                      }`}>
                                           Risk/Reward Breakdown
                                       </h3>
                                       <div className="grid grid-cols-3 gap-3">
                                           {/* TP1 */}
-                                          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
-                                              <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
+                                          <div className={`border rounded-2xl p-3 text-center transition-all duration-300 ${
+                                            msg.signal.signal === 'BUY' 
+                                              ? 'bg-emerald-500/[0.05] border-emerald-500/20' 
+                                              : msg.signal.signal === 'SELL' 
+                                              ? 'bg-rose-500/[0.05] border-rose-500/20' 
+                                              : 'bg-slate-100 dark:bg-slate-800/50 border-slate-200/50'
+                                          }`}>
+                                              <div className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500/70' : msg.signal.signal === 'SELL' ? 'text-rose-500/70' : 'text-slate-500'
+                                              }`}>
                                                   TP1 • {msg.signal.rrLevels?.rrRatios?.tp1 || '1:1.0'}
                                               </div>
-                                              <div className="text-sm font-black text-emerald-500">
+                                              <div className={`text-sm font-black ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500' : msg.signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-600'
+                                              }`}>
                                                   {msg.signal.takeProfits[0]}
                                               </div>
                                               <div className="text-[9px] text-slate-500 mt-1">
@@ -1569,11 +1629,21 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                           </div>
 
                                           {/* TP2 */}
-                                          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
-                                              <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
+                                          <div className={`border rounded-2xl p-3 text-center transition-all duration-300 ${
+                                            msg.signal.signal === 'BUY' 
+                                              ? 'bg-emerald-500/[0.05] border-emerald-500/20' 
+                                              : msg.signal.signal === 'SELL' 
+                                              ? 'bg-rose-500/[0.05] border-rose-500/20' 
+                                              : 'bg-slate-100 dark:bg-slate-800/50 border-slate-200/50'
+                                          }`}>
+                                              <div className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500/70' : msg.signal.signal === 'SELL' ? 'text-rose-500/70' : 'text-slate-500'
+                                              }`}>
                                                   TP2 • {msg.signal.rrLevels?.rrRatios?.tp2 || '1:2.0'}
                                               </div>
-                                              <div className="text-sm font-black text-emerald-500">
+                                              <div className={`text-sm font-black ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500' : msg.signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-600'
+                                              }`}>
                                                   {msg.signal.takeProfits[1]}
                                               </div>
                                               <div className="text-[9px] text-slate-500 mt-1">
@@ -1582,11 +1652,21 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                           </div>
 
                                           {/* TP3 */}
-                                          <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-2xl p-3 text-center">
-                                              <div className="text-[9px] font-black text-emerald-500/70 uppercase tracking-widest mb-1">
+                                          <div className={`border rounded-2xl p-3 text-center transition-all duration-300 ${
+                                            msg.signal.signal === 'BUY' 
+                                              ? 'bg-emerald-500/[0.05] border-emerald-500/20' 
+                                              : msg.signal.signal === 'SELL' 
+                                              ? 'bg-rose-500/[0.05] border-rose-500/20' 
+                                              : 'bg-slate-100 dark:bg-slate-800/50 border-slate-200/50'
+                                          }`}>
+                                              <div className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500/70' : msg.signal.signal === 'SELL' ? 'text-rose-500/70' : 'text-slate-500'
+                                              }`}>
                                                   TP3 • {msg.signal.rrLevels?.rrRatios?.tp3 || '1:3.0'}
                                               </div>
-                                              <div className="text-sm font-black text-emerald-500">
+                                              <div className={`text-sm font-black ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500' : msg.signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-600'
+                                              }`}>
                                                   {msg.signal.takeProfits[2] || 'N/A'}
                                               </div>
                                               <div className="text-[9px] text-slate-500 mt-1">
@@ -1596,7 +1676,13 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                       </div>
 
                                       {/* Breakeven Alert */}
-                                      <div className="mt-3 bg-amber-500/5 border border-amber-500/20 rounded-xl px-3 py-2 text-[10px] font-bold text-amber-500/80 text-center uppercase tracking-widest">
+                                      <div className={`mt-3 border rounded-xl px-3 py-2 text-[10px] font-bold text-center uppercase tracking-widest transition-all duration-300 ${
+                                        msg.signal.signal === 'BUY' 
+                                          ? 'bg-amber-500/5 border-amber-500/20 text-amber-500/80' 
+                                          : msg.signal.signal === 'SELL' 
+                                          ? 'bg-amber-500/5 border-amber-500/20 text-amber-500/80' 
+                                          : 'bg-amber-500/5 border-amber-500/20 text-amber-500/80'
+                                      }`}>
                                           ⚡ Move SL to {msg.signal.entryPoints?.[0]} after TP1 hits
                                       </div>
                                   </div>
@@ -1606,21 +1692,45 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                               {msg.signal.signal !== 'NEUTRAL' && (msg.signal.formattedLotSize || msg.signal.recommendedPositions) && (
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                                   {msg.signal.formattedLotSize && (
-                                    <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-4 rounded-3xl">
+                                    <div className={`border p-4 rounded-3xl transition-all duration-300 ${
+                                      msg.signal.signal === 'BUY' 
+                                        ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20' 
+                                        : msg.signal.signal === 'SELL' 
+                                        ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20' 
+                                        : 'bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/50'
+                                    }`}>
                                       <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1 leading-none">Total Lot Size</div>
-                                      <div className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">{msg.signal.formattedLotSize}</div>
+                                      <div className={`text-xl font-black tracking-tighter uppercase ${
+                                        msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : msg.signal.signal === 'SELL' ? 'text-rose-500 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+                                      }`}>{msg.signal.formattedLotSize}</div>
                                     </div>
                                   )}
                                   {msg.signal.recommendedPositions && (
-                                    <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-4 rounded-3xl">
+                                    <div className={`border p-4 rounded-3xl transition-all duration-300 ${
+                                      msg.signal.signal === 'BUY' 
+                                        ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20' 
+                                        : msg.signal.signal === 'SELL' 
+                                        ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20' 
+                                        : 'bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/50'
+                                    }`}>
                                       <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1 leading-none">Total Positions</div>
-                                      <div className="text-xl font-black tracking-tighter text-slate-900 dark:text-white">{msg.signal.recommendedPositions}</div>
+                                      <div className={`text-xl font-black tracking-tighter ${
+                                        msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : msg.signal.signal === 'SELL' ? 'text-rose-500 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+                                      }`}>{msg.signal.recommendedPositions}</div>
                                     </div>
                                   )}
                                   {msg.signal.positionLotSize && (
-                                    <div className="bg-white/50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800/50 p-4 rounded-3xl">
+                                    <div className={`border p-4 rounded-3xl transition-all duration-300 ${
+                                      msg.signal.signal === 'BUY' 
+                                        ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20' 
+                                        : msg.signal.signal === 'SELL' 
+                                        ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20' 
+                                        : 'bg-white/50 dark:bg-slate-900/40 border-slate-200 dark:border-slate-800/50'
+                                    }`}>
                                       <div className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1 leading-none">Size Per Position</div>
-                                      <div className="text-xl font-black tracking-tighter text-slate-900 dark:text-white uppercase">{msg.signal.positionLotSize}</div>
+                                      <div className={`text-xl font-black tracking-tighter uppercase ${
+                                        msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : msg.signal.signal === 'SELL' ? 'text-rose-500 dark:text-rose-400' : 'text-slate-900 dark:text-white'
+                                      }`}>{msg.signal.positionLotSize}</div>
                                     </div>
                                   )}
                                 </div>
@@ -1628,7 +1738,13 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
 
                               {/* Institutional Trade Management Protocols */}
                               {msg.signal.signal !== 'NEUTRAL' && (
-                                <div className="mb-8 p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-3xl">
+                                <div className={`mb-8 p-4 border rounded-3xl transition-all duration-300 ${
+                                  msg.signal.signal === 'BUY' 
+                                    ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/10 border-emerald-500/20' 
+                                    : msg.signal.signal === 'SELL' 
+                                    ? 'bg-rose-500/[0.04] dark:bg-rose-950/10 border-rose-500/20' 
+                                    : 'bg-slate-500/5 border-slate-500/20'
+                                }`}>
                                     <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
                                         <Clock className="w-3 h-3" /> Execution Protocols
                                     </h3>
@@ -1848,16 +1964,30 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                 {/* Trend Line Analysis */}
                                 {msg.signal.trendLines && msg.signal.trendLines.length > 0 && (
-                                  <div className="bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
-                                      <TrendingUp className="w-3.5 h-3.5 text-emerald-500" /> Trend Line Dynamics
+                                  <div className={`border rounded-[2rem] p-6 transition-all duration-300 ${
+                                    msg.signal.signal === 'BUY' 
+                                      ? 'bg-emerald-500/[0.03] dark:bg-emerald-950/10 border-emerald-500/10' 
+                                      : msg.signal.signal === 'SELL' 
+                                      ? 'bg-rose-500/[0.03] dark:bg-rose-950/10 border-rose-500/10' 
+                                      : 'bg-white/50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/50'
+                                  }`}>
+                                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 ${
+                                      msg.signal.signal === 'BUY' ? 'text-emerald-500' : 'text-rose-500'
+                                    }`}>
+                                      <TrendingUp className="w-3.5 h-3.5" /> Trend Line Dynamics
                                     </h3>
                                     <div className="space-y-4">
                                       {msg.signal.trendLines.map((line, idx) => (
-                                        <div key={idx} className="bg-white/40 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 relative overflow-hidden group">
+                                        <div key={idx} className={`p-4 rounded-2xl border relative overflow-hidden group transition-all duration-300 ${
+                                          msg.signal.signal === 'BUY' 
+                                            ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40' 
+                                            : msg.signal.signal === 'SELL' 
+                                            ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20 hover:border-rose-500/40' 
+                                            : 'bg-white/40 dark:bg-slate-950/40 border-slate-200/50 dark:border-slate-800/60'
+                                        }`}>
                                           <div className="flex justify-between items-start mb-2">
                                             <div className="flex items-center gap-1.5">
-                                              <span className={`w-2 h-2 rounded-full ${line.type === 'major' ? 'bg-indigo-500' : 'bg-emerald-500'}`} />
+                                              <span className={`w-2 h-2 rounded-full ${line.type === 'major' ? 'bg-indigo-500' : (msg.signal.signal === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500')}`} />
                                               <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">
                                                 {line.name}
                                               </span>
@@ -1868,12 +1998,20 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                           </div>
                                           
                                           <div className="grid grid-cols-2 gap-2 my-2 text-xs font-mono">
-                                            <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
-                                              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Start boundary</span>
+                                            <div className={`p-2 rounded-xl transition-all duration-300 ${
+                                              msg.signal.signal === 'BUY' ? 'bg-emerald-500/[0.08] dark:bg-emerald-950/40' : 'bg-rose-500/[0.08] dark:bg-rose-950/40'
+                                            }`}>
+                                              <span className={`text-[9px] font-black uppercase tracking-wider block ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500/70' : 'text-rose-500/70'
+                                              }`}>Start boundary</span>
                                               <span className="text-slate-800 dark:text-slate-300 font-bold">{line.priceStart}</span>
                                             </div>
-                                            <div className="bg-slate-100/50 dark:bg-slate-900/50 p-2 rounded-xl">
-                                              <span className="text-[9px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-wider block">Projected end</span>
+                                            <div className={`p-2 rounded-xl transition-all duration-300 ${
+                                              msg.signal.signal === 'BUY' ? 'bg-emerald-500/[0.08] dark:bg-emerald-950/40' : 'bg-rose-500/[0.08] dark:bg-rose-950/40'
+                                            }`}>
+                                              <span className={`text-[9px] font-black uppercase tracking-wider block ${
+                                                msg.signal.signal === 'BUY' ? 'text-emerald-500/70' : 'text-rose-500/70'
+                                              }`}>Projected end</span>
                                               <span className="text-slate-800 dark:text-slate-300 font-bold">{line.priceEnd}</span>
                                             </div>
                                           </div>
@@ -1902,16 +2040,34 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
 
                                 {/* Multi-Entry Scale-In Blueprint */}
                                 {msg.signal.scalingEntries && msg.signal.scalingEntries.length > 0 && (
-                                  <div className="bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
-                                    <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
-                                      <Zap className="w-3.5 h-3.5 text-emerald-500" /> Multi-Entry Scaling Blueprint
+                                  <div className={`border rounded-[2rem] p-6 transition-all duration-300 ${
+                                    msg.signal.signal === 'BUY' 
+                                      ? 'bg-emerald-500/[0.03] dark:bg-emerald-950/10 border-emerald-500/10' 
+                                      : msg.signal.signal === 'SELL' 
+                                      ? 'bg-rose-500/[0.03] dark:bg-rose-950/10 border-rose-500/10' 
+                                      : 'bg-white/50 dark:bg-slate-900/30 border-slate-200 dark:border-slate-800/50'
+                                  }`}>
+                                    <h3 className={`text-[10px] font-black uppercase tracking-[0.2em] mb-4 flex items-center gap-2 ${
+                                      msg.signal.signal === 'BUY' ? 'text-emerald-500' : 'text-rose-500'
+                                    }`}>
+                                      <Zap className="w-3.5 h-3.5" /> Multi-Entry Scaling Blueprint
                                     </h3>
                                     <div className="space-y-4">
                                       {msg.signal.scalingEntries.map((entry, idx) => (
-                                        <div key={idx} className="bg-white/40 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200/50 dark:border-slate-800/60 relative overflow-hidden group">
+                                        <div key={idx} className={`p-4 rounded-2xl border relative overflow-hidden group transition-all duration-300 ${
+                                          msg.signal.signal === 'BUY' 
+                                            ? 'bg-emerald-500/[0.04] dark:bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-500/40' 
+                                            : msg.signal.signal === 'SELL' 
+                                            ? 'bg-rose-500/[0.04] dark:bg-rose-950/20 border-rose-500/20 hover:border-rose-500/40' 
+                                            : 'bg-white/40 dark:bg-slate-950/40 border-slate-200/50 dark:border-slate-800/60'
+                                        }`}>
                                           <div className="flex justify-between items-center mb-2">
                                             <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-1">
-                                              <span className="bg-emerald-500/10 text-emerald-500 px-1.5 py-0.5 rounded text-[9px] font-black">
+                                              <span className={`px-1.5 py-0.5 rounded text-[9px] font-black ${
+                                                msg.signal.signal === 'BUY' 
+                                                  ? 'bg-emerald-500/10 text-emerald-500' 
+                                                  : 'bg-rose-500/10 text-rose-500'
+                                              }`}>
                                                 +{entry.lotSizePercentage}%
                                               </span>
                                               {entry.levelName}
@@ -1928,7 +2084,9 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                             </button>
                                           </div>
 
-                                          <div className="text-xl font-black text-emerald-600 dark:text-emerald-400 font-mono tracking-tight my-1">
+                                          <div className={`text-xl font-black font-mono tracking-tight my-1 ${
+                                            msg.signal.signal === 'BUY' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
+                                          }`}>
                                             {entry.triggerPrice}
                                           </div>
 
