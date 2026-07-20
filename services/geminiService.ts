@@ -2992,45 +2992,110 @@ Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
                             { title: "Investing.com Volatility Hub & Economic Calendar", uri: "https://www.investing.com/currencies/" }
                         );
                     }
-                    sniperFallbacks.forEach(src => {
-                        if (!finalSources.some((existing: any) => existing.uri === src.uri)) {
-                            finalSources.push(src);
-                        }
-                    });
+                sniperFallbacks.forEach(src => {
+                    if (!finalSources.some((existing: any) => existing.uri === src.uri)) {
+                        finalSources.push(src);
+                    }
+                });
+            }
+
+            // Enforce correct order types based on signal direction and entry price vs live price
+            let correctedEntryType: 'Market Execution' | 'Buy Limit' | 'Sell Limit' | 'Buy Stop' | 'Sell Stop' = signal.entryType || 'Market Execution';
+
+            if (finalSignal === 'BUY') {
+                if (correctedEntryType.startsWith('Sell')) {
+                    // Hallucinatory mismatch -> correct direction first
+                    if (correctedEntryType.includes('Limit')) {
+                        correctedEntryType = 'Buy Limit';
+                    } else {
+                        correctedEntryType = 'Buy Stop';
+                    }
                 }
 
-                const sanitizedSignal: SignalData = {
-                    id: `sniper_${Date.now()}`,
-                    timestamp: Date.now(),
-                    asset: signal.asset || assetName,
-                    signal: finalSignal,
-                    confidence: finalConfidence,
-                    priceAtSignal: livePrice,
-                    truthLayerUsed: !!derivData?.truthLayerUsed,
-                    timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
-                    entryPoints: [midEntry],
-                    entryRange: finalEntryRange || null,
-                    stopLoss: finalSL,
-                    takeProfits: finalTPs,
-                    rrLevels: rrLevels || undefined,
-                    positionProtocol: finalPositionProtocol || undefined,
-                    heatmapData: heatmapMapping,
-                    formattedLotSize: lotInfo.lotSize > 0 ? lotInfo.lotSize.toString() : signal.formattedLotSize,
-                    riskAmount: lotInfo.riskAmount,
-                    positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
-                    recommendedPositions: signal.recommendedPositions,
-                    reasoning: finalReasoning,
-                    checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
-                    candlestickPatterns: Array.isArray(signal.candlestickPatterns) ? signal.candlestickPatterns : [],
-                    confirmationPattern: signal.confirmationPattern || "None",
-                    neuralFilter: signal.neuralFilter,
-                    timingCalibration: signal.timingCalibration,
-                    entryType: signal.entryType || 'Market Execution',
-                    triggerConditions: signal.triggerConditions || undefined,
-                    contractSize: 100000,
-                    pipValue: 10,
-                    sources: finalSources
-                };
+                // Validate Limit vs Stop based on mathematical boundaries
+                if (correctedEntryType !== 'Market Execution' && livePrice > 0) {
+                    const decimals = livePrice > 1000 ? 2 : livePrice > 10 ? 4 : 5;
+                    const roundedMidEntry = parseFloat(midEntry.toFixed(decimals));
+                    const roundedLivePrice = parseFloat(livePrice.toFixed(decimals));
+                    
+                    if (roundedMidEntry > roundedLivePrice + (roundedLivePrice * 0.0001)) {
+                        if (correctedEntryType !== 'Buy Stop') {
+                            correctedEntryType = 'Buy Stop';
+                            finalReasoning.push(`🎯 Order type dynamically calibrated to Buy Stop since entry range is above current market price.`);
+                        }
+                    } else if (roundedMidEntry < roundedLivePrice - (roundedLivePrice * 0.0001)) {
+                        if (correctedEntryType !== 'Buy Limit') {
+                            correctedEntryType = 'Buy Limit';
+                            finalReasoning.push(`🎯 Order type dynamically calibrated to Buy Limit since entry range is below current market price.`);
+                        }
+                    } else {
+                        correctedEntryType = 'Market Execution';
+                    }
+                }
+            } else if (finalSignal === 'SELL') {
+                if (correctedEntryType.startsWith('Buy')) {
+                    // Hallucinatory mismatch -> correct direction first
+                    if (correctedEntryType.includes('Limit')) {
+                        correctedEntryType = 'Sell Limit';
+                    } else {
+                        correctedEntryType = 'Sell Stop';
+                    }
+                }
+
+                // Validate Limit vs Stop based on mathematical boundaries
+                if (correctedEntryType !== 'Market Execution' && livePrice > 0) {
+                    const decimals = livePrice > 1000 ? 2 : livePrice > 10 ? 4 : 5;
+                    const roundedMidEntry = parseFloat(midEntry.toFixed(decimals));
+                    const roundedLivePrice = parseFloat(livePrice.toFixed(decimals));
+                    
+                    if (roundedMidEntry < roundedLivePrice - (roundedLivePrice * 0.0001)) {
+                        if (correctedEntryType !== 'Sell Stop') {
+                            correctedEntryType = 'Sell Stop';
+                            finalReasoning.push(`🎯 Order type dynamically calibrated to Sell Stop since entry range is below current market price.`);
+                        }
+                    } else if (roundedMidEntry > roundedLivePrice + (roundedLivePrice * 0.0001)) {
+                        if (correctedEntryType !== 'Sell Limit') {
+                            correctedEntryType = 'Sell Limit';
+                            finalReasoning.push(`🎯 Order type dynamically calibrated to Sell Limit since entry range is above current market price.`);
+                        }
+                    } else {
+                        correctedEntryType = 'Market Execution';
+                    }
+                }
+            }
+
+            const sanitizedSignal: SignalData = {
+                id: `sniper_${Date.now()}`,
+                timestamp: Date.now(),
+                asset: signal.asset || assetName,
+                signal: finalSignal,
+                confidence: finalConfidence,
+                priceAtSignal: livePrice,
+                truthLayerUsed: !!derivData?.truthLayerUsed,
+                timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
+                entryPoints: [midEntry],
+                entryRange: finalEntryRange || null,
+                stopLoss: finalSL,
+                takeProfits: finalTPs,
+                rrLevels: rrLevels || undefined,
+                positionProtocol: finalPositionProtocol || undefined,
+                heatmapData: heatmapMapping,
+                formattedLotSize: lotInfo.lotSize > 0 ? lotInfo.lotSize.toString() : signal.formattedLotSize,
+                riskAmount: lotInfo.riskAmount,
+                positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
+                recommendedPositions: signal.recommendedPositions,
+                reasoning: finalReasoning,
+                checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
+                candlestickPatterns: Array.isArray(signal.candlestickPatterns) ? signal.candlestickPatterns : [],
+                confirmationPattern: signal.confirmationPattern || "None",
+                neuralFilter: signal.neuralFilter,
+                timingCalibration: signal.timingCalibration,
+                entryType: correctedEntryType,
+                triggerConditions: signal.triggerConditions || undefined,
+                contractSize: 100000,
+                pipValue: 10,
+                sources: finalSources
+            };
 
                 // Final deep sanitization to remove any remaining undefined fields
                 return JSON.parse(JSON.stringify(sanitizedSignal)) as SignalData;
