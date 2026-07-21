@@ -280,10 +280,14 @@ export const HomePage: React.FC<HomePageProps> = ({
         setError(null);
 
         const fileToDataUrl = (file: File): Promise<string> => new Promise((resolve, reject) => {
+            if (!file) {
+                reject(new Error("File is missing or undefined."));
+                return;
+            }
             const reader = new FileReader();
             reader.readAsDataURL(file);
             reader.onload = () => resolve(reader.result as string);
-            reader.onerror = error => reject(error);
+            reader.onerror = () => reject(new Error("FileReader encountered an error reading the file."));
         });
 
         try {

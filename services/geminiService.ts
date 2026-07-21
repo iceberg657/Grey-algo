@@ -1009,9 +1009,11 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         const isDeepThinking = !!request.userSettings?.deepThinking;
         const models = isDeepThinking ? [
+            'gemini-3.6-flash',
+            'gemini-3.5-flash',
+            'gemini-3.5-flash-lite',
             'gemini-3.1-flash-lite',
             'gemini-2.5-flash-lite',
-            'gemini-3.5-flash',
             'gemini-3-flash-preview',
             'gemini-2.5-flash'
         ] : ANALYSIS_MODELS;
@@ -2121,6 +2123,7 @@ export async function generateSniperLiveSignal(
 
     const isDeepThinking = !!userSettings?.deepThinking;
     const models = isDeepThinking ? [
+        'gemini-3.5-flash-lite',
         'gemini-3.1-flash-lite',
         'gemini-2.5-flash-lite',
         'gemini-3.5-flash',
@@ -3272,7 +3275,7 @@ Provide a concise, high-impact summary with bullet points. Be blunt. If there is
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'gemini-3.1-flash-lite',
+                    model: 'gemini-3.5-flash-lite',
                     contents: [{ parts: [{ text: prompt }] }],
                     apiKey: apiKey
                 }),
@@ -3287,7 +3290,7 @@ Provide a concise, high-impact summary with bullet points. Be blunt. If there is
             // Fallback to direct SDK if proxy fails
             const ai = new GoogleGenAI({ apiKey });
             const result = await ai.models.generateContent({
-                model: 'gemini-3.1-flash-lite',
+                model: 'gemini-3.5-flash-lite',
                 contents: [{ role: 'user', parts: [{ text: prompt }] }]
             });
             return result.text || "MACRO CONFLUENCE: UNKNOWN.";

@@ -6,6 +6,10 @@ import { RISK_REWARD_RATIOS, TRADING_STYLES } from '../constants';
 
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
+        if (!file) {
+            reject(new Error("File is missing or undefined."));
+            return;
+        }
         const reader = new FileReader();
         reader.readAsDataURL(file);
         reader.onload = (event) => {
@@ -93,7 +97,7 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
             };
             img.src = dataUrl;
         };
-        reader.onerror = error => reject(error);
+        reader.onerror = () => reject(new Error("FileReader encountered an error reading the file."));
     });
 
 interface ImageUploaderProps {

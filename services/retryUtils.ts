@@ -140,9 +140,11 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Keys 1-4)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
-    'gemini-3.5-flash',
     'gemini-3-flash-preview',
     'gemini-2.5-flash'
 ];
@@ -154,6 +156,7 @@ export const getSniperPool = () => {
     return keys.length > 0 ? keys : getAnalysisPool();
 };
 export const SNIPER_MODELS = [
+    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
     'gemini-3.5-flash',
@@ -167,7 +170,9 @@ export const getChatPool = () => {
     return keys.length > 0 ? keys : getAnalysisPool();
 };
 export const CHAT_MODELS = [
+    'gemini-3.6-flash',
     'gemini-3.5-flash',
+    'gemini-3.5-flash-lite',
     'gemini-3.1-flash-lite',
     'gemini-2.5-flash-lite',
     'gemini-3-flash-preview',
