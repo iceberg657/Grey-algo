@@ -937,8 +937,20 @@ export function analyzeSMC(
     const highs = candles.map(c => c.high);
     const lows = candles.map(c => c.low);
 
-    const ema50 = calculateEMA(closes, 50)[calculateEMA(closes, 50).length - 1]; // Simplified for now as imported is array
-    const ema200 = calculateEMA(closes, 200)[calculateEMA(closes, 200).length - 1];
+    const ema20Arr = calculateEMA(closes, 20);
+    const ema50Arr = calculateEMA(closes, 50);
+    const ema200Arr = calculateEMA(closes, 200);
+
+    const ema20 = ema20Arr.length > 0 ? ema20Arr[ema20Arr.length - 1] : closes[closes.length - 1];
+    const prevEma20 = ema20Arr.length > 1 ? ema20Arr[ema20Arr.length - 2] : ema20;
+    
+    const ema50 = ema50Arr.length > 0 ? ema50Arr[ema50Arr.length - 1] : closes[closes.length - 1];
+    const prevEma50 = ema50Arr.length > 1 ? ema50Arr[ema50Arr.length - 2] : ema50;
+    
+    const ema200 = ema200Arr.length > 0 ? ema200Arr[ema200Arr.length - 1] : closes[closes.length - 1];
+
+    const ema20Dir = ema20 > prevEma20 ? 'UP' : 'DOWN';
+    const ema50Dir = ema50 > prevEma50 ? 'UP' : 'DOWN';
 
     const rsi = calculateRSI(closes)[calculateRSI(closes).length - 1];
 
@@ -947,9 +959,26 @@ export function analyzeSMC(
     const lastSwingLow = Math.min(...lows.slice(-20));
     const currentPrice = closes[closes.length - 1];
 
-    // Trend
-    const trend = ema50 > ema200 && currentPrice > ema50 ? 'BULLISH' :
-        ema50 < ema200 && currentPrice < ema50 ? 'BEARISH' : 'RANGING';
+    // Trend & Regime Detection
+    let trend = 'RANGING';
+    let regime = 'CHOPPY';
+    
+    if (currentPrice > ema20 && ema20 > ema50 && ema20Dir === 'UP' && ema50Dir === 'UP') {
+        trend = 'BULLISH';
+        regime = 'STRONG_BULLISH';
+    } else if (currentPrice < ema20 && ema20 < ema50 && ema20Dir === 'DOWN' && ema50Dir === 'DOWN') {
+        trend = 'BEARISH';
+        regime = 'STRONG_BEARISH';
+    } else if (ema20Dir === 'UP' && ema50Dir === 'DOWN') {
+        trend = 'BEARISH'; // HTF is down
+        regime = 'COUNTER_TREND_PULLBACK';
+    } else if (ema20Dir === 'DOWN' && ema50Dir === 'UP') {
+        trend = 'BULLISH'; // HTF is up
+        regime = 'BULLISH_DIP';
+    } else {
+        trend = 'RANGING';
+        regime = 'CHOPPY';
+    }
 
     // BOS and CHoCH
     const prevHigh = Math.max(...highs.slice(-12, -1));
@@ -1102,7 +1131,119 @@ export function analyzeSMC(
             ? currentPrice >= ote.bearish.start && currentPrice <= ote.bearish.deep
             : false;
 
-    // FVG Detection
+    // ✅ NEW: Strict Mathematical HTF POI Tracking & LTF Mitigation
+    interface POI {
+        id: string;
+        type: 'FVG' | 'OB';
+        direction: 'BULLISH' | 'BEARISH';
+        topEdge: number;
+        bottomEdge: number;
+        timestamp: number;
+        isActive: boolean;
+    }
+
+    const activeHTF_POIs: POI[] = [];
+
+    if (htfCandles && htfCandles.length > 5) {
+        for (let i = 2; i < htfCandles.length - 1; i++) {
+            const c0 = htfCandles[i];
+            const c1 = htfCandles[i - 1];
+            const c2 = htfCandles[i - 2];
+
+            // 1. Detect HTF Bullish FVG (Low_C0 > High_C2)
+            if (c0.low > c2.high) {
+                activeHTF_POIs.push({
+                    id: `HTF_BULL_FVG_${i}`,
+                    type: 'FVG',
+                    direction: 'BULLISH',
+                    topEdge: c0.low,
+                    bottomEdge: c2.high,
+                    timestamp: c0.epoch || i,
+                    isActive: true
+                });
+            }
+
+            // 2. Detect HTF Bearish FVG (High_C0 < Low_C2)
+            if (c0.high < c2.low) {
+                activeHTF_POIs.push({
+                    id: `HTF_BEAR_FVG_${i}`,
+                    type: 'FVG',
+                    direction: 'BEARISH',
+                    topEdge: c2.low,
+                    bottomEdge: c0.high,
+                    timestamp: c0.epoch || i,
+                    isActive: true
+                });
+            }
+
+            // 3. Detect HTF Bullish Order Block (Down close followed by strong displacement/FVG)
+            // C_k = c1 (Down close), followed by C_0 (Up close)
+            if (c1.close < c1.open && c0.close > c0.open) {
+                const nextC = htfCandles[i + 1]; // Look ahead one candle to confirm FVG
+                if (nextC && nextC.low > c1.high) {
+                    activeHTF_POIs.push({
+                        id: `HTF_BULL_OB_${i}`,
+                        type: 'OB',
+                        direction: 'BULLISH',
+                        topEdge: c1.high,
+                        bottomEdge: c1.low,
+                        timestamp: c1.epoch || i,
+                        isActive: true
+                    });
+                }
+            }
+            
+            // 4. Detect HTF Bearish Order Block
+            if (c1.close > c1.open && c0.close < c0.open) {
+                const nextC = htfCandles[i + 1];
+                if (nextC && nextC.high < c1.low) {
+                    activeHTF_POIs.push({
+                        id: `HTF_BEAR_OB_${i}`,
+                        type: 'OB',
+                        direction: 'BEARISH',
+                        topEdge: c1.high,
+                        bottomEdge: c1.low,
+                        timestamp: c1.epoch || i,
+                        isActive: true
+                    });
+                }
+            }
+        }
+
+        // Mitigation Pass: Invalidate POIs that have been breached
+        for (let p = 0; p < activeHTF_POIs.length; p++) {
+            const poi = activeHTF_POIs[p];
+            const poiIndex = htfCandles.findIndex(c => (c.epoch || 0) === poi.timestamp);
+            if (poiIndex === -1) continue;
+
+            for (let k = poiIndex + 1; k < htfCandles.length; k++) {
+                const checkCandle = htfCandles[k];
+                if (poi.direction === 'BULLISH' && checkCandle.close < poi.bottomEdge) {
+                    poi.isActive = false;
+                    break;
+                }
+                if (poi.direction === 'BEARISH' && checkCandle.close > poi.topEdge) {
+                    poi.isActive = false;
+                    break;
+                }
+            }
+        }
+    }
+
+    const validPOIs = activeHTF_POIs.filter(p => p.isActive);
+    
+    // 15M Proximity Check
+    const isMitigatingBullishPOI = validPOIs.some(p => p.direction === 'BULLISH' && currentPrice <= p.topEdge && currentPrice >= p.bottomEdge);
+    const isMitigatingBearishPOI = validPOIs.some(p => p.direction === 'BEARISH' && currentPrice <= p.topEdge && currentPrice >= p.bottomEdge);
+
+    const ltfChochBullish = choch && trend === 'BULLISH'; // Or whatever indicates an upward structural shift
+    const ltfChochBearish = choch && trend === 'BEARISH'; // Needs refinement based on your BOS/CHOCH logic
+
+    // High Conviction Mechanical Trigger
+    const isMechanicalBuy = isMitigatingBullishPOI && choch && currentPrice > ema20;
+    const isMechanicalSell = isMitigatingBearishPOI && choch && currentPrice < ema20;
+
+    // FVG Detection (LTF - Legacy for reference)
     const detectFVG = (c: any[]) => {
         if (c.length < 3) return null;
         const c1 = c[c.length - 3];
@@ -1285,10 +1426,11 @@ export function analyzeSMC(
     }
 
     // Enforce direction based on HTF structure and Displacement
-    const isBullishSetup = (tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
-        (!displacementDirection || displacementDirection === 'BULLISH');
-    const isBearishSetup = (tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
-        (!displacementDirection || displacementDirection === 'BEARISH');
+    // ✅ OVERRIDE: If Mechanical POI logic fires, it supersedes generic trend alignment.
+    const isBullishSetup = isMechanicalBuy || ((tfConfirmation.htfTrend === 'BULLISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BULLISH')) &&
+        (!displacementDirection || displacementDirection === 'BULLISH'));
+    const isBearishSetup = isMechanicalSell || ((tfConfirmation.htfTrend === 'BEARISH' || (tfConfirmation.htfTrend === 'UNKNOWN' && trend === 'BEARISH')) &&
+        (!displacementDirection || displacementDirection === 'BEARISH'));
 
     const directionOfSetup: 'BUY' | 'SELL' | 'NEUTRAL' = 
         isBullishSetup ? 'BUY' : (isBearishSetup ? 'SELL' : 'NEUTRAL');
@@ -1391,7 +1533,7 @@ export function analyzeSMC(
             recommendedExecution = 'LIMIT';
         }
 
-        if (isBullishSetup && currentZone === 'DISCOUNT') {
+        if (isBullishSetup && (currentZone === 'DISCOUNT' || isMechanicalBuy)) {
             explicitSignal = 'BUY';
             if (stdDev.overextended && currentPrice > stdDev.upperBand) {
                 recommendedExecution = 'LIMIT'; // Protect against overextension trap
@@ -1403,7 +1545,7 @@ export function analyzeSMC(
             if (liquidityHeatmap.priceJustSweptSSL && liquidityHeatmap.nearestSSL) {
                 mathematicalSL = Math.min(mathematicalSL, liquidityHeatmap.nearestSSL.price - atr);
             }
-        } else if (isBearishSetup && currentZone === 'PREMIUM') {
+        } else if (isBearishSetup && (currentZone === 'PREMIUM' || isMechanicalSell)) {
             explicitSignal = 'SELL';
             if (stdDev.overextended && currentPrice < stdDev.lowerBand) {
                 recommendedExecution = 'LIMIT'; // Protect against overextension trap
@@ -1521,6 +1663,8 @@ export function analyzeSMC(
 
     return {
         trend,
+        regime,
+        ema20,
         ema50,
         ema200,
         rsi,
@@ -1528,6 +1672,11 @@ export function analyzeSMC(
         lastSwingLow,
         bos,
         choch,
+        validPOIs,
+        isMitigatingBullishPOI,
+        isMitigatingBearishPOI,
+        isMechanicalBuy,
+        isMechanicalSell,
         liquiditySweep,
         displacement,
         displacementCandle,

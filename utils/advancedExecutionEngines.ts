@@ -692,20 +692,31 @@ export class SingleAssetRegimeEngine {
         const currentPrice = data.closes[t];
         const trendDir = currentEma20 > currentEma50 ? 'BUY' : 'SELL';
         
+        const ema20Dir = currentEma20 > prevEma20 ? 'UP' : 'DOWN';
+        const ema50Dir = currentEma50 > ema50[t-1] ? 'UP' : 'DOWN';
+        
         let globalTrend = 0;
         let smcStructure = 0;
         
-        if (trendDir === 'BUY' && currentPrice > currentEma20 && prevEma20 > ema50[t-1]) {
+        if (currentPrice > currentEma20 && currentEma20 > currentEma50 && ema20Dir === 'UP' && ema50Dir === 'UP') {
             globalTrend = 20;
-            breakdown.push(`STRONG BULLISH REGIME: Price > EMA20 > EMA50. Trend is accelerating.`);
+            breakdown.push(`STRONG BULLISH REGIME: Price > EMA20 > EMA50. Buyers are in control. High probability BUY.`);
             smcStructure = 20;
-        } else if (trendDir === 'SELL' && currentPrice < currentEma20 && prevEma20 < ema50[t-1]) {
+        } else if (currentPrice < currentEma20 && currentEma20 < currentEma50 && ema20Dir === 'DOWN' && ema50Dir === 'DOWN') {
             globalTrend = 20;
-            breakdown.push(`STRONG BEARISH REGIME: Price < EMA20 < EMA50. Trend is accelerating.`);
+            breakdown.push(`STRONG BEARISH REGIME: Price < EMA20 < EMA50. Sellers are in control. High probability SELL.`);
             smcStructure = 20;
+        } else if (ema20Dir === 'UP' && ema50Dir === 'DOWN') {
+            globalTrend = 10;
+            breakdown.push(`COUNTER-TREND PULLBACK (Scenario A): 20 EMA is UP, but 50 EMA is DOWN. Short-term rallying, but HTF trend is falling. High probability SELL near 50 EMA. If buying, use tight targets.`);
+            smcStructure = 10;
+        } else if (ema20Dir === 'DOWN' && ema50Dir === 'UP') {
+            globalTrend = 10;
+            breakdown.push(`BULLISH DIP / RETRACEMENT (Scenario B): 20 EMA is DOWN, but 50 EMA is UP. Short-term dipping, but HTF trend is bullish. High probability BUY near 50 EMA. Shorting carries high risk.`);
+            smcStructure = 10;
         } else {
             globalTrend = 5;
-            breakdown.push(`CHOPPY REGIME: Price oscillating around mean-reversion bands.`);
+            breakdown.push(`CHOPPY REGIME: Price oscillating around mean-reversion bands. Wait for clear structure.`);
             smcStructure = 5;
         }
         

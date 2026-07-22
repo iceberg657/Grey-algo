@@ -59,7 +59,8 @@ ${advancedQuantSignal ? `
 
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
-- EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
+- Mathematical Regime: ${quantData.regime || 'UNKNOWN'}
+- EMA 20: ${quantData.ema20} | EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
 - Current RSI: ${quantData.rsi}
 - Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
 - BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
@@ -96,7 +97,8 @@ ${advancedQuantSignal ? `
             : `
 **RCA ENGINE DATA (REGULAR CHART ANALYSIS FACT SHEET):**
 - Trend Bias: ${quantData.trend}
-- EMA 50: ${quantData.ema50?.toFixed(5) || 'N/A'} | EMA 200: ${quantData.ema200?.toFixed(5) || 'N/A'}
+- Mathematical Regime: ${quantData.regime || 'UNKNOWN'}
+- EMA 20: ${quantData.ema20?.toFixed(5) || 'N/A'} | EMA 50: ${quantData.ema50?.toFixed(5) || 'N/A'} | EMA 200: ${quantData.ema200?.toFixed(5) || 'N/A'}
 - Current RSI: ${quantData.rsi?.toFixed(1) || 'N/A'}
 - BOS Detection: ${quantData.bos ? 'YES ✅' : 'NO ❌'}
 - FVG / Imbalance: ${quantData.fvg ? `DETECTED (${quantData.fvg.type})` : 'NONE'}
@@ -2189,10 +2191,18 @@ ${learnedStrategies.join('\n')}
 ` : ''}
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
-- EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
+- Mathematical Regime: ${quantData.regime || 'UNKNOWN'}
+- EMA 20: ${quantData.ema20} | EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
 - Current RSI: ${quantData.rsi}
 - Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
 - BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
+
+**STRICT HTF POI EXECUTION (THE MASTER ANCHOR):**
+- Valid HTF POIs Found: ${quantData.validPOIs?.length || 0}
+- Mitigating Bullish POI (Inside Zone): ${quantData.isMitigatingBullishPOI ? 'YES ✅' : 'NO'}
+- Mitigating Bearish POI (Inside Zone): ${quantData.isMitigatingBearishPOI ? 'YES ✅' : 'NO'}
+- Mechanical Buy Triggered (POI + CHoCH): ${quantData.isMechanicalBuy ? 'YES 🟢' : 'NO'}
+- Mechanical Sell Triggered (POI + CHoCH): ${quantData.isMechanicalSell ? 'YES 🔴' : 'NO'}
 
 **GREY MODEL GM(1,1) PREDICTION:**
 - Next 3 Time Periods Forecast: ${quantData.greyModelPrediction?.forecast?.map((f: number) => f.toFixed(5)).join(', ') || 'N/A'}
@@ -2277,11 +2287,16 @@ ${quantData.orderflowMetrics?.l2Metrics && (quantData.orderflowMetrics.l2Metrics
 - Pre-Trade Volatility Circuit Breaker Active: ${quantData.institutionalExecution?.preTradeRisk?.volatilityCircuitBreaker ? 'YES 🛑' : 'NO'}
 - Estimated Execution Slippage (TCA): ${quantData.institutionalExecution?.tca?.estimatedSlippage?.toFixed(3) || '0'}%
 
-**4 STRICT RULES FOR ENTRY TIMING PRECISION:**
-1. **Separate Analysis Timeframe from Execution Timeframe:** Do not enter immediately upon touching a HTF zone. Ensure the mathematical engine has confirmed an LTF Market Structure Shift (MSS/CHoCH) prior to issuing market execution.
-2. **Confirm, Do Not Anticipate:** Do NOT execute directly into momentum. Verify that price has tapped the zone, swept the local low/high, and broken structural resistance/support before firing an entry.
-3. **Work Backward from Invalidation:** Identify the exact Stop Loss invalidation point first. Ensure entry levels are calibrated to maintain at least the required Risk-to-Reward ratio (e.g. 1:2.5). If market price has run too far, mandate a LIMIT ORDER pullback entry instead of market chasing.
-4. **Account for Session Liquidity Sweeps:** Avoid entering in low-volume pre-session consolidation. Wait for the initial session liquidity sweep (false move) to clear stops, and enter on the real directional expansion that follows. Buy the retest, never buy expansion candles into resistance.
+**5 STRICT RULES FOR ENTRY TIMING PRECISION:**
+1. **EMA 20 & 50 Confluence & Transitions:** 
+   - When price is BELOW both EMA 20 and 50: Sellers are in control (High probability SELL).
+   - When price is ABOVE both EMA 20 and 50: Buyers are in control (High probability BUY).
+   - **Scenario A (Counter-Trend Pullback): 20 EMA is UP, but 50 EMA is DOWN.** If Selling: Wait for price to rally into the 50 EMA or the space between 20/50, and look for a lower-timeframe rejection to jump back into the overall 50 EMA trend. If Buying: This is a retracement; targets must be tight at or just below the declining 50 EMA.
+   - **Scenario B (Bullish Dip/Retracement): 20 EMA is DOWN, but 50 EMA is UP.** If Buying: Classic buy the dip. Wait for price to drop into the 50 EMA region, see 20 EMA start flattening out, and print a bullish reversal off the 50 EMA. If Selling: Shorting into HTF support carries high risk of getting caught in a bounce.
+2. **Separate Analysis Timeframe from Execution Timeframe:** Do not enter immediately upon touching a HTF zone. Ensure the mathematical engine has confirmed an LTF Market Structure Shift (MSS/CHoCH) prior to issuing market execution.
+3. **Confirm, Do Not Anticipate:** Do NOT execute directly into momentum. Verify that price has tapped the zone, swept the local low/high, and broken structural resistance/support before firing an entry.
+4. **Work Backward from Invalidation:** Identify the exact Stop Loss invalidation point first. Ensure entry levels are calibrated to maintain at least the required Risk-to-Reward ratio (e.g. 1:2.5). If market price has run too far, mandate a LIMIT ORDER pullback entry instead of market chasing.
+5. **Account for Session Liquidity Sweeps:** Avoid entering in low-volume pre-session consolidation. Wait for the initial session liquidity sweep (false move) to clear stops, and enter on the real directional expansion that follows. Buy the retest, never buy expansion candles into resistance.
 
 *CRITICAL MATH COMPLIANCE INSTRUCTIONS:*
 - **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 
