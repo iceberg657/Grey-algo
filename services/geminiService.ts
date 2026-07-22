@@ -1933,7 +1933,7 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
             models,
             async (modelId) => {
                 const config: any = {
-                    temperature: 1.0,
+                    temperature: 0.1,
                     responseMimeType: "application/json",
                     responseSchema: SniperDataSchema
                 };
@@ -2199,6 +2199,7 @@ ${learnedStrategies.join('\n')}
 
 **STRICT HTF POI EXECUTION (THE MASTER ANCHOR):**
 - Valid HTF POIs Found: ${quantData.validPOIs?.length || 0}
+${quantData.validPOIs?.map((p: any) => `  * ${p.direction} ${p.type} [${p.id}]: ${p.bottomEdge.toFixed(5)} to ${p.topEdge.toFixed(5)}`).join('\n') || '  * None'}
 - Mitigating Bullish POI (Inside Zone): ${quantData.isMitigatingBullishPOI ? 'YES ✅' : 'NO'}
 - Mitigating Bearish POI (Inside Zone): ${quantData.isMitigatingBearishPOI ? 'YES ✅' : 'NO'}
 - Mechanical Buy Triggered (POI + CHoCH): ${quantData.isMechanicalBuy ? 'YES 🟢' : 'NO'}
@@ -2551,7 +2552,7 @@ JSON Structure:
             models,
             async (modelId) => {
                 const config: any = {
-                    temperature: 1.0,
+                    temperature: 0.1,
                     maxOutputTokens: 8192,
                     responseMimeType: "application/json",
                     responseSchema: SniperDataSchema
