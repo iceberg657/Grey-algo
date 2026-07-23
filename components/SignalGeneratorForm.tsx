@@ -266,6 +266,7 @@ interface SignalGeneratorFormProps {
 
 export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubmit, isLoading }) => {
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
+    const [liteAnalysis, setLiteAnalysis] = useState(false);
     const [asset, setAsset] = useState<string>('');
     const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
@@ -313,7 +314,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 riskRewardRatio, 
                 tradingStyle,
                 isMultiDimensional,
-
+                liteAnalysis
             }, images.primary);
 
         } catch(err) {
@@ -367,6 +368,23 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                         </span>
                     </div>
 
+                    {/* Lite Analysis Toggle */}
+                    <div className="flex items-center justify-center space-x-3 bg-white/80 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] p-2 rounded-lg w-full sm:w-auto">
+                        <span className="text-sm font-medium text-gray-800 dark:text-dark-text/80">Standard</span>
+                        <label htmlFor="lite-analysis-toggle" className="relative inline-flex items-center cursor-pointer">
+                            <input 
+                                type="checkbox" 
+                                id="lite-analysis-toggle" 
+                                className="sr-only peer"
+                                checked={liteAnalysis}
+                                onChange={() => setLiteAnalysis(!liteAnalysis)}
+                            />
+                            <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/50 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                        </label>
+                        <span className={`text-sm font-medium transition-colors ${liteAnalysis ? 'text-blue-500' : 'text-gray-800 dark:text-dark-text/80'}`}>
+                            Lite Mode
+                        </span>
+                    </div>
 
                 </div>
 

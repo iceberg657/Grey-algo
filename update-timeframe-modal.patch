@@ -1,0 +1,102 @@
+--- components/SniperLiveTrade.tsx
++++ components/SniperLiveTrade.tsx
+@@ -2367,6 +2367,91 @@
+         </div>
+       )}
++      
++      <AnimatePresence>
++        {showTimeframeSettings && (
++          <div className="fixed inset-0 z-[60] bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4">
++            <motion.div
++              initial={{ opacity: 0, scale: 0.95, y: 10 }}
++              animate={{ opacity: 1, scale: 1, y: 0 }}
++              exit={{ opacity: 0, scale: 0.95, y: 10 }}
++              className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-6 w-full max-w-md"
++            >
++              <div className="flex items-center justify-between mb-6">
++                <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
++                  <Settings className="w-5 h-5 text-emerald-500" /> Timeframe Preferences
++                </h3>
++                <button onClick={() => setShowTimeframeSettings(false)} className="p-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
++                  <X className="w-5 h-5" />
++                </button>
++              </div>
++
++              <div className="space-y-4">
++                <div className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-2">
++                  Customizing timeframes for: <span className="text-emerald-500 capitalize">{style}</span>
++                </div>
++
++                {(['entry', 'confirm', 'htf'] as const).map(tf => {
++                  const options = [
++                    { label: 'M1 (1 Minute)', v: 60, ct: 'M1' },
++                    { label: 'M5 (5 Minutes)', v: 300, ct: 'M5' },
++                    { label: 'M15 (15 Minutes)', v: 900, ct: 'M15' },
++                    { label: 'M30 (30 Minutes)', v: 1800, ct: 'M30' },
++                    { label: 'H1 (1 Hour)', v: 3600, ct: 'H1' },
++                    { label: 'H4 (4 Hours)', v: 14400, ct: 'H4' },
++                    { label: 'D1 (1 Day)', v: 86400, ct: 'D1' },
++                    { label: 'W1 (1 Week)', v: 604800, ct: 'W1' }
++                  ];
++                  const currentPref = timeframePrefs[style] || defaultTimeframePrefs[style] || defaultTimeframePrefs['day trading(1 to 2hrs)'];
++                  
++                  return (
++                    <div key={tf} className="space-y-1.5">
++                      <label className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize">{tf === 'htf' ? 'Higher Timeframe' : tf + ' Timeframe'}</label>
++                      <select
++                        value={currentPref[tf]}
++                        onChange={(e) => {
++                          const val = Number(e.target.value);
++                          const opt = options.find(o => o.v === val);
++                          if (!opt) return;
++                          
++                          const newPrefs = {
++                            ...timeframePrefs,
++                            [style]: {
++                              ...currentPref,
++                              [tf]: val,
++                              [tf === 'entry' ? 'ctEntry' : tf === 'confirm' ? 'ctConfirm' : 'ctHtf']: opt.ct
++                            }
++                          };
++                          setTimeframePrefs(newPrefs);
++                          if (typeof window !== 'undefined') {
++                            localStorage.setItem('greyquant_sniper_timeframes', JSON.stringify(newPrefs));
++                          }
++                        }}
++                        className="w-full bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
++                      >
++                        {options.map(o => (
++                          <option key={o.v} value={o.v}>{o.label}</option>
++                        ))}
++                      </select>
++                    </div>
++                  );
++                })}
++              </div>
++              
++              <div className="mt-6 flex gap-3">
++                <button
++                  onClick={() => {
++                    const newPrefs = { ...timeframePrefs };
++                    newPrefs[style] = defaultTimeframePrefs[style] || defaultTimeframePrefs['day trading(1 to 2hrs)'];
++                    setTimeframePrefs(newPrefs);
++                    localStorage.setItem('greyquant_sniper_timeframes', JSON.stringify(newPrefs));
++                  }}
++                  className="flex-1 py-3 text-sm font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-xl hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
++                >
++                  Reset to Default
++                </button>
++                <button
++                  onClick={() => setShowTimeframeSettings(false)}
++                  className="flex-1 py-3 text-sm font-bold text-white bg-emerald-500 rounded-xl hover:bg-emerald-400 transition-colors shadow-lg shadow-emerald-500/20"
++                >
++                  Done
++                </button>
++              </div>
++            </motion.div>
++          </div>
++        )}
++      </AnimatePresence>
+     </div>
+   );
+ };

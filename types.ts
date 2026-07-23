@@ -68,6 +68,7 @@ export interface GlobalTrendInfo {
 }
 
 export interface AnalysisRequest {
+    liteAnalysis?: boolean;
     images: {
         higher?: ImagePart;
         primary: ImagePart;

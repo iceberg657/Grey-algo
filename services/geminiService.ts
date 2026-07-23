@@ -1010,7 +1010,10 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
         const ai = new GoogleGenAI({ apiKey });
 
         const isDeepThinking = !!request.userSettings?.deepThinking;
-        const models = isDeepThinking ? [
+        const models = request.liteAnalysis ? [
+            'gemini-3.1-flash-lite',
+            'gemini-3.5-flash-lite'
+        ] : isDeepThinking ? [
             'gemini-3.6-flash',
             'gemini-3.5-flash',
             'gemini-3.5-flash-lite',
@@ -1020,9 +1023,36 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             'gemini-2.5-flash'
         ] : ANALYSIS_MODELS;
 
+        let searchContext = "";
+        if (request.liteAnalysis) {
+            try {
+                const proxyRes = await fetch('/api/gemini/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        model: 'gemini-2.5-flash',
+                        contents: [{ parts: [{ text: `Search for recent market news, economic events, and sentiment for ${request.asset || 'this asset'} and provide a brief summary.` }] }],
+                        config: {
+                            tools: [{ googleSearch: {} }],
+                            temperature: 0.1
+                        },
+                        apiKey: apiKey
+                    })
+                });
+                if (proxyRes.ok) {
+                    const data = await proxyRes.json();
+                    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        searchContext = `\n[SEARCH GROUNDING FROM GEMINI 2.5 FLASH]:\n${data.candidates[0].content.parts[0].text}\n`;
+                    }
+                }
+            } catch (e) {
+                console.warn("Lite analysis search grounding failed", e);
+            }
+        }
+
         const uniqueSessionId = `SESSION-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
         const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' }); // Or use a generic format
-        let promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n[CURRENT LOCAL TIME: ${new Date().toISOString()}]\n` + AI_TRADING_PLAN(
+        let promptText = `[SYSTEM: NEW ANALYSIS SESSION ID: ${uniqueSessionId}. FORGET ALL PRIOR CONTEXT. TREAT THIS AS A FRESH START.]\n[CURRENT LOCAL TIME: ${new Date().toISOString()}]\n${searchContext}` + AI_TRADING_PLAN(
             request.riskRewardRatio,
             request.asset || "",
             request.learnedStrategies || [],

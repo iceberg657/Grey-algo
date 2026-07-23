@@ -23,7 +23,10 @@ import {
   Bot,
   ChevronDown,
   Bell,
-  BellOff
+  BellOff,
+  Settings,
+  X,
+  Save
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
 import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal } from '../services/geminiService';
@@ -303,9 +306,34 @@ interface SniperLiveTradeProps {
   isLocked?: boolean;
 }
 
+export interface CustomTimeframePrefs {
+  entry: number;
+  confirm: number;
+  htf: number;
+  ctEntry: string;
+  ctConfirm: string;
+  ctHtf: string;
+}
+
+const defaultTimeframePrefs: Record<string, CustomTimeframePrefs> = {
+  'scalping(1 to 15mins)': { entry: 300, confirm: 900, htf: 3600, ctEntry: 'M5', ctConfirm: 'M15', ctHtf: 'H1' },
+  'day trading(1 to 2hrs)': { entry: 900, confirm: 3600, htf: 14400, ctEntry: 'M15', ctConfirm: 'H1', ctHtf: 'H4' },
+  'swing trading': { entry: 14400, confirm: 86400, htf: 604800, ctEntry: 'H4', ctConfirm: 'D1', ctHtf: 'W1' }
+};
+
 export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMetadata, isLocked }) => {
   const [query, setQuery] = useState('');
   const [style, setStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
+  const [timeframePrefs, setTimeframePrefs] = useState<Record<string, CustomTimeframePrefs>>(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('greyquant_sniper_timeframes');
+      if (stored) {
+         try { return JSON.parse(stored); } catch(e) {}
+      }
+    }
+    return defaultTimeframePrefs;
+  });
+  const [showTimeframeSettings, setShowTimeframeSettings] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [messages, setMessages] = useState<SniperMessage[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -749,14 +777,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
 
       // Define 3 timeframes based on trading style
-      const getTimeframes = (style: string) => {
-        if (style.includes('scalping')) {
-            return { entry: 300, confirm: 900, htf: 3600, ctEntry: 'M5', ctConfirm: 'M15', ctHtf: 'H1' }; // 5m, 15m, 1h
-        } else if (style.includes('swing')) {
-            return { entry: 14400, confirm: 86400, htf: 604800, ctEntry: 'H4', ctConfirm: 'D1', ctHtf: 'W1' }; // 4h, 1d, 1w
-        } else {
-            return { entry: 900, confirm: 3600, htf: 14400, ctEntry: 'M15', ctConfirm: 'H1', ctHtf: 'H4' }; // Day: 15m, 1h, 4h
-        }
+      const getTimeframes = (currentStyle: string) => {
+        return timeframePrefs[currentStyle] || defaultTimeframePrefs[currentStyle] || defaultTimeframePrefs['day trading(1 to 2hrs)'];
       };
       
       const timeframes = getTimeframes(style);
@@ -1701,20 +1723,119 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 )}
               </AnimatePresence>
 
-              <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm">
-                {tradingStyles.map((s) => (
+              <div className="flex items-center gap-2">
+                <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm flex-1">
+                  {tradingStyles.map((s) => (
+                    <button
+                      key={s.id}
+                      onClick={() => setStyle(s.id)}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
+                        style === s.id 
+                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
+                      }`}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="relative z-50">
                   <button
-                    key={s.id}
-                    onClick={() => setStyle(s.id)}
-                    className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
-                      style === s.id 
-                        ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
-                        : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
-                    }`}
+                    onClick={() => setShowTimeframeSettings(!showTimeframeSettings)}
+                    className={`p-2.5 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 rounded-2xl transition-colors shadow-sm ${showTimeframeSettings ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-500 hover:text-emerald-500 dark:text-slate-400 dark:hover:text-emerald-400'}`}
+                    title="Configure Timeframes"
                   >
-                    {s.label}
+                    <Settings className="w-5 h-5" />
                   </button>
-                ))}
+
+                  <AnimatePresence>
+                    {showTimeframeSettings && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                        className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-5 w-80 max-w-[90vw]"
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                            <Settings className="w-4 h-4 text-emerald-500" /> Timeframes
+                          </h3>
+                          <button onClick={() => setShowTimeframeSettings(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                            For: <span className="text-emerald-500">{style}</span>
+                          </div>
+
+                          {(['entry', 'confirm', 'htf'] as const).map(tf => {
+                            const options = [
+                              { label: 'M1', v: 60, ct: 'M1' },
+                              { label: 'M5', v: 300, ct: 'M5' },
+                              { label: 'M15', v: 900, ct: 'M15' },
+                              { label: 'M30', v: 1800, ct: 'M30' },
+                              { label: 'H1', v: 3600, ct: 'H1' },
+                              { label: 'H4', v: 14400, ct: 'H4' },
+                              { label: 'D1', v: 86400, ct: 'D1' },
+                              { label: 'W1', v: 604800, ct: 'W1' }
+                            ];
+                            const currentPref = timeframePrefs[style] || defaultTimeframePrefs[style] || defaultTimeframePrefs['day trading(1 to 2hrs)'];
+                            
+                            return (
+                              <div key={tf} className="flex items-center justify-between gap-3">
+                                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize min-w-[70px]">
+                                  {tf === 'htf' ? 'Higher' : tf}
+                                </label>
+                                <select
+                                  value={currentPref[tf]}
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    const opt = options.find(o => o.v === val);
+                                    if (!opt) return;
+                                    
+                                    const newPrefs = {
+                                      ...timeframePrefs,
+                                      [style]: {
+                                        ...currentPref,
+                                        [tf]: val,
+                                        [tf === 'entry' ? 'ctEntry' : tf === 'confirm' ? 'ctConfirm' : 'ctHtf']: opt.ct
+                                      }
+                                    };
+                                    setTimeframePrefs(newPrefs);
+                                    if (typeof window !== 'undefined') {
+                                      localStorage.setItem('greyquant_sniper_timeframes', JSON.stringify(newPrefs));
+                                    }
+                                  }}
+                                  className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                                >
+                                  {options.map(o => (
+                                    <option key={o.v} value={o.v}>{o.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            );
+                          })}
+                        </div>
+                        
+                        <div className="mt-4 flex gap-2">
+                          <button
+                            onClick={() => {
+                              const newPrefs = { ...timeframePrefs };
+                              newPrefs[style] = defaultTimeframePrefs[style] || defaultTimeframePrefs['day trading(1 to 2hrs)'];
+                              setTimeframePrefs(newPrefs);
+                              localStorage.setItem('greyquant_sniper_timeframes', JSON.stringify(newPrefs));
+                            }}
+                            className="flex-1 py-2 text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                          >
+                            Reset Defaults
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 
@@ -2628,6 +2749,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
           </div>
         </div>
       )}
+      
     </div>
   );
 };
