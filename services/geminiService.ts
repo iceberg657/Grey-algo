@@ -1941,9 +1941,9 @@ Asset: ${assetName}
 Current Price: ${livePrice}
 
 Here is the historical data you can see (300 CANDLES PER TIMEFRAME):
-- Entry Timeframe (Last 300 candles): ${JSON.stringify(entryCandles)}
-- Confirmation Timeframe (Last 300 candles): ${JSON.stringify(confirmCandles)}
-- Higher Timeframe (Last 300 candles): ${JSON.stringify(htfCandles)}
+- Entry Timeframe (${derivData?.multiTimeframe?.entry?.granularity}s granularity, Last 300 candles): ${JSON.stringify(entryCandles)}
+- Confirmation Timeframe (${derivData?.multiTimeframe?.confirm?.granularity}s granularity, Last 300 candles): ${JSON.stringify(confirmCandles)}
+- Higher Timeframe (${derivData?.multiTimeframe?.htf?.granularity}s granularity, Last 300 candles): ${JSON.stringify(htfCandles)}
 
 Trading Style requested: ${style}
 
@@ -2163,6 +2163,13 @@ export async function generateSniperLiveSignal(
         'gemini-2.5-flash'
     ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default
 
+    const timeframesContext = derivData?.multiTimeframe ? `
+**SELECTED TIMEFRAMES FOR ANALYSIS:**
+- Entry Timeframe: ${derivData.multiTimeframe.entry?.granularity}s
+- Confirmation Timeframe: ${derivData.multiTimeframe.confirm?.granularity}s
+- Higher Timeframe: ${derivData.multiTimeframe.htf?.granularity}s
+` : '';
+
     // CRITICAL DATA STARVATION CHECK
     if (livePrice === 0 && (!quantData || Object.keys(quantData).length === 0)) {
         console.warn(`[GEMINI] Data starvation detected for ${assetName}. Rejecting to prevent hallucination.`);
@@ -2219,6 +2226,7 @@ ${learnedStrategies && learnedStrategies.length > 0 ? `
 ${learnedStrategies.join('\n')}
 *These rules are derived from real trading history. You MUST strictly obey them. If a setup violates these learned rules, VETO the trade.*
 ` : ''}
+${timeframesContext}
 **ALGORITHMIC QUANT ENGINE DATA (MATHEMATICAL FACTS):**
 - Trend Bias: ${quantData.trend}
 - Mathematical Regime: ${quantData.regime || 'UNKNOWN'}
@@ -3293,13 +3301,13 @@ export async function generateMacroContext(
     let prompt = `You are the Multi-Timeframe Context Agent for ${asset}.
 Your task is to analyze market structure across three distinct timeframes to find CONFLUENCE.
 
-Timeframe 1 (Entry/Scalp/M5/H4):
+Timeframe 1 (Entry / ${multiTimeframe.entry?.granularity}s):
 ${JSON.stringify(entryContext)}
 
-Timeframe 2 (Confirm/M15/D1):
+Timeframe 2 (Confirm / ${multiTimeframe.confirm?.granularity}s):
 ${JSON.stringify(confirmContext)}
 
-Timeframe 3 (HTF/H1/W1):
+Timeframe 3 (HTF / ${multiTimeframe.htf?.granularity}s):
 ${JSON.stringify(htfContext)}
 
 Analysis Objectives:

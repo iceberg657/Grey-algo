@@ -1173,6 +1173,21 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           vetoReason = "Sniper Mode Active: Quant Engine structural data was unavailable for verification.";
       }
 
+      const getTfLabel = (g: number) => {
+          switch (g) {
+              case 60: return 'M1';
+              case 300: return 'M5';
+              case 900: return 'M15';
+              case 1800: return 'M30';
+              case 3600: return 'H1';
+              case 14400: return 'H4';
+              case 86400: return 'D1';
+              case 604800: return 'W1';
+              default: return 'M15';
+          }
+      };
+      const tfLabel = getTfLabel(derivData?.multiTimeframe?.entry?.granularity || 900);
+
       // MULTI-MODEL NEURAL SEQUENCE: Macro Context -> Flash Lite
       setMessages(prev => {
           const filtered = prev.filter(m => m.signal?.id !== 'loading');
@@ -1180,21 +1195,20 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               id: Date.now().toString() + '-ag-start',
               type: 'ai',
               content: `Fetching Learned Lessons & Running Long-Term Context Agent for ${asset}...`,
-              signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+              signal: { id: 'loading', asset: asset, timeframe: tfLabel, signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
           }];
       });
 
       // 1. Fetch Learned Lessons & Macro Context Summary (Passing all 3 timeframes for combined analysis)
       const activeLearnedStrategies = await getLearnedStrategies();
       const macroContextSummary = await generateMacroContext(asset, derivData?.multiTimeframe || {});
-
       setMessages(prev => {
         const filtered = prev.filter(m => m.signal?.id !== 'loading');
         return [...filtered, {
             id: Date.now().toString() + '-ag-macro',
             type: 'ai',
             content: `Macro Context Analyzed.\n\n${macroContextSummary}\n\nRunning high-speed Regular Technical Model (300-candle analysis window) to simulate standard trader bias...`,
-            signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+            signal: { id: 'loading', asset: asset, timeframe: tfLabel, signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
         }];
       });
 
@@ -1213,7 +1227,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               id: Date.now().toString() + '-ag-deep-search',
               type: 'ai',
               content: `Regular setup detected: ${retailSignal.signal} (${retailSignal.confidence}% confidence).\n\nNow dispatching the Antigravity Devil's Advocate (using 1,000-candle institutional database & Level 2 orderbook depth) to audit this setup, locate intraday traps, and find structural reasons to invalidate it...`,
-              signal: { id: 'loading', asset: asset, timeframe: 'M15', signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
+              signal: { id: 'loading', asset: asset, timeframe: tfLabel, signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
           }];
       });
 
