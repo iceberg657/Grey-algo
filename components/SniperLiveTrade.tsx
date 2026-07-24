@@ -1278,6 +1278,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         dailyRegime?.regime,
         antigravityVerdict // Pass real QuantConnect-aligned Antigravity research
       );
+      
+      finalSignal.timeframe = tfLabel;
 
       // Create rich Markdown details for the UI representation
       const richInsightMarkdown = `# 🛡️ ANTIGRAVITY DEVIL'S ADVOCATE SYSTEM REPORT
