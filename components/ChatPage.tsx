@@ -26,6 +26,8 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import type { UserMetadata, UserSettings } from '../types';
 
+import { CHAT_MODELS } from '../services/retryUtils';
+
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -331,16 +333,7 @@ const SUGGESTED_PROMPTS = [
     "Summarize the latest forex news"
 ];
 
-const getModelSymbol = (modelName: string) => {
-    if (modelName.includes('3.5')) return 'Α';
-    if (modelName.includes('2.5-pro')) return 'Α'; 
-    if (modelName.includes('2.5-flash')) return 'Β'; 
-    if (modelName.includes('2.0-flash')) return 'Γ'; 
-    if (modelName.includes('lite')) return 'Λ';   
-    if (modelName.includes('3-pro')) return 'Ω';   
-    if (modelName.includes('3-flash')) return 'Δ'; 
-    return 'Σ'; 
-};
+
 
 export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, setMessages, onNewChat, initialInput, onClearInitialInput, isLocked, userMetadata }) => {
     const [input, setInput] = useState('');
@@ -661,7 +654,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
                                 <span className="text-[10px] font-mono font-medium text-emerald-600/80 dark:text-emerald-400/80 uppercase">
-                                    {currentModelName.split('/').pop()?.split('-')[0] || 'Neural'} {getModelSymbol(currentModelName)}
+                                    {CHAT_MODELS.includes(currentModelName) ? `Model ${CHAT_MODELS.indexOf(currentModelName) + 1}` : 'Model Unknown'}
                                 </span>
                             </div>
                         )}
