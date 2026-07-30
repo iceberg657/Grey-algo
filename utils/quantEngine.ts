@@ -1327,6 +1327,91 @@ export function analyzeSMC(
     };
     const orderBlock = detectOrderBlock(candles, trend);
 
+    // --- LUXALGO SMC STRUCTURE ENHANCEMENTS ---
+    // 1. Equal Highs & Lows (EQH / EQL) Detection
+    const eqhThreshold = (atr || currentPrice * 0.001) * 0.15;
+    const equalHighsLows: { type: 'EQH' | 'EQL'; price: number; barCount: number; liquidityPool: 'BSL' | 'SSL' }[] = [];
+    for (let i = candles.length - 15; i < candles.length - 1; i++) {
+        if (i < 2) continue;
+        const cCurr = candles[i];
+        const cPrev = candles[i - 1];
+        if (Math.abs(cCurr.high - cPrev.high) <= eqhThreshold) {
+            equalHighsLows.push({
+                type: 'EQH',
+                price: (cCurr.high + cPrev.high) / 2,
+                barCount: 2,
+                liquidityPool: 'BSL'
+            });
+        }
+        if (Math.abs(cCurr.low - cPrev.low) <= eqhThreshold) {
+            equalHighsLows.push({
+                type: 'EQL',
+                price: (cCurr.low + cPrev.low) / 2,
+                barCount: 2,
+                liquidityPool: 'SSL'
+            });
+        }
+    }
+
+    // 2. LuxAlgo Internal & Swing Order Blocks List
+    const luxAlgoOrderBlocks: { type: 'BULLISH_OB' | 'BEARISH_OB'; high: number; low: number; level: 'INTERNAL' | 'SWING'; mitigated: boolean; sizeAtrRatio: number }[] = [];
+    const scanOBs = (len: number, levelType: 'INTERNAL' | 'SWING') => {
+        const slice = candles.slice(-len);
+        for (let i = 1; i < slice.length - 1; i++) {
+            const c0 = slice[i - 1];
+            const c1 = slice[i];
+            const isBullishImbalance = c1.close > c1.open && (c1.close - c1.open) > (c0.open - c0.close) * 1.3;
+            const isBearishImbalance = c1.close < c1.open && (c0.open - c0.close) > (c0.close - c0.open) * 1.3;
+
+            if (c0.close < c0.open && isBullishImbalance) {
+                const isMitigated = currentPrice < c0.low;
+                luxAlgoOrderBlocks.push({
+                    type: 'BULLISH_OB',
+                    high: c0.high,
+                    low: c0.low,
+                    level: levelType,
+                    mitigated: isMitigated,
+                    sizeAtrRatio: (c0.high - c0.low) / (atr || 1)
+                });
+            } else if (c0.close > c0.open && isBearishImbalance) {
+                const isMitigated = currentPrice > c0.high;
+                luxAlgoOrderBlocks.push({
+                    type: 'BEARISH_OB',
+                    high: c0.high,
+                    low: c0.low,
+                    level: levelType,
+                    mitigated: isMitigated,
+                    sizeAtrRatio: (c0.high - c0.low) / (atr || 1)
+                });
+            }
+        }
+    };
+    scanOBs(15, 'INTERNAL');
+    scanOBs(50, 'SWING');
+
+    // 3. LuxAlgo Multi Fair Value Gaps (FVG)
+    const luxAlgoFVGs: { type: 'BULLISH' | 'BEARISH'; top: number; bottom: number; fillPercent: number; mitigated: boolean }[] = [];
+    for (let i = candles.length - 20; i < candles.length - 1; i++) {
+        if (i < 2) continue;
+        const c0 = candles[i - 2];
+        const c2 = candles[i];
+        if (c0.high < c2.low) {
+            const gap = c2.low - c0.high;
+            if (gap >= (atr || currentPrice * 0.001) * 0.1) {
+                const mitigated = currentPrice <= c0.high;
+                const fillPercent = mitigated ? 100 : Math.max(0, Math.min(100, ((c2.low - currentPrice) / gap) * 100));
+                luxAlgoFVGs.push({ type: 'BULLISH', top: c2.low, bottom: c0.high, fillPercent, mitigated });
+            }
+        } else if (c0.low > c2.high) {
+            const gap = c0.low - c2.high;
+            if (gap >= (atr || currentPrice * 0.001) * 0.1) {
+                const mitigated = currentPrice >= c0.low;
+                const fillPercent = mitigated ? 100 : Math.max(0, Math.min(100, ((currentPrice - c2.high) / gap) * 100));
+                luxAlgoFVGs.push({ type: 'BEARISH', top: c0.low, bottom: c2.high, fillPercent, mitigated });
+            }
+        }
+    }
+
     // Session Detection
     const detectSession = () => {
         const now = new Date();
@@ -1661,6 +1746,22 @@ export function analyzeSMC(
 
     const greyModelPrediction = calculateGM11(closes.slice(-100), 3);
 
+    // Calculate precision Scalp Targets (enforcing 1:2 to 1:3 minimum Risk-to-Reward ratio)
+    const slDist = Math.abs(currentPrice - (mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5)));
+    const scalpRiskPips = slDist > 0 ? slDist : (atr || currentPrice * 0.002) * 1.5;
+    const isBuy = explicitSignal === 'BUY';
+    const scalpTargets = {
+        entry: currentPrice,
+        stopLoss: mathematicalSL || (isBuy ? currentPrice - scalpRiskPips : currentPrice + scalpRiskPips),
+        tp1: isBuy ? currentPrice + scalpRiskPips * 1.5 : currentPrice - scalpRiskPips * 1.5, // 1:1.5 RR
+        tp2: isBuy ? currentPrice + scalpRiskPips * 2.5 : currentPrice - scalpRiskPips * 2.5, // 1:2.5 RR (Target 1:2 to 1:3)
+        tp3: isBuy ? currentPrice + scalpRiskPips * 3.2 : currentPrice - scalpRiskPips * 3.2, // 1:3.2 RR
+        riskRewardRatio: "1:2.5",
+        minScalpRR: "1:2.0 - 1:3.0",
+        pipsAtRisk: scalpRiskPips,
+        targetProfitPips: scalpRiskPips * 2.5
+    };
+
     return {
         trend,
         regime,
@@ -1686,6 +1787,10 @@ export function analyzeSMC(
         explicitSignal,
         recommendedExecution,
         mathematicalSL,
+        scalpTargets,
+        equalHighsLows,
+        luxAlgoOrderBlocks,
+        luxAlgoFVGs,
         premiumZone,
         discountZone,
         currentZone,        

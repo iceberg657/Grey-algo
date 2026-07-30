@@ -7,6 +7,7 @@ import { generateLessonFromTradeLog } from '../services/learningService';
 import { TiltCard } from './TiltCard';
 import { motion } from 'motion/react';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
+import { toPng } from 'html-to-image';
 
 interface InfoCardProps {
     label: string;
@@ -180,7 +181,30 @@ export const SignalDisplay: React.FC<{ data: SignalData }> = ({ data }) => {
     const [activeTab, setActiveTab] = useState<'signal' | 'confluences' | 'sentiment' | 'sources'>('signal');
     const [calcBalance, setCalcBalance] = useState<number>(10000);
     const [calcRiskPercent, setCalcRiskPercent] = useState<number>(1);
+    const [isCapturing, setIsCapturing] = useState<boolean>(false);
+    const captureRef = useRef<HTMLDivElement>(null);
     const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    const handleCaptureScreenshot = async () => {
+        if (!captureRef.current) return;
+        try {
+            setIsCapturing(true);
+            const dataUrl = await toPng(captureRef.current, {
+                cacheBust: true,
+                quality: 0.98,
+                pixelRatio: 2,
+                backgroundColor: '#090d16'
+            });
+            const link = document.createElement('a');
+            link.download = `GreyAlpha_Chart_${data.asset}_${data.signal}_${new Date().toISOString().slice(0, 10)}.png`;
+            link.href = dataUrl;
+            link.click();
+        } catch (err) {
+            console.error('Failed to export screenshot image:', err);
+        } finally {
+            setIsCapturing(false);
+        }
+    };
 
     // Determine unit and precision for display
     const getUnitAndPrecision = (asset: string) => {
@@ -370,7 +394,7 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
     };
 
     return (
-        <div className="text-sm max-w-full overflow-hidden relative">
+        <div ref={captureRef} className="text-sm max-w-full overflow-hidden relative p-2 rounded-2xl">
             <header className="flex flex-wrap justify-between items-center mb-8 gap-4 opacity-0 animate-flip-3d" style={{ animationDelay: '50ms' }}>
                 <div className="flex-1 min-w-[200px]">
                     <div className="flex items-center gap-3 mb-1">
@@ -382,6 +406,29 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
                         <span className={`text-[10px] font-mono px-2 py-0.5 rounded border uppercase ${getEntryTypeColor(data.entryType)}`}>Protocol: {data.entryType}</span>
                     </div>
                 </div>
+                
+                <button
+                    onClick={handleCaptureScreenshot}
+                    disabled={isCapturing}
+                    className="flex items-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-black text-xs uppercase tracking-wider shadow-lg hover:scale-105 active:scale-95 transition-all border border-emerald-400/30 disabled:opacity-50 cursor-pointer"
+                    title="Export Ultra High-Res PNG Screenshot"
+                >
+                    {isCapturing ? (
+                        <>
+                            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                            Capturing...
+                        </>
+                    ) : (
+                        <>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h0.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            📸 Capture Image
+                        </>
+                    )}
+                </button>
+
                  <button
                     onClick={handleToggleSpeech}
                     className={`p-4 rounded-xl transition-all duration-300 shadow-xl border ${ttsState !== 'idle' ? 'bg-red-500 text-white animate-pulse border-red-400' : 'bg-gray-100 dark:bg-dark-card text-green-600 dark:text-green-400 border-gray-200 dark:border-white/10 hover:border-green-500/50 hover:scale-110 active:scale-95'}`}
