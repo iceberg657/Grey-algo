@@ -1746,13 +1746,58 @@ export function analyzeSMC(
 
     const greyModelPrediction = calculateGM11(closes.slice(-100), 3);
 
-    // Calculate precision Scalp Targets (enforcing 1:2 to 1:3 minimum Risk-to-Reward ratio)
-    const slDist = Math.abs(currentPrice - (mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5)));
-    const scalpRiskPips = slDist > 0 ? slDist : (atr || currentPrice * 0.002) * 1.5;
+    // Level 2 Liquidity Shielded Stop Loss Protection
+    let l2ShieldNote = 'Structural ATR Protection';
+    if (l2Metrics && (l2Metrics as any).liquidityWalls && (l2Metrics as any).liquidityWalls.length > 0) {
+        const walls = (l2Metrics as any).liquidityWalls;
+        if (explicitSignal === 'BUY') {
+            const supp = walls.find((w: any) => w.type === 'SUPPORT' && w.price < currentPrice);
+            if (supp) {
+                mathematicalSL = Math.min(mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5), supp.price - (atr || currentPrice * 0.001) * 0.4);
+                l2ShieldNote = `Shielded behind Level 2 Orderbook Support Wall @ ${supp.price.toFixed(5)}`;
+            }
+        } else if (explicitSignal === 'SELL') {
+            const res = walls.find((w: any) => w.type === 'RESISTANCE' && w.price > currentPrice);
+            if (res) {
+                mathematicalSL = Math.max(mathematicalSL || (currentPrice + (atr || currentPrice * 0.002) * 1.5), res.price + (atr || currentPrice * 0.001) * 0.4);
+                l2ShieldNote = `Shielded behind Level 2 Orderbook Resistance Wall @ ${res.price.toFixed(5)}`;
+            }
+        }
+    } else if (stopClusters && stopClusters.length > 0) {
+        if (explicitSignal === 'BUY') {
+            const sellStops = stopClusters.filter(s => s.type === 'SELL_STOP_LIQUIDITY' && s.price < currentPrice);
+            if (sellStops.length > 0) {
+                const lowestStop = Math.min(...sellStops.map(s => s.price));
+                mathematicalSL = Math.min(mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5), lowestStop - (atr || currentPrice * 0.001) * 0.5);
+                l2ShieldNote = `Shielded behind Institutional Sell Stop Liquidity Pool @ ${lowestStop.toFixed(5)}`;
+            }
+        } else if (explicitSignal === 'SELL') {
+            const buyStops = stopClusters.filter(s => s.type === 'BUY_STOP_LIQUIDITY' && s.price > currentPrice);
+            if (buyStops.length > 0) {
+                const highestStop = Math.max(...buyStops.map(s => s.price));
+                mathematicalSL = Math.max(mathematicalSL || (currentPrice + (atr || currentPrice * 0.002) * 1.5), highestStop + (atr || currentPrice * 0.001) * 0.5);
+                l2ShieldNote = `Shielded behind Institutional Buy Stop Liquidity Pool @ ${highestStop.toFixed(5)}`;
+            }
+        }
+    }
+
+    // Calculate precision Scalp & Market Execution Targets (enforcing 1:2 to 1:3 minimum Risk-to-Reward ratio)
     const isBuy = explicitSignal === 'BUY';
+    const fallbackSL = isBuy ? currentPrice - (atr || currentPrice * 0.002) * 1.5 : currentPrice + (atr || currentPrice * 0.002) * 1.5;
+    const finalSL = mathematicalSL || fallbackSL;
+    const slDist = Math.abs(currentPrice - finalSL);
+    const scalpRiskPips = slDist > 0 ? slDist : (atr || currentPrice * 0.002) * 1.5;
+
     const scalpTargets = {
         entry: currentPrice,
-        stopLoss: mathematicalSL || (isBuy ? currentPrice - scalpRiskPips : currentPrice + scalpRiskPips),
+        marketExecutionRange: {
+            minPrice: isBuy ? currentPrice - (atr || currentPrice * 0.001) * 0.1 : currentPrice,
+            maxPrice: isBuy ? currentPrice : currentPrice + (atr || currentPrice * 0.001) * 0.1,
+            executionMode: 'IMMEDIATE_MARKET_EXECUTION',
+            maxAllowedSlippage: ((atr || currentPrice * 0.001) * 0.15).toFixed(5)
+        },
+        stopLoss: finalSL,
+        l2ShieldNote,
         tp1: isBuy ? currentPrice + scalpRiskPips * 1.5 : currentPrice - scalpRiskPips * 1.5, // 1:1.5 RR
         tp2: isBuy ? currentPrice + scalpRiskPips * 2.5 : currentPrice - scalpRiskPips * 2.5, // 1:2.5 RR (Target 1:2 to 1:3)
         tp3: isBuy ? currentPrice + scalpRiskPips * 3.2 : currentPrice - scalpRiskPips * 3.2, // 1:3.2 RR

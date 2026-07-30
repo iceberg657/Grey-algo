@@ -1650,13 +1650,13 @@ export function calculateRRLevels(
         tp2Label = `1:${rr2.toFixed(1)}`;
         tp3Label = `1:${rr3.toFixed(1)}`;
     } else {
-        const mult1 = 1.0;
-        const mult2 = isScalping ? 1.5 : 2.0;
-        const mult3 = isScalping ? 2.0 : 3.0;
+        const mult1 = 1.5;
+        const mult2 = 2.5;
+        const mult3 = 3.2;
 
-        tp1Label = '1:1.0';
-        tp2Label = isScalping ? '1:1.5' : '1:2.0';
-        tp3Label = isScalping ? '1:2.0' : '1:3.0';
+        tp1Label = '1:1.5';
+        tp2Label = '1:2.5';
+        tp3Label = '1:3.2';
 
         if (signal === 'BUY') {
             tp1 = parseFloat((entry + risk * mult1).toFixed(precision));
