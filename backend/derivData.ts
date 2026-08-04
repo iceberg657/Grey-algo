@@ -103,11 +103,27 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
     console.log(`[DerivData] Mapping: "${symbol}" -> "${normalized}" -> "${mappedSymbol}"`);
 
     return new Promise((resolve, reject) => {
+        let isSettled = false;
         const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
 
+        const safeResolve = (data: any) => {
+            if (isSettled) return;
+            isSettled = true;
+            clearTimeout(timeout);
+            try { ws.close(); } catch {}
+            resolve(data);
+        };
+
+        const safeReject = (err: any) => {
+            if (isSettled) return;
+            isSettled = true;
+            clearTimeout(timeout);
+            try { ws.close(); } catch {}
+            reject(err);
+        };
+
         const timeout = setTimeout(() => {
-            ws.close();
-            reject(new Error('Deriv API timeout'));
+            safeReject(new Error('Deriv API timeout'));
         }, 10000);
 
         ws.on('open', () => {
@@ -131,17 +147,13 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
                 const response = JSON.parse(data.toString());
 
                 if (response.error) {
-                    ws.close();
-                    clearTimeout(timeout);
-                    reject(new Error(response.error.message || JSON.stringify(response.error)));
+                    safeReject(new Error(response.error.message || JSON.stringify(response.error)));
                     return;
                 }
 
                 if (response.msg_type === 'tick' && !fetchHistory) {
                     const tick = response.tick;
-                    ws.close();
-                    clearTimeout(timeout);
-                    resolve({
+                    safeResolve({
                         symbol: tick.symbol,
                         price: tick.quote,
                         bid: tick.bid,
@@ -149,9 +161,7 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
                         epoch: tick.epoch
                     });
                 } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles' || response.msg_type === 'history') {
-                    ws.close();
-                    clearTimeout(timeout);
-                    resolve({
+                    safeResolve({
                         symbol: mappedSymbol,
                         candles: response.candles || response.history?.prices?.map((p: any, i: number) => ({
                             epoch: response.history.times[i],
@@ -163,21 +173,16 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
                     });
                 }
             } catch (err: any) {
-                ws.close();
-                clearTimeout(timeout);
-                reject(new Error('Failed to parse Deriv API response: ' + err.message));
+                safeReject(new Error('Failed to parse Deriv API response: ' + err.message));
             }
         });
 
         ws.on('error', (error: any) => {
-            ws.close();
-            clearTimeout(timeout);
-            reject(new Error(error.message || 'WebSocket Error'));
+            safeReject(new Error(error.message || 'WebSocket Error'));
         });
         
         ws.on('close', (code, reason) => {
-            clearTimeout(timeout);
-            reject(new Error(`Deriv WS Closed: ${code} ${reason}`));
+            safeReject(new Error(`Deriv WS Closed: ${code} ${reason}`));
         });
     });
 }

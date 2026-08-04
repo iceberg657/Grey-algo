@@ -1353,64 +1353,272 @@ export function analyzeSMC(
         }
     }
 
-    // 2. LuxAlgo Internal & Swing Order Blocks List
-    const luxAlgoOrderBlocks: { type: 'BULLISH_OB' | 'BEARISH_OB'; high: number; low: number; level: 'INTERNAL' | 'SWING'; mitigated: boolean; sizeAtrRatio: number }[] = [];
-    const scanOBs = (len: number, levelType: 'INTERNAL' | 'SWING') => {
-        const slice = candles.slice(-len);
-        for (let i = 1; i < slice.length - 1; i++) {
-            const c0 = slice[i - 1];
-            const c1 = slice[i];
-            const isBullishImbalance = c1.close > c1.open && (c1.close - c1.open) > (c0.open - c0.close) * 1.3;
-            const isBearishImbalance = c1.close < c1.open && (c0.open - c0.close) > (c0.close - c0.open) * 1.3;
+    // --- INSTITUTIONAL HIGH-CLARITY MULTI-TIMEFRAME FVG & ORDER BLOCK ENGINE ---
 
-            if (c0.close < c0.open && isBullishImbalance) {
-                const isMitigated = currentPrice < c0.low;
-                luxAlgoOrderBlocks.push({
-                    type: 'BULLISH_OB',
-                    high: c0.high,
-                    low: c0.low,
-                    level: levelType,
-                    mitigated: isMitigated,
-                    sizeAtrRatio: (c0.high - c0.low) / (atr || 1)
-                });
-            } else if (c0.close > c0.open && isBearishImbalance) {
-                const isMitigated = currentPrice > c0.high;
-                luxAlgoOrderBlocks.push({
-                    type: 'BEARISH_OB',
-                    high: c0.high,
-                    low: c0.low,
-                    level: levelType,
-                    mitigated: isMitigated,
-                    sizeAtrRatio: (c0.high - c0.low) / (atr || 1)
-                });
+    // A. High-Clarity Fair Value Gap (FVG) Detector (Noise Filtering)
+    const scanHighClarityFVGs = (
+        cArray: any[], 
+        tfLabel: '4H' | '1H' | 'LTF',
+        lookback = 35
+    ) => {
+        if (!cArray || cArray.length < 5) return [];
+        const results: Array<{
+            type: 'BULLISH' | 'BEARISH';
+            top: number;
+            bottom: number;
+            consequentEncroachment: number; // 50% midpoint CE
+            fillPercent: number;
+            mitigated: boolean;
+            isInverseFVG: boolean;
+            timeframe: '4H' | '1H' | 'LTF';
+            clarityGrade: 'INSTITUTIONAL_PRIME' | 'STANDARD_HIGH_CLARITY';
+            gapAtrRatio: number;
+            volumeExpansion: boolean;
+            description: string;
+        }> = [];
+
+        const len = Math.min(lookback, cArray.length - 1);
+        const recentSlice = cArray.slice(-len);
+        const avgBody = recentSlice.reduce((sum, c) => sum + Math.abs(c.close - c.open), 0) / (recentSlice.length || 1);
+        const avgVol = recentSlice.reduce((sum, c) => sum + ((c as any).tick_volume || (c as any).volume || 1), 0) / (recentSlice.length || 1);
+
+        for (let i = 2; i < recentSlice.length; i++) {
+            const c0 = recentSlice[i - 2];
+            const c1 = recentSlice[i - 1]; // Displacement candle
+            const c2 = recentSlice[i];
+
+            const c1Body = Math.abs(c1.close - c1.open);
+            const c1Vol = (c1 as any).tick_volume || (c1 as any).volume || 1;
+            const hasVolExpansion = c1Vol >= avgVol * 1.10 || c1Body >= avgBody * 1.15;
+
+            // Bullish FVG
+            if (c0.high < c2.low) {
+                const gap = c2.low - c0.high;
+                // Minimum noise threshold: gap must be >= 0.20 ATR (or >= 0.02% price) to filter out choppy micro gaps
+                const minGapThreshold = Math.max((atr || currentPrice * 0.001) * 0.20, currentPrice * 0.0002);
+                
+                if (gap >= minGapThreshold && hasVolExpansion) {
+                    const mitigated = currentPrice <= c0.high;
+                    const isInverseFVG = currentPrice < c0.high - (atr * 0.15);
+                    const fillPercent = mitigated ? 100 : Math.max(0, Math.min(100, ((c2.low - currentPrice) / gap) * 100));
+                    const ce = (c2.low + c0.high) / 2;
+                    const gapRatio = gap / (atr || 1);
+                    const clarityGrade = (tfLabel === '4H' || gapRatio >= 0.35) ? 'INSTITUTIONAL_PRIME' : 'STANDARD_HIGH_CLARITY';
+
+                    results.push({
+                        type: 'BULLISH',
+                        top: c2.low,
+                        bottom: c0.high,
+                        consequentEncroachment: ce,
+                        fillPercent,
+                        mitigated,
+                        isInverseFVG,
+                        timeframe: tfLabel,
+                        clarityGrade,
+                        gapAtrRatio: gapRatio,
+                        volumeExpansion: hasVolExpansion,
+                        description: `[${tfLabel}] ${clarityGrade} Bullish FVG [${c0.high.toFixed(5)} - ${c2.low.toFixed(5)}]. 50% CE: ${ce.toFixed(5)}`
+                    });
+                }
+            } 
+            // Bearish FVG
+            else if (c0.low > c2.high) {
+                const gap = c0.low - c2.high;
+                const minGapThreshold = Math.max((atr || currentPrice * 0.001) * 0.20, currentPrice * 0.0002);
+
+                if (gap >= minGapThreshold && hasVolExpansion) {
+                    const mitigated = currentPrice >= c0.low;
+                    const isInverseFVG = currentPrice > c0.low + (atr * 0.15);
+                    const fillPercent = mitigated ? 100 : Math.max(0, Math.min(100, ((currentPrice - c2.high) / gap) * 100));
+                    const ce = (c0.low + c2.high) / 2;
+                    const gapRatio = gap / (atr || 1);
+                    const clarityGrade = (tfLabel === '4H' || gapRatio >= 0.35) ? 'INSTITUTIONAL_PRIME' : 'STANDARD_HIGH_CLARITY';
+
+                    results.push({
+                        type: 'BEARISH',
+                        top: c0.low,
+                        bottom: c2.high,
+                        consequentEncroachment: ce,
+                        fillPercent,
+                        mitigated,
+                        isInverseFVG,
+                        timeframe: tfLabel,
+                        clarityGrade,
+                        gapAtrRatio: gapRatio,
+                        volumeExpansion: hasVolExpansion,
+                        description: `[${tfLabel}] ${clarityGrade} Bearish FVG [${c2.high.toFixed(5)} - ${c0.low.toFixed(5)}]. 50% CE: ${ce.toFixed(5)}`
+                    });
+                }
             }
         }
+        return results;
     };
-    scanOBs(15, 'INTERNAL');
-    scanOBs(50, 'SWING');
 
-    // 3. LuxAlgo Multi Fair Value Gaps (FVG)
-    const luxAlgoFVGs: { type: 'BULLISH' | 'BEARISH'; top: number; bottom: number; fillPercent: number; mitigated: boolean }[] = [];
-    for (let i = candles.length - 20; i < candles.length - 1; i++) {
-        if (i < 2) continue;
-        const c0 = candles[i - 2];
-        const c2 = candles[i];
-        if (c0.high < c2.low) {
-            const gap = c2.low - c0.high;
-            if (gap >= (atr || currentPrice * 0.001) * 0.1) {
-                const mitigated = currentPrice <= c0.high;
-                const fillPercent = mitigated ? 100 : Math.max(0, Math.min(100, ((c2.low - currentPrice) / gap) * 100));
-                luxAlgoFVGs.push({ type: 'BULLISH', top: c2.low, bottom: c0.high, fillPercent, mitigated });
+    // B. High-Clarity Order Block Detector with Strict Break and Close Body Validation
+    const scanHighClarityOBs = (
+        cArray: any[],
+        tfLabel: '4H' | '1H' | 'LTF',
+        lookback = 45
+    ) => {
+        if (!cArray || cArray.length < 5) return [];
+        const results: Array<{
+            type: 'BULLISH_OB' | 'BEARISH_OB';
+            high: number;
+            low: number;
+            open: number;
+            close: number;
+            meanThreshold: number; // 50% midpoint
+            timeframe: '4H' | '1H' | 'LTF';
+            mitigated: boolean;
+            breached: boolean;
+            bodyBreakConfirmed: boolean;
+            volumeConfirmed: boolean;
+            clarityGrade: 'INSTITUTIONAL_PRIME' | 'STANDARD_HIGH_CLARITY';
+            sizeAtrRatio: number;
+            description: string;
+        }> = [];
+
+        const len = Math.min(lookback, cArray.length - 1);
+        const recentSlice = cArray.slice(-len);
+        const avgVol = recentSlice.reduce((sum, c) => sum + ((c as any).tick_volume || (c as any).volume || 1), 0) / (recentSlice.length || 1);
+
+        for (let i = 1; i < recentSlice.length - 1; i++) {
+            const c0 = recentSlice[i - 1]; // Candidate Order Block candle
+            const c1 = recentSlice[i];     // Displacement candle
+            const c2 = i + 1 < recentSlice.length ? recentSlice[i + 1] : c1;
+
+            const c1Vol = (c1 as any).tick_volume || (c1 as any).volume || 1;
+            const volumeConfirmed = c1Vol >= avgVol * 1.05;
+
+            // Bullish Order Block: c0 is down candle, followed by strong up move with BODY CLOSE above c0.high
+            if (c0.close < c0.open) {
+                // STRICT BREAK AND CLOSE BODY CHECK: c1 or c2 close MUST be > c0.high (not just wick probe)
+                const bodyBreakConfirmed = c1.close > c0.high || c2.close > c0.high;
+                const strongImbalance = (c1.close - c1.open) > (c0.open - c0.close) * 1.2;
+
+                if (bodyBreakConfirmed && strongImbalance) {
+                    const meanThreshold = (c0.high + c0.low) / 2;
+                    const breached = currentPrice < c0.low; // Body close or price below OB low invalidates
+                    const mitigated = currentPrice <= c0.high;
+                    const sizeAtrRatio = (c0.high - c0.low) / (atr || 1);
+                    const clarityGrade = (tfLabel === '4H' || (volumeConfirmed && sizeAtrRatio >= 0.25)) ? 'INSTITUTIONAL_PRIME' : 'STANDARD_HIGH_CLARITY';
+
+                    if (!breached) {
+                        results.push({
+                            type: 'BULLISH_OB',
+                            high: c0.high,
+                            low: c0.low,
+                            open: c0.open,
+                            close: c0.close,
+                            meanThreshold,
+                            timeframe: tfLabel,
+                            mitigated,
+                            breached,
+                            bodyBreakConfirmed,
+                            volumeConfirmed,
+                            clarityGrade,
+                            sizeAtrRatio,
+                            description: `[${tfLabel}] ${clarityGrade} Bullish OB [${c0.low.toFixed(5)} - ${c0.high.toFixed(5)}]. 50% Mean Threshold: ${meanThreshold.toFixed(5)}. Body Close Confirmed: YES`
+                        });
+                    }
+                }
             }
-        } else if (c0.low > c2.high) {
-            const gap = c0.low - c2.high;
-            if (gap >= (atr || currentPrice * 0.001) * 0.1) {
-                const mitigated = currentPrice >= c0.low;
-                const fillPercent = mitigated ? 100 : Math.max(0, Math.min(100, ((currentPrice - c2.high) / gap) * 100));
-                luxAlgoFVGs.push({ type: 'BEARISH', top: c0.low, bottom: c2.high, fillPercent, mitigated });
+            // Bearish Order Block: c0 is up candle, followed by strong down move with BODY CLOSE below c0.low
+            else if (c0.close > c0.open) {
+                // STRICT BREAK AND CLOSE BODY CHECK: c1 or c2 close MUST be < c0.low (not just wick probe)
+                const bodyBreakConfirmed = c1.close < c0.low || c2.close < c0.low;
+                const strongImbalance = (c0.open - c0.close) > (c0.close - c0.open) * 1.2;
+
+                if (bodyBreakConfirmed && strongImbalance) {
+                    const meanThreshold = (c0.high + c0.low) / 2;
+                    const breached = currentPrice > c0.high; // Price above OB high invalidates
+                    const mitigated = currentPrice >= c0.low;
+                    const sizeAtrRatio = (c0.high - c0.low) / (atr || 1);
+                    const clarityGrade = (tfLabel === '4H' || (volumeConfirmed && sizeAtrRatio >= 0.25)) ? 'INSTITUTIONAL_PRIME' : 'STANDARD_HIGH_CLARITY';
+
+                    if (!breached) {
+                        results.push({
+                            type: 'BEARISH_OB',
+                            high: c0.high,
+                            low: c0.low,
+                            open: c0.open,
+                            close: c0.close,
+                            meanThreshold,
+                            timeframe: tfLabel,
+                            mitigated,
+                            breached,
+                            bodyBreakConfirmed,
+                            volumeConfirmed,
+                            clarityGrade,
+                            sizeAtrRatio,
+                            description: `[${tfLabel}] ${clarityGrade} Bearish OB [${c0.low.toFixed(5)} - ${c0.high.toFixed(5)}]. 50% Mean Threshold: ${meanThreshold.toFixed(5)}. Body Close Confirmed: YES`
+                        });
+                    }
+                }
             }
         }
-    }
+        return results;
+    };
+
+    // Scan HTF (4H/1H) and LTF (15m/5m) FVGs & Order Blocks
+    const htfFVGs = htfCandles ? scanHighClarityFVGs(htfCandles, '4H') : [];
+    const confirmFVGs = confirmCandles ? scanHighClarityFVGs(confirmCandles, '1H') : [];
+    const ltfFVGs = scanHighClarityFVGs(candles, 'LTF');
+
+    const htfOBs = htfCandles ? scanHighClarityOBs(htfCandles, '4H') : [];
+    const confirmOBs = confirmCandles ? scanHighClarityOBs(confirmCandles, '1H') : [];
+    const ltfOBs = scanHighClarityOBs(candles, 'LTF');
+
+    // Combined High-Clarity FVGs and OBs
+    const highClarityFVGs = [...htfFVGs, ...confirmFVGs, ...ltfFVGs];
+    const highClarityOBs = [...htfOBs, ...confirmOBs, ...ltfOBs];
+
+    // Maintain LuxAlgo compatibility arrays
+    const luxAlgoFVGs = highClarityFVGs.map(f => ({
+        type: f.type,
+        top: f.top,
+        bottom: f.bottom,
+        fillPercent: f.fillPercent,
+        mitigated: f.mitigated,
+        timeframe: f.timeframe,
+        clarityGrade: f.clarityGrade,
+        consequentEncroachment: f.consequentEncroachment
+    }));
+
+    const luxAlgoOrderBlocks = highClarityOBs.map(ob => ({
+        type: ob.type,
+        high: ob.high,
+        low: ob.low,
+        level: (ob.timeframe === '4H' || ob.timeframe === '1H') ? ('SWING' as const) : ('INTERNAL' as const),
+        mitigated: ob.mitigated,
+        sizeAtrRatio: ob.sizeAtrRatio,
+        meanThreshold: ob.meanThreshold,
+        bodyBreakConfirmed: ob.bodyBreakConfirmed,
+        timeframe: ob.timeframe
+    }));
+
+    // Multi-Timeframe Reaction Zone Hierarchy Matrix
+    const findActiveReactionZone = () => {
+        // Priority 1: High-Clarity Unmitigated 4H HTF FVGs / OBs
+        const unmitigatedHTF_FVG = htfFVGs.find(f => !f.mitigated);
+        const unmitigatedHTF_OB = htfOBs.find(ob => !ob.mitigated);
+
+        // Priority 2: Unmitigated LTF FVGs / OBs
+        const unmitigatedLTF_FVG = ltfFVGs.find(f => !f.mitigated);
+        const unmitigatedLTF_OB = ltfOBs.find(ob => !ob.mitigated);
+
+        const primaryAnchor = unmitigatedHTF_OB || unmitigatedHTF_FVG || unmitigatedLTF_OB || unmitigatedLTF_FVG || null;
+
+        return {
+            primaryHTF_FVG: unmitigatedHTF_FVG || null,
+            primaryHTF_OB: unmitigatedHTF_OB || null,
+            primaryLTF_FVG: unmitigatedLTF_FVG || null,
+            primaryLTF_OB: unmitigatedLTF_OB || null,
+            activeAnchorZone: primaryAnchor ? primaryAnchor.description : 'NO_UNMITIGATED_HTF_ZONE'
+        };
+    };
+
+    const mtfReactionZones = findActiveReactionZone();
 
     // Session Detection
     const detectSession = () => {
@@ -1450,6 +1658,131 @@ export function analyzeSMC(
 
     // 2. Liquidity Heatmap
     const liquidityHeatmap = buildLiquidityHeatmap(candles, currentPrice);
+
+    // --- ENHANCED INSTITUTIONAL PRICE ACTION & VOLUME NODE ANALYSIS ---
+    // A. Strong & Weak Highs/Lows Engine
+    const findStrongWeakLevels = () => {
+        const recentHighs = highs.slice(-30);
+        const recentLows = lows.slice(-30);
+        const maxH = Math.max(...recentHighs);
+        const minL = Math.min(...recentLows);
+        const maxHIdx = candles.length - 30 + recentHighs.indexOf(maxH);
+        const minLIdx = candles.length - 30 + recentLows.indexOf(minL);
+
+        // Strong Low: swept liquidity / reacted at demand & led to bullish structure
+        const strongLow = (minLIdx < candles.length - 2 && currentPrice > minL + (atr * 1.5)) ? {
+            price: minL,
+            type: 'STRONG_LOW',
+            reason: 'Swept sell-side liquidity & initiated bullish displacement. Protected demand floor.',
+            status: 'PROTECTED'
+        } : null;
+
+        // Weak Low: EQL or failed to create a higher high
+        const weakLow = (equalHighsLows.some(e => e.type === 'EQL') || (minLIdx >= candles.length - 10 && currentPrice < minL + (atr * 0.5))) ? {
+            price: minL,
+            type: 'WEAK_LOW',
+            reason: 'Inducement pool / EQL. Vulnerable to sell-side sweep.',
+            status: 'TARGET_SSL'
+        } : null;
+
+        // Strong High: swept BSL / tapped supply & led to bearish structure
+        const strongHigh = (maxHIdx < candles.length - 2 && currentPrice < maxH - (atr * 1.5)) ? {
+            price: maxH,
+            type: 'STRONG_HIGH',
+            reason: 'Tapped institutional supply & initiated bearish displacement. Protected ceiling.',
+            status: 'PROTECTED'
+        } : null;
+
+        // Weak High: EQH or failed to create a lower low
+        const weakHigh = (equalHighsLows.some(e => e.type === 'EQH') || (maxHIdx >= candles.length - 10 && currentPrice > maxH - (atr * 0.5))) ? {
+            price: maxH,
+            type: 'WEAK_HIGH',
+            reason: 'Inducement pool / EQH. Vulnerable to buy-side sweep.',
+            status: 'TARGET_BSL'
+        } : null;
+
+        return { strongLow, weakLow, strongHigh, weakHigh };
+    };
+
+    const strongWeakLevels = findStrongWeakLevels();
+
+    // B. Volume Voids, High Volume Reversal Nodes & Fading Momentum Engine
+    const analyzeVolumeFadingAndNodes = () => {
+        const hvns = volumeProfile.hvns || [];
+        const lvns = volumeProfile.lvns || [];
+        
+        // Low Volume Nodes = Weak Volume Voids (Price Acceleration Zones)
+        const weakVolumeVoids = lvns.slice(0, 4).map(node => ({
+            price: node.priceLevel,
+            volume: node.volume,
+            type: currentPrice < node.priceLevel ? 'PUMP_ZONE_VOID' : 'DUMP_ZONE_VOID',
+            description: currentPrice < node.priceLevel 
+                ? `Low volume void above @ ${node.priceLevel.toFixed(5)}. Rapid pump zone expected upon breakout.`
+                : `Low volume void below @ ${node.priceLevel.toFixed(5)}. Rapid dump zone expected upon breakdown.`
+        }));
+
+        // High Volume Nodes = Heavy Order Absorption & Reversal Nodes
+        const reversalVolumeNodes = hvns.slice(0, 4).map(node => ({
+            price: node.priceLevel,
+            volume: node.volume,
+            type: currentPrice > node.priceLevel ? 'REVERSAL_SUPPORT' : 'REVERSAL_RESISTANCE',
+            description: `Heavy institutional volume node @ ${node.priceLevel.toFixed(5)}. High order absorption & reversal expected.`
+        }));
+
+        // Momentum Fading Detection
+        const recentCandles = candles.slice(-5);
+        const lastC = recentCandles[recentCandles.length - 1];
+        const prevC = recentCandles[recentCandles.length - 2];
+        const lastVol = (lastC as any).tick_volume || (lastC as any).volume || 1;
+        const prevVol = (prevC as any).tick_volume || (prevC as any).volume || 1;
+        
+        const topWickRatio = (lastC.high - Math.max(lastC.open, lastC.close)) / Math.max(0.00001, lastC.high - lastC.low);
+        const bottomWickRatio = (Math.min(lastC.open, lastC.close) - lastC.low) / Math.max(0.00001, lastC.high - lastC.low);
+
+        let momentumFading: { isFading: boolean; direction: 'UPWARD_EXHAUSTION' | 'DOWNWARD_EXHAUSTION' | 'NONE'; text: string; confidence: number } = {
+            isFading: false,
+            direction: 'NONE',
+            text: 'Volume momentum is steady.',
+            confidence: 0
+        };
+
+        if (rsi > 62 && topWickRatio > 0.40 && lastVol < prevVol * 0.9) {
+            momentumFading = {
+                isFading: true,
+                direction: 'UPWARD_EXHAUSTION',
+                text: `Upward momentum fading near ${lastC.high.toFixed(5)}. Declining volume & top wick rejection signal imminent BEARISH reversal.`,
+                confidence: 88
+            };
+        } else if (rsi < 38 && bottomWickRatio > 0.40 && lastVol < prevVol * 0.9) {
+            momentumFading = {
+                isFading: true,
+                direction: 'DOWNWARD_EXHAUSTION',
+                text: `Downward momentum fading near ${lastC.low.toFixed(5)}. Declining volume & bottom wick rejection signal imminent BULLISH reversal.`,
+                confidence: 88
+            };
+        }
+
+        return { weakVolumeVoids, reversalVolumeNodes, momentumFading };
+    };
+
+    const volumeNodesAnalysis = analyzeVolumeFadingAndNodes();
+
+    // C. SMC Structures Summary (BOS, CHoCH, FVGs)
+    const smcStructuresSummary = {
+        bos: {
+            isDetected: bos,
+            type: trend === 'BULLISH' ? 'BULLISH_BOS' : trend === 'BEARISH' ? 'BEARISH_BOS' : 'RANGE_BREAK',
+            price: trend === 'BULLISH' ? prevHigh : prevLow,
+            label: trend === 'BULLISH' ? `Bullish BOS @ ${prevHigh.toFixed(5)}` : `Bearish BOS @ ${prevLow.toFixed(5)}`
+        },
+        choch: {
+            isDetected: choch,
+            type: trend === 'BULLISH' ? 'BEARISH_CHOCH' : 'BULLISH_CHOCH',
+            price: trend === 'BULLISH' ? prevLow : prevHigh,
+            label: trend === 'BULLISH' ? `Bearish CHoCH Shift @ ${prevLow.toFixed(5)}` : `Bullish CHoCH Shift @ ${prevHigh.toFixed(5)}`
+        },
+        fvgs: luxAlgoFVGs
+    };
 
     // 3. Session Killzone
     const killzone = getKillzoneScore();
@@ -1864,7 +2197,13 @@ export function analyzeSMC(
         monteCarloPrediction,
         institutionalExecution,
         adversarialVeto,
-        greyModelPrediction
+        greyModelPrediction,
+        strongWeakLevels,
+        volumeNodesAnalysis,
+        smcStructuresSummary,
+        highClarityFVGs,
+        highClarityOBs,
+        mtfReactionZones
     };
 }
 

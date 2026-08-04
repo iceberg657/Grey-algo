@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import type { ChatMessage, ImagePart } from '../types';
 import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName } from '../services/chatService';
+import { buildLiveMarketContextForChat } from '../services/chatMarketEngine';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { OraclePage } from './OraclePage';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
@@ -517,13 +518,15 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                 imageParts.forEach(p => messageParts.push({ inlineData: { data: p.data, mimeType: p.mimeType } }));
             }
             
-            // Check for potential asset symbol in text and if we have a TwelveData key
+            // Stream real-time Deriv market tick data & quant engine analysis
             let extraContext = '';
+            try {
+                extraContext = await buildLiveMarketContextForChat(text);
+            } catch (mErr) {
+                console.warn("[ChatPage] Live Deriv market stream context error:", mErr);
+            }
 
             messageParts.push({ text: text + extraContext });
-
-            // Minimum 8s "thinking" time for thorough neural mapping
-            await new Promise(resolve => setTimeout(resolve, 8000));
 
             const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
             setCurrentModelName(getCurrentModelName());
@@ -534,20 +537,39 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             const streamMessageId = `model-stream-${Date.now()}`;
             setMessages(prev => [...prev, { id: streamMessageId, role: 'model', text: '' }]);
 
-            for await (const chunk of result) {
-                responseText += chunk.text;
-                setMessages(prev => {
-                    const newMessages = [...prev];
-                    const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
-                    if (msgIndex !== -1) {
-                         newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+            try {
+                for await (const chunk of result) {
+                    if (chunk && typeof chunk.text === 'string') {
+                        responseText += chunk.text;
+                        setMessages(prev => {
+                            const newMessages = [...prev];
+                            const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
+                            if (msgIndex !== -1) {
+                                 newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+                            }
+                            return newMessages;
+                        });
                     }
-                    return newMessages;
-                });
+                }
+            } catch (streamErr) {
+                console.warn("[ChatPage] Stream iteration interrupted:", streamErr);
+                if (responseText.trim().length > 0) {
+                    responseText += '\n\n*(Stream output finalized - link stabilized)*';
+                    setMessages(prev => {
+                        const newMessages = [...prev];
+                        const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
+                        if (msgIndex !== -1) {
+                             newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+                        }
+                        return newMessages;
+                    });
+                } else {
+                    throw streamErr;
+                }
             }
 
             // Save final model message to Firestore
-            if (userMetadata?.uid) {
+            if (userMetadata?.uid && responseText.trim().length > 0) {
                 const finalModelMessage: ChatMessage = {
                     id: streamMessageId,
                     role: 'model',
@@ -654,7 +676,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                             <div className="flex items-center gap-1.5 mt-0.5">
                                 <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
                                 <span className="text-[10px] font-mono font-medium text-emerald-600/80 dark:text-emerald-400/80 uppercase">
-                                    {CHAT_MODELS.includes(currentModelName) ? `Model ${CHAT_MODELS.indexOf(currentModelName) + 1}` : 'Model Unknown'}
+                                    {CHAT_MODELS.includes(currentModelName) ? `Model ${CHAT_MODELS.indexOf(currentModelName) + 1}` : 'Oracle Active'} • Deriv Live Market Stream & Grounding
                                 </span>
                             </div>
                         )}

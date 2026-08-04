@@ -2233,7 +2233,22 @@ ${timeframesContext}
 - EMA 20: ${quantData.ema20} | EMA 50: ${quantData.ema50} | EMA 200: ${quantData.ema200}
 - Current RSI: ${quantData.rsi}
 - Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
-- BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
+- BOS Structure: ${quantData.smcStructuresSummary?.bos?.label || (quantData.bos ? 'YES' : 'NO')}
+- CHoCH Structure: ${quantData.smcStructuresSummary?.choch?.label || (quantData.choch ? 'YES' : 'NO')}
+- Fair Value Gaps (FVGs): ${quantData.highClarityFVGs?.map((f: any) => `[${f.timeframe} - ${f.clarityGrade}] ${f.type} FVG [${f.bottom.toFixed(5)} - ${f.top.toFixed(5)}] (50% CE: ${f.consequentEncroachment?.toFixed(5)})`).join(' | ') || 'NONE'}
+- Order Blocks (Body Break & Close Confirmed): ${quantData.highClarityOBs?.map((o: any) => `[${o.timeframe} - ${o.clarityGrade}] ${o.type} [${o.low.toFixed(5)} - ${o.high.toFixed(5)}] (50% MT: ${o.meanThreshold?.toFixed(5)})`).join(' | ') || 'NONE'}
+- Multi-Timeframe Active Reaction Cascade: ${quantData.mtfReactionZones?.activeAnchorZone || 'NO_UNMITIGATED_HTF_ZONE'}
+
+**STRONG/WEAK HIGHS & LOWS (INSTITUTIONAL TARGETS):**
+- Strong Low (Protected Floor): ${quantData.strongWeakLevels?.strongLow ? `${quantData.strongWeakLevels.strongLow.price.toFixed(5)} (${quantData.strongWeakLevels.strongLow.reason})` : 'NONE'}
+- Weak Low (Target SSL): ${quantData.strongWeakLevels?.weakLow ? `${quantData.strongWeakLevels.weakLow.price.toFixed(5)} (${quantData.strongWeakLevels.weakLow.reason})` : 'NONE'}
+- Strong High (Protected Ceiling): ${quantData.strongWeakLevels?.strongHigh ? `${quantData.strongWeakLevels.strongHigh.price.toFixed(5)} (${quantData.strongWeakLevels.strongHigh.reason})` : 'NONE'}
+- Weak High (Target BSL): ${quantData.strongWeakLevels?.weakHigh ? `${quantData.strongWeakLevels.weakHigh.price.toFixed(5)} (${quantData.strongWeakLevels.weakHigh.reason})` : 'NONE'}
+
+**VOLUME VOID & MOMENTUM FADING ANALYSIS:**
+- Low Volume Voids (Pump/Dump Acceleration Zones): ${quantData.volumeNodesAnalysis?.weakVolumeVoids?.map((v: any) => v.description)?.join(' | ') || 'NONE'}
+- Reversal Volume Nodes (Absorption Support/Resistance): ${quantData.volumeNodesAnalysis?.reversalVolumeNodes?.map((r: any) => r.description)?.join(' | ') || 'NONE'}
+- Momentum Fading / Exhaustion Reversal: ${quantData.volumeNodesAnalysis?.momentumFading?.isFading ? `⚠️ ${quantData.volumeNodesAnalysis.momentumFading.text} (${quantData.volumeNodesAnalysis.momentumFading.direction})` : 'STEADY'}
 
 **STRICT HTF POI EXECUTION (THE MASTER ANCHOR):**
 - Valid HTF POIs Found: ${quantData.validPOIs?.length || 0}

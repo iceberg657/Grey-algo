@@ -2398,6 +2398,208 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                               </div>
                             )}
 
+                            {/* Enhanced Institutional Price Action & SMC Structure Analysis */}
+                            {msg.signal.quantData && (
+                              <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6 space-y-4">
+                                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
+                                  <Zap className="w-3.5 h-3.5 text-amber-500" /> Institutional Price Action & SMC Structures
+                                </h3>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                  {/* 1. Strong vs Weak Highs & Lows */}
+                                  <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200/40 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">
+                                      Strong vs Weak Swing Levels
+                                    </span>
+                                    <div className="space-y-2 text-xs">
+                                      {msg.signal.quantData.strongWeakLevels?.strongLow && (
+                                        <div className="p-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
+                                          <div className="flex items-center justify-between text-emerald-500 font-bold">
+                                            <span>STRONG LOW (FLOOR)</span>
+                                            <span>{msg.signal.quantData.strongWeakLevels.strongLow.price.toFixed(5)}</span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-500 mt-1">
+                                            {msg.signal.quantData.strongWeakLevels.strongLow.reason}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {msg.signal.quantData.strongWeakLevels?.weakLow && (
+                                        <div className="p-2 bg-rose-500/10 rounded-xl border border-rose-500/20">
+                                          <div className="flex items-center justify-between text-rose-500 font-bold">
+                                            <span>WEAK LOW (TARGET SSL)</span>
+                                            <span>{msg.signal.quantData.strongWeakLevels.weakLow.price.toFixed(5)}</span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-500 mt-1">
+                                            {msg.signal.quantData.strongWeakLevels.weakLow.reason}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {msg.signal.quantData.strongWeakLevels?.strongHigh && (
+                                        <div className="p-2 bg-indigo-500/10 rounded-xl border border-indigo-500/20">
+                                          <div className="flex items-center justify-between text-indigo-500 font-bold">
+                                            <span>STRONG HIGH (CEILING)</span>
+                                            <span>{msg.signal.quantData.strongWeakLevels.strongHigh.price.toFixed(5)}</span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-500 mt-1">
+                                            {msg.signal.quantData.strongWeakLevels.strongHigh.reason}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {msg.signal.quantData.strongWeakLevels?.weakHigh && (
+                                        <div className="p-2 bg-amber-500/10 rounded-xl border border-amber-500/20">
+                                          <div className="flex items-center justify-between text-amber-500 font-bold">
+                                            <span>WEAK HIGH (TARGET BSL)</span>
+                                            <span>{msg.signal.quantData.strongWeakLevels.weakHigh.price.toFixed(5)}</span>
+                                          </div>
+                                          <p className="text-[10px] text-slate-500 mt-1">
+                                            {msg.signal.quantData.strongWeakLevels.weakHigh.reason}
+                                          </p>
+                                        </div>
+                                      )}
+                                      {!msg.signal.quantData.strongWeakLevels?.strongLow &&
+                                       !msg.signal.quantData.strongWeakLevels?.weakLow &&
+                                       !msg.signal.quantData.strongWeakLevels?.strongHigh &&
+                                       !msg.signal.quantData.strongWeakLevels?.weakHigh && (
+                                         <p className="text-[10px] text-slate-400 italic">No extreme swing asymmetry detected in current range.</p>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* 2. SMC Structural Patterns (BOS, CHoCH, High-Clarity FVGs & Order Blocks) */}
+                                  <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200/40 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">
+                                      Multi-Timeframe SMC Structures
+                                    </span>
+                                    <div className="space-y-2 text-xs">
+                                      <div className="p-2 bg-slate-200/50 dark:bg-slate-900/50 rounded-xl flex items-center justify-between">
+                                        <span className="font-bold text-slate-600 dark:text-slate-300">Break of Structure (BOS)</span>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                                          msg.signal.quantData.bos ? 'bg-emerald-500/20 text-emerald-500' : 'bg-slate-500/10 text-slate-400'
+                                        }`}>
+                                          {msg.signal.quantData.smcStructuresSummary?.bos?.label || (msg.signal.quantData.bos ? 'DETECTED' : 'NONE')}
+                                        </span>
+                                      </div>
+
+                                      <div className="p-2 bg-slate-200/50 dark:bg-slate-900/50 rounded-xl flex items-center justify-between">
+                                        <span className="font-bold text-slate-600 dark:text-slate-300">Change of Character (CHoCH)</span>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black ${
+                                          msg.signal.quantData.choch ? 'bg-indigo-500/20 text-indigo-500' : 'bg-slate-500/10 text-slate-400'
+                                        }`}>
+                                          {msg.signal.quantData.smcStructuresSummary?.choch?.label || (msg.signal.quantData.choch ? 'DETECTED' : 'NONE')}
+                                        </span>
+                                      </div>
+
+                                      {/* High-Clarity FVGs with 50% CE */}
+                                      <div className="p-2 bg-slate-200/50 dark:bg-slate-900/50 rounded-xl">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-[10px] font-bold text-slate-500">High-Clarity FVGs (Non-Choppy)</span>
+                                          <span className="text-[9px] font-bold text-amber-500 uppercase">50% CE Target</span>
+                                        </div>
+                                        {msg.signal.quantData.highClarityFVGs && msg.signal.quantData.highClarityFVGs.length > 0 ? (
+                                          <div className="space-y-1">
+                                            {msg.signal.quantData.highClarityFVGs.slice(0, 3).map((fvg: any, idx: number) => (
+                                              <div key={idx} className="flex items-center justify-between text-[10px] font-mono p-1 rounded bg-slate-300/30 dark:bg-slate-800/40">
+                                                <span className={`font-bold flex items-center gap-1 ${fvg.type === 'BULLISH' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                  <span className="px-1 bg-amber-500/20 text-amber-500 text-[8px] rounded">{fvg.timeframe}</span>
+                                                  {fvg.type} FVG
+                                                </span>
+                                                <span className="text-slate-400 text-[9px]">
+                                                  [{fvg.bottom.toFixed(5)} - {fvg.top.toFixed(5)}] | CE: {fvg.consequentEncroachment?.toFixed(5)}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <span className="text-[10px] text-slate-400 italic">No unmitigated high-clarity gaps nearby.</span>
+                                        )}
+                                      </div>
+
+                                      {/* High-Clarity Order Blocks with Body Break & Close Confirmation */}
+                                      <div className="p-2 bg-slate-200/50 dark:bg-slate-900/50 rounded-xl">
+                                        <div className="flex items-center justify-between mb-1">
+                                          <span className="text-[10px] font-bold text-slate-500">Body-Confirmed Order Blocks</span>
+                                          <span className="text-[9px] font-bold text-emerald-500 uppercase">Body Close ✓</span>
+                                        </div>
+                                        {msg.signal.quantData.highClarityOBs && msg.signal.quantData.highClarityOBs.length > 0 ? (
+                                          <div className="space-y-1">
+                                            {msg.signal.quantData.highClarityOBs.slice(0, 3).map((ob: any, idx: number) => (
+                                              <div key={idx} className="flex items-center justify-between text-[10px] font-mono p-1 rounded bg-slate-300/30 dark:bg-slate-800/40">
+                                                <span className={`font-bold flex items-center gap-1 ${ob.type === 'BULLISH_OB' ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                                  <span className="px-1 bg-indigo-500/20 text-indigo-400 text-[8px] rounded">{ob.timeframe}</span>
+                                                  {ob.type.replace('_OB', '')} OB
+                                                </span>
+                                                <span className="text-slate-400 text-[9px]">
+                                                  [{ob.low.toFixed(5)} - {ob.high.toFixed(5)}] | 50% MT: {ob.meanThreshold?.toFixed(5)}
+                                                </span>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        ) : (
+                                          <span className="text-[10px] text-slate-400 italic">No valid body-confirmed order blocks nearby.</span>
+                                        )}
+                                      </div>
+
+                                      {/* Active MTF Reaction Zone */}
+                                      {msg.signal.quantData.mtfReactionZones?.activeAnchorZone && (
+                                        <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-[10px]">
+                                          <span className="font-black text-indigo-400 uppercase block mb-0.5">🎯 Active MTF Reaction Anchor Zone</span>
+                                          <span className="text-slate-400 font-mono text-[9px]">
+                                            {msg.signal.quantData.mtfReactionZones.activeAnchorZone}
+                                          </span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+
+                                  {/* 3. Volume Voids & Fading Momentum Reversals */}
+                                  <div className="bg-slate-100/50 dark:bg-slate-800/30 p-4 rounded-2xl border border-slate-200/40 dark:border-slate-800/40">
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 block mb-2">
+                                      Volume Voids & Reversal Zones
+                                    </span>
+                                    <div className="space-y-2 text-xs">
+                                      {msg.signal.quantData.volumeNodesAnalysis?.momentumFading?.isFading && (
+                                        <div className="p-2 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+                                          <span className="text-[10px] font-black text-amber-500 uppercase block">
+                                            ⚠️ Momentum Fading Reversal Warning
+                                          </span>
+                                          <p className="text-[10px] text-slate-500 mt-1">
+                                            {msg.signal.quantData.volumeNodesAnalysis.momentumFading.text}
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      {msg.signal.quantData.volumeNodesAnalysis?.weakVolumeVoids?.length > 0 && (
+                                        <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+                                          <span className="text-[10px] font-black text-purple-400 uppercase block">
+                                            ⚡ Weak Volume Void (Fast Acceleration)
+                                          </span>
+                                          <p className="text-[10px] text-slate-500 mt-1">
+                                            {msg.signal.quantData.volumeNodesAnalysis.weakVolumeVoids[0].description}
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      {msg.signal.quantData.volumeNodesAnalysis?.reversalVolumeNodes?.length > 0 && (
+                                        <div className="p-2 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                                          <span className="text-[10px] font-black text-blue-400 uppercase block">
+                                            🛡️ High Volume Absorption Level
+                                          </span>
+                                          <p className="text-[10px] text-slate-500 mt-1">
+                                            {msg.signal.quantData.volumeNodesAnalysis.reversalVolumeNodes[0].description}
+                                          </p>
+                                        </div>
+                                      )}
+
+                                      {!msg.signal.quantData.volumeNodesAnalysis?.momentumFading?.isFading &&
+                                       !msg.signal.quantData.volumeNodesAnalysis?.weakVolumeVoids?.length && (
+                                        <p className="text-[10px] text-slate-400 italic">Volume distribution is balanced across price tiers.</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
                             {/* Checklist */}
                             <div className="mt-4 bg-white/50 dark:bg-slate-900/30 border border-slate-200 dark:border-slate-800/50 rounded-[2rem] p-6">
                               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-4 flex items-center gap-2">
