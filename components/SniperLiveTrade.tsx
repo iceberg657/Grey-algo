@@ -428,7 +428,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     }
   };
   
-  const isAdvancedStreamingGranted = userMetadata ? (userMetadata.role === 'admin' || userMetadata.access?.advancedStreaming === 'granted') : false;
+  const isAdvancedStreamingGranted = userMetadata ? (userMetadata.access?.advancedStreaming !== 'locked') : true;
 
   // Get last analyzed asset
   const lastAnalyzedAsset = React.useMemo(() => {
@@ -522,22 +522,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       ctraderDepthRef.current = null;
     };
   }, [lastAnalyzedAsset, selectedStreamingMode, isAdvancedStreamingGranted]);
-
-  useEffect(() => {
-    // Force downgrade to Standard streaming if not granted and metadata is loaded
-    if (userMetadata && !isAdvancedStreamingGranted && selectedStreamingMode === 'Advanced') {
-      setSelectedStreamingMode('Standard');
-      try {
-        const stored = localStorage.getItem('greyquant_user_settings');
-        const parsed = stored ? JSON.parse(stored) : {};
-        parsed.streamingMode = 'Standard';
-        localStorage.setItem('greyquant_user_settings', JSON.stringify(parsed));
-        setUserSettings(parsed);
-      } catch (e) {
-        console.error("Failed to force downgrade streaming mode", e);
-      }
-    }
-  }, [userMetadata, isAdvancedStreamingGranted, selectedStreamingMode]);
 
   useEffect(() => {
     // Initialize Daily Market Regime Tracking (AI Pilot)
@@ -771,10 +755,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         ctEnvironment = localStorage.getItem('ctrader_environment') || 'demo';
       } catch (e) {}
 
-      // If Advanced Streaming but cTrader is not connected, fallback to Deriv
+      // If Advanced Streaming (Level 2) is active, require cTrader connection without falling back to Deriv
       if (isAdvancedStreaming && (!ctToken || !ctAccount)) {
-         console.warn(`[SniperLiveTrade] Advanced Streaming selected but cTrader not connected (Token: ${ctToken ? 'present' : 'missing'}, Account: ${ctAccount ? 'present' : 'missing'}). Falling back to Deriv.`);
-         isAdvancedStreaming = false;
+         const missingErr = "Level 2 (cTrader) Streaming is active. Please enter your cTrader Access Token and Account ID in Settings to fetch Level 2 data. Standard (Deriv Level 1) streaming is stopped while Level 2 mode is active.";
+         setCTraderConnectionError(missingErr);
+         throw new Error(missingErr);
       }
 
       // Define 3 timeframes based on trading style
@@ -805,9 +790,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       setCTraderConnectionError(null);
 
       if (isAdvancedStreaming) {
-          usedBroker = 'cTrader';
+          usedBroker = 'cTrader Level 2';
           const ctAsset = getCTraderSymbol(asset);
-          console.log(`[SniperLiveTrade] Fetching Advanced Data from cTrader for ${ctAsset} (raw: ${asset})...`);
+          console.log(`[SniperLiveTrade Level 2] Fetching Exclusive Level 2 Data from cTrader for ${ctAsset} (raw: ${asset})...`);
           
           try {
               // Fetch from cTrader API
@@ -836,48 +821,16 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                  ctraderTicks = tData.ticks;
               }
           } catch (ctError: any) {
-              console.warn(`[SniperLiveTrade] cTrader feed failed (${ctError.message || ctError}). Falling back to Deriv feed to ensure continuity.`, ctError);
+              console.error(`[SniperLiveTrade Level 2] cTrader feed error:`, ctError);
               
               let friendlyError = ctError.message || String(ctError);
               if (friendlyError.includes('ECONNRESET') || friendlyError.includes('TLS')) {
-                  friendlyError = "TLS connection failed (ECONNRESET) on port 5035. This usually indicates outbound custom TCP socket connections are restricted by sandbox runtime or firewalls.";
+                  friendlyError = "TLS connection failed (ECONNRESET) on port 5035. Outbound custom TCP socket connections restricted.";
               }
               
               setCTraderConnectionError(friendlyError);
-              usedBroker = 'Deriv (cTrader Fallback)';
-              
-              const symbol = getDerivSymbol(asset);
-              let clientToken = '';
-              try {
-                const storedSettings = localStorage.getItem('greyquant_user_settings');
-                if (storedSettings) {
-                  const parsed = JSON.parse(storedSettings);
-                  if (parsed.derivApiToken) clientToken = parsed.derivApiToken;
-                }
-              } catch (e) {}
-                    
-              if (!clientToken) {
-                // @ts-ignore
-                clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || import.meta.env.DERIV_API_TOKEN || import.meta.env.DERIV_TOKEN || '';
-              }
-
-              console.log(`[SniperLiveTrade Fallback] Fetching Standard Data from Deriv for ${symbol}...`);
-              const [entryRes, confirmRes, htfRes] = await Promise.all([
-                  fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-                  fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-                  fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
-              ]);
-              
-              clearTimeout(timeoutId);
-              
-              const [eData, cData, hData] = await Promise.all([
-                  entryRes.json(), confirmRes.json(), htfRes.json()
-              ]);
-              
-              if (eData.error) throw new Error(eData.error);
-              entryData = eData;
-              confirmData = cData;
-              htfData = hData;
+              // STRICT LEVEL 2 ISOLATION: Do NOT fall back to Deriv Level 1 streaming!
+              throw new Error(`Level 2 Data Stream Error: ${friendlyError}. Standard (Level 1) streaming is stopped per Level 2 preference.`);
           }
       } else {
           // Fallback / Standard Deriv Fetch
