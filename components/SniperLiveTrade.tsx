@@ -769,7 +769,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       
       const timeframes = getTimeframes(style);
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort('timeout'), 35000); 
+      const timeoutId = setTimeout(() => controller.abort('timeout'), 60000); 
 
       let entryData, confirmData, htfData;
       let ctraderTicks = null;
