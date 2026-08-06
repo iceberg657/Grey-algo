@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { CTraderConnection, CTraderAuth } from 'ctrader-ts';
+import { connectConnectionWithTimeout } from './connectionPool.js';
 
 export default async function ctraderAccountsHandler(req: Request, res: Response) {
     let token = req.headers.authorization?.split(' ')[1];
@@ -20,12 +21,11 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
         return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
     }
 
-    // Try both demo and live environments. Some tokens work for both, others for one.
-    // However, usually we just connect to live to query ctidTraderAccount because the API token is tied to the ID.
+    // Connect to live or demo server with 6s timeout guard
     const connection = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5035 });
 
     try {
-        await connection.connect();
+        await connectConnectionWithTimeout(connection, 6000);
         const auth = new CTraderAuth(connection);
         
         await auth.authenticateApp(clientId, clientSecret);
@@ -35,7 +35,7 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
         
         res.json({ accounts });
     } catch (e: any) {
-        connection.disconnect();
+        try { connection.disconnect(); } catch (_) {}
         console.error('Error fetching cTrader accounts:', e);
         // Returning 200 with error field so the frontend receives "information" instead of a raw 500 crash
         res.status(200).json({ 

@@ -1,5 +1,11 @@
 import { Request, Response } from 'express';
-import { connect, CTraderConnection, CTraderAuth } from 'ctrader-ts';
+import { CTraderConnection, CTraderAuth } from 'ctrader-ts';
+import { 
+    getPooledClient, 
+    connectConnectionWithTimeout, 
+    incrementStreamCount, 
+    decrementStreamCount 
+} from './connectionPool.js';
 
 const standardToCommonAliases: Record<string, string[]> = {
     'US100': ['US100', 'NAS100', 'USTEC', 'US TECH 100', 'NQ100', 'NDX', 'TECH100', 'TECH 100', 'US TECH', 'NASDAQ'],
@@ -45,7 +51,7 @@ const envCache = new Map<number, 'live' | 'demo'>();
 async function detectAccountEnvironment(clientId: string, clientSecret: string, token: string, accountId: number): Promise<'live' | 'demo' | null> {
     const connection = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5035 });
     try {
-        await connection.connect();
+        await connectConnectionWithTimeout(connection, 4000);
         const auth = new CTraderAuth(connection);
         await auth.authenticateApp(clientId, clientSecret);
         const accounts = await auth.getAccountsByToken(token);
@@ -64,7 +70,7 @@ async function detectAccountEnvironment(clientId: string, clientSecret: string, 
     // Try demo connection to be thorough
     const demoConnection = new CTraderConnection({ host: 'demo.ctraderapi.com', port: 5035 });
     try {
-        await demoConnection.connect();
+        await connectConnectionWithTimeout(demoConnection, 4000);
         const auth = new CTraderAuth(demoConnection);
         await auth.authenticateApp(clientId, clientSecret);
         const accounts = await auth.getAccountsByToken(token);
@@ -129,7 +135,7 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
         const intAccountId = parseInt(accountId, 10);
         const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
 
-        const ct = await connect({
+        const { client: ct, release } = await getPooledClient({
             clientId,
             clientSecret,
             accessToken: token,
@@ -160,7 +166,7 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
 
         const data = await ct.getTickData(resolvedSymbol, params);
 
-        await ct.disconnect();
+        release();
         res.json(data);
     } catch (e: any) {
         console.error('Error fetching cTrader tick history:', e);
@@ -201,13 +207,11 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    let ct: any = null;
+    let activePoolKey: string | null = null;
 
-    req.on('close', async () => {
-        if (ct) {
-            try {
-                await ct.disconnect();
-            } catch(e) {}
+    req.on('close', () => {
+        if (activePoolKey) {
+            decrementStreamCount(activePoolKey);
         }
     });
 
@@ -215,13 +219,16 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
         const intAccountId = parseInt(accountIdStr, 10);
         const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
 
-        ct = await connect({
+        const { client: ct, poolKey } = await getPooledClient({
             clientId,
             clientSecret,
             accessToken: token,
             accountId: intAccountId,
             environment: resolvedEnv
         });
+
+        activePoolKey = poolKey;
+        incrementStreamCount(poolKey);
 
         const symbolsData = await ct.getSymbols();
         const symbolsArray = Array.isArray(symbolsData) 
@@ -244,7 +251,7 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
         if (validSymbols.length === 0) {
             res.write(`data: ${JSON.stringify({ type: 'error', error: 'System Anomaly: cTrader Error: None of the specified symbols were found in cTrader' })}\n\n`);
             res.end();
-            await ct.disconnect();
+            decrementStreamCount(poolKey);
             return;
         }
 
@@ -264,8 +271,8 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
         console.error('Error in cTrader stream:', e);
         res.write(`data: ${JSON.stringify({ type: 'error', error: e.message })}\n\n`);
         res.end();
-        if (ct) {
-            try { await ct.disconnect(); } catch (err) {}
+        if (activePoolKey) {
+            decrementStreamCount(activePoolKey);
         }
     }
 };
@@ -299,7 +306,7 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         const intAccountId = parseInt(accountId, 10);
         const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
 
-        const ct = await connect({
+        const { client: ct, release } = await getPooledClient({
             clientId,
             clientSecret,
             accessToken: token,
@@ -324,7 +331,7 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         const sym = resolveSymbolFuzzy(symbol, symbolsArray);
         
         if (!sym) {
-            await ct.disconnect();
+            release();
             return res.status(404).json({ error: `Symbol ${symbol} not found in cTrader` });
         }
         symbolId = sym.symbolId;
@@ -349,7 +356,7 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
             };
         });
 
-        await ct.disconnect();
+        release();
         res.json({ candles });
 
     } catch (e: any) {
