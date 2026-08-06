@@ -1,4 +1,5 @@
 import 'dotenv/config';
+import './backend/ctrader/patchCtraderPkg.js';
 import express from 'express';
 
 // Bypass self-signed certificate errors for MetaAPI

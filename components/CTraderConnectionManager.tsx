@@ -101,12 +101,21 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
 
     const checkConnection = (systemStatus?: any) => {
         const token = localStorage.getItem('ctrader_access_token');
-        if (token) {
+        const isValidToken = token && token !== 'undefined' && token !== 'null' && token.trim() !== '';
+
+        if (isValidToken) {
             setIsConnected(true);
             fetchAccounts(token);
-        } else if (systemStatus?.systemConnected) {
-            setIsConnected(true);
-            fetchAccounts(); // Fetch using system token on backend
+        } else {
+            if (token === 'undefined' || token === 'null') {
+                localStorage.removeItem('ctrader_access_token');
+            }
+            if (systemStatus?.systemConnected) {
+                setIsConnected(true);
+                fetchAccounts(); // Fetch using system token on backend
+            } else {
+                setIsConnected(false);
+            }
         }
 
         const savedAccount = localStorage.getItem('ctrader_account_id');
@@ -127,7 +136,10 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
 
             const headers: any = {};
             const activeToken = token || localStorage.getItem('ctrader_access_token');
-            if (activeToken) headers['Authorization'] = `Bearer ${activeToken}`;
+            const isValidActiveToken = activeToken && activeToken !== 'undefined' && activeToken !== 'null' && activeToken.trim() !== '';
+            if (isValidActiveToken) {
+                headers['Authorization'] = `Bearer ${activeToken}`;
+            }
             
             const res = await fetch(url.toString(), { headers });
             const data = await res.json().catch(() => ({}));
@@ -227,15 +239,15 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                 })
             });
 
-            const data = await res.json();
+            const data = await res.json().catch(() => ({}));
             
-            if (!res.ok) {
-                throw new Error(data.error || 'Failed to exchange token');
+            if (!res.ok || data.error || !data.accessToken) {
+                throw new Error(data.error || 'Failed to exchange token. Please check your authorization code.');
             }
 
             localStorage.setItem('ctrader_access_token', data.accessToken);
             if (data.refreshToken) localStorage.setItem('ctrader_refresh_token', data.refreshToken);
-            localStorage.setItem('ctrader_token_expiry', (Date.now() + (data.expiresIn * 1000)).toString());
+            if (data.expiresIn) localStorage.setItem('ctrader_token_expiry', (Date.now() + (data.expiresIn * 1000)).toString());
             
             setIsConnected(true);
             setAuthCode('');
