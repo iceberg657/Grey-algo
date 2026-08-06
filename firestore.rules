@@ -186,15 +186,20 @@ service cloud.firestore {
       allow delete: if isAdmin();
     }
 
+    // --- Test Connection Path ---
+    match /test/{testId} {
+      allow read: if true;
+    }
+
     // --- Broadcasts ---
     match /broadcasts/{broadcastId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin() && isValidBroadcast(incoming());
     }
 
     // --- Admin Settings ---
     match /admin_settings/{settingId} {
-      allow read: if isSignedIn();
+      allow read: if true;
       allow write: if isAdmin();
     }
 

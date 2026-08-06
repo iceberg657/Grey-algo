@@ -57,8 +57,12 @@ async function detectAccountEnvironment(clientId: string, clientSecret: string, 
             return matchingAccount.isLive ? 'live' : 'demo';
         }
     } catch (e: any) {
-        console.warn(`[cTrader] Error detecting environment from live server for account ${accountId}, trying demo server...`, e.message || e);
         try { await connection.disconnect(); } catch (_) {}
+        if (e.message?.includes('CH_ACCESS_TOKEN_INVALID') || e.message?.includes('Invalid access token')) {
+            console.warn(`[cTrader] Invalid access token for account ${accountId}. Re-authorization required.`);
+            return null;
+        }
+        console.warn(`[cTrader] Error detecting environment from live server for account ${accountId}, trying demo server...`, e.message || e);
     }
 
     // Try demo connection to be thorough
@@ -76,8 +80,8 @@ async function detectAccountEnvironment(clientId: string, clientSecret: string, 
             return matchingAccount.isLive ? 'live' : 'demo';
         }
     } catch (e: any) {
-        console.warn(`[cTrader] Error detecting environment from demo server for account ${accountId}:`, e.message || e);
         try { await demoConnection.disconnect(); } catch (_) {}
+        console.warn(`[cTrader] Error detecting environment from demo server for account ${accountId}:`, e.message || e);
     }
 
     return null;
@@ -163,9 +167,14 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
         await ct.disconnect();
         res.json(data);
     } catch (e: any) {
-        console.error('Error fetching cTrader tick history:', e);
+        const isInvalidToken = e.message?.includes('CH_ACCESS_TOKEN_INVALID') || e.message?.includes('Invalid access token');
+        const userMsg = isInvalidToken
+            ? 'Invalid cTrader access token. Please re-authorize cTrader in Settings to obtain a fresh token.'
+            : (e.message || 'Failed to fetch tick history');
+        console.warn(`[cTrader Ticks] ${isInvalidToken ? 'Invalid Token' : 'Error'}:`, e.message || e);
         res.status(200).json({ 
-            error: e.message || 'Failed to fetch tick history',
+            error: userMsg,
+            isInvalidToken,
             status: 'failed',
             info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });
@@ -353,9 +362,14 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         res.json({ candles });
 
     } catch (e: any) {
-        console.error('Error fetching cTrader trendbars:', e);
+        const isInvalidToken = e.message?.includes('CH_ACCESS_TOKEN_INVALID') || e.message?.includes('Invalid access token');
+        const userMsg = isInvalidToken
+            ? 'Invalid cTrader access token. Please re-authorize cTrader in Settings to obtain a fresh token.'
+            : (e.message || 'Failed to fetch trendbars');
+        console.warn(`[cTrader Trendbars] ${isInvalidToken ? 'Invalid Token' : 'Error'}:`, e.message || e);
         res.status(200).json({ 
-            error: e.message || 'Failed to fetch trendbars',
+            error: userMsg,
+            isInvalidToken,
             status: 'failed',
             info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });

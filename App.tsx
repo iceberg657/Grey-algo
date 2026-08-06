@@ -208,7 +208,7 @@ const App: React.FC = () => {
                 // Try to fetch a small doc from Firestore to check connectivity
                 const { getDoc, doc } = await import('firebase/firestore');
                 const timeoutPromise = new Error('timeout');
-                const checkPromise = getDoc(doc(db, 'admin_settings', 'system'));
+                const checkPromise = getDoc(doc(db, 'test', 'connection'));
                 
                 const result = await Promise.race([
                     checkPromise,
