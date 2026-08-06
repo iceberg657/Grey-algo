@@ -824,7 +824,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               console.error(`[SniperLiveTrade Level 2] cTrader feed error:`, ctError);
               
               let friendlyError = ctError.message || String(ctError);
-              if (friendlyError.includes('ECONNRESET') || friendlyError.includes('TLS')) {
+              if (friendlyError.includes('ECONNRESET')) {
                   friendlyError = "TLS connection failed (ECONNRESET) on port 5035. Outbound custom TCP socket connections restricted.";
               }
               

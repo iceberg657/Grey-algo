@@ -13,7 +13,7 @@ interface PoolEntry {
 const pool = new Map<string, PoolEntry>();
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes idle cleanup
 const PING_INTERVAL_MS = 5000;    // 5 seconds heartbeat (ProtoHeartbeatEvent)
-const TLS_TIMEOUT_MS = 5000;      // 5 seconds for TLS handshake
+const TLS_TIMEOUT_MS = 8000;      // 8 seconds for TLS handshake
 const AUTH_TIMEOUT_MS = 15000;    // 15 seconds for App & Account Auth
 
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> {
