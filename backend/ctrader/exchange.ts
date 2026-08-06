@@ -54,8 +54,7 @@ export default async function handler(req: Request, res: Response) {
         });
     } catch (e: any) {
         console.error('Error exchanging cTrader token:', e);
-        // Returning 200 with error field so the frontend receives "information" instead of a raw 500 crash
-        res.status(200).json({ 
+        res.status(400).json({ 
             error: e.message || 'Failed to exchange token',
             status: 'failed',
             info: 'cTrader token exchange failed. Please ensure your Client ID and Secret are correct in Settings.'

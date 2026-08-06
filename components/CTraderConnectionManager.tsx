@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, ExternalLink, CheckCircle, XCircle } from 'lucide-react';
+import { Settings, ExternalLink, CheckCircle, XCircle, RefreshCw } from 'lucide-react';
 
 interface CTraderConnectionManagerProps {
     manualClientId?: string;
@@ -84,21 +84,33 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
     };
 
     const checkConnection = (systemStatus?: any) => {
-        const token = localStorage.getItem('ctrader_access_token');
+        let token = localStorage.getItem('ctrader_access_token');
+        if (token === 'undefined' || token === 'null' || !token?.trim()) {
+            localStorage.removeItem('ctrader_access_token');
+            token = null;
+        }
+
         if (token) {
             setIsConnected(true);
             fetchAccounts(token);
         } else if (systemStatus?.systemConnected) {
             setIsConnected(true);
             fetchAccounts(); // Fetch using system token on backend
+        } else {
+            setIsConnected(false);
         }
 
         const savedAccount = localStorage.getItem('ctrader_account_id');
-        if (savedAccount) setSelectedAccountId(savedAccount);
-        else if (systemStatus?.systemAccountId) setSelectedAccountId(systemStatus.systemAccountId);
+        if (savedAccount && savedAccount !== 'undefined' && savedAccount !== 'null') {
+            setSelectedAccountId(savedAccount);
+        } else if (systemStatus?.systemAccountId) {
+            setSelectedAccountId(systemStatus.systemAccountId);
+        }
     };
 
     const fetchAccounts = async (token?: string) => {
+        setIsLoading(true);
+        setError('');
         try {
             const config = getManualConfig();
             const url = new URL('/api/ctrader/accounts', window.location.origin);
@@ -108,15 +120,38 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
             }
 
             const headers: any = {};
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-            
-            const res = await fetch(url.toString(), { headers });
-            if (res.ok) {
-                const data = await res.json();
-                setAccounts(data.accounts || []);
+            const activeToken = token || localStorage.getItem('ctrader_access_token');
+            if (activeToken && activeToken !== 'undefined' && activeToken !== 'null') {
+                headers['Authorization'] = `Bearer ${activeToken}`;
             }
-        } catch (e) {
-            console.error('Failed to fetch accounts', e);
+
+            const res = await fetch(url.toString(), { headers });
+            const data = await res.json();
+
+            if (res.ok && data.accounts && Array.isArray(data.accounts) && data.accounts.length > 0) {
+                setAccounts(data.accounts);
+                setError('');
+                
+                const currentSaved = localStorage.getItem('ctrader_account_id');
+                const matchingAcc = data.accounts.find((a: any) => String(a.ctidTraderAccountId) === currentSaved) || data.accounts[0];
+                
+                if (matchingAcc) {
+                    const accIdStr = String(matchingAcc.ctidTraderAccountId);
+                    setSelectedAccountId(accIdStr);
+                    localStorage.setItem('ctrader_account_id', accIdStr);
+                    localStorage.setItem('ctrader_environment', matchingAcc.isLive ? 'live' : 'demo');
+                }
+            } else {
+                const errMsg = data.error || data.info || 'Failed to fetch cTrader accounts.';
+                setError(errMsg);
+                setAccounts([]);
+            }
+        } catch (e: any) {
+            console.error('[cTrader] fetchAccounts error:', e);
+            setError(e.message || 'Error communicating with cTrader backend.');
+            setAccounts([]);
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -345,21 +380,47 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                             <select
                                 value={selectedAccountId}
                                 onChange={(e) => {
-                                    setSelectedAccountId(e.target.value);
-                                    localStorage.setItem('ctrader_account_id', e.target.value);
+                                    const val = e.target.value;
+                                    setSelectedAccountId(val);
+                                    localStorage.setItem('ctrader_account_id', val);
+                                    const selected = accounts.find(a => String(a.ctidTraderAccountId) === val);
+                                    if (selected) {
+                                        localStorage.setItem('ctrader_environment', selected.isLive ? 'live' : 'demo');
+                                    }
                                 }}
-                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500"
+                                className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500 font-mono"
                             >
                                 <option value="" disabled>Select an account</option>
                                 {accounts.map(acc => (
                                     <option key={acc.ctidTraderAccountId} value={acc.ctidTraderAccountId}>
-                                        {acc.isLive ? 'Live' : 'Demo'} - {acc.ctidTraderAccountId}
+                                        {acc.isLive ? '🟢 Live' : '🟡 Demo'} Account #{acc.ctidTraderAccountId}
                                     </option>
                                 ))}
                             </select>
                         </div>
                     ) : (
-                        <div className="text-xs text-amber-600">Loading accounts...</div>
+                        <div className="space-y-3">
+                            {isLoading ? (
+                                <div className="text-xs text-indigo-600 dark:text-indigo-400 font-medium flex items-center gap-2">
+                                    <RefreshCw className="w-3.5 h-3.5 animate-spin" /> Fetching accounts from cTrader Open API...
+                                </div>
+                            ) : error ? (
+                                <div className="space-y-2">
+                                    <div className="text-xs text-red-500 bg-red-50 dark:bg-red-500/10 p-3 rounded-md border border-red-200 dark:border-red-900/30">
+                                        <p className="font-bold mb-1">Failed to fetch cTrader accounts:</p>
+                                        <p>{error}</p>
+                                    </div>
+                                    <button
+                                        onClick={() => fetchAccounts()}
+                                        className="w-full py-1.5 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/30 dark:hover:bg-indigo-900/50 text-indigo-600 dark:text-indigo-400 text-xs font-bold rounded-lg transition-colors"
+                                    >
+                                        Retry Fetching Accounts
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="text-xs text-amber-600">No trading accounts detected for this token.</div>
+                            )}
+                        </div>
                     )}
                     <button
                         onClick={handleDisconnect}
