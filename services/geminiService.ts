@@ -1608,6 +1608,29 @@ function getAssetPrecision(asset: string): number {
     return 5;
 }
 
+export function sanitizeTextOutput(text: string): string {
+    if (!text || typeof text !== 'string') return text || '';
+    const runawayPattern = /\b(?:safely|nicely|properly|correctly|accurately|immediately|precisely|truly|exactly|cleanly|perfectly|smoothly|indeed|strictly|right\s+away|here|today|now|done|fine|well|securely)\b(?:\s+\b(?:safely|nicely|properly|correctly|accurately|immediately|precisely|truly|exactly|cleanly|perfectly|smoothly|indeed|strictly|right\s+away|here|today|now|done|fine|well|securely)\b){2,}/gi;
+    let cleaned = text.replace(runawayPattern, '.');
+    cleaned = cleaned.replace(/\s*\.\s*\./g, '.').replace(/\s{2,}/g, ' ').trim();
+    return cleaned;
+}
+
+export function roundToAssetPrecision(price: number, asset: string = ''): number {
+    if (price === undefined || price === null || isNaN(price)) return price;
+    const prec = getAssetPrecision(asset);
+    const factor = Math.pow(10, prec);
+    return Math.round(price * factor) / factor;
+}
+
+export function formatPrice(price: number | string | undefined | null, asset: string = ''): string {
+    if (price === undefined || price === null || price === '') return 'N/A';
+    const num = typeof price === 'number' ? price : parseFloat(String(price));
+    if (isNaN(num)) return String(price);
+    const prec = getAssetPrecision(asset);
+    return num.toFixed(prec);
+}
+
 export function calculateRRLevels(
     signal: 'BUY' | 'SELL',
     entry: number,
@@ -2854,12 +2877,14 @@ JSON Structure:
                     const scaledLowerBound = mc.lowerBound ? mc.lowerBound * finalScale : undefined;
                     const scaledUpperBound = mc.upperBound ? mc.upperBound * finalScale : undefined;
 
-                    if (finalSignal === 'BUY') {
+                    if (quantData.scalpTargets?.stopLoss || quantData.mathematicalSL) {
+                        finalSL = quantData.scalpTargets?.stopLoss || quantData.mathematicalSL;
+                    } else if (finalSignal === 'BUY') {
                         finalSL = scaledMathematicalSL || scaledLowerBound || (midEntry - (scaledAtr ? scaledAtr * 1.5 : midEntry * 0.002));
                     } else if (finalSignal === 'SELL') {
                         finalSL = scaledMathematicalSL || scaledUpperBound || (midEntry + (scaledAtr ? scaledAtr * 1.5 : midEntry * 0.002));
                     }
-                    finalReasoning.push(`🛡️ AI Stop Loss was missing, invalid, or too tight. Recalibrated to mathematical lower/upper bounds.`);
+                    finalReasoning.push(`🛡️ Stop loss anchored directly to Quant Analysis Engine's ATR & Structural Noise Floor @ ${formatPrice(finalSL, assetName)}.`);
                 } else if (isAiSlValid) {
                     finalReasoning.push(`🎯 Retaining high-precision AI-generated Stop Loss coordinate at ${finalSL}.`);
                 }
@@ -3066,19 +3091,39 @@ Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
                 }
             }
 
+            const targetAsset = signal.asset || assetName;
+            const roundedPriceAtSignal = roundToAssetPrecision(livePrice, targetAsset);
+            const roundedMidEntry = roundToAssetPrecision(midEntry, targetAsset);
+            const roundedSL = roundToAssetPrecision(finalSL, targetAsset);
+            const roundedTPs = (finalTPs || []).map(tp => roundToAssetPrecision(tp, targetAsset));
+            const roundedEntryRange = finalEntryRange ? {
+                min: roundToAssetPrecision(finalEntryRange.min, targetAsset),
+                max: roundToAssetPrecision(finalEntryRange.max, targetAsset)
+            } : null;
+
+            const sanitizedReasoning = (finalReasoning || []).map(r => sanitizeTextOutput(r)).filter(Boolean);
+            const sanitizedChecklist = (Array.isArray(signal.checklist) ? signal.checklist : []).map(c => sanitizeTextOutput(c)).filter(Boolean);
+            const sanitizedCandlesticks = (Array.isArray(signal.candlestickPatterns) ? signal.candlestickPatterns : []).map(p => sanitizeTextOutput(p)).filter(Boolean);
+            const sanitizedConfirmation = sanitizeTextOutput(signal.confirmationPattern || "None");
+            const sanitizedTrigger = signal.triggerConditions ? {
+                breakoutLevel: signal.triggerConditions.breakoutLevel ? roundToAssetPrecision(signal.triggerConditions.breakoutLevel, targetAsset) : null,
+                retestLogic: sanitizeTextOutput(signal.triggerConditions.retestLogic || "N/A"),
+                entryTriggerCandle: sanitizeTextOutput(signal.triggerConditions.entryTriggerCandle || "N/A")
+            } : undefined;
+
             const sanitizedSignal: SignalData = {
                 id: `sniper_${Date.now()}`,
                 timestamp: Date.now(),
-                asset: signal.asset || assetName,
+                asset: targetAsset,
                 signal: finalSignal,
                 confidence: finalConfidence,
-                priceAtSignal: livePrice,
+                priceAtSignal: roundedPriceAtSignal,
                 truthLayerUsed: !!derivData?.truthLayerUsed,
                 timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),
-                entryPoints: [midEntry],
-                entryRange: finalEntryRange || null,
-                stopLoss: finalSL,
-                takeProfits: finalTPs,
+                entryPoints: [roundedMidEntry],
+                entryRange: roundedEntryRange,
+                stopLoss: roundedSL,
+                takeProfits: roundedTPs,
                 rrLevels: rrLevels || undefined,
                 positionProtocol: finalPositionProtocol || undefined,
                 heatmapData: heatmapMapping,
@@ -3086,14 +3131,14 @@ Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
                 riskAmount: lotInfo.riskAmount,
                 positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
                 recommendedPositions: signal.recommendedPositions,
-                reasoning: finalReasoning,
-                checklist: Array.isArray(signal.checklist) ? signal.checklist : [],
-                candlestickPatterns: Array.isArray(signal.candlestickPatterns) ? signal.candlestickPatterns : [],
-                confirmationPattern: signal.confirmationPattern || "None",
+                reasoning: sanitizedReasoning,
+                checklist: sanitizedChecklist,
+                candlestickPatterns: sanitizedCandlesticks,
+                confirmationPattern: sanitizedConfirmation,
                 neuralFilter: signal.neuralFilter,
                 timingCalibration: signal.timingCalibration,
                 entryType: correctedEntryType,
-                triggerConditions: signal.triggerConditions || undefined,
+                triggerConditions: sanitizedTrigger,
                 contractSize: 100000,
                 pipValue: 10,
                 sources: finalSources

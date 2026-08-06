@@ -30,7 +30,7 @@ import {
   Save
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
-import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal } from '../services/geminiService';
+import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal, formatPrice } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata, UserSettings, AntigravityVerdict } from '../types';
 import { Loader } from './Loader';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
@@ -893,6 +893,32 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           entryData.price = lastCandle.close;
           entryData.bid = lastCandle.close;
           entryData.ask = lastCandle.close;
+      }
+
+      // If cTrader Level 2 ticks or depth are available, use the latest real-time tick price for immediate market execution
+      if (usedBroker === 'cTrader') {
+          if (ctraderTicks && ctraderTicks.length > 0) {
+              const latestTick = ctraderTicks[ctraderTicks.length - 1];
+              const liveTickPrice = latestTick.ask || latestTick.bid || latestTick.price;
+              if (liveTickPrice && liveTickPrice > 0) {
+                  entryData.price = liveTickPrice;
+                  entryData.bid = latestTick.bid || liveTickPrice;
+                  entryData.ask = latestTick.ask || liveTickPrice;
+                  if (lastCandle) {
+                      lastCandle.close = liveTickPrice;
+                  }
+              }
+          } else if (ctraderDepthRef.current && (ctraderDepthRef.current.bestBid || ctraderDepthRef.current.bestAsk)) {
+              const liveTickPrice = ctraderDepthRef.current.bestAsk || ctraderDepthRef.current.bestBid;
+              if (liveTickPrice && liveTickPrice > 0) {
+                  entryData.price = liveTickPrice;
+                  entryData.bid = ctraderDepthRef.current.bestBid || liveTickPrice;
+                  entryData.ask = ctraderDepthRef.current.bestAsk || liveTickPrice;
+                  if (lastCandle) {
+                      lastCandle.close = liveTickPrice;
+                  }
+              }
+          }
       }
       
       const combinedData = {

@@ -18,7 +18,7 @@ const DEFAULT_SETTINGS: UserSettings = {
     maxDrawdown: 10,
     timeLimit: 30,
     twelveDataApiKey: '',
-    deepThinking: true,
+    deepThinking: false,
     showDashboardSignals: true,
     playSoundOnNotification: true,
     enableCTrader: false
@@ -410,20 +410,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                     />
                                     <p className="text-[10px] text-blue-400 mt-1">If set, this key will override the active Vercel/backend model pool key.</p>
                                 </div>
-                                <div className="flex items-center justify-between p-3 bg-violet-500/10 dark:bg-violet-500/5 rounded-lg border border-violet-500/30">
+                                <div className="flex items-center justify-between p-3 bg-slate-500/10 dark:bg-slate-800/20 rounded-lg border border-slate-500/20 opacity-60 pointer-events-none">
                                     <div>
-                                        <label className="block text-xs font-bold text-violet-700 dark:text-violet-300 flex items-center gap-1.5">
+                                        <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
                                             <span>🧠 AI Deep Thinking Analysis</span>
-                                            <span className="px-1.5 py-0.5 bg-violet-600/20 text-violet-600 dark:text-violet-400 text-[8px] uppercase tracking-wider rounded font-bold">Pro Reasoning</span>
+                                            <span className="px-1.5 py-0.5 bg-gray-500/20 text-gray-500 text-[8px] uppercase tracking-wider rounded font-bold">Optimized Off</span>
                                         </label>
-                                        <p className="text-[10px] text-gray-500 dark:text-slate-400">Runs high-level reasoning models to filter raw charts, identify traps, and prevent false market entry.</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-slate-500">Disabled to enforce high-speed execution & strict 40k token rate-limit bounds.</p>
                                     </div>
                                     <button 
                                         type="button"
-                                        onClick={() => setSettings(prev => ({ ...prev, deepThinking: !prev.deepThinking }))}
-                                        className={`w-10 h-5 rounded-full relative transition-colors ${settings.deepThinking ? 'bg-violet-600' : 'bg-gray-300 dark:bg-slate-700'}`}
+                                        disabled
+                                        className="w-10 h-5 rounded-full relative transition-colors bg-gray-300 dark:bg-slate-700 cursor-not-allowed"
                                     >
-                                        <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${settings.deepThinking ? 'left-6' : 'left-1'}`}></div>
+                                        <div className="absolute top-1 w-3 h-3 bg-white/70 rounded-full left-1"></div>
                                     </button>
                                 </div>
 

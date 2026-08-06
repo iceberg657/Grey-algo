@@ -10,6 +10,34 @@ import { KalmanFilter } from './kalmanFilter';
 import { GaussianMixtureModel, LSTMMath, MarkovDecisionProcess, MSGARCH } from './advancedMath';
 import { calculateGM11 } from './greyModel';
 
+export function getAssetPrecision(symbol: string = ''): number {
+    const sym = symbol.toUpperCase();
+    if (sym.includes('BTC') || sym.includes('NAS') || sym.includes('SPX') || sym.includes('DJI') || sym.includes('US30') || sym.includes('US100') || sym.includes('US500') || sym.includes('GOLD') || sym.includes('XAU') || sym.includes('SILVER') || sym.includes('XAG') || sym.includes('BRENT') || sym.includes('WTI')) {
+        return 2;
+    }
+    if (sym.includes('JPY')) return 3;
+    if (sym.startsWith('BOOM') || sym.startsWith('CRAS') || sym.startsWith('STEP') || sym.startsWith('R_') || sym.startsWith('VOLATILITY') || sym.startsWith('1HZ') || sym.startsWith('STP') || sym.startsWith('RB_')) {
+        if (sym.includes('STEP') || sym.includes('STP')) return 3;
+        return 2;
+    }
+    return 5;
+}
+
+export function formatAssetPrice(price: number | string | undefined | null, symbol: string = ''): string {
+    if (price === undefined || price === null || price === '') return 'N/A';
+    const num = typeof price === 'number' ? price : parseFloat(String(price));
+    if (isNaN(num)) return String(price);
+    const prec = getAssetPrecision(symbol);
+    return num.toFixed(prec);
+}
+
+export function roundAssetPrice(price: number, symbol: string = ''): number {
+    if (price === undefined || price === null || isNaN(price)) return price;
+    const prec = getAssetPrecision(symbol);
+    const factor = Math.pow(10, prec);
+    return Math.round(price * factor) / factor;
+}
+
 export interface OHLC {
     epoch: number;
     open: number;
@@ -952,7 +980,8 @@ export function analyzeSMC(
     const ema20Dir = ema20 > prevEma20 ? 'UP' : 'DOWN';
     const ema50Dir = ema50 > prevEma50 ? 'UP' : 'DOWN';
 
-    const rsi = calculateRSI(closes)[calculateRSI(closes).length - 1];
+    const rsiArr = calculateRSI(closes);
+    const rsi = rsiArr.length > 0 ? rsiArr[rsiArr.length - 1] : 50;
 
     // Swing Highs and Lows
     const lastSwingHigh = Math.max(...highs.slice(-20));
@@ -2087,13 +2116,13 @@ export function analyzeSMC(
             const supp = walls.find((w: any) => w.type === 'SUPPORT' && w.price < currentPrice);
             if (supp) {
                 mathematicalSL = Math.min(mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5), supp.price - (atr || currentPrice * 0.001) * 0.4);
-                l2ShieldNote = `Shielded behind Level 2 Orderbook Support Wall @ ${supp.price.toFixed(5)}`;
+                l2ShieldNote = `Shielded behind Level 2 Orderbook Support Wall @ ${formatAssetPrice(supp.price, assetSymbol)}`;
             }
         } else if (explicitSignal === 'SELL') {
             const res = walls.find((w: any) => w.type === 'RESISTANCE' && w.price > currentPrice);
             if (res) {
                 mathematicalSL = Math.max(mathematicalSL || (currentPrice + (atr || currentPrice * 0.002) * 1.5), res.price + (atr || currentPrice * 0.001) * 0.4);
-                l2ShieldNote = `Shielded behind Level 2 Orderbook Resistance Wall @ ${res.price.toFixed(5)}`;
+                l2ShieldNote = `Shielded behind Level 2 Orderbook Resistance Wall @ ${formatAssetPrice(res.price, assetSymbol)}`;
             }
         }
     } else if (stopClusters && stopClusters.length > 0) {
@@ -2102,38 +2131,42 @@ export function analyzeSMC(
             if (sellStops.length > 0) {
                 const lowestStop = Math.min(...sellStops.map(s => s.price));
                 mathematicalSL = Math.min(mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5), lowestStop - (atr || currentPrice * 0.001) * 0.5);
-                l2ShieldNote = `Shielded behind Institutional Sell Stop Liquidity Pool @ ${lowestStop.toFixed(5)}`;
+                l2ShieldNote = `Shielded behind Institutional Sell Stop Liquidity Pool @ ${formatAssetPrice(lowestStop, assetSymbol)}`;
             }
         } else if (explicitSignal === 'SELL') {
             const buyStops = stopClusters.filter(s => s.type === 'BUY_STOP_LIQUIDITY' && s.price > currentPrice);
             if (buyStops.length > 0) {
                 const highestStop = Math.max(...buyStops.map(s => s.price));
                 mathematicalSL = Math.max(mathematicalSL || (currentPrice + (atr || currentPrice * 0.002) * 1.5), highestStop + (atr || currentPrice * 0.001) * 0.5);
-                l2ShieldNote = `Shielded behind Institutional Buy Stop Liquidity Pool @ ${highestStop.toFixed(5)}`;
+                l2ShieldNote = `Shielded behind Institutional Buy Stop Liquidity Pool @ ${formatAssetPrice(highestStop, assetSymbol)}`;
             }
         }
+    }
+
+    if (mathematicalSL > 0) {
+        mathematicalSL = roundAssetPrice(mathematicalSL, assetSymbol);
     }
 
     // Calculate precision Scalp & Market Execution Targets (enforcing 1:2 to 1:3 minimum Risk-to-Reward ratio)
     const isBuy = explicitSignal === 'BUY';
     const fallbackSL = isBuy ? currentPrice - (atr || currentPrice * 0.002) * 1.5 : currentPrice + (atr || currentPrice * 0.002) * 1.5;
-    const finalSL = mathematicalSL || fallbackSL;
+    const finalSL = roundAssetPrice(mathematicalSL || fallbackSL, assetSymbol);
     const slDist = Math.abs(currentPrice - finalSL);
     const scalpRiskPips = slDist > 0 ? slDist : (atr || currentPrice * 0.002) * 1.5;
 
     const scalpTargets = {
-        entry: currentPrice,
+        entry: roundAssetPrice(currentPrice, assetSymbol),
         marketExecutionRange: {
-            minPrice: isBuy ? currentPrice - (atr || currentPrice * 0.001) * 0.1 : currentPrice,
-            maxPrice: isBuy ? currentPrice : currentPrice + (atr || currentPrice * 0.001) * 0.1,
+            minPrice: roundAssetPrice(isBuy ? currentPrice - (atr || currentPrice * 0.001) * 0.1 : currentPrice, assetSymbol),
+            maxPrice: roundAssetPrice(isBuy ? currentPrice : currentPrice + (atr || currentPrice * 0.001) * 0.1, assetSymbol),
             executionMode: 'IMMEDIATE_MARKET_EXECUTION',
-            maxAllowedSlippage: ((atr || currentPrice * 0.001) * 0.15).toFixed(5)
+            maxAllowedSlippage: ((atr || currentPrice * 0.001) * 0.15).toFixed(getAssetPrecision(assetSymbol))
         },
         stopLoss: finalSL,
         l2ShieldNote,
-        tp1: isBuy ? currentPrice + scalpRiskPips * 1.5 : currentPrice - scalpRiskPips * 1.5, // 1:1.5 RR
-        tp2: isBuy ? currentPrice + scalpRiskPips * 2.5 : currentPrice - scalpRiskPips * 2.5, // 1:2.5 RR (Target 1:2 to 1:3)
-        tp3: isBuy ? currentPrice + scalpRiskPips * 3.2 : currentPrice - scalpRiskPips * 3.2, // 1:3.2 RR
+        tp1: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 1.5 : currentPrice - scalpRiskPips * 1.5, assetSymbol),
+        tp2: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 2.5 : currentPrice - scalpRiskPips * 2.5, assetSymbol),
+        tp3: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 3.2 : currentPrice - scalpRiskPips * 3.2, assetSymbol),
         riskRewardRatio: "1:2.5",
         minScalpRR: "1:2.0 - 1:3.0",
         pipsAtRisk: scalpRiskPips,
