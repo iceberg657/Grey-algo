@@ -172,17 +172,83 @@ export const HomePage: React.FC<HomePageProps> = ({
     if (criticalError) throw criticalError;
 
 
-    const [isTwelveDataConfigured, setIsTwelveDataConfigured] = useState<boolean | null>(null);
+    const [networkStatus, setNetworkStatus] = useState<'stable' | 'unstable' | 'offline' | 'checking'>('checking');
+    const [networkLatency, setNetworkLatency] = useState<number | null>(null);
 
     useEffect(() => {
-        const checkStatus = () => {
-            setIsTwelveDataConfigured(false);
+        const checkNetworkStatus = async () => {
+            try {
+                // First check if cTrader is configured in local settings
+                const stored = localStorage.getItem('greyquant_user_settings');
+                let hasSettings = false;
+                if (stored) {
+                    const parsed = JSON.parse(stored);
+                    if (parsed.enableCTrader && parsed.ctraderClientId) {
+                        hasSettings = true;
+                    }
+                }
+
+                if (!hasSettings) {
+                    setNetworkStatus('offline');
+                    return;
+                }
+
+                const startTime = Date.now();
+                const res = await fetch('/api/ctrader/status');
+                const data = await res.json();
+                
+                if (data.configured || data.systemConnected || data.debug?.hasClientId) {
+                    // Try to measure actual latency via a lightweight call if configured
+                    try {
+                        const pingStart = Date.now();
+                        const token = localStorage.getItem('ctrader_access_token');
+                        const accountId = localStorage.getItem('ctrader_account_id');
+                        const env = localStorage.getItem('ctrader_environment') || 'demo';
+                        
+                        // We use a timeout to prevent hanging the ping
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 8000);
+                        
+                        const accountsRes = await fetch('/api/ctrader/accounts', {
+                            headers: {
+                                'Authorization': token ? `Bearer ${token}` : '',
+                                'X-CTrader-Client-Id': localStorage.getItem('ctrader_client_id') || '',
+                                'X-CTrader-Client-Secret': localStorage.getItem('ctrader_client_secret') || '',
+                                'X-CTrader-Account-Id': accountId || '',
+                                'X-CTrader-Environment': env
+                            },
+                            signal: controller.signal
+                        });
+                        
+                        clearTimeout(timeoutId);
+                        
+                        if (accountsRes.ok) {
+                            const latency = Date.now() - pingStart;
+                            setNetworkLatency(latency);
+                            if (latency < 1200) {
+                                setNetworkStatus('stable'); // Green
+                            } else if (latency < 4000) {
+                                setNetworkStatus('unstable'); // Yellow
+                            } else {
+                                setNetworkStatus('offline'); // Red (Too slow)
+                            }
+                        } else {
+                            setNetworkStatus('offline'); // Red
+                        }
+                    } catch (e) {
+                        setNetworkStatus('offline'); // Red
+                    }
+                } else {
+                    setNetworkStatus('offline'); // Red
+                }
+            } catch (err) {
+                setNetworkStatus('offline');
+            }
         };
 
-        // Initial check
-        checkStatus();
-        
-        // Remove loop
+        checkNetworkStatus();
+        const interval = setInterval(checkNetworkStatus, 30000); // Check every 30s
+        return () => clearInterval(interval);
     }, []);
 
     useEffect(() => {
@@ -588,14 +654,30 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
                 <header className="flex flex-col items-center mb-16 relative">
                     <div className="relative sm:absolute sm:top-0 sm:right-0 flex items-center justify-end gap-3 w-full sm:w-auto mb-6 sm:mb-0">
-                        {isTwelveDataConfigured !== null && (
+                        {networkStatus !== 'checking' && (
                             <button 
                                 onClick={handleOpenSettings}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-md ${isTwelveDataConfigured ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 animate-pulse'}`} 
-                                title={isTwelveDataConfigured ? "Twelve Data Connected" : "Connection Refused"}
+                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-md ${
+                                    networkStatus === 'stable' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 
+                                    networkStatus === 'unstable' ? 'bg-amber-500/10 border-amber-500/20 text-amber-600 dark:text-amber-400' :
+                                    'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 animate-pulse'
+                                }`} 
+                                title={
+                                    networkStatus === 'stable' ? `cTrader Connected (${networkLatency}ms)` : 
+                                    networkStatus === 'unstable' ? `cTrader High Latency (${networkLatency}ms)` : 
+                                    "cTrader Connection Offline"
+                                }
                             >
-                                <span className={`w-1 h-1 rounded-full ${isTwelveDataConfigured ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                                <span className="hidden sm:inline">{isTwelveDataConfigured ? 'Network: Live' : 'Network: Offline'}</span>
+                                <span className={`w-1 h-1 rounded-full ${
+                                    networkStatus === 'stable' ? 'bg-emerald-500' : 
+                                    networkStatus === 'unstable' ? 'bg-amber-500' : 
+                                    'bg-rose-500'
+                                }`}></span>
+                                <span className="hidden sm:inline">
+                                    {networkStatus === 'stable' ? 'Network: Optimal' : 
+                                     networkStatus === 'unstable' ? 'Network: High Latency' : 
+                                     'Network: Offline'}
+                                </span>
                             </button>
                         )}
                         <ThemeToggleButton />

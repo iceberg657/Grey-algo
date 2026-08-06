@@ -1,4 +1,4 @@
-import { connect, CTraderConnection, CTrader } from 'ctrader-ts';
+import { CTrader, CTraderConnection } from 'ctrader-ts';
 
 interface PoolEntry {
     client: CTrader;
@@ -12,57 +12,77 @@ interface PoolEntry {
 
 const pool = new Map<string, PoolEntry>();
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000; // 5 minutes idle cleanup
-const PING_INTERVAL_MS = 20 * 1000;    // 20 seconds heartbeat to keep TCP socket alive
-const CONNECT_TIMEOUT_MS = 8000;       // 8 seconds connection timeout guard
+const PING_INTERVAL_MS = 5000;    // 5 seconds heartbeat (ProtoHeartbeatEvent)
+const TLS_TIMEOUT_MS = 5000;      // 5 seconds for TLS handshake
+const AUTH_TIMEOUT_MS = 15000;    // 15 seconds for App & Account Auth
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, errorMsg: string): Promise<T> {
+    let timeoutId: NodeJS.Timeout;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(`${errorMsg} (${timeoutMs}ms)`)), timeoutMs);
+    });
+    return Promise.race([promise, timeoutPromise]).finally(() => clearTimeout(timeoutId));
+}
 
 /**
- * Connects to cTrader Open API with an explicit timeout guard
+ * Connects a raw CTraderConnection instance with an explicit TLS timeout guard
  */
-export async function connectWithTimeout(config: any, timeoutMs: number = CONNECT_TIMEOUT_MS): Promise<CTrader> {
-    let timeoutId: NodeJS.Timeout;
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-            reject(new Error(`cTrader connection timeout (${timeoutMs / 1000}s) to ${config.environment || 'demo'} server. Check API credentials or network state.`));
-        }, timeoutMs);
-    });
-
+export async function connectConnectionWithTimeout(connection: CTraderConnection, timeoutMs: number = TLS_TIMEOUT_MS): Promise<void> {
     try {
-        const client = await Promise.race([
-            connect(config),
-            timeoutPromise
-        ]);
-        clearTimeout(timeoutId!);
-        return client;
+        await withTimeout(connection.connect(), timeoutMs, 'cTrader TLS/Socket connection timeout');
     } catch (err) {
-        clearTimeout(timeoutId!);
+        try { connection.disconnect(); } catch (_) {}
         throw err;
     }
 }
 
 /**
- * Connects a raw CTraderConnection instance with an explicit timeout guard
+ * Connects to cTrader Open API with phased timeouts
  */
-export async function connectConnectionWithTimeout(connection: CTraderConnection, timeoutMs: number = 6000): Promise<void> {
-    let timeoutId: NodeJS.Timeout;
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-            reject(new Error(`cTrader raw connection timeout (${timeoutMs / 1000}s)`));
-        }, timeoutMs);
+export async function connectWithPhasedTimeouts(config: any): Promise<CTrader> {
+    const host = config.environment === 'live' ? 'live.ctraderapi.com' : 'demo.ctraderapi.com';
+    
+    let currentAccessToken = config.accessToken;
+    const client = new CTrader({
+        host,
+        port: 5035,
+        accountId: config.accountId,
+        onReconnect: async () => {
+            await client.raw.auth.authenticateApp(config.clientId, config.clientSecret);
+            try {
+                await client.raw.auth.authenticateAccount(config.accountId, currentAccessToken);
+            } catch (err) {
+                throw err;
+            }
+            await client.raw.market.restoreSubscriptions();
+        },
     });
 
+    // Phase 1: Socket / TLS Handshake
+    await withTimeout(
+        client.connection.connect(), 
+        TLS_TIMEOUT_MS, 
+        `cTrader TLS/Socket connection timeout to ${host}`
+    );
+
+    // Phase 2: App & Account Auth
     try {
-        await Promise.race([
-            connection.connect(),
-            timeoutPromise
-        ]);
-        clearTimeout(timeoutId!);
+        await withTimeout(
+            client.raw.auth.authenticateApp(config.clientId, config.clientSecret), 
+            AUTH_TIMEOUT_MS, 
+            'cTrader App Auth timeout'
+        );
+        await withTimeout(
+            client.raw.auth.authenticateAccount(config.accountId, currentAccessToken), 
+            AUTH_TIMEOUT_MS, 
+            'cTrader Account Auth timeout'
+        );
     } catch (err) {
-        clearTimeout(timeoutId!);
-        try { connection.disconnect(); } catch (_) {}
+        client.connection.disconnect();
         throw err;
     }
+
+    return client;
 }
 
 /**
@@ -127,16 +147,16 @@ export async function getPooledClient(params: {
     const connectingPromise = (async (): Promise<CTrader> => {
         console.log(`[cTrader Pool] Establishing new persistent client for account ${params.accountId} (${params.environment})...`);
         
-        const client = await connectWithTimeout({
+        const client = await connectWithPhasedTimeouts({
             clientId: params.clientId,
             clientSecret: params.clientSecret,
             accessToken: params.accessToken,
             accountId: params.accountId,
             environment: params.environment
-        }, CONNECT_TIMEOUT_MS);
+        });
 
-        // Start Keep-Alive Ping Timer to prevent idle socket drop
-        const pingTimer = setInterval(async () => {
+        // Start Keep-Alive Ping Timer (5s ProtoHeartbeatEvent)
+        const pingTimer = setInterval(() => {
             const currentEntry = pool.get(key);
             if (!currentEntry) {
                 clearInterval(pingTimer);
@@ -150,17 +170,17 @@ export async function getPooledClient(params: {
                 return;
             }
 
-            // Ping heartbeat
+            // Ping heartbeat (ProtoHeartbeatEvent = PayloadType 51)
             try {
                 if (isClientHealthy(client)) {
-                    // Send a lightweight symbols or account ping
-                    await client.account.getAccountsByToken(params.accessToken);
+                    // Send application-layer heartbeat
+                    client.connection.send(51);
                 } else {
-                    console.warn(`[cTrader Pool] Socket dead detected during ping for ${key}. Cleaning up.`);
+                    console.warn(`[cTrader Pool] Socket dead detected for ${key}. Cleaning up.`);
                     cleanupPoolEntry(key);
                 }
             } catch (pingErr) {
-                console.warn(`[cTrader Pool] Ping failed for ${key}, removing stale connection:`, pingErr);
+                console.warn(`[cTrader Pool] Heartbeat failed for ${key}, removing stale connection:`, pingErr);
                 cleanupPoolEntry(key);
             }
         }, PING_INTERVAL_MS);
@@ -231,7 +251,7 @@ function cleanupPoolEntry(key: string) {
         if (entry.pingTimer) clearInterval(entry.pingTimer);
         if (entry.client) {
             try {
-                entry.client.disconnect();
+                entry.client.connection.disconnect();
             } catch (_) {}
         }
         pool.delete(key);
