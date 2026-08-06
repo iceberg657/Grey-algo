@@ -8,7 +8,8 @@
     "build": "vite build && esbuild server.ts --bundle --platform=node --format=esm --packages=external --sourcemap --log-override:empty-import-meta=silent --outfile=dist/server.js",
     "start": "node dist/server.js",
     "preview": "vite preview",
-    "lint": "tsc"
+    "lint": "tsc",
+    "postinstall": "node patch_ctrader.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.10.0",
@@ -31,7 +32,7 @@
     "react-markdown": "^10.1.0",
     "recharts": "^3.8.1",
     "tsx": "^4.21.0",
-    "ws": "^8.19.0"
+    "ws": "^8.21.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.1",
