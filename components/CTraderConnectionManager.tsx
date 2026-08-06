@@ -153,7 +153,7 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                     localStorage.removeItem('ctrader_refresh_token');
                     setError('cTrader Access Token has expired or is invalid. Please authorize again below.');
                 } else {
-                    setError(errMsg);
+                    setError("FROM_SERVER: " + errMsg);
                 }
                 setAccounts([]);
             } else {
@@ -162,7 +162,7 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
             }
         } catch (e: any) {
             console.error('Failed to fetch accounts', e);
-            setError(e.message || 'Network error fetching cTrader accounts');
+            setError(e.stack || e.message || 'Network error fetching cTrader accounts');
             setAccounts([]);
         } finally {
             setIsLoadingAccounts(false);

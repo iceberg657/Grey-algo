@@ -33,6 +33,7 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
             return res.json({ accounts });
         }
     } catch (e: any) {
+        console.error("ACCOUNTS ENDPOINT ERROR:", e);
         if (e.message?.includes('CH_ACCESS_TOKEN_INVALID') || e.message?.includes('Invalid access token')) {
             return res.status(200).json({ 
                 error: 'Invalid cTrader access token. Please re-authorize cTrader in Settings to obtain a fresh token.',
@@ -54,6 +55,7 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
         
         return res.json({ accounts: accounts || [] });
     } catch (e: any) {
+        console.error("ACCOUNTS ENDPOINT ERROR:", e);
         const isInvalidToken = e.message?.includes('CH_ACCESS_TOKEN_INVALID') || e.message?.includes('Invalid access token');
         const userMsg = isInvalidToken
             ? 'Invalid cTrader access token. Please re-authorize cTrader in Settings to obtain a fresh token.'
