@@ -413,17 +413,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({ onClose }) => {
                                 <div className="flex items-center justify-between p-3 bg-slate-500/10 dark:bg-slate-800/20 rounded-lg border border-slate-500/20 opacity-60 pointer-events-none">
                                     <div>
                                         <label className="block text-xs font-bold text-gray-500 dark:text-slate-400 flex items-center gap-1.5">
-                                            <span>⚡ High-Speed Execution Mode</span>
-                                            <span className="px-1.5 py-0.5 bg-emerald-500/20 text-emerald-500 text-[8px] uppercase tracking-wider rounded font-bold">Active</span>
+                                            <span>🧠 AI Deep Thinking Analysis</span>
+                                            <span className="px-1.5 py-0.5 bg-gray-500/20 text-gray-500 text-[8px] uppercase tracking-wider rounded font-bold">Optimized Off</span>
                                         </label>
-                                        <p className="text-[10px] text-gray-400 dark:text-slate-500">Thinking overhead permanently disabled for maximum execution speed & strict token efficiency.</p>
+                                        <p className="text-[10px] text-gray-400 dark:text-slate-500">Disabled to enforce high-speed execution & strict 40k token rate-limit bounds.</p>
                                     </div>
                                     <button 
                                         type="button"
                                         disabled
-                                        className="w-10 h-5 rounded-full relative transition-colors bg-emerald-600/50 cursor-not-allowed"
+                                        className="w-10 h-5 rounded-full relative transition-colors bg-gray-300 dark:bg-slate-700 cursor-not-allowed"
                                     >
-                                        <div className="absolute top-1 w-3 h-3 bg-white rounded-full left-6"></div>
+                                        <div className="absolute top-1 w-3 h-3 bg-white/70 rounded-full left-1"></div>
                                     </button>
                                 </div>
 

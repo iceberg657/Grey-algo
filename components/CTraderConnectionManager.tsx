@@ -22,7 +22,6 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
     const [isSystemConnected, setIsSystemConnected] = useState(false);
     const [isConfigured, setIsConfigured] = useState(true); // Default true to avoid flash
     const [statusData, setStatusData] = useState<any>(null);
-    const [isLoadingAccounts, setIsLoadingAccounts] = useState(false);
 
     useEffect(() => {
         const init = async () => {
@@ -32,21 +31,6 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
         };
         init();
     }, [manualClientId, manualClientSecret]);
-
-    // Auto-select account when accounts list updates
-    useEffect(() => {
-        if (accounts && accounts.length > 0) {
-            const savedAccount = localStorage.getItem('ctrader_account_id');
-            const exists = accounts.some(a => String(a.ctidTraderAccountId) === String(savedAccount));
-            if (!savedAccount || !exists) {
-                const firstId = String(accounts[0].ctidTraderAccountId);
-                setSelectedAccountId(firstId);
-                localStorage.setItem('ctrader_account_id', firstId);
-            } else {
-                setSelectedAccountId(savedAccount);
-            }
-        }
-    }, [accounts]);
 
     const getManualConfig = () => {
         if (manualClientId && manualClientSecret) {
@@ -101,21 +85,12 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
 
     const checkConnection = (systemStatus?: any) => {
         const token = localStorage.getItem('ctrader_access_token');
-        const isValidToken = token && token !== 'undefined' && token !== 'null' && token.trim() !== '';
-
-        if (isValidToken) {
+        if (token) {
             setIsConnected(true);
             fetchAccounts(token);
-        } else {
-            if (token === 'undefined' || token === 'null') {
-                localStorage.removeItem('ctrader_access_token');
-            }
-            if (systemStatus?.systemConnected) {
-                setIsConnected(true);
-                fetchAccounts(); // Fetch using system token on backend
-            } else {
-                setIsConnected(false);
-            }
+        } else if (systemStatus?.systemConnected) {
+            setIsConnected(true);
+            fetchAccounts(); // Fetch using system token on backend
         }
 
         const savedAccount = localStorage.getItem('ctrader_account_id');
@@ -124,8 +99,6 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
     };
 
     const fetchAccounts = async (token?: string) => {
-        setIsLoadingAccounts(true);
-        setError('');
         try {
             const config = getManualConfig();
             const url = new URL('/api/ctrader/accounts', window.location.origin);
@@ -135,37 +108,15 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
             }
 
             const headers: any = {};
-            const activeToken = token || localStorage.getItem('ctrader_access_token');
-            const isValidActiveToken = activeToken && activeToken !== 'undefined' && activeToken !== 'null' && activeToken.trim() !== '';
-            if (isValidActiveToken) {
-                headers['Authorization'] = `Bearer ${activeToken}`;
-            }
+            if (token) headers['Authorization'] = `Bearer ${token}`;
             
             const res = await fetch(url.toString(), { headers });
-            const data = await res.json().catch(() => ({}));
-
-            if (!res.ok || data.error) {
-                const errMsg = data.error || `HTTP ${res.status}: Failed to fetch cTrader accounts`;
-                if (data.isInvalidToken || errMsg.toLowerCase().includes('invalid') || errMsg.toLowerCase().includes('expired')) {
-                    console.warn('[cTrader Connection Manager] Invalid access token, clearing stored token.');
-                    setIsConnected(false);
-                    localStorage.removeItem('ctrader_access_token');
-                    localStorage.removeItem('ctrader_refresh_token');
-                    setError('cTrader Access Token has expired or is invalid. Please authorize again below.');
-                } else {
-                    setError("FROM_SERVER: " + errMsg);
-                }
-                setAccounts([]);
-            } else {
+            if (res.ok) {
+                const data = await res.json();
                 setAccounts(data.accounts || []);
-                setError('');
             }
-        } catch (e: any) {
+        } catch (e) {
             console.error('Failed to fetch accounts', e);
-            setError(e.stack || e.message || 'Network error fetching cTrader accounts');
-            setAccounts([]);
-        } finally {
-            setIsLoadingAccounts(false);
         }
     };
 
@@ -239,15 +190,15 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                 })
             });
 
-            const data = await res.json().catch(() => ({}));
+            const data = await res.json();
             
-            if (!res.ok || data.error || !data.accessToken) {
-                throw new Error(data.error || 'Failed to exchange token. Please check your authorization code.');
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to exchange token');
             }
 
             localStorage.setItem('ctrader_access_token', data.accessToken);
             if (data.refreshToken) localStorage.setItem('ctrader_refresh_token', data.refreshToken);
-            if (data.expiresIn) localStorage.setItem('ctrader_token_expiry', (Date.now() + (data.expiresIn * 1000)).toString());
+            localStorage.setItem('ctrader_token_expiry', (Date.now() + (data.expiresIn * 1000)).toString());
             
             setIsConnected(true);
             setAuthCode('');
@@ -388,35 +339,9 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                     <div className="p-3 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg text-sm text-slate-600 dark:text-slate-300">
                         Your cTrader account is securely connected. Select the account you want to trade with.
                     </div>
-
-                    {error && (
-                        <div className="text-xs text-red-500 bg-red-50 dark:bg-red-500/10 p-2.5 rounded-md border border-red-200 dark:border-red-900/30 flex items-center justify-between">
-                            <span>{error}</span>
-                            <button 
-                                onClick={() => fetchAccounts()} 
-                                className="text-[10px] font-bold text-red-600 dark:text-red-400 underline ml-2 whitespace-nowrap"
-                            >
-                                Retry
-                            </button>
-                        </div>
-                    )}
-
-                    {isLoadingAccounts ? (
-                        <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 font-medium py-2">
-                            <div className="w-3.5 h-3.5 border-2 border-amber-600 dark:border-amber-400 border-t-transparent rounded-full animate-spin"></div>
-                            Fetching cTrader accounts...
-                        </div>
-                    ) : accounts.length > 0 ? (
+                    {accounts.length > 0 ? (
                         <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Trading Account</label>
-                                <button 
-                                    onClick={() => fetchAccounts()} 
-                                    className="text-[10px] text-indigo-500 hover:text-indigo-600 dark:text-indigo-400 font-medium underline"
-                                >
-                                    Refresh List
-                                </button>
-                            </div>
+                            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">Trading Account</label>
                             <select
                                 value={selectedAccountId}
                                 onChange={(e) => {
@@ -434,25 +359,8 @@ export const CTraderConnectionManager: React.FC<CTraderConnectionManagerProps> =
                             </select>
                         </div>
                     ) : (
-                        <div className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-900/30 rounded-lg space-y-2">
-                            <p className="text-xs text-amber-700 dark:text-amber-400 font-medium">No cTrader accounts returned for this authorization.</p>
-                            <div className="flex items-center gap-2">
-                                <button 
-                                    onClick={() => fetchAccounts()} 
-                                    className="text-[11px] font-bold px-3 py-1 bg-amber-600 text-white rounded hover:bg-amber-700 transition-colors"
-                                >
-                                    Retry Loading
-                                </button>
-                                <button 
-                                    onClick={handleDisconnect} 
-                                    className="text-[11px] font-medium text-amber-700 dark:text-amber-400 underline hover:text-amber-800"
-                                >
-                                    Re-authorize cTrader
-                                </button>
-                            </div>
-                        </div>
+                        <div className="text-xs text-amber-600">Loading accounts...</div>
                     )}
-
                     <button
                         onClick={handleDisconnect}
                         className="w-full py-2 bg-red-100 hover:bg-red-200 dark:bg-red-900/30 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 rounded-lg text-sm font-bold transition-colors"

@@ -21,11 +21,13 @@ async function testConnection() {
     console.log('Firestore connection test successful');
   } catch (error: any) {
     if (error?.code === 'permission-denied' || (error instanceof Error && error.message.includes('Missing or insufficient permissions'))) {
+      // Getting a permission denied error means we successfully connected to Firestore
       console.log('Firestore connection test successful (verified via rules rejection)');
-    } else if (error instanceof Error && (error.message.includes('the client is offline') || error.message.includes('Could not reach Cloud Firestore backend'))) {
-      console.warn('Firestore connection test notice: Client is in offline mode or backend is unreachable.');
+    } else if (error instanceof Error && error.message.includes('the client is offline')) {
+      console.error('Firestore connection test failed:', error);
+      console.error("Please check your Firebase configuration. The client is offline, which typically indicates an incorrect Firestore configuration.");
     } else {
-      console.warn('Firestore connection test warning:', error?.message || error);
+      console.error('Firestore connection test failed:', error);
     }
   }
 }
@@ -61,13 +63,6 @@ export interface FirestoreErrorInfo {
 }
 
 export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
-  const message = error instanceof Error ? error.message : String(error);
-  
-  if (message.includes('offline') || message.includes('Could not reach Cloud Firestore backend')) {
-    console.warn(`[Firestore Offline Cache Mode] ${operationType} on ${path}:`, message);
-    return;
-  }
-
   const errInfo: FirestoreErrorInfo = {
     error: error instanceof Error ? error.message : String(error),
     authInfo: {
