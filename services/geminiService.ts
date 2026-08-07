@@ -1079,6 +1079,12 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
 `;
         }
 
+        promptText += `\n\n**CRITICAL BEHAVIORAL MANDATES:**
+- **Return only valid JSON.** The response must be a single JSON object matching the exact schema specified.
+- **Do not repeat phrases.** You are strictly forbidden from repeating phrases, words, sentences, or structured sequences of text. Avoid repetitive words such as "safely", "monitored", "securely", "reliably", "verified", "consistently", "successfully" or "smoothly" in rapid succession. Keep every sentence unique, brief, and objective.
+- **Do not output HTML.** Do not include any HTML tags, styles, or formatted snippets in any text fields.
+- **Do not include unrelated news** or irrelevant gossip in any analyzed output.`;
+
         const promptParts: any[] = [{ text: promptText }];
 
         if (request.isMultiDimensional && request.images.higher) {
@@ -1122,7 +1128,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
             async (modelId) => {
                 const config: any = {
                     temperature: 0.0,
-                    maxOutputTokens: 8192,
+                    maxOutputTokens: 2048,
                     responseMimeType: "application/json",
                     responseSchema: SignalDataSchema
                 };
@@ -1215,6 +1221,13 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 const data = extractJson(responseText);
                 if (!data || Object.keys(data).length === 0) {
                     throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
+                }
+
+                // AI SLOP & REPETITION DETECTOR
+                const scanResult = scanObjectForIssues(data);
+                if (scanResult.hasIssues) {
+                    console.warn(`[VALIDATION FAILED] Discarding response from ${modelId}. Reason: ${scanResult.reason}`);
+                    throw new Error(`Invalid or degenerate model output (failed to parse): ${scanResult.reason}`);
                 }
                 
                 // --- ROBUST JSON VALIDATION LAYER ---
@@ -1502,6 +1515,10 @@ export async function generateTradingSignal(
         riskRewardRatio: request.riskRewardRatio,
         hasUserSettings: !!request.userSettings,
     });
+
+    if (request.query) {
+        request.query = stripHtml(request.query);
+    }
 
     // 0. Auto-detect asset if missing
     let asset = request.asset;
@@ -1934,6 +1951,7 @@ export async function generateRegularRetailSignal(
     derivData: any,
     userSettings?: UserSettings
 ): Promise<SignalData> {
+    const cleanQuery = stripHtml(query);
     const livePrice = derivData?.price || 0;
     const assetName = derivData?.symbol || 'Asset';
     
@@ -1977,7 +1995,13 @@ Your task:
 4. Provide a simple reasoning of 2-3 bullet points describing what a professional chart analyst would see here.
 5. Provide Stop Loss and Take Profit levels that are standard technical targets based on the 300-candle structure (e.g. key swing highs/lows, support/resistance levels, or ATR offsets).
 
-Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra text or markdown formatting.`;
+Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra text or markdown formatting.
+
+**CRITICAL BEHAVIORAL MANDATES:**
+- **Return only valid JSON.** The response must be a single JSON object matching the exact schema specified.
+- **Do not repeat phrases.** You are strictly forbidden from repeating phrases, words, sentences, or structured sequences of text. Avoid repetitive words such as "safely", "monitored", "securely", "reliably", "verified", "consistently", "successfully" or "smoothly" in rapid succession. Keep every sentence unique, brief, and objective.
+- **Do not output HTML.** Do not include any HTML tags, styles, or formatted snippets in any text fields.
+- **Do not include unrelated news** or irrelevant gossip in any analyzed output.`;
 
     const models = SNIPER_MODELS;
     
@@ -1987,6 +2011,7 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
             async (modelId) => {
                 const config: any = {
                     temperature: 0.1,
+                    maxOutputTokens: 2048,
                     responseMimeType: "application/json",
                     responseSchema: SniperDataSchema
                 };
@@ -2024,6 +2049,13 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                 const signal = extractJson(text);
                 if (!signal || Object.keys(signal).length === 0) {
                     throw new Error("Failed to parse retail signal JSON.");
+                }
+
+                // AI SLOP & REPETITION DETECTOR
+                const scanResult = scanObjectForIssues(signal);
+                if (scanResult.hasIssues) {
+                    console.warn(`[VALIDATION FAILED] Discarding response from ${modelId}. Reason: ${scanResult.reason}`);
+                    throw new Error(`Invalid or degenerate model output (failed to parse): ${scanResult.reason}`);
                 }
                 return signal as SignalData;
             }, getSniperPool
@@ -2099,7 +2131,13 @@ YOUR QUANTCONNECT ROUTING & DYNAMIC FORMULATION MISSION:
    - If proceeding, output the exact QuantConnect strategy code concept or dynamic rules block.
 
 IMPORTANT FORMATTING INSTRUCTION:
-Return your response in a structured JSON object matching the AntigravityVerdictSchema. Ensure the deepAnalysisMarkdown contains a detailed markdown report of your institutional verification process, and executiveSummary has a bold 2-3 sentence high-level overview.`;
+Return your response in a structured JSON object matching the AntigravityVerdictSchema. Ensure the deepAnalysisMarkdown contains a detailed markdown report of your institutional verification process, and executiveSummary has a bold 2-3 sentence high-level overview.
+
+**CRITICAL BEHAVIORAL MANDATES:**
+- **Return only valid JSON.** The response must be a single JSON object matching the exact schema specified.
+- **Do not repeat phrases.** You are strictly forbidden from repeating phrases, words, sentences, or structured sequences of text. Avoid repetitive words such as "safely", "monitored", "securely", "reliably", "verified", "consistently", "successfully" or "smoothly" in rapid succession. Keep every sentence unique, brief, and objective.
+- **Do not output HTML.** Do not include any HTML tags, styles, or formatted snippets in any text fields.
+- **Do not include unrelated news** or irrelevant gossip in any analyzed output.`;
 
     return await executeLaneCall<AntigravityVerdict>(async (apiKey) => {
         const controller = new AbortController();
@@ -2107,6 +2145,7 @@ Return your response in a structured JSON object matching the AntigravityVerdict
 
         const config = {
             temperature: 0.7,
+            maxOutputTokens: 2048,
             responseMimeType: "application/json",
             responseSchema: AntigravityVerdictSchema
         };
@@ -2133,6 +2172,14 @@ Return your response in a structured JSON object matching the AntigravityVerdict
             const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
             const parsed = extractJson(text);
             if (!parsed) throw new Error("Failed to parse Antigravity verdict JSON.");
+
+            // AI SLOP & REPETITION DETECTOR
+            const scanResult = scanObjectForIssues(parsed);
+            if (scanResult.hasIssues) {
+                console.warn(`[VALIDATION FAILED] Discarding response from proxy. Reason: ${scanResult.reason}`);
+                throw new Error(`Invalid or degenerate model output (failed to parse): ${scanResult.reason}`);
+            }
+
             return parsed as AntigravityVerdict;
         } catch (e) {
             const ai = new GoogleGenAI({ apiKey });
@@ -2155,6 +2202,14 @@ Return your response in a structured JSON object matching the AntigravityVerdict
                     deepAnalysisMarkdown: 'Verification failed to compile. Recommending NO TRADE due to neural parser exception.'
                 };
             }
+
+            // AI SLOP & REPETITION DETECTOR
+            const scanResult = scanObjectForIssues(parsed);
+            if (scanResult.hasIssues) {
+                console.warn(`[VALIDATION FAILED] Discarding response from fallback. Reason: ${scanResult.reason}`);
+                throw new Error(`Invalid or degenerate model output (failed to parse): ${scanResult.reason}`);
+            }
+
             return parsed as AntigravityVerdict;
         }
     }, getAntigravityPool);
@@ -2174,7 +2229,8 @@ export async function generateSniperLiveSignal(
     const livePrice = derivData?.price || 0;
     const assetName = derivData?.symbol || 'Asset';
     const currentTime = new Date().toLocaleString('en-US', { timeZone: 'America/Los_Angeles' });
-    const cleanQueryForLLM = cleanBrokerQuery(query);
+    const strippedQuery = stripHtml(query);
+    const cleanQueryForLLM = cleanBrokerQuery(strippedQuery);
 
     const isDeepThinking = !!userSettings?.deepThinking;
     const models = isDeepThinking ? [
@@ -2621,7 +2677,13 @@ JSON Structure:
       "reasoning": "SMC/ICT reasoning for adding positions here (e.g. 'Mitigation of minor M5 Breaker block')"
     }
   ]
-}`;
+}
+
+**CRITICAL BEHAVIORAL MANDATES:**
+- **Return only valid JSON.** The response must be a single JSON object matching the exact schema specified.
+- **Do not repeat phrases.** You are strictly forbidden from repeating phrases, words, sentences, or structured sequences of text. Avoid repetitive words such as "safely", "monitored", "securely", "reliably", "verified", "consistently", "successfully" or "smoothly" in rapid succession. Keep every sentence unique, brief, and objective.
+- **Do not output HTML.** Do not include any HTML tags, styles, or formatted snippets in any text fields.
+- **Do not include unrelated news** or irrelevant gossip in any analyzed output.`;
 
     return await executeLaneCall<SignalData>(async (apiKey) => {
         return await runWithModelFallback<SignalData>(
@@ -2629,7 +2691,7 @@ JSON Structure:
             async (modelId) => {
                 const config: any = {
                     temperature: 0.1,
-                    maxOutputTokens: 8192,
+                    maxOutputTokens: 2048,
                     responseMimeType: "application/json",
                     responseSchema: SniperDataSchema
                 };
@@ -2690,6 +2752,13 @@ JSON Structure:
                 const signal = extractJson(text);
                 if (!signal || Object.keys(signal).length === 0) {
                     throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
+                }
+
+                // AI SLOP & REPETITION DETECTOR
+                const scanResult = scanObjectForIssues(signal);
+                if (scanResult.hasIssues) {
+                    console.warn(`[VALIDATION FAILED] Discarding response from ${modelId}. Reason: ${scanResult.reason}`);
+                    throw new Error(`Invalid or degenerate model output (failed to parse): ${scanResult.reason}`);
                 }
                 
                 // --- ROBUST JSON VALIDATION LAYER ---
@@ -3149,6 +3218,120 @@ Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
             }
         );
     }, getSniperPool);
+}
+
+/**
+ * Strips HTML tags from text.
+ */
+export function stripHtml(text: string): string {
+    if (!text) return "";
+    return text.replace(/<\/?[^>]+(>|$)/g, "");
+}
+
+/**
+ * Checks if a string contains HTML tags.
+ */
+export function hasHtmlTags(str: string): boolean {
+    if (!str) return false;
+    return /<[a-z/][^>]*>/i.test(str);
+}
+
+/**
+ * Checks for repeated n-grams in free-form text.
+ * Flags severe repetition of words.
+ */
+export function detectRepetition(text: string): boolean {
+    if (!text) return false;
+    
+    // Normalize string: lowercase, remove punctuation except spaces, strip HTML
+    const cleanText = text
+        .toLowerCase()
+        .replace(/<\/?[^>]+(>|$)/g, "")
+        .replace(/[.,\/#!$%\^&\*;:{}=\-_`~()?"']/g, "")
+        .trim();
+        
+    const words = cleanText.split(/\s+/).filter(w => w.length > 1);
+    if (words.length < 10) return false;
+
+    // Check for exact matching 8-word sequences repeating >= 2 times
+    const ngrams8 = new Set<string>();
+    for (let i = 0; i <= words.length - 8; i++) {
+        const ngram = words.slice(i, i + 8).join(" ");
+        if (ngrams8.has(ngram)) {
+            console.warn(`[Repetition Detected] 8-gram repeated: "${ngram}"`);
+            return true;
+        }
+        ngrams8.add(ngram);
+    }
+
+    // Check for exact matching 6-word sequences repeating >= 3 times
+    const ngrams6 = new Map<string, number>();
+    for (let i = 0; i <= words.length - 6; i++) {
+        const ngram = words.slice(i, i + 6).join(" ");
+        const count = (ngrams6.get(ngram) || 0) + 1;
+        if (count >= 3) {
+            console.warn(`[Repetition Detected] 6-gram repeated ${count} times: "${ngram}"`);
+            return true;
+        }
+        ngrams6.set(ngram, count);
+    }
+
+    // Check for exact matching 5-word sequences repeating >= 4 times
+    const ngrams5 = new Map<string, number>();
+    for (let i = 0; i <= words.length - 5; i++) {
+        const ngram = words.slice(i, i + 5).join(" ");
+        const count = (ngrams5.get(ngram) || 0) + 1;
+        if (count >= 4) {
+            console.warn(`[Repetition Detected] 5-gram repeated ${count} times: "${ngram}"`);
+            return true;
+        }
+        ngrams5.set(ngram, count);
+    }
+
+    return false;
+}
+
+/**
+ * Recursively scans any object for HTML tags or repeated text sequences.
+ */
+export function scanObjectForIssues(obj: any): { hasIssues: boolean; reason?: string } {
+    if (!obj) return { hasIssues: false };
+    
+    if (typeof obj === 'string') {
+        if (hasHtmlTags(obj)) {
+            return { hasIssues: true, reason: "Contains HTML tags" };
+        }
+        if (detectRepetition(obj)) {
+            return { hasIssues: true, reason: "Contains repetitive word sequences" };
+        }
+        
+        // Unrelated news checking
+        const lower = obj.toLowerCase();
+        const unrelatedKeywords = [
+            "celebrity gossip", "sports update", "unrelated news", 
+            "weather forecast today", "horoscope reading"
+        ];
+        for (const kw of unrelatedKeywords) {
+            if (lower.includes(kw)) {
+                return { hasIssues: true, reason: `Contains unrelated news keyword: "${kw}"` };
+            }
+        }
+    } else if (Array.isArray(obj)) {
+        for (const item of obj) {
+            const res = scanObjectForIssues(item);
+            if (res.hasIssues) return res;
+        }
+    } else if (typeof obj === 'object') {
+        for (const key of Object.keys(obj)) {
+            // Ignore some keys that might naturally have repeated structure but aren't free-form text
+            if (key === 'takeProfits' || key === 'entryPoints' || key === 'checklist' || key === 'candlestickPatterns') {
+                continue;
+            }
+            const res = scanObjectForIssues(obj[key]);
+            if (res.hasIssues) return res;
+        }
+    }
+    return { hasIssues: false };
 }
 
 function extractJson(str: string): any {

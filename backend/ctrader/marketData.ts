@@ -164,10 +164,13 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
         res.json(data);
     } catch (e: any) {
         console.error('Error fetching cTrader tick history:', e);
+        const isPortRestricted = e.message?.includes('5035') || e.code === 'ECONNRESET' || e.message?.includes('ECONNRESET');
         res.status(200).json({ 
             error: e.message || 'Failed to fetch tick history',
             status: 'failed',
-            info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+            info: isPortRestricted 
+                ? 'Outbound TCP port 5035 is restricted in this container runtime environment. The Quant Engine automatically falls back to TwelveData (HTTPS) & Deriv (WSS) feeds.'
+                : 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });
     }
 };
@@ -354,10 +357,13 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
 
     } catch (e: any) {
         console.error('Error fetching cTrader trendbars:', e);
+        const isPortRestricted = e.message?.includes('5035') || e.code === 'ECONNRESET' || e.message?.includes('ECONNRESET');
         res.status(200).json({ 
             error: e.message || 'Failed to fetch trendbars',
             status: 'failed',
-            info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+            info: isPortRestricted 
+                ? 'Outbound TCP port 5035 is restricted in this container environment. The system automatically routes through TwelveData & Deriv market feeds.'
+                : 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });
     }
 };

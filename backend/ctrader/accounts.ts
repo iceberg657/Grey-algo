@@ -38,10 +38,13 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
         connection.disconnect();
         console.error('Error fetching cTrader accounts:', e);
         // Returning 200 with error field so the frontend receives "information" instead of a raw 500 crash
+        const isPortRestricted = e.message?.includes('5035') || e.code === 'ECONNRESET' || e.message?.includes('ECONNRESET');
         res.status(200).json({ 
             error: e.message || 'Failed to fetch accounts',
             status: 'failed',
-            info: 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+            info: isPortRestricted
+                ? 'Outbound TCP port 5035 is restricted in this serverless container environment. cTrader calls are bypassed in favor of TwelveData (HTTPS) & Deriv (WSS) standard feeds.'
+                : 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });
     }
 }
