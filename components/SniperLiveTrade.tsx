@@ -876,18 +876,29 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           throw new Error(`No market data received from ${usedBroker} API.`);
       }
 
-      // Staleness Detection (account for candle granularity)
-      const nowSeconds = Math.floor(Date.now() / 1000);
-      const candleAge = nowSeconds - lastCandle.epoch;
-      const isMajorAsset = ['OTC_DJI', 'OTC_NDX', 'OTC_SPC', 'OTC_FTSE', 'frxXAUUSD', 'frxEURUSD', 'frxGBPUSD', 'cryBTCUSD', 'cryETHUSD'].includes(asset) || asset.includes('US30') || asset.includes('NAS100');
-      // Max age should be at least the duration of one candle + a buffer, otherwise it will falsely flag large timeframes
-      const maxAge = Math.max(isMajorAsset ? 3600 : 900, timeframes.entry + 600); 
-
-      if (candleAge > maxAge) {
-          const ageMinutes = Math.floor(candleAge / 60);
-          console.warn(`[SniperLiveTrade] STALE DATA DETECTED: Price is ${ageMinutes}m old.`);
-          entryData.isMarketClosed = true;
-      }
+      // Helper to parse timeframe string or number into seconds
+      const parseTimeframeSeconds = (tf: string | number): number => {
+          if (typeof tf === 'number') return tf;
+          if (!tf) return 60;
+          const str = String(tf).toUpperCase();
+          if (str.startsWith('M')) {
+              const mins = parseInt(str.replace('M', ''), 10);
+              return (isNaN(mins) ? 1 : mins) * 60;
+          }
+          if (str.startsWith('H')) {
+              const hours = parseInt(str.replace('H', ''), 10);
+              return (isNaN(hours) ? 1 : hours) * 3600;
+          }
+          if (str.startsWith('D')) {
+              const days = parseInt(str.replace('D', ''), 10);
+              return (isNaN(days) ? 1 : days) * 86400;
+          }
+          if (str.startsWith('W')) {
+              return 7 * 86400;
+          }
+          const parsed = parseInt(str, 10);
+          return isNaN(parsed) ? 60 : parsed;
+      };
 
       if (lastCandle) {
           entryData.price = lastCandle.close;
@@ -896,7 +907,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       }
 
       // If cTrader Level 2 ticks or depth are available, use the latest real-time tick price for immediate market execution
-      if (usedBroker === 'cTrader') {
+      let hasLiveTickData = false;
+      if (usedBroker.includes('cTrader')) {
           if (ctraderTicks && ctraderTicks.length > 0) {
               const latestTick = ctraderTicks[ctraderTicks.length - 1];
               const liveTickPrice = latestTick.ask || latestTick.bid || latestTick.price;
@@ -907,6 +919,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                   if (lastCandle) {
                       lastCandle.close = liveTickPrice;
                   }
+                  hasLiveTickData = true;
               }
           } else if (ctraderDepthRef.current && (ctraderDepthRef.current.bestBid || ctraderDepthRef.current.bestAsk)) {
               const liveTickPrice = ctraderDepthRef.current.bestAsk || ctraderDepthRef.current.bestBid;
@@ -917,8 +930,29 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                   if (lastCandle) {
                       lastCandle.close = liveTickPrice;
                   }
+                  hasLiveTickData = true;
               }
           }
+      }
+
+      // Staleness Detection (account for candle duration and live tick stream)
+      const nowSeconds = Math.floor(Date.now() / 1000);
+      const tfSeconds = parseTimeframeSeconds(isAdvancedStreaming ? timeframes.ctEntry : timeframes.entry);
+      // A candle starting at lastCandle.epoch is active until (lastCandle.epoch + tfSeconds)
+      const candleEndEpoch = lastCandle.epoch + tfSeconds;
+      const ageSinceCandleEnd = Math.max(0, nowSeconds - candleEndEpoch);
+      const effectiveAge = hasLiveTickData ? 0 : ageSinceCandleEnd;
+
+      const isMajorAsset = ['OTC_DJI', 'OTC_NDX', 'OTC_SPC', 'OTC_FTSE', 'frxXAUUSD', 'frxEURUSD', 'frxGBPUSD', 'cryBTCUSD', 'cryETHUSD'].includes(asset) || asset.includes('US30') || asset.includes('NAS100');
+      // Max allowed age buffer beyond candle completion (3600s for majors, 1800s for others)
+      const maxAgeBuffer = isMajorAsset ? 3600 : 1800; 
+
+      if (effectiveAge > maxAgeBuffer) {
+          const ageMinutes = Math.floor((nowSeconds - lastCandle.epoch) / 60);
+          console.warn(`[SniperLiveTrade] STALE DATA DETECTED: Last price bar started ${ageMinutes}m ago.`);
+          entryData.isMarketClosed = true;
+      } else {
+          entryData.isMarketClosed = false;
       }
       
       const combinedData = {

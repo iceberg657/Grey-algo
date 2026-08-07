@@ -246,7 +246,7 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
                     };
                     res.write(`data: ${JSON.stringify({ type: 'spot', data: spotData })}\n\n`);
                 }
-            } else if (payloadType === 2132) { // ProtoOADepthEvent
+            } else if (payloadType === 2155) { // ProtoOADepthEvent (2155)
                 const details = symbolIdToDetails.get(payload.symbolId);
                 if (details) {
                     const divisor = Math.pow(10, details.digits);

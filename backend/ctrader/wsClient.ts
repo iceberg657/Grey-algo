@@ -207,9 +207,9 @@ export class CTraderWSClient {
     }
 
     public async subscribeDepth(cTraderAccountId: number, symbolIds: number[]): Promise<any> {
-        console.log(`[STAGE 8] Subscribing to depth (SUBSCRIBE_DEPTH_QUOTES_REQ / payloadType=2128) for symbols [${symbolIds.join(', ')}] on Account ${cTraderAccountId}...`);
+        console.log(`[STAGE 8] Subscribing to depth (SUBSCRIBE_DEPTH_REQ / payloadType=2156) for symbols [${symbolIds.join(', ')}] on Account ${cTraderAccountId}...`);
         try {
-            const res = await this.sendRequest(2128, {
+            const res = await this.sendRequest(2156, {
                 ctidTraderAccountId: cTraderAccountId,
                 symbolId: symbolIds
             });
