@@ -35,6 +35,7 @@ import { RiskCalculator } from './RiskCalculator';
 import { CheatSheet } from './CheatSheet';
 import { SettingsModal } from './SettingsModal';
 import { PacificTimeClock } from './PacificTimeClock';
+import { ServiceStatusIndicator } from './ServiceStatusIndicator';
 import { resetNeuralLanes } from '../services/retryUtils';
 import { getLearnedStrategies } from '../services/learningService';
 import { fetchMarketData } from '../services/twelveDataService';
@@ -588,16 +589,7 @@ export const HomePage: React.FC<HomePageProps> = ({
             >
                 <header className="flex flex-col items-center mb-16 relative">
                     <div className="relative sm:absolute sm:top-0 sm:right-0 flex items-center justify-end gap-3 w-full sm:w-auto mb-6 sm:mb-0">
-                        {isTwelveDataConfigured !== null && (
-                            <button 
-                                onClick={handleOpenSettings}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-full border text-[9px] font-black uppercase tracking-widest transition-all hover:scale-105 active:scale-95 shadow-sm backdrop-blur-md ${isTwelveDataConfigured ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400 animate-pulse'}`} 
-                                title={isTwelveDataConfigured ? "Twelve Data Connected" : "Connection Refused"}
-                            >
-                                <span className={`w-1 h-1 rounded-full ${isTwelveDataConfigured ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
-                                <span className="hidden sm:inline">{isTwelveDataConfigured ? 'Network: Live' : 'Network: Offline'}</span>
-                            </button>
-                        )}
+                        <ServiceStatusIndicator onOpenSettings={handleOpenSettings} />
                         <ThemeToggleButton />
                     </div>
 
