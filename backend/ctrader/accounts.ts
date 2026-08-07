@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { CTraderConnection, CTraderAuth } from 'ctrader-ts';
+import { CTraderWSClient } from './wsClient.js';
 
 export default async function ctraderAccountsHandler(req: Request, res: Response) {
     let token = req.headers.authorization?.split(' ')[1];
@@ -20,31 +20,24 @@ export default async function ctraderAccountsHandler(req: Request, res: Response
         return res.status(400).json({ error: 'cTrader Client ID and Secret not provided. Please configure them in Settings.' });
     }
 
-    // Try both demo and live environments. Some tokens work for both, others for one.
-    // However, usually we just connect to live to query ctidTraderAccount because the API token is tied to the ID.
-    const connection = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5035 });
+    const wsClient = new CTraderWSClient({ host: 'live.ctraderapi.com', port: 5036 });
 
     try {
-        await connection.connect();
-        const auth = new CTraderAuth(connection);
+        await wsClient.connect();
+        await wsClient.authenticateApp(clientId, clientSecret);
+        const accounts = await wsClient.getAccountsByToken(token);
         
-        await auth.authenticateApp(clientId, clientSecret);
-        const accounts = await auth.getAccountsByToken(token);
-        
-        await connection.disconnect();
+        await wsClient.close();
         
         res.json({ accounts });
     } catch (e: any) {
-        connection.disconnect();
-        console.error('Error fetching cTrader accounts:', e);
-        // Returning 200 with error field so the frontend receives "information" instead of a raw 500 crash
-        const isPortRestricted = e.message?.includes('5035') || e.code === 'ECONNRESET' || e.message?.includes('ECONNRESET');
+        await wsClient.close();
+        console.error('Error fetching cTrader accounts via WebSocket:', e.stack || e);
         res.status(200).json({ 
             error: e.message || 'Failed to fetch accounts',
             status: 'failed',
-            info: isPortRestricted
-                ? 'Outbound TCP port 5035 is restricted in this serverless container environment. cTrader calls are bypassed in favor of TwelveData (HTTPS) & Deriv (WSS) standard feeds.'
-                : 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+            info: 'cTrader WebSocket connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });
     }
 }
+

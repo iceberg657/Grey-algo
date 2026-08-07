@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { connect, CTraderConnection, CTraderAuth } from 'ctrader-ts';
+import { CTraderWSClient } from './wsClient.js';
 
 const standardToCommonAliases: Record<string, string[]> = {
     'US100': ['US100', 'NAS100', 'USTEC', 'US TECH 100', 'NQ100', 'NDX', 'TECH100', 'TECH 100', 'US TECH', 'NASDAQ'],
@@ -43,41 +43,39 @@ export const resolveSymbolFuzzy = (symbol: string, symbolsArray: any[]) => {
 const envCache = new Map<number, 'live' | 'demo'>();
 
 async function detectAccountEnvironment(clientId: string, clientSecret: string, token: string, accountId: number): Promise<'live' | 'demo' | null> {
-    const connection = new CTraderConnection({ host: 'live.ctraderapi.com', port: 5035 });
+    const wsClient = new CTraderWSClient({ host: 'live.ctraderapi.com', port: 5036 });
     try {
-        await connection.connect();
-        const auth = new CTraderAuth(connection);
-        await auth.authenticateApp(clientId, clientSecret);
-        const accounts = await auth.getAccountsByToken(token);
-        await connection.disconnect();
+        await wsClient.connect();
+        await wsClient.authenticateApp(clientId, clientSecret);
+        const accounts = await wsClient.getAccountsByToken(token);
+        await wsClient.close();
         
         const matchingAccount = accounts.find((acc: any) => acc.ctidTraderAccountId === accountId);
         if (matchingAccount) {
-            console.log(`[cTrader] Auto-detected environment for account ${accountId}: ${matchingAccount.isLive ? 'live' : 'demo'}`);
+            console.log(`[cTrader WS] Auto-detected environment for account ${accountId}: ${matchingAccount.isLive ? 'live' : 'demo'}`);
             return matchingAccount.isLive ? 'live' : 'demo';
         }
     } catch (e: any) {
-        console.warn(`[cTrader] Error detecting environment from live server for account ${accountId}, trying demo server...`, e.message || e);
-        try { await connection.disconnect(); } catch (_) {}
+        console.warn(`[cTrader WS] Error detecting environment from live server for account ${accountId}, trying demo server...`, e.message || e);
+        try { await wsClient.close(); } catch (_) {}
     }
 
     // Try demo connection to be thorough
-    const demoConnection = new CTraderConnection({ host: 'demo.ctraderapi.com', port: 5035 });
+    const demoWsClient = new CTraderWSClient({ host: 'demo.ctraderapi.com', port: 5036 });
     try {
-        await demoConnection.connect();
-        const auth = new CTraderAuth(demoConnection);
-        await auth.authenticateApp(clientId, clientSecret);
-        const accounts = await auth.getAccountsByToken(token);
-        await demoConnection.disconnect();
+        await demoWsClient.connect();
+        await demoWsClient.authenticateApp(clientId, clientSecret);
+        const accounts = await demoWsClient.getAccountsByToken(token);
+        await demoWsClient.close();
         
         const matchingAccount = accounts.find((acc: any) => acc.ctidTraderAccountId === accountId);
         if (matchingAccount) {
-            console.log(`[cTrader] Auto-detected environment (Demo server) for account ${accountId}: ${matchingAccount.isLive ? 'live' : 'demo'}`);
+            console.log(`[cTrader WS] Auto-detected environment (Demo server) for account ${accountId}: ${matchingAccount.isLive ? 'live' : 'demo'}`);
             return matchingAccount.isLive ? 'live' : 'demo';
         }
     } catch (e: any) {
-        console.warn(`[cTrader] Error detecting environment from demo server for account ${accountId}:`, e.message || e);
-        try { await demoConnection.disconnect(); } catch (_) {}
+        console.warn(`[cTrader WS] Error detecting environment from demo server for account ${accountId}:`, e.message || e);
+        try { await demoWsClient.close(); } catch (_) {}
     }
 
     return null;
@@ -95,7 +93,7 @@ async function getOrDetectEnvironment(clientId: string, clientSecret: string, to
     }
     
     const finalEnv = queryEnv === 'live' ? 'live' : 'demo';
-    console.log(`[cTrader] Could not auto-detect environment for account ${accountId}, using manual configuration/query parameter: ${finalEnv}`);
+    console.log(`[cTrader WS] Could not auto-detect environment for account ${accountId}, using manual configuration/query parameter: ${finalEnv}`);
     envCache.set(accountId, finalEnv);
     return finalEnv;
 }
@@ -103,7 +101,6 @@ async function getOrDetectEnvironment(clientId: string, clientSecret: string, to
 export const ctraderTickHistoryHandler = async (req: Request, res: Response) => {
     let token = req.headers.authorization?.split(' ')[1];
     
-    // If no user token, check for system token
     if (!token) {
         token = process.env.CTRADER_ACCESS_TOKEN;
     }
@@ -125,52 +122,36 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
         return res.status(400).json({ error: 'Missing required parameters: accountId, symbol, type (BID/ASK)' });
     }
 
+    const intAccountId = parseInt(accountId, 10);
+    const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+    const host = resolvedEnv === 'live' ? 'live.ctraderapi.com' : 'demo.ctraderapi.com';
+
+    const wsClient = new CTraderWSClient({ host, port: 5036 });
+
     try {
-        const intAccountId = parseInt(accountId, 10);
-        const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+        await wsClient.connect();
+        await wsClient.authenticateApp(clientId, clientSecret);
+        await wsClient.authenticateAccount(intAccountId, token);
 
-        const ct = await connect({
-            clientId,
-            clientSecret,
-            accessToken: token,
-            accountId: intAccountId,
-            environment: resolvedEnv
-        });
+        const symbolsArray = await wsClient.getSymbols(intAccountId);
+        const sym = resolveSymbolFuzzy(symbol, symbolsArray);
+        const symbolId = sym ? sym.symbolId : 1;
 
-        const params: any = { type: type === 'ASK' ? 2 : 1 };
-        if (fromTimestamp) params.fromTimestamp = parseInt(fromTimestamp, 10);
-        if (toTimestamp) params.toTimestamp = parseInt(toTimestamp, 10);
+        const tickType = type === 'ASK' ? 2 : 1;
+        const fromTs = fromTimestamp ? parseInt(fromTimestamp, 10) : undefined;
+        const toTs = toTimestamp ? parseInt(toTimestamp, 10) : undefined;
 
-        // Fetch symbols list and find matching symbol (with fuzzy matching fallback)
-        let resolvedSymbol = symbol;
-        try {
-            const symbolsData = await ct.getSymbols();
-            const symbolsArray = Array.isArray(symbolsData) 
-                ? symbolsData 
-                : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
-            
-            const sym = resolveSymbolFuzzy(symbol, symbolsArray);
-            if (sym) {
-                resolvedSymbol = sym.symbolName;
-                console.log(`[cTrader] Resolved tick history symbol "${symbol}" to "${resolvedSymbol}"`);
-            }
-        } catch (symError) {
-            console.warn('[cTrader] Symbol lookup/resolution failed, using raw symbol:', symError);
-        }
+        const data = await wsClient.getTickData(intAccountId, symbolId, tickType, fromTs, toTs);
 
-        const data = await ct.getTickData(resolvedSymbol, params);
-
-        await ct.disconnect();
+        await wsClient.close();
         res.json(data);
     } catch (e: any) {
-        console.error('Error fetching cTrader tick history:', e);
-        const isPortRestricted = e.message?.includes('5035') || e.code === 'ECONNRESET' || e.message?.includes('ECONNRESET');
+        await wsClient.close();
+        console.error('Error fetching cTrader tick history via WebSocket:', e.stack || e);
         res.status(200).json({ 
             error: e.message || 'Failed to fetch tick history',
             status: 'failed',
-            info: isPortRestricted 
-                ? 'Outbound TCP port 5035 is restricted in this container runtime environment. The Quant Engine automatically falls back to TwelveData (HTTPS) & Deriv (WSS) feeds.'
-                : 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+            info: 'cTrader WebSocket connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });
     }
 };
@@ -178,7 +159,6 @@ export const ctraderTickHistoryHandler = async (req: Request, res: Response) => 
 export const ctraderStreamHandler = async (req: Request, res: Response) => {
     let token: string | undefined = req.query.token as string;
     
-    // If no user token, check for system token
     if (!token) {
         token = process.env.CTRADER_ACCESS_TOKEN;
     }
@@ -204,79 +184,118 @@ export const ctraderStreamHandler = async (req: Request, res: Response) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
 
-    let ct: any = null;
+    const intAccountId = parseInt(accountIdStr, 10);
+    const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+    const host = resolvedEnv === 'live' ? 'live.ctraderapi.com' : 'demo.ctraderapi.com';
+
+    const wsClient = new CTraderWSClient({ host, port: 5036 });
 
     req.on('close', async () => {
-        if (ct) {
-            try {
-                await ct.disconnect();
-            } catch(e) {}
-        }
+        try { await wsClient.close(); } catch(e) {}
     });
 
     try {
-        const intAccountId = parseInt(accountIdStr, 10);
-        const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+        await wsClient.connect();
+        await wsClient.authenticateApp(clientId, clientSecret);
+        await wsClient.authenticateAccount(intAccountId, token);
 
-        ct = await connect({
-            clientId,
-            clientSecret,
-            accessToken: token,
-            accountId: intAccountId,
-            environment: resolvedEnv
-        });
-
-        const symbolsData = await ct.getSymbols();
-        const symbolsArray = Array.isArray(symbolsData) 
-            ? symbolsData 
-            : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
-
-        const validSymbols: string[] = [];
-        const originalNameMap: Record<string, string> = {};
+        const symbolsArray = await wsClient.getSymbols(intAccountId);
+        const validSymbolIds: number[] = [];
+        const symbolIdToDetails = new Map<number, { name: string; original: string; digits: number }>();
 
         for (const symbol of symbols) {
             const sym = resolveSymbolFuzzy(symbol, symbolsArray);
             if (sym) {
-                validSymbols.push(sym.symbolName);
-                originalNameMap[sym.symbolName] = symbol;
+                validSymbolIds.push(sym.symbolId);
+                symbolIdToDetails.set(sym.symbolId, {
+                    name: sym.symbolName,
+                    original: symbol,
+                    digits: sym.digits || 5
+                });
             } else {
-                console.warn(`[cTrader Stream] Symbol not found for ${symbol}`);
+                console.warn(`[cTrader Stream] Symbol not resolved: ${symbol}`);
             }
         }
 
-        if (validSymbols.length === 0) {
-            res.write(`data: ${JSON.stringify({ type: 'error', error: 'System Anomaly: cTrader Error: None of the specified symbols were found in cTrader' })}\n\n`);
+        if (validSymbolIds.length === 0) {
+            res.write(`data: ${JSON.stringify({ type: 'error', error: 'None of the requested symbols were found in cTrader' })}\n\n`);
             res.end();
-            await ct.disconnect();
+            await wsClient.close();
             return;
         }
 
-        await ct.watchSpots(validSymbols, (spot: any) => {
-            spot.symbol = originalNameMap[spot.symbol] || spot.symbol;
-            res.write(`data: ${JSON.stringify({ type: 'spot', data: spot })}\n\n`);
+        // Attach listener for incoming spot & depth events
+        wsClient.onMessage((msg: any) => {
+            const payloadType = msg.payloadType;
+            const payload = msg.payload || msg;
+
+            if (payloadType === 2131) { // ProtoOASpotEvent
+                const details = symbolIdToDetails.get(payload.symbolId);
+                if (details) {
+                    const divisor = Math.pow(10, details.digits);
+                    const bidPrice = payload.bid ? payload.bid / divisor : (payload.bidDecimal || null);
+                    const askPrice = payload.ask ? payload.ask / divisor : (payload.askDecimal || null);
+
+                    const spotData = {
+                        symbol: details.original || details.name,
+                        bid: payload.bid,
+                        ask: payload.ask,
+                        bidDecimal: bidPrice,
+                        askDecimal: askPrice,
+                        timestamp: payload.timestamp
+                    };
+                    res.write(`data: ${JSON.stringify({ type: 'spot', data: spotData })}\n\n`);
+                }
+            } else if (payloadType === 2132) { // ProtoOADepthEvent
+                const details = symbolIdToDetails.get(payload.symbolId);
+                if (details) {
+                    const divisor = Math.pow(10, details.digits);
+                    const rawQuotes = payload.newQuotes || payload.quotes || payload.depth || [];
+                    
+                    const bids: [number, number][] = [];
+                    const asks: [number, number][] = [];
+
+                    for (const q of rawQuotes) {
+                        const price = (q.price || 0) / divisor;
+                        const vol = q.volume || 0;
+                        if (q.type === 1 || q.side === 'BID' || q.side === 1) {
+                            bids.push([price, vol]);
+                        } else if (q.type === 2 || q.side === 'ASK' || q.side === 2) {
+                            asks.push([price, vol]);
+                        }
+                    }
+
+                    const depthData = {
+                        symbol: details.original || details.name,
+                        bids,
+                        asks
+                    };
+                    res.write(`data: ${JSON.stringify({ type: 'depth', data: depthData })}\n\n`);
+                }
+            }
         });
 
-        await ct.watchDepth(validSymbols, (depth: any) => {
-            depth.symbol = originalNameMap[depth.symbol] || depth.symbol;
-            res.write(`data: ${JSON.stringify({ type: 'depth', data: depth })}\n\n`);
-        });
+        // Send subscription requests
+        await wsClient.subscribeSpots(intAccountId, validSymbolIds);
+        try {
+            await wsClient.subscribeDepth(intAccountId, validSymbolIds);
+        } catch (depthErr: any) {
+            console.warn(`[cTrader Stream] Depth subscription notice:`, depthErr.message);
+        }
 
         res.write(`data: ${JSON.stringify({ type: 'connected' })}\n\n`);
 
     } catch (e: any) {
-        console.error('Error in cTrader stream:', e);
+        console.error('Error in cTrader stream:', e.stack || e);
         res.write(`data: ${JSON.stringify({ type: 'error', error: e.message })}\n\n`);
         res.end();
-        if (ct) {
-            try { await ct.disconnect(); } catch (err) {}
-        }
+        try { await wsClient.close(); } catch (err) {}
     }
 };
 
 export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
     let token = req.headers.authorization?.split(' ')[1];
     
-    // If no user token, check for system token
     if (!token) {
         token = process.env.CTRADER_ACCESS_TOKEN;
     }
@@ -298,49 +317,40 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Missing required parameters: accountId, symbol, period' });
     }
 
+    const intAccountId = parseInt(accountId, 10);
+    const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+    const host = resolvedEnv === 'live' ? 'live.ctraderapi.com' : 'demo.ctraderapi.com';
+
+    const wsClient = new CTraderWSClient({ host, port: 5036 });
+
     try {
-        const intAccountId = parseInt(accountId, 10);
-        const resolvedEnv = await getOrDetectEnvironment(clientId, clientSecret, token, intAccountId, environment);
+        await wsClient.connect();
+        await wsClient.authenticateApp(clientId, clientSecret);
+        await wsClient.authenticateAccount(intAccountId, token);
 
-        const ct = await connect({
-            clientId,
-            clientSecret,
-            accessToken: token,
-            accountId: intAccountId,
-            environment: resolvedEnv
-        });
-
-        // Convert period string (e.g. M1, M5, H1) to enum value manually since we can't easily import the enum
         const periodMap: Record<string, number> = {
             'M1': 1, 'M2': 2, 'M3': 3, 'M4': 4, 'M5': 5, 'M10': 6, 'M15': 7, 'M30': 8,
             'H1': 9, 'H4': 10, 'H12': 11, 'D1': 12, 'W1': 13, 'MN1': 14
         };
-        
-        const periodEnum = periodMap[period] || 9; // Default to H1
+        const periodEnum = periodMap[period] || 9;
 
-        let symbolId = 0;
-        const symbolsData = await ct.getSymbols();
-        const symbolsArray = Array.isArray(symbolsData) 
-            ? symbolsData 
-            : (symbolsData && (symbolsData as any).symbols ? (symbolsData as any).symbols : []);
-        
+        const symbolsArray = await wsClient.getSymbols(intAccountId);
         const sym = resolveSymbolFuzzy(symbol, symbolsArray);
-        
+
         if (!sym) {
-            await ct.disconnect();
+            await wsClient.close();
             return res.status(404).json({ error: `Symbol ${symbol} not found in cTrader` });
         }
-        symbolId = sym.symbolId;
-        console.log(`[cTrader] Resolved trendbars symbol "${symbol}" to "${sym.symbolName}" (ID: ${symbolId})`);
 
-        const data = await ct.getTrendbars(symbolId, {
-            period: periodEnum,
-            count: parseInt(count || '100', 10)
-        });
+        const symbolId = sym.symbolId;
+        console.log(`[cTrader WS] Resolved trendbars symbol "${symbol}" to "${sym.symbolName}" (ID: ${symbolId})`);
+
+        const data = await wsClient.getTrendbars(intAccountId, symbolId, periodEnum, parseInt(count || '100', 10));
 
         const divisor = Math.pow(10, sym.digits || 5);
+        const trendbars = data.trendbar || [];
         
-        const candles = data.trendbars.map((b: any) => {
+        const candles = trendbars.map((b: any) => {
             const lowNum = Number(b.low || 0);
             return {
                 epoch: (b.utcTimestampInMinutes || 0) * 60,
@@ -352,18 +362,17 @@ export const ctraderTrendbarsHandler = async (req: Request, res: Response) => {
             };
         });
 
-        await ct.disconnect();
+        await wsClient.close();
         res.json({ candles });
 
     } catch (e: any) {
-        console.error('Error fetching cTrader trendbars:', e);
-        const isPortRestricted = e.message?.includes('5035') || e.code === 'ECONNRESET' || e.message?.includes('ECONNRESET');
+        await wsClient.close();
+        console.error('Error fetching cTrader trendbars via WebSocket:', e.stack || e);
         res.status(200).json({ 
             error: e.message || 'Failed to fetch trendbars',
             status: 'failed',
-            info: isPortRestricted 
-                ? 'Outbound TCP port 5035 is restricted in this container environment. The system automatically routes through TwelveData & Deriv market feeds.'
-                : 'cTrader connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
+            info: 'cTrader WebSocket connection failed. Please ensure your Client ID, Secret, and Access Token are correct in Settings.'
         });
     }
 };
+
