@@ -43,7 +43,7 @@ export const resolveSymbolFuzzy = (symbol: string, symbolsArray: any[]) => {
 const envCache = new Map<number, 'live' | 'demo'>();
 
 async function detectAccountEnvironment(clientId: string, clientSecret: string, token: string, accountId: number): Promise<'live' | 'demo' | null> {
-    const wsClient = new CTraderWSClient({ host: 'live.ctraderapi.com', port: 5036 });
+    const wsClient = new CTraderWSClient({ host: 'live.ctraderapi.com', port: 5036, timeoutMs: 4000 });
     try {
         await wsClient.connect();
         await wsClient.authenticateApp(clientId, clientSecret);
@@ -61,7 +61,7 @@ async function detectAccountEnvironment(clientId: string, clientSecret: string, 
     }
 
     // Try demo connection to be thorough
-    const demoWsClient = new CTraderWSClient({ host: 'demo.ctraderapi.com', port: 5036 });
+    const demoWsClient = new CTraderWSClient({ host: 'demo.ctraderapi.com', port: 5036, timeoutMs: 4000 });
     try {
         await demoWsClient.connect();
         await demoWsClient.authenticateApp(clientId, clientSecret);
@@ -82,6 +82,13 @@ async function detectAccountEnvironment(clientId: string, clientSecret: string, 
 }
 
 async function getOrDetectEnvironment(clientId: string, clientSecret: string, token: string, accountId: number, queryEnv: string): Promise<'live' | 'demo'> {
+    const normalizedEnv = queryEnv ? queryEnv.toLowerCase().trim() : '';
+    if (normalizedEnv === 'live' || normalizedEnv === 'demo') {
+        const env = normalizedEnv as 'live' | 'demo';
+        envCache.set(accountId, env);
+        return env;
+    }
+
     if (envCache.has(accountId)) {
         return envCache.get(accountId)!;
     }
@@ -92,8 +99,8 @@ async function getOrDetectEnvironment(clientId: string, clientSecret: string, to
         return detected;
     }
     
-    const finalEnv = queryEnv === 'live' ? 'live' : 'demo';
-    console.log(`[cTrader WS] Could not auto-detect environment for account ${accountId}, using manual configuration/query parameter: ${finalEnv}`);
+    const finalEnv = normalizedEnv === 'live' ? 'live' : 'demo';
+    console.log(`[cTrader WS] Could not auto-detect environment for account ${accountId}, using default parameter: ${finalEnv}`);
     envCache.set(accountId, finalEnv);
     return finalEnv;
 }

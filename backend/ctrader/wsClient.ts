@@ -256,12 +256,23 @@ export class CTraderWSClient {
 
     public async close(): Promise<void> {
         console.log(`[STAGE 10] Closing WebSocket connection...`);
+        for (const [id, req] of this.pendingRequests.entries()) {
+            clearTimeout(req.timer);
+            req.reject(new Error('WebSocket connection closed'));
+        }
+        this.pendingRequests.clear();
+
         if (this.ws) {
             try {
+                this.ws.removeAllListeners();
                 this.ws.close();
+                if (typeof this.ws.terminate === 'function') {
+                    this.ws.terminate();
+                }
             } catch (e: any) {
                 console.error(`[STAGE ERROR] Error closing WebSocket:`, e.stack || e);
             }
+            this.ws = null;
         }
     }
 }
