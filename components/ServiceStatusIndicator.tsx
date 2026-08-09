@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
     Activity, 
@@ -322,130 +323,135 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                 <Activity size={12} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
             </button>
 
-            {/* Services Matrix Modal - Immediately Visible Top Center */}
-            <AnimatePresence>
-                {isOpen && (
-                    <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-xl flex items-start sm:items-center justify-center p-2.5 sm:p-4 overflow-y-auto pt-6 sm:pt-4"
-                        onClick={() => setIsOpen(false)}
-                    >
+            {/* Services Matrix Modal - Centered Portal directly attached to document.body */}
+            {typeof document !== 'undefined' && createPortal(
+                <AnimatePresence>
+                    {isOpen && (
                         <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: -10 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: -10 }}
-                            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-3.5 sm:p-5 max-w-2xl w-full flex flex-col shadow-2xl relative my-auto max-h-[90vh] overflow-hidden"
-                            onClick={(e) => e.stopPropagation()}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-[999999] bg-slate-950/85 backdrop-blur-xl flex items-center justify-center p-3 sm:p-4 overflow-y-auto"
+                            onClick={() => setIsOpen(false)}
                         >
-                            {/* Modal Top Accent Glow */}
-                            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-indigo-500" />
+                            <motion.div
+                                initial={{ scale: 0.95, opacity: 0, y: 0 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.95, opacity: 0, y: 0 }}
+                                transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                                className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-3.5 sm:p-4 max-w-xl w-full flex flex-col shadow-2xl relative overflow-hidden my-auto max-h-[90vh]"
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {/* Modal Top Accent Glow */}
+                                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-indigo-500" />
 
-                            {/* Header Bar */}
-                            <div className="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-100 dark:border-white/10 shrink-0">
-                                <div className="flex items-center gap-2">
-                                    <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
-                                        <Activity size={16} />
+                                {/* Header Bar */}
+                                <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-100 dark:border-white/10 shrink-0">
+                                    <div className="flex items-center gap-2">
+                                        <div className="p-1 rounded-lg bg-emerald-500/10 text-emerald-500 border border-emerald-500/20">
+                                            <Activity size={14} />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xs sm:text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                <span>Services Matrix</span>
+                                                <span className="text-[9px] font-black text-emerald-500 px-1.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
+                                                    {connectedCount}/{totalCount} Active
+                                                </span>
+                                            </h2>
+                                            <p className="text-[8px] sm:text-[9px] text-slate-500 dark:text-slate-400">
+                                                Real-time status across all 7 core infrastructure feeds.
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h2 className="text-xs sm:text-base font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
-                                            <span>Services Matrix</span>
-                                            <span className="text-[9px] sm:text-[10px] font-black text-emerald-500 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                                                {connectedCount}/{totalCount} Active
-                                            </span>
-                                        </h2>
-                                        <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400">
-                                            Real-time status across all core infrastructure & data feeds.
-                                        </p>
+
+                                    <div className="flex items-center gap-1.5">
+                                        <button
+                                            onClick={runDiagnostics}
+                                            disabled={isChecking}
+                                            className="flex items-center gap-1 px-2 py-0.5 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-md text-[9px] font-bold transition-all shadow-md active:scale-95"
+                                            title="Re-check connections"
+                                        >
+                                            <RefreshCw size={10} className={isChecking ? 'animate-spin' : ''} />
+                                            <span>{isChecking ? 'Checking' : 'Ping'}</span>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setIsOpen(false)}
+                                            className="p-1.5 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                                        >
+                                            <X size={16} />
+                                        </button>
                                     </div>
                                 </div>
 
-                                <div className="flex items-center gap-1.5">
-                                    <button
-                                        onClick={runDiagnostics}
-                                        disabled={isChecking}
-                                        className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold transition-all shadow-md active:scale-95"
-                                        title="Re-check connections"
-                                    >
-                                        <RefreshCw size={11} className={isChecking ? 'animate-spin' : ''} />
-                                        <span>{isChecking ? 'Checking' : 'Ping'}</span>
-                                    </button>
+                                {/* 2-Column Responsive Grid - Fits 7 items in 4 compact rows */}
+                                <div className="grid grid-cols-2 gap-1.5 sm:gap-2 overflow-y-auto max-h-[60vh] pr-1 custom-scrollbar">
+                                    {serviceList.map((service, idx) => (
+                                        <div
+                                            key={service.id}
+                                            className={`flex items-center justify-between p-1.5 sm:p-2 rounded-lg border bg-slate-50/80 dark:bg-slate-950/60 border-slate-200/80 dark:border-white/10 transition-all gap-1 ${
+                                                idx === serviceList.length - 1 ? 'col-span-2 sm:col-span-1' : ''
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                                                <div className="p-1 rounded bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 shrink-0">
+                                                    {service.icon}
+                                                </div>
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center justify-between gap-1">
+                                                        <span className="text-[9px] sm:text-[10px] font-black uppercase text-slate-900 dark:text-white truncate">
+                                                            {service.name}
+                                                        </span>
+                                                        {service.latencyMs !== undefined && (
+                                                            <span className="text-[7px] font-mono text-slate-400 shrink-0">
+                                                                {service.latencyMs}ms
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center gap-1 mt-0.5">
+                                                        {getStatusBadge(service.status)}
+                                                        <p className="text-[8px] text-slate-500 dark:text-slate-400 truncate hidden sm:block max-w-[90px]">
+                                                            {service.info}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
 
+                                            {service.id === 'ctrader' && onOpenSettings && (
+                                                <button
+                                                    onClick={() => {
+                                                        setIsOpen(false);
+                                                        onOpenSettings();
+                                                    }}
+                                                    className="p-1 rounded bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors shrink-0"
+                                                    title="Configure cTrader Settings"
+                                                >
+                                                    <Settings size={11} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                {/* Modal Footer Note */}
+                                <div className="mt-2 pt-1.5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[9px] text-slate-400 shrink-0">
+                                    <span className="flex items-center gap-1 truncate">
+                                        <Zap size={10} className="text-emerald-500 shrink-0" />
+                                        <span>Automated Failover Active</span>
+                                    </span>
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                                        className="px-2.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all text-[9px]"
                                     >
-                                        <X size={16} />
+                                        Done
                                     </button>
                                 </div>
-                            </div>
-
-                            {/* 2-Column Grid / List */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto pr-1 max-h-[60vh] custom-scrollbar">
-                                {serviceList.map((service) => (
-                                    <div
-                                        key={service.id}
-                                        className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl border bg-slate-50/80 dark:bg-slate-950/60 border-slate-200/80 dark:border-white/10 transition-all gap-2"
-                                    >
-                                        <div className="flex items-center gap-2.5 min-w-0">
-                                            <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 shrink-0">
-                                                {service.icon}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-1.5">
-                                                    <span className="text-[11px] sm:text-xs font-black uppercase text-slate-900 dark:text-white truncate">
-                                                        {service.name}
-                                                    </span>
-                                                    {service.latencyMs !== undefined && (
-                                                        <span className="text-[8px] font-mono text-slate-400">
-                                                            {service.latencyMs}ms
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                <div className="flex items-center gap-1.5 mt-1">
-                                                    {getStatusBadge(service.status)}
-                                                    <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[110px] sm:max-w-[140px]">
-                                                        {service.info}
-                                                    </p>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {service.id === 'ctrader' && onOpenSettings && (
-                                            <button
-                                                onClick={() => {
-                                                    setIsOpen(false);
-                                                    onOpenSettings();
-                                                }}
-                                                className="p-1.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors shrink-0"
-                                                title="Configure cTrader Settings"
-                                            >
-                                                <Settings size={13} />
-                                            </button>
-                                        )}
-                                    </div>
-                                ))}
-                            </div>
-
-                            {/* Modal Footer Note */}
-                            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
-                                <span className="flex items-center gap-1.5 truncate">
-                                    <Zap size={11} className="text-emerald-500 shrink-0" />
-                                    <span>Automated Failover Active</span>
-                                </span>
-                                <button
-                                    onClick={() => setIsOpen(false)}
-                                    className="px-3.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all text-[10px]"
-                                >
-                                    Done
-                                </button>
-                            </div>
+                            </motion.div>
                         </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+                    )}
+                </AnimatePresence>,
+                document.body
+            )}
         </>
     );
 };
