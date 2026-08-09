@@ -53,33 +53,33 @@ export async function createViteApp() {
     
     // 1. Firebase Firestore Admin status
     let firebaseStatus = 'disconnected';
-    let firebaseInfo = 'Firestore Database link inactive';
+    let firebaseInfo = 'AI Database link inactive';
     try {
       const db = getDb();
       if (db) {
         firebaseStatus = 'connected';
-        firebaseInfo = `Firestore active (${firestoreDatabaseId})`;
+        firebaseInfo = `AI Database active (${firestoreDatabaseId})`;
       }
     } catch (e: any) {
       firebaseStatus = 'disconnected';
-      firebaseInfo = e.message || 'Firebase error';
+      firebaseInfo = e.message || 'AI Database error';
     }
 
     // 2. TwelveData Status
     let twelveDataStatus = 'connected';
-    let twelveDataInfo = 'Global Market Data Feed Active';
+    let twelveDataInfo = 'Global Market Feeds Active';
     if (!process.env.TWELVE_DATA_API_KEY && !process.env.API_KEY_1) {
       twelveDataStatus = 'fallback';
-      twelveDataInfo = 'TwelveData High-Frequency Fallback Feed Active';
+      twelveDataInfo = 'Global High-Frequency Fallback Feed Active';
     }
 
     // 3. Deriv WSS Data Stream
     const derivStatus = 'connected';
-    const derivInfo = 'Deriv WSS Price Feed & Synthetic Index Stream Active';
+    const derivInfo = 'Level 1 Price Feed & Stream Active';
 
     // 4. cTrader Open API Engine
     let ctraderStatus = 'standby';
-    let ctraderInfo = 'cTrader Open API engine standby';
+    let ctraderInfo = 'Level 2 Streaming engine standby';
     let ctraderConfigured = false;
     try {
       const clientId = process.env.CTRADER_CLIENT_ID || (req.query.clientId as string);
@@ -90,26 +90,26 @@ export async function createViteApp() {
         ctraderConfigured = true;
         if (userToken) {
           ctraderStatus = 'connected';
-          ctraderInfo = 'cTrader Account Authorized & Connected';
+          ctraderInfo = 'Level 2 Account Authorized & Connected';
         } else {
           ctraderStatus = 'configured';
           ctraderInfo = 'Client Credentials Configured. Connect Account in Settings.';
         }
       } else if (userToken) {
         ctraderStatus = 'connected';
-        ctraderInfo = 'cTrader Access Token Active';
+        ctraderInfo = 'Level 2 Access Token Active';
       } else {
         ctraderStatus = 'standby';
-        ctraderInfo = 'Standby - No cTrader token linked. Quant Engine routes via TwelveData & Deriv feeds.';
+        ctraderInfo = 'Standby - Level 2 feed ready';
       }
     } catch (e: any) {
       ctraderStatus = 'disconnected';
-      ctraderInfo = e.message || 'cTrader status check error';
+      ctraderInfo = e.message || 'Level 2 status check error';
     }
 
     // 5. Oracle AI / Gemini Neural Core
     let geminiStatus = 'connected';
-    let geminiInfo = 'Gemini Neural Cascade Active (4 Lanes)';
+    let geminiInfo = 'AI Agent Active (4 Lanes)';
     const aiKey = process.env.GEMINI_API_KEY || process.env.API_KEY_1 || process.env.API_KEY_5;
     if (!aiKey) {
       geminiStatus = 'waiting';
@@ -132,32 +132,32 @@ export async function createViteApp() {
         },
         firebase: {
           id: 'firebase',
-          name: 'Firebase Firestore Database',
+          name: 'AI Database',
           status: firebaseStatus,
           info: firebaseInfo
         },
         twelveData: {
           id: 'twelveData',
-          name: 'TwelveData Market Feed',
+          name: 'Global Market Feeds',
           status: twelveDataStatus,
           info: twelveDataInfo
         },
         deriv: {
           id: 'deriv',
-          name: 'Deriv WSS Price Stream',
+          name: 'Level 1 Streaming',
           status: derivStatus,
           info: derivInfo
         },
         ctrader: {
           id: 'ctrader',
-          name: 'cTrader Open API',
+          name: 'Level 2 Streaming',
           status: ctraderStatus,
           configured: ctraderConfigured,
           info: ctraderInfo
         },
         oracleAi: {
           id: 'oracleAi',
-          name: 'Oracle Gemini Neural Core',
+          name: 'AI Agent',
           status: geminiStatus,
           info: geminiInfo
         },

@@ -54,37 +54,37 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
         },
         firebase: {
             id: 'firebase',
-            name: 'Firebase Firestore DB',
+            name: 'AI Database',
             status: 'waiting',
-            info: 'Testing Firestore sync...',
+            info: 'Testing AI Database sync...',
             icon: <Database size={16} className="text-blue-400" />
         },
         twelveData: {
             id: 'twelveData',
-            name: 'TwelveData Market Feed',
+            name: 'Global Market Feeds',
             status: 'waiting',
             info: 'Checking market quotes...',
             icon: <TrendingUp size={16} className="text-purple-400" />
         },
         deriv: {
             id: 'deriv',
-            name: 'Deriv WSS Price Stream',
+            name: 'Level 1 Streaming',
             status: 'waiting',
-            info: 'Testing WebSocket connection...',
+            info: 'Testing Level 1 connection...',
             icon: <Radio size={16} className="text-amber-400" />
         },
         ctrader: {
             id: 'ctrader',
-            name: 'cTrader Open API',
+            name: 'Level 2 Streaming',
             status: 'waiting',
-            info: 'Verifying cTrader connection...',
+            info: 'Verifying Level 2 connection...',
             icon: <Zap size={16} className="text-cyan-400" />
         },
         oracleAi: {
             id: 'oracleAi',
-            name: 'Oracle Gemini Neural Core',
+            name: 'AI Agent',
             status: 'waiting',
-            info: 'Checking Gemini cascade...',
+            info: 'Checking AI Agent status...',
             icon: <Cpu size={16} className="text-rose-400" />
         },
         newsCalendar: {
@@ -138,29 +138,29 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                         ...prev.firebase,
                         status: s.firebase?.status === 'connected' ? 'connected' : 'disconnected',
                         latencyMs: pingTime + 5,
-                        info: s.firebase?.info || 'Firestore link active'
+                        info: s.firebase?.info || 'AI Database linked'
                     },
                     twelveData: {
                         ...prev.twelveData,
                         status: s.twelveData?.status === 'connected' ? 'connected' : 'fallback',
                         latencyMs: pingTime + 12,
-                        info: s.twelveData?.info || 'TwelveData market feed ready'
+                        info: s.twelveData?.info || 'Global Market Feeds active'
                     },
                     ctrader: {
                         ...prev.ctrader,
                         status: token ? 'connected' : (s.ctrader?.configured ? 'standby' : 'standby'),
                         latencyMs: pingTime + 8,
                         info: token 
-                            ? 'cTrader Authorized'
+                            ? 'Level 2 Authorized'
                             : (s.ctrader?.configured 
                                 ? 'Credentials Configured' 
-                                : 'cTrader Standby')
+                                : 'Level 2 Standby')
                     },
                     oracleAi: {
                         ...prev.oracleAi,
                         status: s.oracleAi?.status === 'connected' ? 'connected' : 'waiting',
                         latencyMs: pingTime + 15,
-                        info: s.oracleAi?.info || 'Gemini Neural Cascade active'
+                        info: s.oracleAi?.info || 'AI Agent active'
                     },
                     newsCalendar: {
                         ...prev.newsCalendar,
@@ -193,7 +193,7 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                     deriv: {
                         ...prev.deriv,
                         status: 'fallback',
-                        info: 'Deriv WSS fallback mode'
+                        info: 'Level 1 fallback mode'
                     }
                 }));
             }, 3000);
@@ -208,7 +208,7 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                         ...prev.deriv,
                         status: 'connected',
                         latencyMs: wssLatency,
-                        info: 'Deriv WSS Live Connection Established'
+                        info: 'Level 1 Live Connection Established'
                     }
                 }));
                 ws.close();
@@ -221,7 +221,7 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                     deriv: {
                         ...prev.deriv,
                         status: 'fallback',
-                        info: 'Deriv WSS fallback mode active'
+                        info: 'Level 1 fallback mode active'
                     }
                 }));
             };
@@ -231,7 +231,7 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                 deriv: {
                     ...prev.deriv,
                     status: 'fallback',
-                    info: 'Deriv stream ready via fallback'
+                    info: 'Level 1 stream ready via fallback'
                 }
             }));
         }
