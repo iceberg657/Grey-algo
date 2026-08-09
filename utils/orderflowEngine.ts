@@ -1,4 +1,8 @@
 import type { OHLC } from './quantEngine';
+import { globalOrderFlowEngine, OrderFlowAbsorptionSignal, OrderFlowMetricsResult } from './orderFlowEngine';
+
+export { globalOrderFlowEngine, OrderFlowEngine, calculateSessionRanges, calculateSessionOpeningAnchors } from './orderFlowEngine';
+export type { OrderFlowAbsorptionSignal, OrderFlowMetricsResult, L2DepthSnapshot, SessionRange, SessionOpeningAnchor, MonitoredSessionZone, SessionAnchorAnalysis } from './orderFlowEngine';
 
 export interface OrderflowMetrics {
     buyingPressure: number;
@@ -8,6 +12,7 @@ export interface OrderflowMetrics {
     exhaustionWarning: boolean;
     l2Metrics?: L2Metrics;
     absorptions?: AbsorptionLevel[];
+    orderFlowAbsorption?: OrderFlowAbsorptionSignal;
 }
 
 export interface StopCluster {
@@ -236,7 +241,10 @@ export const predictStopClusters = (candles: OHLC[]): StopCluster[] => {
     return predicted.sort((a, b) => b.size - a.size).slice(0, 4);
 };
 
-export const analyzeOrderflow = (candles: OHLC[]): OrderflowMetrics => {
+export const analyzeOrderflow = (
+    candles: OHLC[],
+    l2Depth?: { bids: [number, number][]; asks: [number, number][] } | null
+): OrderflowMetrics => {
     if (!candles || candles.length < 5) {
         return {
             buyingPressure: 0,
@@ -296,13 +304,18 @@ export const analyzeOrderflow = (candles: OHLC[]): OrderflowMetrics => {
     // Capture historical absorptions
     const absorptions = detectAbsorptions(candles);
 
+    // Compute live order flow absorption using Level 2 depth & price action
+    const currentPrice = lastCandle.close;
+    const orderFlowMetricsResult = globalOrderFlowEngine.processOrderFlow(l2Depth || null, candles, currentPrice);
+
     return {
         buyingPressure: totalBuyingPressure,
         sellingPressure: totalSellingPressure,
         imbalanceRatio,
         institutionalFootprint,
         exhaustionWarning,
-        absorptions
+        absorptions,
+        orderFlowAbsorption: orderFlowMetricsResult.absorptionSignal
     };
 };
 

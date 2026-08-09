@@ -1,6 +1,6 @@
 import { calculateEMA, calculateRSI, findSwings } from './analyticsEngine';
 import { calculateMarkovRegime, MarkovRegimeResult } from './markovEngine';
-import { analyzeOrderflow, OrderflowMetrics, predictStopClusters, StopCluster, calculateL2OrderbookMetrics, L2Metrics } from './orderflowEngine';
+import { analyzeOrderflow, OrderflowMetrics, predictStopClusters, StopCluster, calculateL2OrderbookMetrics, L2Metrics, calculateSessionOpeningAnchors } from './orderflowEngine';
 import { executeRiskOptimization, RiskOptimization } from './riskOptimizer';
 import { predictNextLiquiditySweep, LiquidityPrediction } from './liquidityPrediction';
 import { NeuralEngine, NeuralAnalysis } from '../services/neuralEngine';
@@ -2023,7 +2023,7 @@ export function analyzeSMC(
     }
 
     // 6. Advanced Micro-Decisions
-    const orderflowMetrics = analyzeOrderflow(candles);
+    const orderflowMetrics = analyzeOrderflow(candles, depth);
     if (l2Metrics) {
         orderflowMetrics.l2Metrics = l2Metrics;
         orderflowMetrics.imbalanceRatio = l2Metrics.imbalanceRatio;
@@ -2031,6 +2031,30 @@ export function analyzeSMC(
             orderflowMetrics.institutionalFootprint = 'STRONG_BUY';
         } else if (l2Metrics.skew === 'BEARISH_RESISTANCE') {
             orderflowMetrics.institutionalFootprint = 'STRONG_SELL';
+        }
+    }
+
+    // Process Order Flow Absorption impact on Scoring
+    if (orderflowMetrics.orderFlowAbsorption && orderflowMetrics.orderFlowAbsorption.confidence >= 55) {
+        const abs = orderflowMetrics.orderFlowAbsorption;
+        if (abs.type === 'SELL_ABSORPTION' && (explicitSignal === 'SELL' || explicitSignal === 'NEUTRAL')) {
+            const bonus = Math.round(abs.confidence * 0.2);
+            weightedScore.totalScore = Math.min(100, weightedScore.totalScore + bonus);
+            weightedScore.breakdown.push(`Order-Flow Seller Absorption Bonus +${bonus} (Conf: ${abs.confidence}%)`);
+            if (explicitSignal === 'NEUTRAL' && abs.confidence >= 75 && abs.confirmation) {
+                explicitSignal = 'SELL';
+                mathematicalSL = currentPrice + (atr * baseSlBuffer);
+                weightedScore.breakdown.push(`Explicit SELL triggered by confirmed Order-Flow Absorption at resistance`);
+            }
+        } else if (abs.type === 'BUY_ABSORPTION' && (explicitSignal === 'BUY' || explicitSignal === 'NEUTRAL')) {
+            const bonus = Math.round(abs.confidence * 0.2);
+            weightedScore.totalScore = Math.min(100, weightedScore.totalScore + bonus);
+            weightedScore.breakdown.push(`Order-Flow Buyer Absorption Bonus +${bonus} (Conf: ${abs.confidence}%)`);
+            if (explicitSignal === 'NEUTRAL' && abs.confidence >= 75 && abs.confirmation) {
+                explicitSignal = 'BUY';
+                mathematicalSL = currentPrice - (atr * baseSlBuffer);
+                weightedScore.breakdown.push(`Explicit BUY triggered by confirmed Order-Flow Absorption at support`);
+            }
         }
     }
     const stopClusters = predictStopClusters(candles);
@@ -2173,6 +2197,8 @@ export function analyzeSMC(
         targetProfitPips: scalpRiskPips * 2.5
     };
 
+    const sessionAnchors = calculateSessionOpeningAnchors(candles, currentPrice);
+
     return {
         trend,
         regime,
@@ -2214,6 +2240,7 @@ export function analyzeSMC(
         fvgRetest,
         orderBlock,
         session: killzone.session,
+        sessionAnchors,
         killzone,
         stdDev,
         volumeProfile,

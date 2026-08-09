@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { motion } from 'motion/react';
-import { Activity, Database, Lock, Eye, BarChart3, TrendingUp, TrendingDown, ShieldAlert, Award, Zap } from 'lucide-react';
+import { Activity, Database, Lock, Eye, BarChart3, TrendingUp, TrendingDown, ShieldAlert, Award, Zap, CheckCircle2, AlertTriangle, Layers } from 'lucide-react';
 import { useAuthContext } from './contexts/AuthContext';
-import { calculateL2OrderbookMetrics, detectAbsorptions, L2Metrics, AbsorptionLevel } from '../utils/orderflowEngine';
+import { calculateL2OrderbookMetrics, detectAbsorptions, L2Metrics, AbsorptionLevel, globalOrderFlowEngine } from '../utils/orderflowEngine';
 
 interface Props {
     symbol: string;
@@ -91,6 +91,13 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol, onDepthUpdate }) 
                             asks: data.data.asks || []
                         };
                         setDepth(parsedDepth);
+                        globalOrderFlowEngine.pushSnapshot({
+                            timestamp: Date.now(),
+                            bids: parsedDepth.bids,
+                            asks: parsedDepth.asks,
+                            spotBid: spot?.bid,
+                            spotAsk: spot?.ask
+                        });
                         if (onDepthUpdate) {
                             onDepthUpdate(parsedDepth);
                         }
@@ -346,46 +353,94 @@ export const CTraderAdvancedData: React.FC<Props> = ({ symbol, onDepthUpdate }) 
                 )}
 
                 {/* 4. ABSORPTION DETECTION */}
-                {activeTab === 'absorptions' && (
-                    <div className="flex flex-col gap-3">
-                        <div className="flex justify-between items-center pb-1 border-b border-slate-800">
-                            <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Order Flow Absorption Footprints</span>
-                            <span className="text-[9px] text-violet-400 font-bold flex items-center gap-1">
-                                <Award size={10} /> Institutional Soaking
-                            </span>
-                        </div>
+                {activeTab === 'absorptions' && (() => {
+                    const liveOrderFlow = globalOrderFlowEngine.processOrderFlow(depth, [], currentPrice);
+                    const absSignal = liveOrderFlow.absorptionSignal;
 
-                        <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-                            {absorptions && absorptions.length > 0 ? (
-                                absorptions.map((abs, i) => (
-                                    <div key={i} className="bg-slate-900 border border-slate-800/80 p-2.5 rounded-xl flex items-center justify-between text-xs">
-                                        <div className="flex items-center gap-2">
-                                            <div className={`p-1 rounded-lg ${abs.type === 'BULLISH_ABSORPTION' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
-                                                <Zap size={12} />
-                                            </div>
-                                            <div>
-                                                <div className="font-bold font-mono text-white">{abs.price.toFixed(5)}</div>
-                                                <div className="text-[9px] text-slate-400 font-semibold tracking-wider uppercase">
-                                                    {abs.type === 'BULLISH_ABSORPTION' ? 'BULLISH' : 'BEARISH'} ABSORPTION LEVEL
-                                                </div>
-                                            </div>
+                    return (
+                        <div className="flex flex-col gap-4">
+                            {/* Live Order Flow Engine Card */}
+                            <div className="bg-slate-900/80 border border-slate-800 p-3.5 rounded-2xl flex flex-col gap-2.5">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`p-1.5 rounded-lg ${absSignal.type === 'SELL_ABSORPTION' ? 'bg-rose-500/20 text-rose-400' : absSignal.type === 'BUY_ABSORPTION' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'}`}>
+                                            <Zap size={14} />
                                         </div>
-                                        <div className="text-right">
-                                            <span className="text-[10px] font-black font-mono text-indigo-400">
-                                                {abs.strength}% STRENGTH
-                                            </span>
-                                            <div className="text-[9px] text-slate-400 font-mono mt-1">Vol: {Math.round(abs.volume).toLocaleString()}</div>
+                                        <div>
+                                            <div className="text-xs font-black uppercase text-white tracking-wider flex items-center gap-2">
+                                                {absSignal.type === 'SELL_ABSORPTION' ? 'SELLER ABSORPTION DETECTED' : absSignal.type === 'BUY_ABSORPTION' ? 'BUYER ABSORPTION DETECTED' : 'NEUTRAL ORDER FLOW'}
+                                                {absSignal.confirmation && (
+                                                    <span className="bg-emerald-500/20 text-emerald-400 text-[9px] px-1.5 py-0.5 rounded font-black">CONFIRMED</span>
+                                                )}
+                                            </div>
+                                            <div className="text-[10px] text-slate-400 font-mono">
+                                                Confidence: {absSignal.confidence}% | Imbalance: {absSignal.bidAskImbalance !== null ? (absSignal.bidAskImbalance > 0 ? `+${(absSignal.bidAskImbalance * 100).toFixed(0)}% Bid` : `${(absSignal.bidAskImbalance * 100).toFixed(0)}% Ask`) : 'N/A'}
+                                            </div>
                                         </div>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="text-xs text-slate-500 italic text-center py-6">
-                                    Scanning historical trendbar nodes for absorption footprints...
+                                    {absSignal.confidence > 0 && (
+                                        <div className={`text-xs font-black font-mono px-2 py-1 rounded-xl ${absSignal.type === 'SELL_ABSORPTION' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30' : 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'}`}>
+                                            {absSignal.confidence}% CONF
+                                        </div>
+                                    )}
                                 </div>
-                            )}
+
+                                {/* Machine-readable evidence list */}
+                                {absSignal.evidence && absSignal.evidence.length > 0 && (
+                                    <div className="bg-slate-950/80 p-2.5 rounded-xl border border-slate-800/80 space-y-1">
+                                        <div className="text-[9px] font-bold uppercase text-slate-400 tracking-wider mb-1">Order-Flow Evidence Log</div>
+                                        {absSignal.evidence.map((ev, idx) => (
+                                            <div key={idx} className="text-[10px] text-slate-300 flex items-start gap-1.5 font-sans leading-tight">
+                                                <CheckCircle2 size={11} className="text-indigo-400 shrink-0 mt-0.5" />
+                                                <span>{ev}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Historical Absorption Nodes */}
+                            <div className="flex flex-col gap-2">
+                                <div className="flex justify-between items-center pb-1 border-b border-slate-800">
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Trendbar Volume Footprint Nodes</span>
+                                    <span className="text-[9px] text-violet-400 font-bold flex items-center gap-1">
+                                        <Award size={10} /> Historical Footprints
+                                    </span>
+                                </div>
+
+                                <div className="space-y-2 max-h-[140px] overflow-y-auto pr-1">
+                                    {absorptions && absorptions.length > 0 ? (
+                                        absorptions.map((abs, i) => (
+                                            <div key={i} className="bg-slate-900 border border-slate-800/80 p-2 rounded-xl flex items-center justify-between text-xs">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`p-1 rounded-lg ${abs.type === 'BULLISH_ABSORPTION' ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
+                                                        <Zap size={12} />
+                                                    </div>
+                                                    <div>
+                                                        <div className="font-bold font-mono text-white">{abs.price.toFixed(5)}</div>
+                                                        <div className="text-[9px] text-slate-400 font-semibold tracking-wider uppercase">
+                                                            {abs.type === 'BULLISH_ABSORPTION' ? 'BULLISH' : 'BEARISH'} ABSORPTION LEVEL
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className="text-right">
+                                                    <span className="text-[10px] font-black font-mono text-indigo-400">
+                                                        {abs.strength}% STRENGTH
+                                                    </span>
+                                                    <div className="text-[9px] text-slate-400 font-mono mt-0.5">Vol: {Math.round(abs.volume).toLocaleString()}</div>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-xs text-slate-500 italic text-center py-4">
+                                            Scanning historical trendbar nodes for absorption footprints...
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                )}
+                    );
+                })()}
             </div>
         </div>
     );
