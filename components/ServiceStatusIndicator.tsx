@@ -42,40 +42,6 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
     const [isChecking, setIsChecking] = useState(false);
     const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
     const [overallStatus, setOverallStatus] = useState<'healthy' | 'degraded' | 'checking'>('checking');
-    
-    // Service Enable/Disable Toggles
-    const [serviceToggles, setServiceToggles] = useState<Record<string, boolean>>(() => {
-        try {
-            const saved = localStorage.getItem('greyquant_service_toggles');
-            if (saved) return JSON.parse(saved);
-        } catch (e) {}
-        return {
-            server: true,
-            firebase: true,
-            twelveData: true,
-            deriv: true,
-            ctrader: true,
-            oracleAi: true,
-            newsCalendar: true
-        };
-    });
-
-    const toggleService = (id: string) => {
-        setServiceToggles(prev => {
-            const updated = { ...prev, [id]: !prev[id] };
-            localStorage.setItem('greyquant_service_toggles', JSON.stringify(updated));
-            return updated;
-        });
-    };
-
-    const toggleAllServices = (enable: boolean) => {
-        const updated: Record<string, boolean> = {};
-        Object.keys(services).forEach(key => {
-            updated[key] = enable;
-        });
-        setServiceToggles(updated);
-        localStorage.setItem('greyquant_service_toggles', JSON.stringify(updated));
-    };
 
     const [services, setServices] = useState<Record<string, ServiceState>>({
         server: {
@@ -280,28 +246,18 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
     }, [runDiagnostics]);
 
     const serviceList = Object.values(services);
-    const connectedCount = serviceList.filter(s => (serviceToggles[s.id] !== false) && s.status === 'connected').length;
-    const activeEnabledCount = serviceList.filter(s => serviceToggles[s.id] !== false).length;
+    const connectedCount = serviceList.filter(s => s.status === 'connected' || s.status === 'standby' || s.status === 'fallback').length;
     const totalCount = serviceList.length;
 
     useEffect(() => {
-        if (connectedCount >= activeEnabledCount - 1 && activeEnabledCount > 0) {
+        if (connectedCount >= totalCount - 2) {
             setOverallStatus('healthy');
         } else {
             setOverallStatus('degraded');
         }
-    }, [connectedCount, activeEnabledCount]);
+    }, [connectedCount, totalCount]);
 
-    const getStatusBadge = (status: ServiceState['status'], isEnabled: boolean) => {
-        if (!isEnabled) {
-            return (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
-                    <span className="w-1.5 h-1.5 rounded-full bg-slate-500" />
-                    Muted
-                </span>
-            );
-        }
-
+    const getStatusBadge = (status: ServiceState['status']) => {
         switch (status) {
             case 'connected':
                 return (
@@ -366,22 +322,22 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                 <Activity size={12} className="text-slate-400 group-hover:text-emerald-500 transition-colors" />
             </button>
 
-            {/* Services Matrix Modal - Ultra Compact No-Scroll Grid */}
+            {/* Services Matrix Modal - Immediately Visible Top Center */}
             <AnimatePresence>
                 {isOpen && (
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
-                        className="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4"
+                        className="fixed inset-0 z-[99999] bg-slate-950/85 backdrop-blur-xl flex items-start sm:items-center justify-center p-2.5 sm:p-4 overflow-y-auto pt-6 sm:pt-4"
                         onClick={() => setIsOpen(false)}
                     >
                         <motion.div
-                            initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                            initial={{ scale: 0.95, opacity: 0, y: -10 }}
                             animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-3 sm:p-5 max-w-2xl w-full flex flex-col shadow-2xl relative overflow-hidden"
+                            exit={{ scale: 0.95, opacity: 0, y: -10 }}
+                            transition={{ duration: 0.18, ease: [0.23, 1, 0.32, 1] }}
+                            className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-2xl p-3.5 sm:p-5 max-w-2xl w-full flex flex-col shadow-2xl relative my-auto max-h-[90vh] overflow-hidden"
                             onClick={(e) => e.stopPropagation()}
                         >
                             {/* Modal Top Accent Glow */}
@@ -397,125 +353,91 @@ export const ServiceStatusIndicator: React.FC<ServiceStatusIndicatorProps> = ({
                                         <h2 className="text-xs sm:text-base font-black uppercase tracking-tight text-slate-900 dark:text-white flex items-center gap-1.5">
                                             <span>Services Matrix</span>
                                             <span className="text-[9px] sm:text-[10px] font-black text-emerald-500 px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                                                {connectedCount}/{totalCount} Connected
+                                                {connectedCount}/{totalCount} Active
                                             </span>
                                         </h2>
                                         <p className="text-[9px] sm:text-[10px] text-slate-500 dark:text-slate-400">
-                                            Tap toggles to enable/disable individual feeds without scrolling.
+                                            Real-time status across all core infrastructure & data feeds.
                                         </p>
                                     </div>
                                 </div>
 
                                 <div className="flex items-center gap-1.5">
                                     <button
-                                        onClick={() => toggleAllServices(Object.values(serviceToggles).some(v => !v))}
-                                        className="px-2 py-1 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[9px] font-black uppercase tracking-wider transition-all"
-                                        title="Toggle All Services"
-                                    >
-                                        {Object.values(serviceToggles).every(Boolean) ? 'Mute All' : 'Enable All'}
-                                    </button>
-
-                                    <button
                                         onClick={runDiagnostics}
                                         disabled={isChecking}
-                                        className="flex items-center gap-1 px-2 py-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold transition-all shadow-md active:scale-95"
+                                        className="flex items-center gap-1 px-2.5 py-1 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold transition-all shadow-md active:scale-95"
                                         title="Re-check connections"
                                     >
                                         <RefreshCw size={11} className={isChecking ? 'animate-spin' : ''} />
-                                        <span className="hidden sm:inline">{isChecking ? 'Checking' : 'Ping'}</span>
+                                        <span>{isChecking ? 'Checking' : 'Ping'}</span>
                                     </button>
 
                                     <button
                                         onClick={() => setIsOpen(false)}
-                                        className="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
+                                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
                                     >
                                         <X size={16} />
                                     </button>
                                 </div>
                             </div>
 
-                            {/* 2-Column Grid for Zero-Scroll Access */}
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 sm:gap-2">
-                                {serviceList.map((service) => {
-                                    const isEnabled = serviceToggles[service.id] !== false;
-
-                                    return (
-                                        <div
-                                            key={service.id}
-                                            className={`flex items-center justify-between p-2 sm:p-2.5 rounded-xl border transition-all gap-1.5 ${
-                                                isEnabled 
-                                                    ? 'bg-slate-50/80 dark:bg-slate-950/60 border-slate-200/80 dark:border-white/10' 
-                                                    : 'bg-slate-100/50 dark:bg-slate-950/20 border-slate-200/40 dark:border-white/5 opacity-60'
-                                            }`}
-                                        >
-                                            <div className="flex items-center gap-2 min-w-0">
-                                                <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 shrink-0">
-                                                    {service.icon}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <div className="flex items-center gap-1.5">
-                                                        <span className="text-[10px] sm:text-xs font-black uppercase text-slate-900 dark:text-white truncate">
-                                                            {service.name}
-                                                        </span>
-                                                        {isEnabled && service.latencyMs !== undefined && (
-                                                            <span className="text-[8px] font-mono text-slate-400">
-                                                                {service.latencyMs}ms
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex items-center gap-1 mt-0.5">
-                                                        {getStatusBadge(service.status, isEnabled)}
-                                                        <p className="text-[8px] sm:text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[100px] sm:max-w-[130px]">
-                                                            {service.info}
-                                                        </p>
-                                                    </div>
-                                                </div>
+                            {/* 2-Column Grid / List */}
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 overflow-y-auto pr-1 max-h-[60vh] custom-scrollbar">
+                                {serviceList.map((service) => (
+                                    <div
+                                        key={service.id}
+                                        className="flex items-center justify-between p-2.5 sm:p-3 rounded-xl border bg-slate-50/80 dark:bg-slate-950/60 border-slate-200/80 dark:border-white/10 transition-all gap-2"
+                                    >
+                                        <div className="flex items-center gap-2.5 min-w-0">
+                                            <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-white/10 shrink-0">
+                                                {service.icon}
                                             </div>
-
-                                            <div className="flex items-center gap-1.5 shrink-0">
-                                                {service.id === 'ctrader' && onOpenSettings && (
-                                                    <button
-                                                        onClick={() => {
-                                                            setIsOpen(false);
-                                                            onOpenSettings();
-                                                        }}
-                                                        className="p-1 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors"
-                                                        title="Configure cTrader Settings"
-                                                    >
-                                                        <Settings size={12} />
-                                                    </button>
-                                                )}
-
-                                                {/* Toggle Switch */}
-                                                <button
-                                                    type="button"
-                                                    onClick={() => toggleService(service.id)}
-                                                    className={`relative inline-flex h-4 w-8 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
-                                                        isEnabled ? 'bg-emerald-500' : 'bg-slate-700'
-                                                    }`}
-                                                    title={isEnabled ? "Mute / Disable Feed" : "Enable Feed"}
-                                                >
-                                                    <span
-                                                        className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out ${
-                                                            isEnabled ? 'translate-x-4' : 'translate-x-0'
-                                                        }`}
-                                                    />
-                                                </button>
+                                            <div className="min-w-0">
+                                                <div className="flex items-center gap-1.5">
+                                                    <span className="text-[11px] sm:text-xs font-black uppercase text-slate-900 dark:text-white truncate">
+                                                        {service.name}
+                                                    </span>
+                                                    {service.latencyMs !== undefined && (
+                                                        <span className="text-[8px] font-mono text-slate-400">
+                                                            {service.latencyMs}ms
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div className="flex items-center gap-1.5 mt-1">
+                                                    {getStatusBadge(service.status)}
+                                                    <p className="text-[9px] text-slate-500 dark:text-slate-400 truncate max-w-[110px] sm:max-w-[140px]">
+                                                        {service.info}
+                                                    </p>
+                                                </div>
                                             </div>
                                         </div>
-                                    );
-                                })}
+
+                                        {service.id === 'ctrader' && onOpenSettings && (
+                                            <button
+                                                onClick={() => {
+                                                    setIsOpen(false);
+                                                    onOpenSettings();
+                                                }}
+                                                className="p-1.5 rounded-md bg-slate-200/60 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition-colors shrink-0"
+                                                title="Configure cTrader Settings"
+                                            >
+                                                <Settings size={13} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
                             </div>
 
                             {/* Modal Footer Note */}
-                            <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[9px] sm:text-[10px] text-slate-400 shrink-0">
-                                <span className="flex items-center gap-1 truncate">
+                            <div className="mt-3 pt-2.5 border-t border-slate-100 dark:border-white/10 flex items-center justify-between text-[10px] text-slate-400 shrink-0">
+                                <span className="flex items-center gap-1.5 truncate">
                                     <Zap size={11} className="text-emerald-500 shrink-0" />
                                     <span>Automated Failover Active</span>
                                 </span>
                                 <button
                                     onClick={() => setIsOpen(false)}
-                                    className="px-3 py-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all"
+                                    className="px-3.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold transition-all text-[10px]"
                                 >
                                     Done
                                 </button>
