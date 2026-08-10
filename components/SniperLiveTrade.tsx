@@ -282,6 +282,27 @@ export function getStrategySuitability(
         rationale = "Moderate-low suitability: Trending markets may experience runaway expansion against range boundaries.";
       }
       break;
+
+    case 'SUPPORT_RESISTANCE_POWER':
+      name = "Support & Resistance Power Zone";
+      description = "Identifies institutional support/resistance pivots, equal high/low retests, and DOM orderbook level defenses.";
+      score += 35;
+      rationale = "High suitability: Horizontal level testing and structural boundary defense.";
+      break;
+
+    case 'SMC_ORDER_BLOCK':
+      name = "SMC Order Block & FVG Confluence";
+      description = "Institutional displacement tracking, 50% Fair Value Gap (FVG) mitigation, and Order Block entries.";
+      score += 38;
+      rationale = "High suitability: Institutional Smart Money concept alignment.";
+      break;
+
+    case 'LIQUIDITY_SWEEP':
+      name = "Liquidity Sweep & Stop-Hunt Counter-Play";
+      description = "Captures session liquidity sweeps (Asian/London Highs & Lows) and Level 2 orderbook imbalance traps.";
+      score += 36;
+      rationale = "High suitability: Liquidity pool sweep and stop-hunt reversal engine.";
+      break;
   }
 
   return {
@@ -1150,7 +1171,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                   'INDEX_STAT_ARB',
                   'INDEX_LEAD_LAG',
                   'SINGLE_ASSET_REGIME',
-                  'SINGLE_ASSET_MOMENTUM'
+                  'SINGLE_ASSET_MOMENTUM',
+                  'SUPPORT_RESISTANCE_POWER',
+                  'SMC_ORDER_BLOCK',
+                  'LIQUIDITY_SWEEP'
               ];
 
               const evaluatedStrategies = allStrategies.map(stratId => {
@@ -1222,16 +1246,16 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       if (quantData) {
           if (isSniperMode) {
               // Strict filters for Sniper Mode
-              if (quantData.weightedScore.totalScore < 79) {
+              if (quantData.weightedScore.totalScore < 80) {
                   isVetoed = true;
-                  vetoReason = `Sniper Mode Active: Confidence Score (${quantData.weightedScore.totalScore}) is below the strict 79 threshold for A+ setups.`;
+                  vetoReason = `Sniper Mode Active: Confidence Score (${quantData.weightedScore.totalScore}%) is below the strict 80% threshold for High Probability setups.`;
               } else if (quantData.quantMath?.fakeoutProbability > 0.45) {
                   isVetoed = true;
                   vetoReason = `Sniper Mode Active: Fakeout Probability (${(quantData.quantMath.fakeoutProbability * 100).toFixed(0)}%) exceeds the maximum 45% risk tolerance.`;
               }
           } else {
-              // Standard aggressive filter
-              if (quantData.weightedScore.totalScore < 35 && quantData.quantMath?.fakeoutProbability > 0.8) {
+              // Standard filter
+              if (quantData.weightedScore.totalScore < 65 && quantData.quantMath?.fakeoutProbability > 0.8) {
                   isVetoed = true;
                   vetoReason = "System detected over 80% statistical probability of a trap/fakeout with extremely weak confidence.";
               }

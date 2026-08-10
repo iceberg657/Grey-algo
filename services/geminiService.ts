@@ -1284,19 +1284,14 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         const candidates = response.candidates;
 
         // Calculate Confluence Score strictly from Execution Checklist
-        let finalConfidence = 0;
+        let finalConfidence = 60;
         if (data.confluenceMatrix?.executionChecklist && Array.isArray(data.confluenceMatrix.executionChecklist) && data.confluenceMatrix.executionChecklist.length > 0) {
             const passedCount = data.confluenceMatrix.executionChecklist.filter((item: string) => item.toLowerCase().includes('pass')).length;
-            finalConfidence = Math.round((passedCount / data.confluenceMatrix.executionChecklist.length) * 100);
-        } else {
-            finalConfidence = data.confidence || 0;
-        }
-
-        // Apply Confidence Clamping: 60-79% for regular, 80-95% for sure signals
-        if (finalConfidence < 80) {
-            finalConfidence = Math.min(79, Math.max(60, finalConfidence));
-        } else if (finalConfidence > 95) {
-            finalConfidence = 95;
+            const raw = Math.round((passedCount / data.confluenceMatrix.executionChecklist.length) * 100);
+            finalConfidence = Math.min(85, Math.max(60, 60 + Math.round((raw / 100) * 25)));
+        } else if (data.confidence !== undefined) {
+            const raw = data.confidence;
+            finalConfidence = raw >= 60 && raw <= 85 ? raw : Math.min(85, Math.max(60, 60 + Math.round((raw / 100) * 25)));
         }
 
         // Extract Grounding Metadata (Real Search Results)
@@ -2993,10 +2988,11 @@ JSON Structure:
 
                 const exactQuantConf = quantData?.weightedScore?.totalScore;
                 const rawConf = signal.confidence || 50;
-                let finalConfidence = exactQuantConf !== undefined ? exactQuantConf : Math.floor(70 + (rawConf / 100) * 15);
+                let finalConfidence = exactQuantConf !== undefined ? exactQuantConf : Math.floor(60 + (rawConf / 100) * 25);
                 if (exactQuantConf === undefined && signal.neuralFilter && signal.neuralFilter.confidenceBoost) {
-                    finalConfidence = Math.max(0, Math.min(100, finalConfidence + signal.neuralFilter.confidenceBoost));
+                    finalConfidence = finalConfidence + signal.neuralFilter.confidenceBoost;
                 }
+                finalConfidence = Math.min(85, Math.max(60, Math.round(finalConfidence)));
 
                 // SL Validation against ATR if quantData is present and AI SL is not already valid
                 if (quantData?.atr && !isAiSlValid) {

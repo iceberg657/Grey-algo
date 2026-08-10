@@ -852,35 +852,37 @@ export const calculateWeightedScore = (
     }
 
     const rawTotal = smcScore + volScore + trendScore + newsScore + sessScore + liquiditySweptBonus;
-    let totalScore = Math.max(0, Math.min(rawTotal - correlationPenalty - quantPenalty, 100));
+    let rawScore = Math.max(0, Math.min(rawTotal - correlationPenalty - quantPenalty, 100));
 
     if (quantMath && quantMath.lstmState !== undefined) {
         if (quantMath.lstmState > 0.8 || quantMath.lstmState < -0.8) {
             breakdown.push(`LSTM Recurrent Sequence confirms directional momentum (+5)`);
-            totalScore = Math.min(100, totalScore + 5); 
+            rawScore = Math.min(100, rawScore + 5); 
         }
     }
 
     // Instant Reject / Veto if fakeout probability is too high (>=80%)
     if (quantMath && quantMath.fakeoutProbability >= 0.80) {
-        totalScore = Math.min(totalScore, 30);
+        rawScore = 0;
         breakdown.push(`ALGORITHMIC VETO: Trade Rejected by Quant Engine (Fakeout > 80%)`);
     }
 
-    // --- DETERMINISTIC SETUP GRADING & HIGH PROBABILITY THRESHOLD ---
-    // User Requirement: 
+    // --- DETERMINISTIC SETUP GRADING & CONFIDENCE SCORE MAPPING ---
+    // User Requirement: Scale 60 (lowest) to 85 (highest)
     // - Score >= 80% is High Probability (Grades A+, A, B)
     // - Score < 80% is Lower Probability (Grades C, D, NO TRADE)
+    const totalScore = Math.min(85, Math.max(60, Math.round(60 + (rawScore / 100) * 25)));
+
     let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'NO TRADE' = 'NO TRADE';
-    if (totalScore >= 90) {
+    if (totalScore >= 84) {
         grade = 'A+';
-    } else if (totalScore >= 85) {
+    } else if (totalScore >= 82) {
         grade = 'A';
     } else if (totalScore >= 80) {
         grade = 'B';
-    } else if (totalScore >= 65) {
+    } else if (totalScore >= 72) {
         grade = 'C';
-    } else if (totalScore >= 50) {
+    } else if (totalScore >= 65) {
         grade = 'D';
     } else {
         grade = 'NO TRADE';
@@ -2132,10 +2134,14 @@ export function analyzeSMC(
     // Apply off-day block if needed
     if (isOffDay) {
         explicitSignal = 'NEUTRAL';
-        weightedScore.totalScore = 0;
+        weightedScore.totalScore = 60;
         weightedScore.grade = 'NO TRADE';
+        weightedScore.isHighProbability = false;
         weightedScore.breakdown.push('Blueprint: Off-day trading blocked (Monday/Friday/Weekend)');
         signalValid = false;
+    } else {
+        weightedScore.totalScore = Math.min(85, Math.max(60, Math.round(weightedScore.totalScore)));
+        weightedScore.isHighProbability = weightedScore.totalScore >= 80;
     }
 
     const greyModelPrediction = calculateGM11(closes.slice(-100), 3);
