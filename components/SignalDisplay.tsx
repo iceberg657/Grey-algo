@@ -339,8 +339,8 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
     };
 
     const confidenceDetails = data.confidence >= 80 
-        ? { label: "High Probability", color: "text-green-400" } 
-        : { label: "Medium Probability", color: "text-yellow-400" };
+        ? { label: `Grade ${data.grade || 'A'} • High Probability`, color: "text-emerald-500 dark:text-emerald-400" } 
+        : { label: `Grade ${data.grade || 'C'} • Below 80% Threshold`, color: "text-amber-500 dark:text-amber-400" };
 
     const hasEconomicEvents = Array.isArray(data.economicEvents) && data.economicEvents.length > 0;
     const hasSentiment = !!data.sentiment;

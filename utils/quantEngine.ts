@@ -114,17 +114,18 @@ export interface CorrelationRule {
 
 export interface WeightedScore {
     direction?: 'BUY' | 'SELL';
-    smcStructure: number; // Max 30pts
-    volumeProfile: number; // Max 20pts
-    globalTrend: number; // Max 20pts
-    newsSentiment: number; // Max 20pts
-    sessionTiming: number; // Max 10pts
+    smcStructure: number; // Max 35pts
+    volumeProfile: number; // Max 25pts
+    globalTrend: number; // Max 25pts
+    newsSentiment: number; // Max 10pts
+    sessionTiming: number; // Max 5pts
     correlationPenalty: number;
     liquiditySweepBonus: number;
-    totalScore: number;        // Out of 100
-    grade: 'A+' | 'A' | 'B+' | 'B' | 'C' | 'NO TRADE';
+    totalScore: number;        // Out of 100 (Deterministic Quant Engine Confidence)
+    grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'NO TRADE';
     riskTier: 'FULL' | 'HALF' | 'QUARTER' | 'SKIP';
     suggestedRiskPercent: number;
+    isHighProbability: boolean; // true if totalScore >= 80
     breakdown: string[];
 }
 
@@ -711,13 +712,13 @@ export const calculateWeightedScore = (
 ): WeightedScore => {
     const breakdown: string[] = [];
 
-    // 1. SMC STRUCTURE (30 pts)
+    // 1. SMC STRUCTURE (35 pts max)
     let smcScore = 0;
-    if (smcFactors.htfBOS) { smcScore += 10; breakdown.push('HTF BOS confirmed +10'); }
+    if (smcFactors.htfBOS) { smcScore += 12; breakdown.push('HTF BOS confirmed +12'); }
     if (smcFactors.bosInstitutional) { smcScore += 8; breakdown.push('Institutional displacement +8'); }
     if (smcFactors.zoneValid) { smcScore += 7; breakdown.push('Correct Premium/Discount zone +7'); }
-    if (smcFactors.otePrecise) { smcScore += 3; breakdown.push('Price in OTE 70.5% zone +3'); }
-    if (smcFactors.obConfluence) { smcScore += 2; breakdown.push('OB confluence +2'); }
+    if (smcFactors.otePrecise) { smcScore += 4; breakdown.push('Price in OTE 70.5% zone +4'); }
+    if (smcFactors.obConfluence) { smcScore += 4; breakdown.push('OB confluence +4'); }
 
     // DOM L2 Skew Influence on SMC Structure (confluence / conflict checking)
     if (usedBroker === 'cTrader' && l2Metrics && direction && direction !== 'NEUTRAL') {
@@ -739,13 +740,11 @@ export const calculateWeightedScore = (
             }
         }
     }
-    smcScore = Math.max(0, Math.min(smcScore, 30));
+    smcScore = Math.max(0, Math.min(smcScore, 35));
 
-    // 2. VOLUME PROFILE / DOM DEPTH (20 pts)
-    // The volume profile from Deriv is mathematically fake (all ticks = 1 volume).
-    // If we use cTrader, we have the ACTUAL volume data directly from the provider.
-    let volScore = usedBroker === 'cTrader' ? Math.min(vpScore, 12) : Math.min(Math.round(vpScore * 0.6), 8); // Max 12pts from cTrader (actual), max 8pts from Deriv (tick-based)
-    let domDepthScore = 0; // Max 8pts from real-time DOM imbalances
+    // 2. VOLUME PROFILE / DOM DEPTH (25 pts max)
+    let volScore = usedBroker === 'cTrader' ? Math.min(vpScore, 13) : Math.min(Math.round(vpScore * 0.8), 10);
+    let domDepthScore = 0;
 
     if (volScore > 0) {
         breakdown.push(`Volume Profile Confluence (${usedBroker === 'cTrader' ? 'cTrader Actual Vol' : 'Deriv Tick Vol'}) +${volScore}`);
@@ -753,35 +752,34 @@ export const calculateWeightedScore = (
         breakdown.push(`${usedBroker} Vol Profile Aligned`);
     }
 
-        if (l2Metrics && direction && direction !== 'NEUTRAL') {
-            const imbalancePercent = l2Metrics.imbalancePercent; // (Bids - Asks) / (Bids + Asks) * 100
-            if (direction === 'BUY') {
-                if (imbalancePercent > 10) {
-                    domDepthScore = Math.min(8, Math.round(imbalancePercent / 5));
-                    breakdown.push(`DOM Bullish Imbalance (+${imbalancePercent.toFixed(1)}%) confirmed +${domDepthScore}`);
-                } else if (imbalancePercent < -10) {
-                    domDepthScore = 0;
-                    breakdown.push(`DOM Warning: Bearish Imbalance (${imbalancePercent.toFixed(1)}%) in BUY setup`);
-                }
-            } else if (direction === 'SELL') {
-                if (imbalancePercent < -10) {
-                    domDepthScore = Math.min(8, Math.round(Math.abs(imbalancePercent) / 5));
-                    breakdown.push(`DOM Bearish Imbalance (${imbalancePercent.toFixed(1)}%) confirmed +${domDepthScore}`);
-                } else if (imbalancePercent > 10) {
-                    domDepthScore = 0;
-                    breakdown.push(`DOM Warning: Bullish Imbalance (+${imbalancePercent.toFixed(1)}%) in SELL setup`);
-                }
+    if (l2Metrics && direction && direction !== 'NEUTRAL') {
+        const imbalancePercent = l2Metrics.imbalancePercent;
+        if (direction === 'BUY') {
+            if (imbalancePercent > 10) {
+                domDepthScore = Math.min(12, Math.round(imbalancePercent / 4));
+                breakdown.push(`DOM Bullish Imbalance (+${imbalancePercent.toFixed(1)}%) confirmed +${domDepthScore}`);
+            } else if (imbalancePercent < -10) {
+                domDepthScore = 0;
+                breakdown.push(`DOM Warning: Bearish Imbalance (${imbalancePercent.toFixed(1)}%) in BUY setup`);
+            }
+        } else if (direction === 'SELL') {
+            if (imbalancePercent < -10) {
+                domDepthScore = Math.min(12, Math.round(Math.abs(imbalancePercent) / 4));
+                breakdown.push(`DOM Bearish Imbalance (${imbalancePercent.toFixed(1)}%) confirmed +${domDepthScore}`);
+            } else if (imbalancePercent > 10) {
+                domDepthScore = 0;
+                breakdown.push(`DOM Warning: Bullish Imbalance (+${imbalancePercent.toFixed(1)}%) in SELL setup`);
             }
         }
-    volScore = Math.max(0, Math.min(volScore + domDepthScore, 20));
+    }
+    volScore = Math.max(0, Math.min(volScore + domDepthScore, 25));
 
-    // 3. GLOBAL TREND / CORRELATION / DOM CONFLUENCE (20 pts)
+    // 3. GLOBAL TREND / CORRELATION / DOM CONFLUENCE (25 pts max)
     let trendScore = 0;
-    if (trendAligned) { trendScore += 10; breakdown.push('3TF trend aligned +10'); }
+    if (trendAligned) { trendScore += 15; breakdown.push('3TF trend aligned +15'); }
     trendScore += Math.min(correlationScore, 10);
     if (correlationScore > 0) breakdown.push(`Correlation score +${Math.min(correlationScore, 10)}`);
 
-    // DOM L2 Skew Influence on Global Trend (adds up to +3, or penalizes up to -5)
     if (usedBroker === 'cTrader' && l2Metrics && direction && direction !== 'NEUTRAL') {
         const imbalancePercent = l2Metrics.imbalancePercent;
         if (direction === 'BUY') {
@@ -802,20 +800,24 @@ export const calculateWeightedScore = (
             }
         }
     }
-    trendScore = Math.max(0, Math.min(trendScore, 20));
+    trendScore = Math.max(0, Math.min(trendScore, 25));
 
-    // 4. NEWS SENTIMENT (20 pts)
+    // 4. NEWS SENTIMENT (10 pts max)
     let newsScore = 0;
     switch (newsRiskLevel) {
-        case 'CLEAR': newsScore = 20; breakdown.push('No news risk +20'); break;
-        case 'LOW': newsScore = 15; breakdown.push('Low news risk +15'); break;
-        case 'MEDIUM': newsScore = 8; breakdown.push('Medium news risk +8'); break;
+        case 'CLEAR': newsScore = 10; breakdown.push('No news risk +10'); break;
+        case 'LOW': newsScore = 8; breakdown.push('Low news risk +8'); break;
+        case 'MEDIUM': newsScore = 4; breakdown.push('Medium news risk +4'); break;
         case 'HIGH': newsScore = 0; breakdown.push('HIGH NEWS RISK +0 ⚠️'); break;
     }
 
-    // 5. SESSION TIMING (10 pts)
-    const sessScore = Math.min(killzoneScore, 10);
-    if (killzoneScore > 0) breakdown.push(`Session score +${sessScore}`);
+    // 5. SESSION TIMING (5 pts max - Neutral base for off-session as requested)
+    const sessScore = killzoneScore > 0 ? 5 : 3;
+    if (killzoneScore > 0) {
+        breakdown.push('Active Killzone session alignment +5');
+    } else {
+        breakdown.push('Off-session execution: Evaluated on pure SMC & Orderbook depth +3');
+    }
 
     // CORRELATION PENALTY
     if (correlationPenalty > 0) {
@@ -827,26 +829,25 @@ export const calculateWeightedScore = (
         breakdown.push(`Liquidity sweep bonus +${liquiditySweptBonus} 🎯`);
     }
 
-    // STATISTICAL & MATH PENALTIES (RPD Optimization Layer)
+    // STATISTICAL & MATH PENALTIES
     let quantPenalty = 0;
     if (quantMath) {
         if (quantMath.fakeoutProbability > 0.7) {
-            quantPenalty += 25;
-            breakdown.push(`STATISTICAL FAKEOUT WARNING: High probability of trap (-25)`);
+            quantPenalty += 20;
+            breakdown.push(`STATISTICAL FAKEOUT WARNING: High probability of trap (-20)`);
         }
         if (quantMath.regimeProbability === 'MEAN_REVERTING' && smcFactors.htfBOS) {
             quantPenalty += 10;
             breakdown.push(`Mathematical Regime Conflict: Mean-Reverting market attempting breakout (-10)`);
         }
         if (quantMath.statisticalNoiseRatio > 0.8) {
-            quantPenalty += 15;
-            breakdown.push(`High Market Noise Ratio detected (-15)`);
+            quantPenalty += 10;
+            breakdown.push(`High Market Noise Ratio detected (-10)`);
         }
 
-        // Advanced Math Integration
         if (quantMath.msGarchVol !== undefined && quantMath.msGarchVol > 0.05) {
-            quantPenalty += 15; // High volatility crash regime penalizes scores
-            breakdown.push(`MS-GARCH Volatility Regime indicates erratic tail risk (-15)`);
+            quantPenalty += 10;
+            breakdown.push(`MS-GARCH Volatility Regime indicates erratic tail risk (-10)`);
         }
     }
 
@@ -854,45 +855,51 @@ export const calculateWeightedScore = (
     let totalScore = Math.max(0, Math.min(rawTotal - correlationPenalty - quantPenalty, 100));
 
     if (quantMath && quantMath.lstmState !== undefined) {
-        if (quantMath.lstmState > 0.8) {
-            breakdown.push(`LSTM Recurrent Sequence confirms strong bullish continuation (+5)`);
-            totalScore += 5; 
-        } else if (quantMath.lstmState < -0.8) {
-            breakdown.push(`LSTM Recurrent Sequence confirms strong bearish continuation (+5)`);
-            totalScore += 5;
+        if (quantMath.lstmState > 0.8 || quantMath.lstmState < -0.8) {
+            breakdown.push(`LSTM Recurrent Sequence confirms directional momentum (+5)`);
+            totalScore = Math.min(100, totalScore + 5); 
         }
     }
 
-    // Handle any additional bonus that brought it over 100
-    if (quantMath && quantMath.lstmState && Math.abs(quantMath.lstmState) > 0.8) {
-        totalScore = Math.min(100, Math.max(0, totalScore));
+    // Instant Reject / Veto if fakeout probability is too high (>=80%)
+    if (quantMath && quantMath.fakeoutProbability >= 0.80) {
+        totalScore = Math.min(totalScore, 30);
+        breakdown.push(`ALGORITHMIC VETO: Trade Rejected by Quant Engine (Fakeout > 80%)`);
     }
 
-    // Instant Reject if probability is too bad
-    if (quantMath && quantMath.fakeoutProbability >= 0.85) {
-        totalScore = Math.min(totalScore, 30); // Hard cap at C grade or lower to ban AI execution
-        breakdown.push(`ALGORITHMIC VETO: Trade Rejected by Quant Engine (Fakeout > 85%)`);
+    // --- DETERMINISTIC SETUP GRADING & HIGH PROBABILITY THRESHOLD ---
+    // User Requirement: 
+    // - Score >= 80% is High Probability (Grades A+, A, B)
+    // - Score < 80% is Lower Probability (Grades C, D, NO TRADE)
+    let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'NO TRADE' = 'NO TRADE';
+    if (totalScore >= 90) {
+        grade = 'A+';
+    } else if (totalScore >= 85) {
+        grade = 'A';
+    } else if (totalScore >= 80) {
+        grade = 'B';
+    } else if (totalScore >= 65) {
+        grade = 'C';
+    } else if (totalScore >= 50) {
+        grade = 'D';
+    } else {
+        grade = 'NO TRADE';
     }
 
-    const grade =
-        totalScore >= 90 ? 'A+' :
-            totalScore >= 80 ? 'A' :
-                totalScore >= 75 ? 'B+' :
-                    totalScore >= 65 ? 'B' :
-                        totalScore >= 50 ? 'C' : 'NO TRADE';
+    const isHighProbability = totalScore >= 80;
 
     const riskTier =
         grade === 'A+' ? 'FULL' :
             grade === 'A' ? 'FULL' :
-                grade === 'B+' ? 'HALF' :
-                    grade === 'B' ? 'QUARTER' : 'SKIP';
+                grade === 'B' ? 'HALF' :
+                    grade === 'C' ? 'QUARTER' : 'SKIP';
 
     const suggestedRiskPercent =
         grade === 'A+' ? 2.0 :
             grade === 'A' ? 1.0 :
-                grade === 'B+' ? 0.5 :
-                    grade === 'B' ? 0.25 :
-                        grade === 'C' ? 0.1 : 0;
+                grade === 'B' ? 0.75 :
+                    grade === 'C' ? 0.25 :
+                        grade === 'D' ? 0.1 : 0;
 
     return {
         smcStructure: smcScore,
@@ -906,6 +913,7 @@ export const calculateWeightedScore = (
         grade,
         riskTier,
         suggestedRiskPercent,
+        isHighProbability,
         breakdown
     };
 };

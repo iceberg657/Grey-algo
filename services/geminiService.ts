@@ -1390,11 +1390,18 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         }
         // REMOVED: Placeholder autofilling for reasoning points. If the AI didn't generate 10, it should be reflected as missing or incomplete.
 
+        const exactQuantConf = request.quantData?.weightedScore?.totalScore;
+        const retailConf = exactQuantConf !== undefined ? exactQuantConf : finalConfidence;
+        const retailGrade = request.quantData?.weightedScore?.grade || (retailConf >= 80 ? 'A' : retailConf >= 65 ? 'C' : 'D');
+        const retailHighProb = request.quantData?.weightedScore?.isHighProbability ?? (retailConf >= 80);
+
         const rawSignal = {
             asset: data.asset || request.asset || "Unknown",
             timeframe: data.timeframe || "N/A",
             signal: (data.signal === 'NEUTRAL' ? ((request.query?.toLowerCase().includes('sell') || request.query?.toLowerCase().includes('bearish')) ? 'SELL' : 'BUY') : data.signal) as 'BUY' | 'SELL',
-            confidence: finalConfidence,
+            confidence: retailConf,
+            grade: retailGrade,
+            isHighProbability: retailHighProb,
             entryPoints: data.entryPoints || [0, 0, 0],
             entryType: data.entryType || "Market Execution",
             triggerConditions: data.triggerConditions || { breakoutLevel: 0, retestLogic: "N/A", entryTriggerCandle: "N/A" },
@@ -2984,9 +2991,10 @@ JSON Structure:
                     finalReasoning.push(`🎯 Retaining high-precision AI-generated Take Profit coordinates.`);
                 }
 
+                const exactQuantConf = quantData?.weightedScore?.totalScore;
                 const rawConf = signal.confidence || 50;
-                let finalConfidence = Math.floor(70 + (rawConf / 100) * 15);
-                if (signal.neuralFilter && signal.neuralFilter.confidenceBoost) {
+                let finalConfidence = exactQuantConf !== undefined ? exactQuantConf : Math.floor(70 + (rawConf / 100) * 15);
+                if (exactQuantConf === undefined && signal.neuralFilter && signal.neuralFilter.confidenceBoost) {
                     finalConfidence = Math.max(0, Math.min(100, finalConfidence + signal.neuralFilter.confidenceBoost));
                 }
 
@@ -3187,12 +3195,17 @@ Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
                 entryTriggerCandle: sanitizeTextOutput(signal.triggerConditions.entryTriggerCandle || "N/A")
             } : undefined;
 
+            const exactGrade = quantData?.weightedScore?.grade || (finalConfidence >= 80 ? 'A' : finalConfidence >= 65 ? 'C' : 'D');
+            const exactHighProb = quantData?.weightedScore?.isHighProbability ?? (finalConfidence >= 80);
+
             const sanitizedSignal: SignalData = {
                 id: `sniper_${Date.now()}`,
                 timestamp: Date.now(),
                 asset: targetAsset,
                 signal: finalSignal,
                 confidence: finalConfidence,
+                grade: exactGrade,
+                isHighProbability: exactHighProb,
                 priceAtSignal: roundedPriceAtSignal,
                 truthLayerUsed: !!derivData?.truthLayerUsed,
                 timeframe: signal.timeframe || (style.includes('scalping') ? 'M5' : style.includes('day') ? 'H1' : 'H4'),

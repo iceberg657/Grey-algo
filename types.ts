@@ -203,6 +203,8 @@ export interface SignalData {
         title: string;
     }[];
     usedBroker?: string;
+    grade?: 'A+' | 'A' | 'B' | 'C' | 'D' | 'NO TRADE';
+    isHighProbability?: boolean;
     
     // Extended Trade Setup Fields
     calculatedRR?: string;

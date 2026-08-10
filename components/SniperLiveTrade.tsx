@@ -2005,18 +2005,29 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                       <span className="text-slate-600">•</span>
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{msg.signal.timeframe || 'M5'}</span>
                                     </div>
-                                    <h2 className="text-3xl font-black tracking-tighter italic uppercase">{msg.signal.asset}</h2>
+                                    <div className="flex items-center gap-3">
+                                      <h2 className="text-3xl font-black tracking-tighter italic uppercase">{msg.signal.asset}</h2>
+                                      {msg.signal.grade && (
+                                        <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
+                                          msg.signal.confidence >= 80 || ['A+', 'A', 'B'].includes(msg.signal.grade)
+                                            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                                            : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
+                                        }`}>
+                                          GRADE {msg.signal.grade} {msg.signal.confidence >= 80 ? '• HIGH PROBABILITY' : '• BELOW 80% THRESHOLD'}
+                                        </span>
+                                      )}
+                                    </div>
                                   </div>
                                 </div>
 
                                 <div className="flex flex-col items-end">
                                   <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500 mb-1">Confidence</span>
                                   <div className="flex items-center gap-3">
-                                    <div className="text-3xl font-black italic tracking-tighter text-slate-900 dark:text-white">{Math.min(msg.signal.confidence, 85)}%</div>
+                                    <div className="text-3xl font-black italic tracking-tighter text-slate-900 dark:text-white">{msg.signal.confidence}%</div>
                                     <div className="w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
                                       <motion.div 
                                         initial={{ width: 0 }}
-                                        animate={{ width: `${Math.min(msg.signal.confidence, 85)}%` }}
+                                        animate={{ width: `${Math.min(100, Math.max(0, msg.signal.confidence))}%` }}
                                         className={`h-full rounded-full ${msg.signal.signal === 'BUY' ? 'bg-emerald-500' : 'bg-rose-500'}`}
                                       />
                                     </div>
