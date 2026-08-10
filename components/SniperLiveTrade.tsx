@@ -766,8 +766,24 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       const getTimeframes = (currentStyle: string) => {
         return timeframePrefs[currentStyle] || defaultTimeframePrefs[currentStyle] || defaultTimeframePrefs['day trading(1 to 2hrs)'];
       };
+
+      // Determine required candle depth dynamically based on trading style
+      const getCandleCounts = (currentStyle: string) => {
+        const s = (currentStyle || '').toLowerCase();
+        if (s.includes('scalp')) {
+          // Scalping needs deep high-frequency OHLCV (up to 1500 bars) for micro SMC, Volume Profile, FVGs
+          return { entryCount: 1500, confirmCount: 1000, htfCount: 500 };
+        }
+        if (s.includes('day')) {
+          // Day trading needs multi-session depth (1000 bars) for Session VWAP, POC/VAH/VAL
+          return { entryCount: 1000, confirmCount: 1000, htfCount: 500 };
+        }
+        // Swing trading
+        return { entryCount: 1000, confirmCount: 500, htfCount: 250 };
+      };
       
       const timeframes = getTimeframes(style);
+      const counts = getCandleCounts(style);
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort('timeout'), 60000); 
 
@@ -792,14 +808,14 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       if (isAdvancedStreaming) {
           usedBroker = 'cTrader Level 2';
           const ctAsset = getCTraderSymbol(asset);
-          console.log(`[SniperLiveTrade Level 2] Fetching Exclusive Level 2 Data from cTrader for ${ctAsset} (raw: ${asset})...`);
+          console.log(`[SniperLiveTrade Level 2] Fetching ${counts.entryCount} Bars Level 2 Data from cTrader for ${ctAsset} (raw: ${asset})...`);
           
           try {
               // Fetch from cTrader API
               const [entryRes, confirmRes, htfRes, tickRes] = await Promise.all([
-                  fetch(`/api/ctrader/trendbars?symbol=${ctAsset}&period=${timeframes.ctEntry}&accountId=${ctAccount}&environment=${ctEnvironment}&count=1000`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal }),
-                  fetch(`/api/ctrader/trendbars?symbol=${ctAsset}&period=${timeframes.ctConfirm}&accountId=${ctAccount}&environment=${ctEnvironment}&count=1000`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal }),
-                  fetch(`/api/ctrader/trendbars?symbol=${ctAsset}&period=${timeframes.ctHtf}&accountId=${ctAccount}&environment=${ctEnvironment}&count=1000`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal }),
+                  fetch(`/api/ctrader/trendbars?symbol=${ctAsset}&period=${timeframes.ctEntry}&accountId=${ctAccount}&environment=${ctEnvironment}&count=${counts.entryCount}`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal }),
+                  fetch(`/api/ctrader/trendbars?symbol=${ctAsset}&period=${timeframes.ctConfirm}&accountId=${ctAccount}&environment=${ctEnvironment}&count=${counts.confirmCount}`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal }),
+                  fetch(`/api/ctrader/trendbars?symbol=${ctAsset}&period=${timeframes.ctHtf}&accountId=${ctAccount}&environment=${ctEnvironment}&count=${counts.htfCount}`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal }),
                   fetch(`/api/ctrader/ticks?symbol=${ctAsset}&type=BID&accountId=${ctAccount}&environment=${ctEnvironment}`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal })
               ]);
               
@@ -850,11 +866,11 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
             clientToken = import.meta.env.VITE_DERIV_API_TOKEN || import.meta.env.VITE_DERIV_TOKEN || import.meta.env.DERIV_API_TOKEN || import.meta.env.DERIV_TOKEN || '';
           }
 
-          console.log(`[SniperLiveTrade] Fetching Standard Data from Deriv for ${symbol}...`);
+          console.log(`[SniperLiveTrade] Fetching ${counts.entryCount} Standard OHLCV Bars from Deriv for ${symbol} (${style})...`);
           const [entryRes, confirmRes, htfRes] = await Promise.all([
-              fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-              fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
-              fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=1000${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
+              fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.entry}&count=${counts.entryCount}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+              fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.confirm}&count=${counts.confirmCount}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' }),
+              fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=${counts.htfCount}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
           ]);
           
           clearTimeout(timeoutId);
@@ -867,6 +883,44 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           entryData = eData;
           confirmData = cData;
           htfData = hData;
+      }
+
+      // Absolute OHLCV normalization pipeline
+      const normalizeCandleList = (rawCandles: any[]) => {
+          if (!Array.isArray(rawCandles)) return [];
+          return rawCandles.map((c: any) => {
+              const open = Number(c.open ?? c.close ?? 0);
+              const high = Number(c.high ?? Math.max(open, Number(c.close ?? 0)));
+              const low = Number(c.low ?? Math.min(open, Number(c.close ?? 0)));
+              const close = Number(c.close ?? open);
+              const epoch = Number(c.epoch ?? (c.datetime ? Math.floor(new Date(c.datetime).getTime() / 1000) : Date.now() / 1000));
+              
+              const rangePips = Math.abs(high - low);
+              const closePrice = close || 1;
+              const computedVol = Math.max(15, Math.round((rangePips / closePrice) * 100000 + Math.abs(close - open) / closePrice * 200000));
+              const volume = Number(c.volume ?? c.tick_volume ?? c.tickVolume ?? computedVol);
+
+              return {
+                  open,
+                  high,
+                  low,
+                  close,
+                  epoch,
+                  datetime: c.datetime || new Date(epoch * 1000).toISOString(),
+                  volume,
+                  tick_volume: volume
+              };
+          });
+      };
+
+      if (entryData && entryData.candles) {
+          entryData.candles = normalizeCandleList(entryData.candles);
+      }
+      if (confirmData && confirmData.candles) {
+          confirmData.candles = normalizeCandleList(confirmData.candles);
+      }
+      if (htfData && htfData.candles) {
+          htfData.candles = normalizeCandleList(htfData.candles);
       }
       
       // Parse out live price from the last candle
@@ -1079,7 +1133,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               const mSeries: MarketSeries = {
                   symbol: asset,
                   bars: derivData.candles.map((c: any) => ({
-                      open: c.open, high: c.high, low: c.low, close: c.close, volume: 1, timestamp: new Date(c.epoch * 1000)
+                      open: c.open, high: c.high, low: c.low, close: c.close, volume: c.volume || c.tick_volume || 10, timestamp: new Date(c.epoch * 1000)
                   }))
               };
               

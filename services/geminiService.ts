@@ -2389,17 +2389,24 @@ ${quantData.ctraderTicks ? `- HIGH DENSITY cTRADER TICK DATA: ${quantData.ctrade
 - Predicted Stop Clusters (Liquidity Targets): ${quantData.stopClusters?.map((s: any) => `${s.type} at ${s.price} (Size: ${s.size} Lots, Prob: ${s.probability})`)?.join(' | ') || 'NONE'}
 - Liquidity Sweep Prediction: Next Target: ${quantData.liquidityPrediction?.nextTarget || 'NONE'} | Probability: ${quantData.liquidityPrediction?.probability || 0}% | Imminent: ${quantData.liquidityPrediction?.imminentSweep ? 'YES' : 'NO'}
 - Risk Optimization: Kelly Exec: ${quantData.riskOptimization?.suggestedRiskPercentage?.toFixed(2)}% | Split Orders: ${quantData.riskOptimization?.splitOrders ? 'YES' : 'NO'} | Approval: ${quantData.riskOptimization?.approval ? 'APPROVED' : 'VETOED'}
-${quantData.orderflowMetrics?.l2Metrics && (quantData.orderflowMetrics.l2Metrics as any).bestBid ? `
-**REAL-TIME LEVEL 2 ORDER BOOK (DEPTH OF MARKET - DOM):**
-- Best Bid Price: ${(quantData.orderflowMetrics.l2Metrics as any).bestBid} | Best Ask Price: ${(quantData.orderflowMetrics.l2Metrics as any).bestAsk}
-- Bid/Ask Spread: ${(quantData.orderflowMetrics.l2Metrics as any).spread?.toFixed(5)}
-- Market Liquidity Depth: Bids Depth: ${(quantData.orderflowMetrics.l2Metrics as any).marketDepth?.totalBidSize?.toFixed(2)} Lots | Asks Depth: ${(quantData.orderflowMetrics.l2Metrics as any).marketDepth?.totalAskSize?.toFixed(2)} Lots
-- Order Book Imbalance Percent: ${quantData.orderflowMetrics.l2Metrics.imbalancePercent?.toFixed(2)}%
-- Multiple Bid Levels (Price & Size): ${(quantData.orderflowMetrics.l2Metrics as any).multipleBids?.map((b: any) => `${b[0]} @ ${b[1]} Lots`).join(', ')}
-- Multiple Ask Levels (Price & Size): ${(quantData.orderflowMetrics.l2Metrics as any).multipleAsks?.map((a: any) => `${a[0]} @ ${a[1]} Lots`).join(', ')}
-- Liquidity Walls (Major Price Levels): ${(quantData.orderflowMetrics.l2Metrics as any).liquidityWalls?.map((w: any) => `[${w.type}] ${w.price} (${w.size?.toFixed(2)} Lots)`).join(' | ') || 'None'}
-- Slippage Prediction (50 Lots Block): BUY Slippage: ${(quantData.orderflowMetrics.l2Metrics as any).slippageBuy?.slippagePercent?.toFixed(3)}% | SELL Slippage: ${(quantData.orderflowMetrics.l2Metrics as any).slippageSell?.slippagePercent?.toFixed(3)}%
-- Order Stacking & Pulling: Detected near Walls with high tick velocity.
+${quantData.orderflowMetrics?.l2Metrics ? `
+**REAL-TIME LEVEL 2 DEPTH OF MARKET (DOM) METRICS:**
+1. **STANDARD DOM (CUMULATIVE ORDERBOOK DEPTH):**
+   - Top-of-Book Spot: Best Bid: ${(quantData.orderflowMetrics.l2Metrics as any).bestBid || (quantData.orderflowMetrics.l2Metrics.priceDom?.bestBid ?? 'N/A')} | Best Ask: ${(quantData.orderflowMetrics.l2Metrics as any).bestAsk || (quantData.orderflowMetrics.l2Metrics.priceDom?.bestAsk ?? 'N/A')}
+   - Spread: ${(quantData.orderflowMetrics.l2Metrics as any).spread?.toFixed(5) || 'N/A'}
+   - Total Bid Depth: ${quantData.orderflowMetrics.l2Metrics.bidDepth?.toFixed(2)} Lots | Total Ask Depth: ${quantData.orderflowMetrics.l2Metrics.askDepth?.toFixed(2)} Lots
+   - Depth Imbalance Skew: ${quantData.orderflowMetrics.l2Metrics.imbalancePercent?.toFixed(1)}% (${quantData.orderflowMetrics.l2Metrics.skew})
+
+2. **PRICE DOM (LADDER & PASSIVE LIQUIDITY WALLS):**
+   - Price Ladder Top Bids: ${quantData.orderflowMetrics.l2Metrics.priceDom?.topBids?.map(b => `${b.price} (${b.volume} Lots, ${b.distancePips} pips away)`).join(' | ') || (quantData.orderflowMetrics.l2Metrics as any).multipleBids?.map((b: any) => `${b[0]} @ ${b[1]} Lots`).join(', ') || 'N/A'}
+   - Price Ladder Top Asks: ${quantData.orderflowMetrics.l2Metrics.priceDom?.topAsks?.map(a => `${a.price} (${a.volume} Lots, ${a.distancePips} pips away)`).join(' | ') || (quantData.orderflowMetrics.l2Metrics as any).multipleAsks?.map((a: any) => `${a[0]} @ ${a[1]} Lots`).join(', ') || 'N/A'}
+   - Passive Order Walls: ${(quantData.orderflowMetrics.l2Metrics as any).liquidityWalls?.map((w: any) => `[${w.type}] ${w.price} (${w.size?.toFixed(2)} Lots)`).join(' | ') || 'None'}
+   - Order Stacking vs. Pulling: Monitored for institutional spoofing & phantom walls.
+
+3. **VWAP DOM (VOLUME-WEIGHTED AVERAGE EXECUTION PRICE & SLIPPAGE):**
+   - 10 Lots Exec VWAP: BUY VWAP: ${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots10?.vwapBuyPrice ?? 'N/A'} (+${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots10?.buySlippagePips ?? '0'} pips) | SELL VWAP: ${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots10?.vwapSellPrice ?? 'N/A'} (-${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots10?.sellSlippagePips ?? '0'} pips)
+   - 50 Lots Block VWAP: BUY VWAP: ${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots50?.vwapBuyPrice ?? 'N/A'} (+${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots50?.buySlippagePips ?? '0'} pips) | SELL VWAP: ${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots50?.vwapSellPrice ?? 'N/A'} (-${quantData.orderflowMetrics.l2Metrics.vwapDom?.lots50?.sellSlippagePips ?? '0'} pips)
+   - VWAP Execution Rule: If 10-lot VWAP DOM slippage exceeds 3.5 pips, force LIMIT ORDER execution to avoid fill degradation.
 ` : ''}
 
 **NEURAL REASONING ENGINE:**

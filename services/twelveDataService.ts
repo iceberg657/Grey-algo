@@ -129,3 +129,52 @@ export async function fetchMarketData(symbol: string, interval: string = '1h'): 
         return { error: e.message };
     }
 }
+
+export async function fetchTwelveDataSeries(symbol: string, interval: string = '5min', outputsize: number = 1000): Promise<any | null> {
+    try {
+        const storedSettings = typeof window !== 'undefined' ? localStorage.getItem('greyquant_user_settings') : null;
+        const userSettings = storedSettings ? JSON.parse(storedSettings) : null;
+        const localKey = userSettings?.twelveDataApiKey;
+
+        let url = `/api/twelveData?action=time_series&symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}`;
+        if (localKey) {
+            url += `&apikey=${encodeURIComponent(localKey)}`;
+        }
+
+        const proxyRes = await fetch(url, { cache: 'no-store' });
+        if (proxyRes.ok) {
+            const data = await proxyRes.json();
+            if (data && !data.error && Array.isArray(data.candles)) {
+                return data;
+            }
+        }
+
+        if (localKey) {
+            const directUrl = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${encodeURIComponent(localKey)}`;
+            const res = await fetch(directUrl, { cache: 'no-store' });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.values && Array.isArray(data.values)) {
+                    const sorted = data.values.slice().reverse();
+                    const candles = sorted.map((v: any) => {
+                        const open = parseFloat(v.open || '0');
+                        const high = parseFloat(v.high || '0');
+                        const low = parseFloat(v.low || '0');
+                        const close = parseFloat(v.close || '0');
+                        const volume = parseFloat(v.volume || '0');
+                        const epoch = Math.floor(new Date(v.datetime).getTime() / 1000) || Math.floor(Date.now() / 1000);
+
+                        return { open, high, low, close, volume, tick_volume: volume, datetime: v.datetime, epoch };
+                    });
+
+                    return { symbol, interval, count: candles.length, candles };
+                }
+            }
+        }
+
+        return { error: 'Failed to fetch time series data.' };
+    } catch (e: any) {
+        console.error('Failed to fetch time series from Twelve Data:', e);
+        return { error: e.message };
+    }
+}

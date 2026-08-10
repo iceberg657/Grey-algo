@@ -161,15 +161,37 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
                         epoch: tick.epoch
                     });
                 } else if (response.msg_type === 'ohlc' || response.msg_type === 'candles' || response.msg_type === 'history') {
+                    const rawCandles = response.candles || response.history?.prices?.map((p: any, i: number) => ({
+                        epoch: response.history.times[i],
+                        close: p,
+                        high: p,
+                        low: p,
+                        open: p
+                    })) || [];
+
+                    const normalizedCandles = rawCandles.map((c: any) => {
+                        const open = Number(c.open ?? c.close ?? 0);
+                        const high = Number(c.high ?? Math.max(open, Number(c.close ?? 0)));
+                        const low = Number(c.low ?? Math.min(open, Number(c.close ?? 0)));
+                        const close = Number(c.close ?? open);
+                        const epoch = Number(c.epoch ?? (c.datetime ? Math.floor(new Date(c.datetime).getTime() / 1000) : Date.now() / 1000));
+                        const volume = Number(c.volume ?? c.tick_volume ?? c.tickVolume ?? 0);
+
+                        return {
+                            epoch,
+                            datetime: c.datetime || new Date(epoch * 1000).toISOString(),
+                            open,
+                            high,
+                            low,
+                            close,
+                            volume,
+                            tick_volume: volume
+                        };
+                    });
+
                     safeResolve({
                         symbol: mappedSymbol,
-                        candles: response.candles || response.history?.prices?.map((p: any, i: number) => ({
-                            epoch: response.history.times[i],
-                            close: p,
-                            high: p,
-                            low: p,
-                            open: p
-                        })) || []
+                        candles: normalizedCandles
                     });
                 }
             } catch (err: any) {

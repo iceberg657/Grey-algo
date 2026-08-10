@@ -51,6 +51,75 @@ export async function statusHandler(_req: Request, res: Response) {
     });
 }
 
+export async function timeSeriesHandler(req: Request, res: Response) {
+    const { symbol, interval = '5min', outputsize = '1000', apikey } = req.query as any;
+    if (!symbol || typeof symbol !== 'string') {
+        return res.status(400).json({ error: 'Missing symbol' });
+    }
+
+    const apiKey = apikey || process.env.TWELVE_DATA_API_KEY || process.env.TWELVEDATA_API_KEY;
+    if (!apiKey) {
+        return res.status(500).json({ error: 'Twelve Data API key not configured' });
+    }
+
+    let mappedSymbol = symbol.toUpperCase();
+    if (mappedSymbol === 'GOLD' || mappedSymbol === 'XAUUSD') mappedSymbol = 'XAU/USD';
+    else if (mappedSymbol === 'US30' || mappedSymbol === 'DJI') mappedSymbol = 'DJI';
+    else if (mappedSymbol === 'NAS100' || mappedSymbol === 'NDX') mappedSymbol = 'NDX';
+    else if (mappedSymbol === 'SPX500' || mappedSymbol === 'SPX') mappedSymbol = 'SPX';
+    else if (mappedSymbol.length === 6 && !mappedSymbol.includes('/')) {
+        mappedSymbol = `${mappedSymbol.slice(0, 3)}/${mappedSymbol.slice(3)}`;
+    }
+
+    try {
+        const encodedSymbol = encodeURIComponent(mappedSymbol);
+        const limit = Math.min(parseInt(outputsize) || 1000, 2000);
+        const url = `https://api.twelvedata.com/time_series?symbol=${encodedSymbol}&interval=${interval}&outputsize=${limit}&apikey=${apiKey}`;
+        
+        const response = await fetch(url);
+        const data = await response.json();
+
+        if (data.status === 'error' || data.code === 429) {
+            return res.status(400).json(data);
+        }
+
+        const rawValues = data.values || [];
+        // TwelveData returns newest first; reverse so array is chronological (oldest to newest)
+        const sorted = rawValues.slice().reverse();
+
+        const candles = sorted.map((v: any) => {
+            const open = parseFloat(v.open || '0');
+            const high = parseFloat(v.high || '0');
+            const low = parseFloat(v.low || '0');
+            const close = parseFloat(v.close || '0');
+            const volume = parseFloat(v.volume || '0');
+            const epoch = Math.floor(new Date(v.datetime).getTime() / 1000) || Math.floor(Date.now() / 1000);
+
+            return {
+                open,
+                high,
+                low,
+                close,
+                volume,
+                tick_volume: volume,
+                datetime: v.datetime,
+                epoch
+            };
+        });
+
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.json({
+            symbol: mappedSymbol,
+            interval,
+            count: candles.length,
+            candles
+        });
+    } catch (error: any) {
+        console.error('Twelve Data TimeSeries Proxy Error:', error);
+        res.status(500).json({ error: error.message || 'Failed to fetch time_series from Twelve Data' });
+    }
+}
+
 export async function quoteHandler(req: Request, res: Response) {
     const { symbol, interval = '15min', apikey } = req.query as any;
     if (!symbol || typeof symbol !== 'string') {
@@ -116,9 +185,11 @@ export async function quoteHandler(req: Request, res: Response) {
 }
 
 export default async function handler(req: Request, res: Response) {
-    const { action } = req.query as any;
+    const { action, history, type } = req.query as any;
     if (action === 'status') {
         return statusHandler(req, res);
+    } else if (action === 'time_series' || history === 'true' || type === 'time_series') {
+        return timeSeriesHandler(req, res);
     } else {
         return quoteHandler(req, res);
     }

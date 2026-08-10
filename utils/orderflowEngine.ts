@@ -23,6 +23,14 @@ export interface StopCluster {
     distancePips: number;
 }
 
+export interface VwapDomMetric {
+    targetLots: number;
+    vwapBuyPrice: number;
+    vwapSellPrice: number;
+    buySlippagePips: number;
+    sellSlippagePips: number;
+}
+
 export interface L2Metrics {
     bidDepth: number;
     askDepth: number;
@@ -30,6 +38,22 @@ export interface L2Metrics {
     imbalancePercent: number; // (Bid-Ask)/(Bid+Ask) * 100
     skew: 'BULLISH_SUPPORT' | 'BEARISH_RESISTANCE' | 'NEUTRAL';
     detectedStopClusters: StopCluster[];
+    // Standard DOM, Price DOM, and VWAP DOM breakdown
+    standardDom?: {
+        bidVolumeTotal: number;
+        askVolumeTotal: number;
+        imbalancePercent: number;
+    };
+    priceDom?: {
+        bestBid: number;
+        bestAsk: number;
+        topBids: { price: number; volume: number; distancePips: number }[];
+        topAsks: { price: number; volume: number; distancePips: number }[];
+    };
+    vwapDom?: {
+        lots10: VwapDomMetric;
+        lots50: VwapDomMetric;
+    };
 }
 
 export interface AbsorptionLevel {
@@ -56,8 +80,19 @@ export const calculateL2OrderbookMetrics = (
         };
     }
 
-    const bids = depth.bids || [];
-    const asks = depth.asks || [];
+    const rawBids = depth.bids || [];
+    const rawAsks = depth.asks || [];
+
+    // Auto-detect unit scaling (cTrader Open API sends units e.g. 100000 = 1.0 Lot)
+    const rawMaxVol = Math.max(
+        ...rawBids.map(b => b[1] || 0),
+        ...rawAsks.map(a => a[1] || 0),
+        0
+    );
+    const scaleFactor = rawMaxVol >= 500 ? 100000 : 1;
+
+    const bids: [number, number][] = rawBids.map(([price, vol]) => [price, parseFloat(((vol || 0) / scaleFactor).toFixed(2))]);
+    const asks: [number, number][] = rawAsks.map(([price, vol]) => [price, parseFloat(((vol || 0) / scaleFactor).toFixed(2))]);
 
     const bidDepth = bids.reduce((acc, b) => acc + (b[1] || 0), 0);
     const askDepth = asks.reduce((acc, a) => acc + (a[1] || 0), 0);
@@ -68,51 +103,120 @@ export const calculateL2OrderbookMetrics = (
 
     const skew = imbalanceRatio > 1.5 ? 'BULLISH_SUPPORT' : imbalanceRatio < 0.66 ? 'BEARISH_RESISTANCE' : 'NEUTRAL';
 
+    const pipFactor = currentPrice > 50 ? 100 : 10000;
+
+    // Helper: Compute VWAP DOM Execution Price for N Lots
+    const computeVwapDom = (lots: number): VwapDomMetric => {
+        // Buy VWAP DOM (filling across Ask levels)
+        let buyRemaining = lots;
+        let buyCost = 0;
+        for (const [price, vol] of asks) {
+            const filled = Math.min(buyRemaining, vol || 0);
+            buyCost += filled * price;
+            buyRemaining -= filled;
+            if (buyRemaining <= 0) break;
+        }
+        if (buyRemaining > 0) {
+            buyCost += buyRemaining * currentPrice * 1.001; // fallback liquidity penalty
+        }
+        const vwapBuyPrice = buyCost / lots;
+        const buySlippagePips = Math.abs(vwapBuyPrice - currentPrice) * pipFactor;
+
+        // Sell VWAP DOM (filling across Bid levels)
+        let sellRemaining = lots;
+        let sellCost = 0;
+        for (const [price, vol] of bids) {
+            const filled = Math.min(sellRemaining, vol || 0);
+            sellCost += filled * price;
+            sellRemaining -= filled;
+            if (sellRemaining <= 0) break;
+        }
+        if (sellRemaining > 0) {
+            sellCost += sellRemaining * currentPrice * 0.999;
+        }
+        const vwapSellPrice = sellCost / lots;
+        const sellSlippagePips = Math.abs(currentPrice - vwapSellPrice) * pipFactor;
+
+        return {
+            targetLots: lots,
+            vwapBuyPrice: parseFloat(vwapBuyPrice.toFixed(5)),
+            vwapSellPrice: parseFloat(vwapSellPrice.toFixed(5)),
+            buySlippagePips: parseFloat(buySlippagePips.toFixed(2)),
+            sellSlippagePips: parseFloat(sellSlippagePips.toFixed(2))
+        };
+    };
+
+    const bestBid = bids.length > 0 ? bids[0][0] : currentPrice;
+    const bestAsk = asks.length > 0 ? asks[0][0] : currentPrice;
+
+    const topBids = bids.slice(0, 5).map(([price, volume]) => ({
+        price,
+        volume,
+        distancePips: parseFloat((Math.abs(currentPrice - price) * pipFactor).toFixed(1))
+    }));
+
+    const topAsks = asks.slice(0, 5).map(([price, volume]) => ({
+        price,
+        volume,
+        distancePips: parseFloat((Math.abs(price - currentPrice) * pipFactor).toFixed(1))
+    }));
+
     // 2. DETECT STOP CLUSTERS / LIQUIDITY POOLS FROM L2 DEPTH
-    // Look for price levels with massive relative size spikes compared to the average size
     const allBidsAvg = bids.length > 0 ? bidDepth / bids.length : 1;
     const allAsksAvg = asks.length > 0 ? askDepth / asks.length : 1;
 
     const detectedStopClusters: StopCluster[] = [];
 
-    // Bids - Potential Sell Stops Liquidity Pool (sitting below current price)
     bids.forEach(([price, size]) => {
         if (size > allBidsAvg * 1.8 && price < currentPrice) {
-            const distancePips = Math.abs(currentPrice - price) * 10000;
+            const distancePips = Math.abs(currentPrice - price) * pipFactor;
             detectedStopClusters.push({
                 price,
                 size,
                 type: 'SELL_STOP_LIQUIDITY',
                 probability: size > allBidsAvg * 3 ? 'HIGH' : 'MEDIUM',
-                distancePips
+                distancePips: parseFloat(distancePips.toFixed(1))
             });
         }
     });
 
-    // Asks - Potential Buy Stops Liquidity Pool (sitting above current price)
     asks.forEach(([price, size]) => {
         if (size > allAsksAvg * 1.8 && price > currentPrice) {
-            const distancePips = Math.abs(currentPrice - price) * 10000;
+            const distancePips = Math.abs(currentPrice - price) * pipFactor;
             detectedStopClusters.push({
                 price,
                 size,
                 type: 'BUY_STOP_LIQUIDITY',
                 probability: size > allAsksAvg * 3 ? 'HIGH' : 'MEDIUM',
-                distancePips
+                distancePips: parseFloat(distancePips.toFixed(1))
             });
         }
     });
 
-    // Sort detected stop clusters by size (largest pool first)
     detectedStopClusters.sort((a, b) => b.size - a.size);
 
     return {
         bidDepth,
         askDepth,
         imbalanceRatio,
-        imbalancePercent,
+        imbalancePercent: parseFloat(imbalancePercent.toFixed(1)),
         skew,
-        detectedStopClusters: detectedStopClusters.slice(0, 4) // Return top 4 major pools
+        detectedStopClusters: detectedStopClusters.slice(0, 4),
+        standardDom: {
+            bidVolumeTotal: parseFloat(bidDepth.toFixed(2)),
+            askVolumeTotal: parseFloat(askDepth.toFixed(2)),
+            imbalancePercent: parseFloat(imbalancePercent.toFixed(1))
+        },
+        priceDom: {
+            bestBid,
+            bestAsk,
+            topBids,
+            topAsks
+        },
+        vwapDom: {
+            lots10: computeVwapDom(10),
+            lots50: computeVwapDom(50)
+        }
     };
 };
 
