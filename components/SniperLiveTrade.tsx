@@ -2033,11 +2033,13 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                       <h2 className="text-3xl font-black tracking-tighter italic uppercase">{msg.signal.asset}</h2>
                                       {msg.signal.grade && (
                                         <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border ${
-                                          msg.signal.confidence >= 80 || ['A+', 'A', 'B'].includes(msg.signal.grade)
+                                          msg.signal.confidence >= 78 || ['A+', 'A'].includes(msg.signal.grade)
                                             ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400'
+                                            : msg.signal.confidence >= 70 || ['B'].includes(msg.signal.grade)
+                                            ? 'bg-blue-500/10 border-blue-500/30 text-blue-600 dark:text-blue-400'
                                             : 'bg-amber-500/10 border-amber-500/30 text-amber-600 dark:text-amber-400'
                                         }`}>
-                                          GRADE {msg.signal.grade} {msg.signal.confidence >= 80 ? '• HIGH PROBABILITY' : '• BELOW 80% THRESHOLD'}
+                                          GRADE {msg.signal.grade} • {msg.signal.confidence >= 82 ? 'PRIME INSTITUTIONAL' : msg.signal.confidence >= 76 ? 'HIGH PROBABILITY' : msg.signal.confidence >= 70 ? 'SOLID CONFLUENCE' : msg.signal.confidence >= 65 ? 'MODERATE CONFLUENCE' : 'BASELINE PROBABILITY'}
                                         </span>
                                       )}
                                     </div>

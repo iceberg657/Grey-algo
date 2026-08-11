@@ -338,9 +338,15 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
         }
     };
 
-    const confidenceDetails = data.confidence >= 80 
-        ? { label: `Grade ${data.grade || 'A'} • High Probability`, color: "text-emerald-500 dark:text-emerald-400" } 
-        : { label: `Grade ${data.grade || 'C'} • Below 80% Threshold`, color: "text-amber-500 dark:text-amber-400" };
+    const confidenceDetails = data.confidence >= 82 
+        ? { label: `Grade ${data.grade || 'A+'} • Prime Institutional`, color: "text-emerald-500 dark:text-emerald-400" } 
+        : data.confidence >= 76
+        ? { label: `Grade ${data.grade || 'A'} • High Probability`, color: "text-emerald-500 dark:text-emerald-400" }
+        : data.confidence >= 70
+        ? { label: `Grade ${data.grade || 'B'} • Solid Confluence`, color: "text-blue-500 dark:text-blue-400" }
+        : data.confidence >= 65
+        ? { label: `Grade ${data.grade || 'C'} • Moderate Confluence`, color: "text-amber-500 dark:text-amber-400" }
+        : { label: `Grade ${data.grade || 'D'} • Baseline Probability`, color: "text-amber-500 dark:text-amber-400" };
 
     const hasEconomicEvents = Array.isArray(data.economicEvents) && data.economicEvents.length > 0;
     const hasSentiment = !!data.sentiment;

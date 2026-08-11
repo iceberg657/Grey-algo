@@ -868,24 +868,22 @@ export const calculateWeightedScore = (
     }
 
     // --- DETERMINISTIC SETUP GRADING & CONFIDENCE SCORE MAPPING ---
-    // User Requirement: Scale 60 (lowest) to 85 (highest)
-    // - Score >= 80% is High Probability (Grades A+, A, B)
-    // - Score < 80% is Lower Probability (Grades C, D, NO TRADE)
+    // Scale 60 (lowest) to 85 (highest) - All setups across the full spectrum are ranked and graded
     const totalScore = Math.min(85, Math.max(60, Math.round(60 + (rawScore / 100) * 25)));
 
-    let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'NO TRADE' = 'NO TRADE';
-    if (totalScore >= 84) {
-        grade = 'A+';
-    } else if (totalScore >= 82) {
-        grade = 'A';
-    } else if (totalScore >= 80) {
-        grade = 'B';
-    } else if (totalScore >= 72) {
-        grade = 'C';
-    } else if (totalScore >= 65) {
-        grade = 'D';
-    } else {
+    let grade: 'A+' | 'A' | 'B' | 'C' | 'D' | 'NO TRADE' = 'D';
+    if (quantMath && quantMath.fakeoutProbability >= 0.80) {
         grade = 'NO TRADE';
+    } else if (totalScore >= 83) {
+        grade = 'A+';
+    } else if (totalScore >= 78) {
+        grade = 'A';
+    } else if (totalScore >= 73) {
+        grade = 'B';
+    } else if (totalScore >= 67) {
+        grade = 'C';
+    } else {
+        grade = 'D';
     }
 
     const isHighProbability = totalScore >= 80;
