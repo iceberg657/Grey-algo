@@ -2295,7 +2295,7 @@ ${antigravityVerdict.flawsFound?.map((f: string) => `  * ${f}`).join('\n') || ' 
 **DEEP ANTIMARKET ANALYSIS REPORT:**
 ${antigravityVerdict.deepAnalysisMarkdown}
 
-*CRITICAL MANDATE*: The Antigravity Agent has conducted deep, multi-timeframe analysis across 1,000 candles to find flaws and invalidate/confirm setups. You MUST heavily weight this devil's advocate context. If the Antigravity Agent raised serious flaws, integrate them as risk mitigations or vetoes!
+*CRITICAL MANDATE*: The Antigravity Agent has conducted deep, multi-timeframe analysis across 1,000 candles to find flaws and invalidate/confirm setups. You MUST heavily weight this devil's advocate context. If the Antigravity Agent raised serious flaws or confirmed a direction (PROCEED_BUY / PROCEED_SELL), you MUST NOT flip direction to a counter-trend trade based on single M1 candle noise. Maintain strict directional alignment with the Antigravity Verdict and Quantitative Signal!
 ` : ''}
 ${learnedStrategies && learnedStrategies.length > 0 ? `
 **ACTIVE LEARNED STRATEGIES & NEURAL LESSONS (APPLY THESE STRICTLY):**
@@ -2440,7 +2440,7 @@ ${quantData.orderflowMetrics?.l2Metrics ? `
 - You MUST anchor your Stop Loss EXACTLY using the engine mathematical SL or the Monte Carlo bounds (Lower Bound for BUY, Upper Bound for SELL). 
 - **SCALP & DAY TRADING 1:2 to 1:3 R:R RATIO TARGET:** For the Sniper page and scalp executions, you MUST design the Take Profit targets to achieve a 1:2 to 1:3 Risk-to-Reward ratio (Risk 1 unit to Reward 2.0x–3.0x units). Set Take Profit 1 (TP1) at 1:1.5 RR to lock in early profits, Take Profit 2 (TP2) at 1:2.5 RR (hitting the core 1:2 to 1:3 target requested by the user), and Take Profit 3 (TP3) at 1:3.2 RR as a runner.
 - Your Take Profits MUST align with Expected Median Price, the 1:2.5 target, and the structural Liquidity targets provided. If a user asks for statistical/mathematical projections, ONLY use the Monte Carlo bounds.
-- **BINARY DECISION MATRIX:** The Quant Engine has analyzed the displacement and mathematical structure. If the "ADVANCED MULTI-ASSET ENGINE SIGNAL" is active, you MUST output exactly the signal direction it provided (e.g. if it says "BUY", you MUST output "BUY"). Otherwise, if the ENGINE MANDATED SIGNAL is "BUY" or "SELL", YOU MUST OUTPUT EXACTLY THAT SIGNAL.
+- **BINARY DECISION MATRIX:** The Quant Engine and Antigravity Research have analyzed displacement, orderbook depth, and macro structure. If the Antigravity Research or Advanced Engine Signal gives a confirmed direction (e.g., PROCEED_SELL or SELL), you MUST output exactly that directional bias ("SELL"). Do NOT issue a counter-trend signal based on single-candle M1 lower/upper wicks. Align the final execution card with the higher-timeframe institutional bias!
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless the engine explicitly gives Neutral.
 - **EXECUTION COMPLIANCE:** If the ENGINE MANDATED EXECUTION is "LIMIT", you MUST use Pending Orders ("Buy Limit" or "Sell Limit") instead of Market Execution to protect against overextension traps.
 - **GRADE PENALTY:** If the Grade is "C", you MUST warn the user about the low confluence but provide the best possible execution setup if forced by the query.
