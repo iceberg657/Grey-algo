@@ -261,15 +261,14 @@ export async function createViteApp() {
         "performance": 0.85
       }`;
 
-      const automlModel = automlAi.getGenerativeModel({ model: "gemini-2.0-flash" });
-      const result = await automlModel.generateContent({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { responseMimeType: "application/json" }
+      const result = await automlAi.models.generateContent({
+        model: "gemini-3.6-flash",
+        contents: prompt,
+        config: { responseMimeType: "application/json" }
       });
 
-      const response = result.response;
-      const responseText = response.text();
-      const strategy = JSON.parse(responseText);
+      const responseText = result.text || "{}";
+      const strategy = JSON.parse(responseText.trim());
       const strategyId = `automl_${Date.now()}`;
       
       await db.collection('auto_ml_strategies').doc(strategyId).set({

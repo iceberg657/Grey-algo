@@ -60,10 +60,16 @@ export class CTraderWSClient {
                     console.log(`[STAGE 11] Connection closed. Code: ${code}, Reason: ${reason.toString() || 'None'}`);
                 });
 
-                this.ws.on('error', (err) => {
+                this.ws.on('error', (err: any) => {
                     clearTimeout(connectTimeout);
-                    console.error(`[STAGE ERROR] WebSocket error caught. Full stack trace:`, err.stack || err);
-                    reject(err);
+                    const isEconnReset = err?.code === 'ECONNRESET' || err?.message?.includes('ECONNRESET');
+                    if (isEconnReset) {
+                        console.warn(`[cTrader WS] Connection reset (ECONNRESET) on wss://${this.host}:${this.port}. Outbound port ${this.port} is restricted by sandbox network egress policy.`);
+                        reject(new Error(`cTrader API port ${this.port} restricted (ECONNRESET). Falling back to primary stream.`));
+                    } else {
+                        console.error(`[cTrader WS Error] WebSocket connection error on ${url}:`, err.message || err);
+                        reject(err);
+                    }
                 });
             } catch (e: any) {
                 console.error(`[STAGE ERROR] Failed to instantiate WebSocket. Full stack trace:`, e.stack || e);

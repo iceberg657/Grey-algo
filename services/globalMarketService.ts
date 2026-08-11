@@ -38,7 +38,7 @@ Return ONLY a valid JSON object matching this structure:
 
 export async function fetchGlobalMarketAnalysis(): Promise<GlobalMarketAnalysis> {
     try {
-        // Lane 2: gemini-2.5-flash-lite-latest -> gemini-2.0-flash
+        // Uses MARKET_MODELS pool (gemini-3.5-flash-lite & gemini-3.1-flash-lite)
         // Uses dedicated KEY 7 Pool
         return await executeLaneCall<GlobalMarketAnalysis>(async (apiKey) => {
             const ai = new GoogleGenAI({ apiKey });

@@ -1017,10 +1017,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
             'gemini-3.6-flash',
             'gemini-3.5-flash',
             'gemini-3.5-flash-lite',
-            'gemini-3.1-flash-lite',
-            'gemini-2.5-flash-lite',
-            'gemini-3-flash-preview',
-            'gemini-2.5-flash'
+            'gemini-3.1-flash-lite'
         ] : ANALYSIS_MODELS;
 
         let searchContext = "";
@@ -1030,7 +1027,7 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        model: 'gemini-2.5-flash',
+                        model: 'gemini-3.5-flash-lite',
                         contents: [{ parts: [{ text: `Search for recent market news, economic events, and sentiment for ${request.asset || 'this asset'} and provide a brief summary.` }] }],
                         config: {
                             tools: [{ googleSearch: {} }],
@@ -2157,7 +2154,7 @@ Return your response in a structured JSON object matching the AntigravityVerdict
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    model: 'gemini-2.5-flash',
+                    model: 'gemini-3.5-flash-lite',
                     contents: [{ parts: [{ text: prompt }] }],
                     config: config,
                     apiKey: apiKey
@@ -2186,7 +2183,7 @@ Return your response in a structured JSON object matching the AntigravityVerdict
         } catch (e) {
             const ai = new GoogleGenAI({ apiKey });
             const result = await ai.models.generateContent({
-                model: 'gemini-2.5-flash',
+                model: 'gemini-3.5-flash-lite',
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
                 config: config
             });
@@ -2238,11 +2235,9 @@ export async function generateSniperLiveSignal(
     const models = isDeepThinking ? [
         'gemini-3.5-flash-lite',
         'gemini-3.1-flash-lite',
-        'gemini-2.5-flash-lite',
-        'gemini-3.5-flash',
-        'gemini-3-flash-preview',
-        'gemini-2.5-flash'
-    ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default
+        'gemini-3.6-flash',
+        'gemini-3.5-flash'
+    ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default (3.5-flash-lite & 3.1-flash-lite)
 
     const timeframesContext = derivData?.multiTimeframe ? `
 **SELECTED TIMEFRAMES FOR ANALYSIS:**

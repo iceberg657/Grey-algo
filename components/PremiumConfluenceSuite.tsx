@@ -655,14 +655,14 @@ JSON Schema:
       };
 
       try {
-        rawData = await fetchWithModel('models/gemini-2.5-flash'); // fast & accurate primary
+        rawData = await fetchWithModel('gemini-3.5-flash-lite'); // fast & accurate primary
       } catch (primaryErr) {
-        console.warn('Primary L2 analyst model failed, falling back to gemini-3.5-flash-lite:', primaryErr);
+        console.warn('Primary L2 analyst model failed, falling back to gemini-3.1-flash-lite:', primaryErr);
         try {
-            rawData = await fetchWithModel('models/gemini-3.5-flash-lite');
+            rawData = await fetchWithModel('gemini-3.1-flash-lite');
         } catch (secondaryErr) {
-            console.warn('Secondary L2 analyst model failed, falling back to gemini-3.1-flash-lite:', secondaryErr);
-            rawData = await fetchWithModel('models/gemini-3.1-flash-lite');
+            console.warn('Secondary L2 analyst model failed, falling back to gemini-3.6-flash:', secondaryErr);
+            rawData = await fetchWithModel('gemini-3.6-flash');
         }
       }
 
