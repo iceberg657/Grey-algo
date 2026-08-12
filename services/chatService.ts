@@ -72,35 +72,61 @@ export async function sendMessageStreamWithRetry(
 ): Promise<AsyncIterable<GenerateContentResponse>> {
     const sanitizedParts = sanitizeMessageParts(messageParts);
 
-    return await executeLaneCall(async (apiKey) => {
-        return await runWithModelFallback(CHAT_MODELS, async (modelId) => {
-            // Auto-prune chat history if message count exceeds max turns to prevent massive payloads
-            messageCount++;
-            if (!currentChat || currentApiKey !== apiKey || currentModel !== modelId || messageCount > MAX_CONVERSATION_TURNS) {
-                initializeChat(apiKey, modelId);
-            }
+    // Resilient async generator that cascades across CHAT_MODELS if a 429 or stream failure occurs
+    async function* resilientStream(): AsyncGenerator<GenerateContentResponse> {
+        await initializeApiKey();
+        const pool = getChatPool();
+        let lastError: any = null;
 
+        for (const modelId of CHAT_MODELS) {
             try {
-                return await currentChat!.sendMessageStream({ message: sanitizedParts });
-            } catch (err: any) {
-                console.warn("[chatService] Chat stream failed, attempting direct model fallback generator:", err);
-                // Reset chat state on structural failure to prevent stuck state
-                resetChat();
-                
-                // Direct model streaming fallback in case SDK Chat state is corrupted or overloaded
-                const ai = new GoogleGenAI({ apiKey });
-                const contents = Array.isArray(sanitizedParts) ? sanitizedParts : [sanitizedParts];
-                return await ai.models.generateContentStream({
-                    model: modelId,
-                    contents: contents,
-                    config: {
-                        systemInstruction: BASE_SYSTEM_INSTRUCTION,
-                        tools: [{ googleSearch: {} }],
-                        temperature: 0.3,
+                const stream = await executeLaneCall(async (apiKey) => {
+                    messageCount++;
+                    if (!currentChat || currentApiKey !== apiKey || currentModel !== modelId || messageCount > MAX_CONVERSATION_TURNS) {
+                        initializeChat(apiKey, modelId);
                     }
-                });
+
+                    try {
+                        return await currentChat!.sendMessageStream({ message: sanitizedParts });
+                    } catch (err: any) {
+                        console.warn(`[chatService] Stream initialization failed on ${modelId}, using direct fallback:`, err?.message || err);
+                        resetChat();
+                        const ai = new GoogleGenAI({ apiKey });
+                        const contents = Array.isArray(sanitizedParts) ? sanitizedParts : [sanitizedParts];
+                        return await ai.models.generateContentStream({
+                            model: modelId,
+                            contents: contents,
+                            config: {
+                                systemInstruction: BASE_SYSTEM_INSTRUCTION,
+                                tools: [{ googleSearch: {} }],
+                                temperature: 0.3,
+                            }
+                        });
+                    }
+                }, pool);
+
+                let yieldedAny = false;
+                for await (const chunk of stream) {
+                    yieldedAny = true;
+                    yield chunk;
+                }
+
+                if (yieldedAny) {
+                    return; // Successfully completed response stream
+                }
+            } catch (err: any) {
+                lastError = err;
+                const msg = String(err?.message || (typeof err === 'object' ? JSON.stringify(err) : err) || '').toLowerCase();
+                const isQuota = msg.includes('429') || msg.includes('quota') || msg.includes('resource_exhausted') || err?.status === 429;
+                console.warn(`[chatService] Model ${modelId} hit error (Quota 429: ${isQuota}). Cascading to next model...`, err?.message || err);
+                resetChat();
+                if (onRetry) onRetry(1000);
             }
-        }, onRetry);
-    }, getChatPool);
+        }
+
+        if (lastError) throw lastError;
+    }
+
+    return resilientStream();
 }
 

@@ -45,23 +45,43 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
         reader.onerror = error => reject(error);
     });
 
-// A slightly better markdown to HTML converter
-const SimpleMarkdown: React.FC<{ text: string }> = ({ text }) => {
+// Markdown renderer with model-aware numerical styling (Blue for Flash Lite, Green for Flash)
+const SimpleMarkdown: React.FC<{ text: string; model?: string }> = ({ text, model }) => {
+    const isLite = model ? model.toLowerCase().includes('lite') : false;
+    
+    // Green badge for standard Flash models, Blue badge for Flash Lite models
+    const inlineCodeClass = isLite
+        ? "bg-sky-500/10 dark:bg-sky-950/40 text-sky-600 dark:text-cyan-400 border border-sky-500/20 px-1.5 py-0.5 rounded font-mono text-xs font-semibold"
+        : "bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono text-xs font-semibold";
+
     const formatText = (inputText: string) => {
         let html = inputText
-            .replace(/`(.*?)`/g, '<code class="bg-slate-100 dark:bg-slate-800 px-1 py-0.5 rounded text-emerald-600 dark:text-emerald-400 font-mono text-xs">$1</code>') // Inline code
-            .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>') // Bold
-            .replace(/\n/g, '<br />'); // New lines
+            // Inline code / wrapped numbers
+            .replace(/`(.*?)`/g, `<code class="${inlineCodeClass}">$1</code>`)
+            // Bold text
+            .replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-slate-900 dark:text-white">$1</strong>')
+            // Headings
+            .replace(/^### (.*$)/gm, '<h3 class="text-xs font-bold uppercase tracking-widest text-slate-900 dark:text-slate-100 mt-5 mb-1.5">$1</h3>')
+            .replace(/^## (.*$)/gm, '<h2 class="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white mt-5 mb-2">$1</h2>')
+            // Blockquotes
+            .replace(/^> (.*$)/gm, '<blockquote class="border-l-2 border-amber-500/80 bg-amber-500/5 dark:bg-amber-500/10 px-3 py-1.5 my-2 text-xs text-amber-700 dark:text-amber-300 rounded-r">$1</blockquote>')
+            // Horizontal rules
+            .replace(/^---$/gm, '<hr class="my-4 border-slate-200 dark:border-slate-800/40" />')
+            // Convert list items
+            .replace(/^\* (.*$)/gm, '<li class="ml-4 list-disc mb-0.5">$1</li>')
+            .replace(/^- (.*$)/gm, '<li class="ml-4 list-disc mb-0.5">$1</li>');
 
-        // Unordered lists
-        if (html.includes('* ')) {
-             html = html.replace(/^\* (.*$)/gm, '<li class="ml-5 list-disc mb-1">$1</li>');
-             html = `<ul class="my-2">${html}</ul>`.replace(/<\/li><br \/><ul>/g, '</li><ul>').replace(/<\/ul><br \/><li>/g,'</ul><li>');
-        }
+        // Clean up structural newlines around block elements to prevent double-spacing via <br />
+        html = html.replace(/\n+(<hr|<h2|<h3|<blockquote|<li)/g, '$1');
+        html = html.replace(/(<\/h2>|<\/h3>|<\/blockquote>|<\/li>|<hr [^>]+>)\n+/g, '$1');
+
+        // Convert any remaining natural newlines
+        html = html.replace(/\n/g, '<br />');
+
         return { __html: html };
     };
 
-    return <div className="break-words leading-relaxed text-slate-700 dark:text-slate-300" dangerouslySetInnerHTML={formatText(text)} />;
+    return <div className="break-words leading-relaxed text-slate-700 dark:text-slate-300 text-xs sm:text-sm" dangerouslySetInnerHTML={formatText(text)} />;
 };
 
 const detectSignalFromText = (text: string): 'BUY' | 'SELL' | null => {
@@ -207,7 +227,7 @@ const ChatBubble: React.FC<{
                     )}
                     
                     <div className="prose prose-sm dark:prose-invert max-w-none">
-                        <SimpleMarkdown text={message.text} />
+                        <SimpleMarkdown text={message.text} model={message.model} />
                     </div>
 
                     {!isUser && (
@@ -535,17 +555,19 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             let responseText = '';
             const streamMessageId = `model-stream-${Date.now()}`;
-            setMessages(prev => [...prev, { id: streamMessageId, role: 'model', text: '' }]);
+            const activeModel = getCurrentModelName();
+            setMessages(prev => [...prev, { id: streamMessageId, role: 'model', text: '', model: activeModel }]);
 
             try {
                 for await (const chunk of result) {
                     if (chunk && typeof chunk.text === 'string') {
                         responseText += chunk.text;
+                        const currentModel = getCurrentModelName() || activeModel;
                         setMessages(prev => {
                             const newMessages = [...prev];
                             const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
                             if (msgIndex !== -1) {
-                                 newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+                                 newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText, model: currentModel };
                             }
                             return newMessages;
                         });
@@ -559,7 +581,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         const newMessages = [...prev];
                         const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
                         if (msgIndex !== -1) {
-                             newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText };
+                             newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText, model: getCurrentModelName() || activeModel };
                         }
                         return newMessages;
                     });
@@ -574,7 +596,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     id: streamMessageId,
                     role: 'model',
                     text: responseText,
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    model: getCurrentModelName()
                 };
                 const path = `users/${userMetadata.uid}/chat_messages/${streamMessageId}`;
                 try {

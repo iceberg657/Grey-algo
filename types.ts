@@ -400,6 +400,7 @@ export interface ChatMessage {
     text: string;
     images?: string[]; // Data URL for rendering
     timestamp?: number;
+    model?: string;
 }
 
 export interface UserMetadata {
