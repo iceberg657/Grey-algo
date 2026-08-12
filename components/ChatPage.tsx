@@ -549,7 +549,6 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             messageParts.push({ text: text + extraContext });
 
             const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
-            setCurrentModelName(getCurrentModelName());
             setRetrySeconds(0); 
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
@@ -563,6 +562,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     if (chunk && typeof chunk.text === 'string') {
                         responseText += chunk.text;
                         const currentModel = getCurrentModelName() || activeModel;
+                        setCurrentModelName(currentModel); // Update global UI model state
                         setMessages(prev => {
                             const newMessages = [...prev];
                             const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
