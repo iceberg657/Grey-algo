@@ -609,14 +609,33 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "An unknown error occurred.";
-            if (errorMessage.includes("All Neural Lanes") || errorMessage.includes("congested")) {
+            
+            let parsedMessage = errorMessage;
+            try {
+                // The API often embeds JSON stringified error objects inside the error message string
+                const jsonMatch = errorMessage.match(/\{[\s\S]*\}/);
+                if (jsonMatch) {
+                    const parsed = JSON.parse(jsonMatch[0]);
+                    if (parsed.error && parsed.error.message) {
+                        parsedMessage = parsed.error.message;
+                    } else if (parsed.message) {
+                        parsedMessage = parsed.message;
+                    }
+                }
+            } catch (e) {
+                // Not parsable, stick to original
+            }
+
+            if (parsedMessage.includes("All Neural Lanes") || parsedMessage.includes("congested")) {
                 setError("System Cooldown Active: All neural lanes are currently congested. Please wait.");
                 startCountdown(60000); 
+            } else if (parsedMessage.toLowerCase().includes("quota") || parsedMessage.includes("429") || parsedMessage.includes("RESOURCE_EXHAUSTED")) {
+                setError("API Quota Exceeded. Please check your billing or Free Tier limits in Google AI Studio.");
             } else {
-                setError(`Oracle Error: ${errorMessage}`);
+                setError(`Oracle Error: ${parsedMessage}`);
             }
             const errorId = `model-error-${Date.now()}`;
-            setMessages(prev => [...prev, { id: errorId, role: 'model', text: `Connection interrupted. \n\nDetails: ${errorMessage}` }]);
+            setMessages(prev => [...prev, { id: errorId, role: 'model', text: `Connection interrupted.\n\nDetails: ${parsedMessage}` }]);
         } finally {
             setIsLoading(false);
         }
