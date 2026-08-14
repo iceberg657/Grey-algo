@@ -19,27 +19,21 @@ export default async function handler(req: Request, res: Response) {
 
   const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
-  // Gather server keys pool
-  const serverKeys = [
-    process.env.GEMINI_API_KEY,
-    process.env.API_KEY_1,
-    process.env.API_KEY_2,
-    process.env.API_KEY_3,
-    process.env.API_KEY_4,
+  // Explicit instruction: Use API Key 5 and 6 only for the Chat page
+  const chatKeys = [
     process.env.API_KEY_5,
+    process.env.GEMINI_API_KEY_5,
     process.env.API_KEY_6,
-    process.env.API_KEY_7,
-    process.env.API_KEY_8,
-    process.env.API_KEY_9,
-    process.env.API_KEY_10,
+    process.env.GEMINI_API_KEY_6,
     clientApiKey,
   ].filter(isValid).map((k: any) => k.trim());
 
   // Deduplicate keys
-  const uniqueKeys = Array.from(new Set(serverKeys));
+  const uniqueKeys = Array.from(new Set(chatKeys));
 
   if (uniqueKeys.length === 0) {
-    return res.status(400).json({ error: 'Gemini API key not configured or invalid on server.' });
+    console.error('[ChatProxy] No valid API key (5 or 6) found.');
+    return res.status(400).json({ error: 'Gemini API key (Key 5 or 6) not configured or invalid on server.' });
   }
 
   // Set up SSE headers for streaming
@@ -92,7 +86,7 @@ export default async function handler(req: Request, res: Response) {
         }
       } catch (err: any) {
         lastError = err;
-        console.warn(`[ChatProxy] Model ${model} failed with key ...${apiKey.slice(-4)}:`, err?.message || err);
+        console.warn(`[ChatProxy] Model ${model} note with key ...${apiKey.slice(-4)}:`, err?.message || err);
         // Continue to next key or next model
       }
     }

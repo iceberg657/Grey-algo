@@ -161,7 +161,7 @@ export const SNIPER_MODELS = [
 
 // 3. CHAT & LIVE (Key 5)
 export const getChatPool = () => {
-    const keys = getUniqueKeys([K.K5()]);
+    const keys = getUniqueKeys([K.K5(), K.K6()]);
     return keys.length > 0 ? keys : getAnalysisPool();
 };
 export const CHAT_MODELS = [

@@ -1011,8 +1011,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
 
         const isDeepThinking = !!request.userSettings?.deepThinking;
         const models = request.liteAnalysis ? [
-            'gemini-3.1-flash-lite',
-            'gemini-3.5-flash-lite'
+            'gemini-3.5-flash-lite',
+            'gemini-3.1-flash-lite'
         ] : isDeepThinking ? [
             'gemini-3.6-flash',
             'gemini-3.5-flash',

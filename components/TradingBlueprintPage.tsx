@@ -9,9 +9,8 @@ import { db, auth } from '../firebase';
 import ReactMarkdown from 'react-markdown';
 import { Loader } from './Loader';
 import { AutoBacktestPanel } from './AutoBacktestPanel';
-import { History, Target } from 'lucide-react';
+import { History } from 'lucide-react';
 import { TrendScannerPanel } from './TrendScannerPanel';
-import { RecoveryPlanner } from './RecoveryPlanner';
 
 interface TradingBlueprintPageProps {
     onBack: () => void;
@@ -75,7 +74,7 @@ const AVAILABLE_ASSETS = [
 ];
 
 export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBack }) => {
-    const [activeTab, setActiveTab] = useState<'schedule' | 'backtest' | 'trend_scanner' | 'recovery_planner'>('schedule');
+    const [activeTab, setActiveTab] = useState<'schedule' | 'backtest' | 'trend_scanner'>('schedule');
     const [showRiskCalc, setShowRiskCalc] = useState(false);
     const [showCheatSheet, setShowCheatSheet] = useState(false);
     
@@ -306,9 +305,7 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 {[
                     { id: 'schedule', label: 'Trading Schedule', icon: Compass, color: 'text-blue-500' },
                     { id: 'backtest', label: 'Mechanical Backtester', icon: History, color: 'text-indigo-500' },
-                    { id: 'trend_scanner', label: 'Trend Scanner', icon: TrendingUp, color: 'text-emerald-500' },
-                    { id: 'recovery_planner', label: '5K Recovery Planner', icon: Target, color: 'text-rose-500' }
-                ].map(tab => {
+                    { id: 'trend_scanner', label: 'Trend Scanner', icon: TrendingUp, color: 'text-emerald-500' }].map(tab => {
                     const isActive = activeTab === tab.id;
                     const Icon = tab.icon;
                     return (
@@ -579,13 +576,9 @@ export const TradingBlueprintPage: React.FC<TradingBlueprintPageProps> = ({ onBa
                 <div className="w-full">
                     <AutoBacktestPanel userId={auth.currentUser?.uid} />
                 </div>
-            ) : activeTab === 'trend_scanner' ? (
-                <div className="w-full">
-                    <TrendScannerPanel />
-                </div>
             ) : (
                 <div className="w-full">
-                    <RecoveryPlanner userId={auth.currentUser?.uid} />
+                    <TrendScannerPanel />
                 </div>
             )}
 
