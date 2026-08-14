@@ -25,53 +25,24 @@ export default async function handler(req: Request, res: Response) {
   try {
     console.log(`[GeminiProxy] Analyzing with model: ${cleanModel}...`);
     
-    // Extract root-level properties from config
-    const { tools, systemInstruction, ...generationConfig } = config || {};
-    
-    const requestBody: any = {
-      contents,
-      generationConfig,
-    };
-    
-    if (tools) requestBody.tools = tools;
-    if (systemInstruction) requestBody.systemInstruction = systemInstruction;
+    // Lazy import the SDK
+    const { GoogleGenAI } = await import('@google/genai');
+    const ai = new GoogleGenAI({ apiKey });
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(new Error('timeout')), 120000);
-
-    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${cleanModel}:generateContent?key=${apiKey}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(requestBody),
-      signal: controller.signal
+    // The SDK config accepts tools, systemInstruction, temperature, maxOutputTokens, etc.
+    const sdkResponse = await ai.models.generateContent({
+      model: cleanModel,
+      contents: contents,
+      config: config
     });
-    clearTimeout(timeoutId);
 
-      if (!response.ok) {
-      let errorData;
-      try {
-        errorData = await response.json();
-      } catch (e) {
-        const text = await response.text();
-        errorData = { error: { message: `Gemini API error (${response.status}): ${text.substring(0, 200)}` } };
-      }
-      console.error('[GeminiProxy] API Error:', errorData.error?.message || errorData);
-      return res.status(response.status).json(errorData);
-    }
-
-    let data;
-    try {
-      data = await response.json();
-    } catch (e) {
-      const text = await response.text();
-      console.error('[GeminiProxy] JSON Parse Error:', text.substring(0, 200));
-      return res.status(500).json({ error: 'Failed to parse Gemini API response as JSON', raw: text.substring(0, 200) });
-    }
-    res.status(200).json(data);
-  } catch (error) {
+    // The SDK GenerateContentResponse format natively matches the expected JSON (candidates array)
+    res.status(200).json(sdkResponse);
+  } catch (error: any) {
     console.error('[GeminiProxy] Proxy Error:', error);
-    res.status(500).json({ error: 'Internal server error during Gemini proxy' });
+    res.status(error?.status || 500).json({ 
+      error: 'Internal server error during Gemini proxy', 
+      details: error?.message || String(error)
+    });
   }
 }

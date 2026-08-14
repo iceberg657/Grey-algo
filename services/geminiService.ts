@@ -2233,10 +2233,11 @@ export async function generateSniperLiveSignal(
 
     const isDeepThinking = !!userSettings?.deepThinking;
     const models = isDeepThinking ? [
-        'gemini-3.5-flash-lite',
-        'gemini-3.1-flash-lite',
+        'gemini-3.7-flash',
         'gemini-3.6-flash',
-        'gemini-3.5-flash'
+        'gemini-3.5-flash',
+        'gemini-3.5-flash-lite',
+        'gemini-3.1-flash-lite'
     ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default (3.5-flash-lite & 3.1-flash-lite)
 
     const timeframesContext = derivData?.multiTimeframe ? `
