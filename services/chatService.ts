@@ -16,13 +16,10 @@ export function initializeChat(apiKey: string, model: string): Chat {
     currentApiKey = apiKey;
     currentModel = model;
     messageCount = 0;
-    const isLite = model.toLowerCase().includes('lite');
-    
     currentChat = ai.chats.create({
         model: model,
         config: {
             systemInstruction: BASE_SYSTEM_INSTRUCTION,
-            ...(isLite ? {} : { tools: [{ googleSearch: {} }] }),
             temperature: 0.3,
         },
     });
@@ -95,13 +92,11 @@ export async function sendMessageStreamWithRetry(
                         resetChat();
                         const ai = new GoogleGenAI({ apiKey });
                         const contents = Array.isArray(sanitizedParts) ? sanitizedParts : [sanitizedParts];
-                        const isLite = modelId.toLowerCase().includes('lite');
                         return await ai.models.generateContentStream({
                             model: modelId,
                             contents: contents,
                             config: {
                                 systemInstruction: BASE_SYSTEM_INSTRUCTION,
-                                ...(isLite ? {} : { tools: [{ googleSearch: {} }] }),
                                 temperature: 0.3,
                             }
                         });

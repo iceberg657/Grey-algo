@@ -1030,7 +1030,6 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                         model: 'gemini-3.5-flash-lite',
                         contents: [{ parts: [{ text: `Search for recent market news, economic events, and sentiment for ${request.asset || 'this asset'} and provide a brief summary.` }] }],
                         config: {
-                            tools: [{ googleSearch: {} }],
                             temperature: 0.1
                         },
                         apiKey: apiKey

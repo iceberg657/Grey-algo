@@ -17,6 +17,7 @@ import marketDataHandler from './backend/marketData.js';
 import configHandler from './backend/config.js';
 import analyzeHandler from './backend/gemini/analyze.js';
 import antigravityHandler from './backend/gemini/antigravity.js';
+import chatHandler from './backend/gemini/chat.js';
 import derivHandler from './backend/derivData.js';
 import derivTradeNotificationHandler from './backend/derivTradeNotification.js';
 import twelveDataHandler from './backend/twelveData.js';
@@ -565,6 +566,7 @@ export async function createViteApp() {
   // Gemini Proxy Route to bypass regional blocks (VPN-free execution)
   app.post('/api/gemini/analyze', analyzeHandler);
   app.post('/api/gemini/antigravity', antigravityHandler);
+  app.post('/api/gemini/chat', chatHandler);
 
   // Deriv API Route
   app.get('/api/derivData', derivHandler);
@@ -825,7 +827,7 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
         model: "gemini-3.5-flash",
         contents: prompt,
         config: {
-          tools: [{ googleSearch: {} }],
+          // tools: [{ googleSearch: {} }],
           responseMimeType: "application/json"
         },
       });

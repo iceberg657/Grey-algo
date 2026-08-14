@@ -802,7 +802,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                                             : 'bg-red-500 text-white border-red-400'
                                         }`}>
                                             <RefreshCcw size={14} className="animate-spin" />
-                                            {isLoading ? `Rate limit active: ${retrySeconds}s` : `System Cooldown: ${retrySeconds}s`}
+                                            {isLoading ? `Model cascade (High Demand): ${retrySeconds}s` : `System Cooldown: ${retrySeconds}s`}
                                         </div>
                                     </motion.div>
                                 )}
