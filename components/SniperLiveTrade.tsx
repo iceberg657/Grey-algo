@@ -368,9 +368,9 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
   const [selectedStreamingMode, setSelectedStreamingMode] = useState<'Standard' | 'Advanced'>('Standard');
-  const [selectedSniperModel, setSelectedSniperModel] = useState<string>(() => {
+  const [selectedModel, setSelectedModel] = useState<string>(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('greyquant_sniper_selected_model');
+      const saved = localStorage.getItem('greyquant_sniper_selected_model') || localStorage.getItem('greyquant_selected_model');
       if (saved && SNIPER_MODELS.includes(saved)) {
         return saved;
       }
@@ -399,9 +399,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   }, []);
 
   const handleSelectSniperModel = (modelId: string) => {
-    setSelectedSniperModel(modelId);
+    setSelectedModel(modelId);
     if (typeof window !== 'undefined') {
       localStorage.setItem('greyquant_sniper_selected_model', modelId);
+      localStorage.setItem('greyquant_selected_model', modelId);
     }
     setIsModelDropdownOpen(false);
   };
@@ -1400,7 +1401,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         userSettings,
         dailyRegime?.regime,
         antigravityVerdict, // Pass real QuantConnect-aligned Antigravity research
-        selectedSniperModel // Pass user selected model (Model 5, Model 6, Model 7, Model 8)
+        selectedModel // Pass user selected model (Model 5, Model 6, Model 7, Model 8)
       );
       
       finalSignal.timeframe = tfLabel;
@@ -1628,7 +1629,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               {/* Mobile Model Selector */}
               <div className="relative" ref={modelDropdownRef}>
                 {(() => {
-                  const activeConfig = findSniperModelConfig(selectedSniperModel);
+                  const activeConfig = findSniperModelConfig(selectedModel);
                   let btnClass = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20';
                   let dotClass = 'bg-emerald-500 shadow-emerald-500/50';
                   let textClass = 'text-emerald-700 dark:text-emerald-300';
@@ -1672,7 +1673,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                       </div>
                       <div className="pt-1 space-y-1">
                         {SNIPER_MODEL_CONFIGS.map((cfg) => {
-                          const isSelected = selectedSniperModel === cfg.id;
+                          const isSelected = selectedModel === cfg.id;
                           let itemBtnClass = 'hover:bg-emerald-500/10 text-slate-700 dark:text-slate-300';
                           let dotColor = 'bg-emerald-500';
                           let itemTextClass = 'text-slate-700 dark:text-slate-300';
@@ -1798,7 +1799,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
             {/* Desktop Model Selector */}
             <div className="relative" ref={modelDropdownRef}>
               {(() => {
-                const activeConfig = findSniperModelConfig(selectedSniperModel);
+                const activeConfig = findSniperModelConfig(selectedModel);
                 let btnClass = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20';
                 let dotClass = 'bg-emerald-500 shadow-emerald-500/50';
                 let textClass = 'text-emerald-700 dark:text-emerald-300';
@@ -1847,7 +1848,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                     </div>
                     <div className="pt-1.5 space-y-1">
                       {SNIPER_MODEL_CONFIGS.map((cfg) => {
-                        const isSelected = selectedSniperModel === cfg.id;
+                        const isSelected = selectedModel === cfg.id;
                         let btnClasses = 'hover:bg-emerald-500/5 dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-emerald-500/20';
                         let selectedClasses = 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold';
                         let dotClass = 'bg-emerald-500';

@@ -1,5 +1,6 @@
 import { analyzeSMC } from '../utils/quantEngine';
 import { calculateL2OrderbookMetrics } from '../utils/orderflowEngine';
+import { fetchMultipleLevel1Ticks, formatLevel1DataForGeminiLive } from './level1DataProcessor';
 
 /**
  * Symbol mapping dictionary for Deriv data API
@@ -184,6 +185,17 @@ export async function buildLiveMarketContextForChat(userPrompt: string): Promise
 
     const results: string[] = [];
 
+    // 1. Fetch real-time Level 1 (Top-of-Book BBO) telemetry
+    let l1Section = '';
+    try {
+        const l1Ticks = await fetchMultipleLevel1Ticks(assets);
+        if (l1Ticks.length > 0) {
+            l1Section = formatLevel1DataForGeminiLive(l1Ticks);
+        }
+    } catch (l1Err) {
+        console.warn('[chatMarketEngine] L1 tick fetch warning:', l1Err);
+    }
+
     for (const asset of assets) {
         const data = await fetchDerivCandles(asset.derivSymbol, 900, 100);
         if (!data || !data.candles || !Array.isArray(data.candles) || data.candles.length < 20) {
@@ -207,7 +219,7 @@ export async function buildLiveMarketContextForChat(userPrompt: string): Promise
 
         const marketBlock = `
 ---
-LIVE MARKET ENGINE DATA: ${asset.displaySymbol.toUpperCase()} (Feed: Deriv Real-Time)
+LIVE QUANT ENGINE ANALYSIS: ${asset.displaySymbol.toUpperCase()}
 - Current Price: ${currentPrice.toFixed(5)} | Change: ${changePct > 0 ? '+' : ''}${changePct.toFixed(2)}% | High: ${currentCandle.high.toFixed(5)} | Low: ${currentCandle.low.toFixed(5)}
 - Quant Regime: ${quant.regime || 'NORMAL'} | Market Trend: ${quant.trend?.signal || 'NEUTRAL'} (${quant.trend?.strength || 50}% confidence)
 - Technical Metrics: RSI(14) = ${quant.rsi?.toFixed(1) || 'N/A'} | ATR = ${quant.atr?.toFixed(5) || 'N/A'} | EMA20 = ${quant.ema20?.toFixed(5) || 'N/A'} | EMA50 = ${quant.ema50?.toFixed(5) || 'N/A'}
@@ -230,7 +242,19 @@ LIVE MARKET ENGINE DATA: ${asset.displaySymbol.toUpperCase()} (Feed: Deriv Real-
         results.push(marketBlock);
     }
 
-    if (results.length === 0) return '';
+    if (results.length === 0 && !l1Section) return '';
 
-    return `\n\n[SYSTEM INJECTION: REAL-TIME DERIV LIVE MARKET DATA & QUANT ENGINE ANALYSIS]\nThe user's query relates to live financial markets. The system has automatically streamed real-time market tick & candle data from Deriv and processed it through the GreyAlpha Quant & SMC Orderflow Engine:\n` + results.join('\n') + `\n\nINSTRUCTION FOR AI MODEL:\n1. Use these real-time Deriv price feeds and quant metrics alongside Google Search Grounding to answer the user's prompt with exact numbers, precise entry ranges, L2 shielded stop loss, and TP1/TP2/TP3 targets.\n2. Always reference the live price and SMC confluences provided above to give an institutional-grade, highly actionable response.\n`;
+    let injection = `\n\n[SYSTEM INJECTION: REAL-TIME DERIV LEVEL 1 & QUANT ORDERFLOW DATA]\nThe user's query relates to live financial markets. The system has automatically streamed real-time Level 1 Top-of-Book ticks and candle data from Deriv:\n`;
+    
+    if (l1Section) {
+        injection += `\n${l1Section}\n`;
+    }
+    
+    if (results.length > 0) {
+        injection += results.join('\n');
+    }
+
+    injection += `\n\nINSTRUCTION FOR AI MODEL:\n1. Use these real-time Level 1 prices, spreads, tick velocity, and SMC quant metrics alongside Google Search Grounding to answer the user's prompt with exact live numbers, precise entry ranges, L2 shielded stop loss, and TP1/TP2/TP3 targets.\n2. Always reference the live price and Level 1 top-of-book telemetry to provide an institutional-grade, highly actionable response.\n`;
+
+    return injection;
 }
