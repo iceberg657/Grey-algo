@@ -577,13 +577,13 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             messageParts.push({ text: text + extraContext });
 
-            const result = await sendMessageStreamWithRetry(messageParts, startCountdown, selectedModel);
+            const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
             setRetrySeconds(0); 
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
             let responseText = '';
             const streamMessageId = `model-stream-${Date.now()}`;
-            const activeModel = getCurrentModelName() || selectedModel;
+            const activeModel = getCurrentModelName() || currentModelName || 'gemini-3.7-flash';
             setMessages(prev => [...prev, { id: streamMessageId, role: 'model', text: '', model: activeModel }]);
 
             try {
