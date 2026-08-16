@@ -14,10 +14,12 @@ import {
     RefreshCcw,
     AlertCircle,
     User,
-    Terminal
+    Terminal,
+    ChevronDown,
+    Check
 } from 'lucide-react';
 import type { ChatMessage, ImagePart } from '../types';
-import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName } from '../services/chatService';
+import { getChatInstance, sendMessageStreamWithRetry, getCurrentModelName, setCurrentModelName } from '../services/chatService';
 import { buildLiveMarketContextForChat } from '../services/chatMarketEngine';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { OraclePage } from './OraclePage';
@@ -27,7 +29,7 @@ import { db, handleFirestoreError, OperationType } from '../firebase';
 import { doc, setDoc } from 'firebase/firestore';
 import type { UserMetadata, UserSettings } from '../types';
 
-import { CHAT_MODELS } from '../services/retryUtils';
+import { CHAT_MODELS, CHAT_MODEL_CONFIGS, findChatModelConfig } from '../services/retryUtils';
 
 const fileToImagePart = (file: File): Promise<ImagePart> =>
     new Promise((resolve, reject) => {
@@ -45,14 +47,16 @@ const fileToImagePart = (file: File): Promise<ImagePart> =>
         reader.onerror = error => reject(error);
     });
 
-// Markdown renderer with model-aware numerical styling (Blue for Flash Lite, Green for Flash)
+// Markdown renderer with model-aware numerical styling
 const SimpleMarkdown: React.FC<{ text: string; model?: string }> = ({ text, model }) => {
-    const isLite = model ? model.toLowerCase().includes('lite') : false;
+    const config = findChatModelConfig(model);
     
-    // Green badge for standard Flash models, Blue badge for Flash Lite models
-    const inlineCodeClass = isLite
-        ? "bg-sky-500/10 dark:bg-sky-950/40 text-sky-600 dark:text-cyan-400 border border-sky-500/20 px-1.5 py-0.5 rounded font-mono text-xs font-semibold"
-        : "bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono text-xs font-semibold";
+    let inlineCodeClass = "bg-emerald-500/10 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 px-1.5 py-0.5 rounded font-mono text-xs font-semibold";
+    if (config?.isRed) {
+        inlineCodeClass = "bg-red-500/10 dark:bg-red-950/40 text-red-600 dark:text-red-400 border border-red-500/30 px-1.5 py-0.5 rounded font-mono text-xs font-bold shadow-xs";
+    } else if (config?.isBlue) {
+        inlineCodeClass = "bg-sky-500/10 dark:bg-sky-950/40 text-sky-600 dark:text-cyan-400 border border-sky-500/20 px-1.5 py-0.5 rounded font-mono text-xs font-semibold";
+    }
 
     const formatText = (inputText: string) => {
         let html = inputText
@@ -230,6 +234,31 @@ const ChatBubble: React.FC<{
                         <SimpleMarkdown text={message.text} model={message.model} />
                     </div>
 
+                    {!isUser && message.model && (
+                        <div className="mt-2.5 pt-2 border-t border-slate-100 dark:border-white/5 flex items-center justify-between gap-2">
+                            {(() => {
+                                const found = findChatModelConfig(message.model);
+                                
+                                let badgeClass = "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20";
+                                let dotClass = "bg-emerald-500";
+                                if (found.isRed) {
+                                    badgeClass = "bg-red-500/10 text-red-600 dark:text-red-400 border border-red-500/30";
+                                    dotClass = "bg-red-500 animate-pulse";
+                                } else if (found.isBlue) {
+                                    badgeClass = "bg-sky-500/10 text-sky-600 dark:text-cyan-400 border border-sky-500/20";
+                                    dotClass = "bg-sky-500";
+                                }
+                                
+                                return (
+                                    <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] font-mono font-semibold uppercase tracking-wider ${badgeClass}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${dotClass}`}></span>
+                                        {found.label}
+                                    </span>
+                                );
+                            })()}
+                        </div>
+                    )}
+
                     {!isUser && (
                         <button
                             onClick={() => onToggleSpeech(message)}
@@ -368,11 +397,28 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [currentModelName, setCurrentModelName] = useState<string>('');
+    const [selectedModel, setSelectedModel] = useState<string>('gemini-3.7-flash');
+    const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
+    const [currentModelName, setCurrentModelName] = useState<string>('gemini-3.7-flash');
     const [retrySeconds, setRetrySeconds] = useState<number>(0);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
     const [showOracle, setShowOracle] = useState(false);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setIsModelDropdownOpen(false);
+            }
+        };
+        if (isModelDropdownOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [isModelDropdownOpen]);
 
     useEffect(() => {
         const stored = localStorage.getItem('greyquant_user_settings');
@@ -387,8 +433,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
     useEffect(() => {
         const init = async () => {
-            await getChatInstance(); 
-            setCurrentModelName(getCurrentModelName());
+            await getChatInstance(selectedModel); 
+            setCurrentModelName(getCurrentModelName() || selectedModel);
         };
         init();
         return () => {
@@ -396,7 +442,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         };
-    }, []);
+    }, [selectedModel]);
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -548,20 +594,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             messageParts.push({ text: text + extraContext });
 
-            const result = await sendMessageStreamWithRetry(messageParts, startCountdown);
+            const result = await sendMessageStreamWithRetry(messageParts, startCountdown, selectedModel);
             setRetrySeconds(0); 
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
 
             let responseText = '';
             const streamMessageId = `model-stream-${Date.now()}`;
-            const activeModel = getCurrentModelName();
+            const activeModel = getCurrentModelName() || selectedModel;
             setMessages(prev => [...prev, { id: streamMessageId, role: 'model', text: '', model: activeModel }]);
 
             try {
                 for await (const chunk of result) {
                     if (chunk && typeof chunk.text === 'string') {
                         responseText += chunk.text;
-                        const currentModel = getCurrentModelName() || activeModel;
+                        const currentModel = chunk.model || getCurrentModelName() || activeModel;
                         setCurrentModelName(currentModel); // Update global UI model state
                         setMessages(prev => {
                             const newMessages = [...prev];
@@ -597,7 +643,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     role: 'model',
                     text: responseText,
                     timestamp: Date.now(),
-                    model: getCurrentModelName()
+                    model: getCurrentModelName() || activeModel
                 };
                 const path = `users/${userMetadata.uid}/chat_messages/${streamMessageId}`;
                 try {
@@ -709,19 +755,117 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         <span className="hidden sm:inline">Portal</span>
                     </button>
                     
-                    <div className="flex flex-col items-center">
-                        <div className="flex items-center gap-2">
-                            <Sparkles size={14} className="text-emerald-500 animate-pulse" />
-                            <h1 className="text-sm font-bold uppercase tracking-widest text-slate-400 dark:text-slate-500">Oracle AI</h1>
-                        </div>
-                        {currentModelName && (
-                            <div className="flex items-center gap-1.5 mt-0.5">
-                                <div className="h-1 w-1 rounded-full bg-emerald-500 animate-pulse" />
-                                <span className="text-[10px] font-mono font-medium text-emerald-600/80 dark:text-emerald-400/80 uppercase">
-                                    {CHAT_MODELS.includes(currentModelName) ? `Model ${CHAT_MODELS.indexOf(currentModelName) + 1}` : 'Oracle Active'} • Deriv Live Market Stream & Grounding
-                                </span>
-                            </div>
-                        )}
+                    <div className="relative" ref={dropdownRef}>
+                        {(() => {
+                            const activeConfig = CHAT_MODEL_CONFIGS.find(m => m.id === selectedModel) || CHAT_MODEL_CONFIGS[0];
+                            
+                            let btnClass = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20';
+                            let dotClass = 'bg-emerald-500 shadow-emerald-500/50';
+                            let textClass = 'text-emerald-700 dark:text-emerald-300';
+
+                            if (activeConfig.isRed) {
+                                btnClass = 'bg-red-500/10 dark:bg-red-950/40 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20';
+                                dotClass = 'bg-red-500 shadow-red-500/50';
+                                textClass = 'text-red-700 dark:text-red-300';
+                            } else if (activeConfig.isBlue) {
+                                btnClass = 'bg-sky-500/10 dark:bg-sky-950/40 border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20';
+                                dotClass = 'bg-sky-500 shadow-sky-500/50';
+                                textClass = 'text-sky-700 dark:text-sky-300';
+                            }
+                            
+                            return (
+                                <>
+                                <button
+                                    onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all backdrop-blur-md cursor-pointer shadow-xs ${btnClass}`}
+                                    title="Select Model"
+                                    aria-label="Select Intelligence Model"
+                                >
+                                    <div className="flex items-center gap-2">
+                                        <span className={`w-2 h-2 rounded-full animate-pulse shadow-xs ${dotClass}`} />
+                                        <div className="flex flex-col items-start text-left">
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`text-[12px] font-bold tracking-tight uppercase font-mono ${textClass}`}>
+                                                    {activeConfig.label}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ml-1 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                                </button>
+                                </>
+                            );
+                        })()}
+
+                        <AnimatePresence>
+                            {isModelDropdownOpen && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 sm:w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
+                                >
+                                    <div className="px-3 py-2">
+                                        <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                                            Select Active Model
+                                        </span>
+                                    </div>
+                                    <div className="pt-1.5 space-y-1 max-h-[340px] overflow-y-auto scrollbar-thin">
+                                        {CHAT_MODEL_CONFIGS.map((cfg) => {
+                                            const isSelected = selectedModel === cfg.id;
+                                            
+                                            let btnClasses = 'hover:bg-emerald-500/5 dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-emerald-500/20';
+                                            let selectedClasses = 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
+                                            let dotClass = 'bg-emerald-500';
+                                            let textClass = '';
+                                            let checkClass = 'text-emerald-500';
+
+                                            if (cfg.isRed) {
+                                                btnClasses = 'hover:bg-red-500/5 dark:hover:bg-red-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-red-500/20';
+                                                selectedClasses = 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400';
+                                                dotClass = 'bg-red-500';
+                                                textClass = 'text-red-600 dark:text-red-400';
+                                                checkClass = 'text-red-500';
+                                            } else if (cfg.isBlue) {
+                                                btnClasses = 'hover:bg-sky-500/5 dark:hover:bg-sky-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-sky-500/20';
+                                                selectedClasses = 'bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400';
+                                                dotClass = 'bg-sky-500';
+                                                textClass = 'text-sky-600 dark:text-sky-400';
+                                                checkClass = 'text-sky-500';
+                                            }
+
+                                            return (
+                                                <button
+                                                    key={cfg.id}
+                                                    onClick={() => {
+                                                        setSelectedModel(cfg.id);
+                                                        setIsModelDropdownOpen(false);
+                                                    }}
+                                                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                                                        isSelected ? selectedClasses : btnClasses
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-2.5">
+                                                        <div className={`w-2 h-2 rounded-full ${dotClass}`} />
+                                                        <div>
+                                                            <div className="flex items-center gap-1.5">
+                                                                <span className={`text-xs font-bold font-mono ${isSelected ? '' : textClass}`}>
+                                                                    {cfg.label}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {isSelected && (
+                                                        <Check size={14} className={checkClass} />
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </motion.div>
+                            )}
+                        </AnimatePresence>
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-3">

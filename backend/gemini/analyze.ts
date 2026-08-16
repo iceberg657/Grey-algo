@@ -4,6 +4,8 @@ const STANDARD_FLASH_CASCADE = [
   'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
+  'gemma-4-31b',
+  'gemma-4-26b',
   'gemini-3-flash-preview',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
@@ -13,6 +15,13 @@ const LITE_CASCADE = [
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
 ];
+
+function getModelAliases(model: string): string[] {
+  const clean = model.replace(/^models\//, '');
+  if (clean === 'gemma-4-26b') return ['gemma-4-26b-a4b-it', 'models/gemma-4-26b-a4b-it'];
+  if (clean === 'gemma-4-31b') return ['gemma-4-31b-it', 'models/gemma-4-31b-it'];
+  return [model];
+}
 
 export default async function handler(req: Request, res: Response) {
   if (req.method !== 'POST') {
@@ -46,11 +55,18 @@ export default async function handler(req: Request, res: Response) {
   }
 
   // Model sequence selection:
-  // Standard mode uses the full 3.x Flash cascade (3.7-flash -> 3.6-flash -> 3.5-flash -> ...)
+  // Standard mode uses the full 3.x Flash cascade + Gemma 4 31B & 26B
   // Lite mode uses the Flash-Lite models only (3.5-flash-lite -> 3.1-flash-lite)
-  const modelSequence = isLite 
+  const baseSequence = isLite 
     ? (LITE_CASCADE.includes(rawModel) ? [rawModel, ...LITE_CASCADE.filter(m => m !== rawModel)] : LITE_CASCADE)
     : (STANDARD_FLASH_CASCADE.includes(rawModel) ? [rawModel, ...STANDARD_FLASH_CASCADE.filter(m => m !== rawModel)] : STANDARD_FLASH_CASCADE);
+
+  const modelSequence: string[] = [];
+  for (const m of baseSequence) {
+    for (const alias of getModelAliases(m)) {
+      if (!modelSequence.includes(alias)) modelSequence.push(alias);
+    }
+  }
 
   const { GoogleGenAI } = await import('@google/genai');
 
