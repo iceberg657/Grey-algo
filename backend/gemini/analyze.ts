@@ -14,6 +14,8 @@ const STANDARD_FLASH_CASCADE = [
 const LITE_CASCADE = [
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
+  'gemma-4-26b',
+  'gemma-4-31b',
 ];
 
 function getModelAliases(model: string): string[] {
@@ -29,8 +31,8 @@ export default async function handler(req: Request, res: Response) {
   }
 
   const { model, contents, config, apiKey: clientApiKey } = req.body;
-  const rawModel = typeof model === 'string' ? model.replace(/^models\//, '') : 'gemini-3.7-flash';
-  const isLite = rawModel.includes('lite');
+  const rawModel = typeof model === 'string' ? model.replace(/^models\//, '') : 'gemini-3.5-flash-lite';
+  const isLite = rawModel.includes('lite') || rawModel.includes('gemma');
 
   const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
@@ -38,9 +40,9 @@ export default async function handler(req: Request, res: Response) {
   const candidateKeys = [
     process.env.API_KEY_10,
     process.env.GEMINI_API_KEY_10,
+    process.env.API_KEY_3,
     process.env.API_KEY_1,
     process.env.API_KEY_2,
-    process.env.API_KEY_3,
     process.env.API_KEY_4,
     process.env.GEMINI_API_KEY,
     process.env.API_KEY,
@@ -55,11 +57,10 @@ export default async function handler(req: Request, res: Response) {
   }
 
   // Model sequence selection:
-  // Standard mode uses the full 3.x Flash cascade + Gemma 4 31B & 26B
-  // Lite mode uses the Flash-Lite models only (3.5-flash-lite -> 3.1-flash-lite)
+  // Prioritize the requested model first, then the remaining models in cascade
   const baseSequence = isLite 
-    ? (LITE_CASCADE.includes(rawModel) ? [rawModel, ...LITE_CASCADE.filter(m => m !== rawModel)] : LITE_CASCADE)
-    : (STANDARD_FLASH_CASCADE.includes(rawModel) ? [rawModel, ...STANDARD_FLASH_CASCADE.filter(m => m !== rawModel)] : STANDARD_FLASH_CASCADE);
+    ? (LITE_CASCADE.includes(rawModel) ? [rawModel, ...LITE_CASCADE.filter(m => m !== rawModel)] : [rawModel, ...LITE_CASCADE])
+    : (STANDARD_FLASH_CASCADE.includes(rawModel) ? [rawModel, ...STANDARD_FLASH_CASCADE.filter(m => m !== rawModel)] : [rawModel, ...STANDARD_FLASH_CASCADE]);
 
   const modelSequence: string[] = [];
   for (const m of baseSequence) {
@@ -75,7 +76,7 @@ export default async function handler(req: Request, res: Response) {
   for (const targetModel of modelSequence) {
     for (const apiKey of uniqueKeys) {
       try {
-        console.log(`[GeminiProxy] Analyzing with ${targetModel} (key: ...${apiKey.slice(-4)}) [Mode: ${isLite ? 'Lite' : 'Standard Flash'}]`);
+        console.log(`[GeminiProxy] Analyzing with ${targetModel} (key: ...${apiKey.slice(-4)}) [Mode: ${isLite ? 'Sniper/Lite' : 'Standard Flash'}]`);
         const ai = new GoogleGenAI({ apiKey });
 
         const sdkResponse = await ai.models.generateContent({

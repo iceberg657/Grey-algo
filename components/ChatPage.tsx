@@ -397,28 +397,11 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
     const [imagePreviews, setImagePreviews] = useState<string[]>([]);
     const chatContainerRef = useRef<HTMLDivElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
-    const [selectedModel, setSelectedModel] = useState<string>('gemini-3.7-flash');
-    const [isModelDropdownOpen, setIsModelDropdownOpen] = useState<boolean>(false);
-    const dropdownRef = useRef<HTMLDivElement>(null);
     const [currentModelName, setCurrentModelName] = useState<string>('gemini-3.7-flash');
     const [retrySeconds, setRetrySeconds] = useState<number>(0);
     const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
     const [showOracle, setShowOracle] = useState(false);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-                setIsModelDropdownOpen(false);
-            }
-        };
-        if (isModelDropdownOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isModelDropdownOpen]);
 
     useEffect(() => {
         const stored = localStorage.getItem('greyquant_user_settings');
@@ -433,8 +416,8 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
     useEffect(() => {
         const init = async () => {
-            await getChatInstance(selectedModel); 
-            setCurrentModelName(getCurrentModelName() || selectedModel);
+            await getChatInstance(); 
+            setCurrentModelName(getCurrentModelName() || 'gemini-3.7-flash');
         };
         init();
         return () => {
@@ -442,7 +425,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
             if (timeoutRef.current) clearTimeout(timeoutRef.current);
             if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
         };
-    }, [selectedModel]);
+    }, []);
 
     useEffect(() => {
         if (chatContainerRef.current) {
@@ -755,117 +738,38 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                         <span className="hidden sm:inline">Portal</span>
                     </button>
                     
-                    <div className="relative" ref={dropdownRef}>
+                    <div>
                         {(() => {
-                            const activeConfig = CHAT_MODEL_CONFIGS.find(m => m.id === selectedModel) || CHAT_MODEL_CONFIGS[0];
+                            const activeConfig = findChatModelConfig(currentModelName);
                             
-                            let btnClass = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20';
+                            let badgeClass = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
                             let dotClass = 'bg-emerald-500 shadow-emerald-500/50';
                             let textClass = 'text-emerald-700 dark:text-emerald-300';
 
                             if (activeConfig.isRed) {
-                                btnClass = 'bg-red-500/10 dark:bg-red-950/40 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20';
+                                badgeClass = 'bg-red-500/10 dark:bg-red-950/40 border-red-500/30 text-red-600 dark:text-red-400';
                                 dotClass = 'bg-red-500 shadow-red-500/50';
                                 textClass = 'text-red-700 dark:text-red-300';
                             } else if (activeConfig.isBlue) {
-                                btnClass = 'bg-sky-500/10 dark:bg-sky-950/40 border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20';
+                                badgeClass = 'bg-sky-500/10 dark:bg-sky-950/40 border-sky-500/30 text-sky-600 dark:text-sky-400';
                                 dotClass = 'bg-sky-500 shadow-sky-500/50';
                                 textClass = 'text-sky-700 dark:text-sky-300';
                             }
                             
                             return (
-                                <>
-                                <button
-                                    onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all backdrop-blur-md cursor-pointer shadow-xs ${btnClass}`}
-                                    title="Select Model"
-                                    aria-label="Select Intelligence Model"
+                                <div
+                                    className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all backdrop-blur-md shadow-xs select-none ${badgeClass}`}
+                                    title={`Active Model: ${activeConfig.label} (${activeConfig.sublabel}) — Auto-Fallback Enabled`}
                                 >
-                                    <div className="flex items-center gap-2">
-                                        <span className={`w-2 h-2 rounded-full animate-pulse shadow-xs ${dotClass}`} />
-                                        <div className="flex flex-col items-start text-left">
-                                            <div className="flex items-center gap-1.5">
-                                                <span className={`text-[12px] font-bold tracking-tight uppercase font-mono ${textClass}`}>
-                                                    {activeConfig.label}
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <ChevronDown size={14} className={`text-slate-400 transition-transform duration-200 ml-1 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
-                                </button>
-                                </>
-                            );
-                        })()}
-
-                        <AnimatePresence>
-                            {isModelDropdownOpen && (
-                                <motion.div
-                                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
-                                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
-                                    transition={{ duration: 0.15, ease: 'easeOut' }}
-                                    className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-72 sm:w-80 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
-                                >
-                                    <div className="px-3 py-2">
-                                        <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
-                                            Select Active Model
+                                    <span className={`w-2 h-2 rounded-full animate-pulse shadow-xs ${dotClass}`} />
+                                    <div className="flex items-center gap-1.5">
+                                        <span className={`text-[12px] font-bold tracking-tight uppercase font-mono ${textClass}`}>
+                                            {activeConfig.label}
                                         </span>
                                     </div>
-                                    <div className="pt-1.5 space-y-1 max-h-[340px] overflow-y-auto scrollbar-thin">
-                                        {CHAT_MODEL_CONFIGS.map((cfg) => {
-                                            const isSelected = selectedModel === cfg.id;
-                                            
-                                            let btnClasses = 'hover:bg-emerald-500/5 dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-emerald-500/20';
-                                            let selectedClasses = 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400';
-                                            let dotClass = 'bg-emerald-500';
-                                            let textClass = '';
-                                            let checkClass = 'text-emerald-500';
-
-                                            if (cfg.isRed) {
-                                                btnClasses = 'hover:bg-red-500/5 dark:hover:bg-red-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-red-500/20';
-                                                selectedClasses = 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400';
-                                                dotClass = 'bg-red-500';
-                                                textClass = 'text-red-600 dark:text-red-400';
-                                                checkClass = 'text-red-500';
-                                            } else if (cfg.isBlue) {
-                                                btnClasses = 'hover:bg-sky-500/5 dark:hover:bg-sky-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-sky-500/20';
-                                                selectedClasses = 'bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400';
-                                                dotClass = 'bg-sky-500';
-                                                textClass = 'text-sky-600 dark:text-sky-400';
-                                                checkClass = 'text-sky-500';
-                                            }
-
-                                            return (
-                                                <button
-                                                    key={cfg.id}
-                                                    onClick={() => {
-                                                        setSelectedModel(cfg.id);
-                                                        setIsModelDropdownOpen(false);
-                                                    }}
-                                                    className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
-                                                        isSelected ? selectedClasses : btnClasses
-                                                    }`}
-                                                >
-                                                    <div className="flex items-center gap-2.5">
-                                                        <div className={`w-2 h-2 rounded-full ${dotClass}`} />
-                                                        <div>
-                                                            <div className="flex items-center gap-1.5">
-                                                                <span className={`text-xs font-bold font-mono ${isSelected ? '' : textClass}`}>
-                                                                    {cfg.label}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    {isSelected && (
-                                                        <Check size={14} className={checkClass} />
-                                                    )}
-                                                </button>
-                                            );
-                                        })}
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-3">

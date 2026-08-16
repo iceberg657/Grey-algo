@@ -157,9 +157,80 @@ export const getSniperPool = () => {
     return keys.length > 0 ? keys : getAnalysisPool();
 };
 export const SNIPER_MODELS = [
-    'gemini-3.5-flash-lite',
-    'gemini-3.1-flash-lite'
+    'gemini-3.5-flash-lite',  // Model 5
+    'gemini-3.1-flash-lite',  // Model 6
+    'gemma-4-26b',            // Model 7
+    'gemma-4-31b'             // Model 8
 ];
+
+export interface SniperModelOption {
+    id: string;
+    label: string;
+    sublabel: string;
+    isDefault?: boolean;
+    isRed?: boolean;
+    isBlue?: boolean;
+    color: string;
+}
+
+export const SNIPER_MODEL_CONFIGS: SniperModelOption[] = [
+    {
+        id: 'gemini-3.5-flash-lite',
+        label: 'Model 5',
+        sublabel: 'Gemini 3.5 Flash Lite',
+        isDefault: true,
+        isBlue: true,
+        color: 'sky'
+    },
+    {
+        id: 'gemini-3.1-flash-lite',
+        label: 'Model 6',
+        sublabel: 'Gemini 3.1 Flash Lite',
+        isBlue: true,
+        color: 'sky'
+    },
+    {
+        id: 'gemma-4-26b',
+        label: 'Model 7',
+        sublabel: 'Gemma 4 26B',
+        isRed: true,
+        color: 'red'
+    },
+    {
+        id: 'gemma-4-31b',
+        label: 'Model 8',
+        sublabel: 'Gemma 4 31B',
+        isRed: true,
+        color: 'red'
+    }
+];
+
+export function findSniperModelConfig(modelId?: string): SniperModelOption {
+    if (!modelId) return SNIPER_MODEL_CONFIGS[0];
+    const clean = modelId.toLowerCase().replace(/^models\//, '');
+    
+    // Model 7: Gemma 4 26B
+    if (clean.includes('gemma') && (clean.includes('26b') || clean.includes('model 7') || clean === 'model-7')) {
+        return SNIPER_MODEL_CONFIGS[2];
+    }
+    // Model 8: Gemma 4 31B
+    if (clean.includes('gemma') && (clean.includes('31b') || clean.includes('model 8') || clean === 'model-8')) {
+        return SNIPER_MODEL_CONFIGS[3];
+    }
+    // Model 5: Gemini 3.5 Flash Lite
+    if ((clean.includes('3.5') && clean.includes('lite')) || clean === 'model-5' || clean === 'model 5') {
+        return SNIPER_MODEL_CONFIGS[0];
+    }
+    // Model 6: Gemini 3.1 Flash Lite
+    if ((clean.includes('3.1') && clean.includes('lite')) || clean === 'model-6' || clean === 'model 6') {
+        return SNIPER_MODEL_CONFIGS[1];
+    }
+
+    const exact = SNIPER_MODEL_CONFIGS.find(m => m.id === clean || m.id === modelId);
+    if (exact) return exact;
+
+    return SNIPER_MODEL_CONFIGS[0];
+}
 
 // 3. CHAT & LIVE (Keys 5 & 6)
 export const getChatPool = () => {

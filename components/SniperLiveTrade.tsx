@@ -23,6 +23,7 @@ import {
   User,
   Bot,
   ChevronDown,
+  Check,
   Bell,
   BellOff,
   Settings,
@@ -32,6 +33,7 @@ import {
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
 import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal, formatPrice } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata, UserSettings, AntigravityVerdict } from '../types';
+import { SNIPER_MODELS, SNIPER_MODEL_CONFIGS, findSniperModelConfig } from '../services/retryUtils';
 import { Loader } from './Loader';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
 import { saveAnalysis } from '../services/historyService';
@@ -366,6 +368,17 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [userSettings, setUserSettings] = useState<UserSettings | undefined>(undefined);
   const [selectedStreamingMode, setSelectedStreamingMode] = useState<'Standard' | 'Advanced'>('Standard');
+  const [selectedSniperModel, setSelectedSniperModel] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('greyquant_sniper_selected_model');
+      if (saved && SNIPER_MODELS.includes(saved)) {
+        return saved;
+      }
+    }
+    return SNIPER_MODELS[0];
+  });
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const modelDropdownRef = useRef<HTMLDivElement>(null);
   const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
   const [ctraderConnectionError, setCTraderConnectionError] = useState<string | null>(null);
   const ctraderDepthRef = React.useRef<{ bids: [number, number][], asks: [number, number][] } | null>(null);
@@ -374,6 +387,24 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
   );
   const notifiedMsgIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(event.target as Node)) {
+        setIsModelDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleSelectSniperModel = (modelId: string) => {
+    setSelectedSniperModel(modelId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('greyquant_sniper_selected_model', modelId);
+    }
+    setIsModelDropdownOpen(false);
+  };
 
   useEffect(() => {
     if (typeof window !== 'undefined' && 'Notification' in window) {
@@ -1368,7 +1399,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         advancedQuantSignal,
         userSettings,
         dailyRegime?.regime,
-        antigravityVerdict // Pass real QuantConnect-aligned Antigravity research
+        antigravityVerdict, // Pass real QuantConnect-aligned Antigravity research
+        selectedSniperModel // Pass user selected model (Model 5, Model 6, Model 7, Model 8)
       );
       
       finalSignal.timeframe = tfLabel;
@@ -1593,6 +1625,96 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               <ArrowLeft className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
             </button>
             <div className="flex items-center gap-2 sm:hidden">
+              {/* Mobile Model Selector */}
+              <div className="relative" ref={modelDropdownRef}>
+                {(() => {
+                  const activeConfig = findSniperModelConfig(selectedSniperModel);
+                  let btnClass = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20';
+                  let dotClass = 'bg-emerald-500 shadow-emerald-500/50';
+                  let textClass = 'text-emerald-700 dark:text-emerald-300';
+
+                  if (activeConfig.isRed) {
+                    btnClass = 'bg-red-500/10 dark:bg-red-950/40 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20';
+                    dotClass = 'bg-red-500 shadow-red-500/50';
+                    textClass = 'text-red-700 dark:text-red-300';
+                  } else if (activeConfig.isBlue) {
+                    btnClass = 'bg-sky-500/10 dark:bg-sky-950/40 border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20';
+                    dotClass = 'bg-sky-500 shadow-sky-500/50';
+                    textClass = 'text-sky-700 dark:text-sky-300';
+                  }
+
+                  return (
+                    <button
+                      onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all ${btnClass}`}
+                      title="Select Sniper Model"
+                    >
+                      <span className={`w-2 h-2 rounded-full animate-pulse ${dotClass}`} />
+                      <span className={textClass}>{activeConfig.label}</span>
+                      <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                  );
+                })()}
+
+                <AnimatePresence>
+                  {isModelDropdownOpen && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 6, scale: 0.95 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: 6, scale: 0.95 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-full left-0 mt-2 w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
+                    >
+                      <div className="px-2.5 py-1.5">
+                        <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                          Sniper Model
+                        </span>
+                      </div>
+                      <div className="pt-1 space-y-1">
+                        {SNIPER_MODEL_CONFIGS.map((cfg) => {
+                          const isSelected = selectedSniperModel === cfg.id;
+                          let itemBtnClass = 'hover:bg-emerald-500/10 text-slate-700 dark:text-slate-300';
+                          let dotColor = 'bg-emerald-500';
+                          let itemTextClass = 'text-slate-700 dark:text-slate-300';
+                          let checkColor = 'text-emerald-500';
+
+                          if (cfg.isRed) {
+                            itemBtnClass = 'hover:bg-red-500/10 text-slate-700 dark:text-slate-300';
+                            dotColor = 'bg-red-500';
+                            itemTextClass = 'text-red-600 dark:text-red-400';
+                            checkColor = 'text-red-500';
+                          } else if (cfg.isBlue) {
+                            itemBtnClass = 'hover:bg-sky-500/10 text-slate-700 dark:text-slate-300';
+                            dotColor = 'bg-sky-500';
+                            itemTextClass = 'text-sky-600 dark:text-sky-400';
+                            checkColor = 'text-sky-500';
+                          }
+
+                          return (
+                            <button
+                              key={cfg.id}
+                              onClick={() => handleSelectSniperModel(cfg.id)}
+                              className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all ${
+                                isSelected ? 'bg-slate-100 dark:bg-slate-800 font-bold' : itemBtnClass
+                              }`}
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                                <div className="flex flex-col">
+                                  <span className={`text-xs font-mono font-bold ${itemTextClass}`}>{cfg.label}</span>
+                                  <span className="text-[9px] text-slate-400 font-mono">{cfg.sublabel}</span>
+                                </div>
+                              </div>
+                              {isSelected && <Check className={`w-4 h-4 ${checkColor}`} />}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+
               {typeof window !== 'undefined' && 'Notification' in window && (
                 <button
                   onClick={handleToggleNotifications}
@@ -1673,6 +1795,111 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
           </div>
 
           <div className="hidden sm:flex items-center gap-2">
+            {/* Desktop Model Selector */}
+            <div className="relative" ref={modelDropdownRef}>
+              {(() => {
+                const activeConfig = findSniperModelConfig(selectedSniperModel);
+                let btnClass = 'bg-emerald-500/10 dark:bg-emerald-950/40 border-emerald-500/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/20';
+                let dotClass = 'bg-emerald-500 shadow-emerald-500/50';
+                let textClass = 'text-emerald-700 dark:text-emerald-300';
+
+                if (activeConfig.isRed) {
+                  btnClass = 'bg-red-500/10 dark:bg-red-950/40 border-red-500/30 text-red-600 dark:text-red-400 hover:bg-red-500/20';
+                  dotClass = 'bg-red-500 shadow-red-500/50';
+                  textClass = 'text-red-700 dark:text-red-300';
+                } else if (activeConfig.isBlue) {
+                  btnClass = 'bg-sky-500/10 dark:bg-sky-950/40 border-sky-500/30 text-sky-600 dark:text-sky-400 hover:bg-sky-500/20';
+                  dotClass = 'bg-sky-500 shadow-sky-500/50';
+                  textClass = 'text-sky-700 dark:text-sky-300';
+                }
+
+                return (
+                  <button
+                    onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all backdrop-blur-md cursor-pointer shadow-xs ${btnClass}`}
+                    title="Select Sniper Model"
+                    aria-label="Select Intelligence Model"
+                  >
+                    <span className={`w-2 h-2 rounded-full animate-pulse shadow-xs ${dotClass}`} />
+                    <div className="flex flex-col items-start text-left">
+                      <span className={`text-[12px] font-bold tracking-tight uppercase font-mono ${textClass}`}>
+                        {activeConfig.label}
+                      </span>
+                    </div>
+                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ml-1 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                  </button>
+                );
+              })()}
+
+              <AnimatePresence>
+                {isModelDropdownOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    transition={{ duration: 0.15, ease: 'easeOut' }}
+                    className="absolute top-full right-0 mt-2 w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
+                  >
+                    <div className="px-3 py-2">
+                      <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                        Select Sniper Model
+                      </span>
+                    </div>
+                    <div className="pt-1.5 space-y-1">
+                      {SNIPER_MODEL_CONFIGS.map((cfg) => {
+                        const isSelected = selectedSniperModel === cfg.id;
+                        let btnClasses = 'hover:bg-emerald-500/5 dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-emerald-500/20';
+                        let selectedClasses = 'bg-emerald-500/10 border border-emerald-500/30 text-emerald-600 dark:text-emerald-400 font-bold';
+                        let dotClass = 'bg-emerald-500';
+                        let textClass = '';
+                        let checkClass = 'text-emerald-500';
+
+                        if (cfg.isRed) {
+                          btnClasses = 'hover:bg-red-500/5 dark:hover:bg-red-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-red-500/20';
+                          selectedClasses = 'bg-red-500/10 border border-red-500/30 text-red-600 dark:text-red-400 font-bold';
+                          dotClass = 'bg-red-500';
+                          textClass = 'text-red-600 dark:text-red-400';
+                          checkClass = 'text-red-500';
+                        } else if (cfg.isBlue) {
+                          btnClasses = 'hover:bg-sky-500/5 dark:hover:bg-sky-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-sky-500/20';
+                          selectedClasses = 'bg-sky-500/10 border border-sky-500/30 text-sky-600 dark:text-sky-400 font-bold';
+                          dotClass = 'bg-sky-500';
+                          textClass = 'text-sky-600 dark:text-sky-400';
+                          checkClass = 'text-sky-500';
+                        }
+
+                        return (
+                          <button
+                            key={cfg.id}
+                            onClick={() => handleSelectSniperModel(cfg.id)}
+                            className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                              isSelected ? selectedClasses : btnClasses
+                            }`}
+                          >
+                            <div className="flex items-center gap-2.5">
+                              <div className={`w-2 h-2 rounded-full ${dotClass}`} />
+                              <div>
+                                <div className="flex items-center gap-1.5">
+                                  <span className={`text-xs font-bold font-mono ${isSelected ? '' : textClass}`}>
+                                    {cfg.label}
+                                  </span>
+                                </div>
+                                <span className="text-[10px] text-slate-400 font-mono block">
+                                  {cfg.sublabel}
+                                </span>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <Check className={`w-4 h-4 ${checkClass}`} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
             {typeof window !== 'undefined' && 'Notification' in window && (
               <button
                 onClick={handleToggleNotifications}

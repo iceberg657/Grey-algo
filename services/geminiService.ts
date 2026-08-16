@@ -2222,7 +2222,8 @@ export async function generateSniperLiveSignal(
     advancedQuantSignal?: any,
     userSettings?: UserSettings,
     regime?: MarketRegime,
-    antigravityVerdict?: AntigravityVerdict
+    antigravityVerdict?: AntigravityVerdict,
+    selectedModel?: string
 ): Promise<SignalData> {
     const livePrice = derivData?.price || 0;
     const assetName = derivData?.symbol || 'Asset';
@@ -2231,13 +2232,12 @@ export async function generateSniperLiveSignal(
     const cleanQueryForLLM = cleanBrokerQuery(strippedQuery);
 
     const isDeepThinking = !!userSettings?.deepThinking;
-    const models = isDeepThinking ? [
-        'gemini-3.7-flash',
-        'gemini-3.6-flash',
-        'gemini-3.5-flash',
-        'gemini-3.5-flash-lite',
-        'gemini-3.1-flash-lite'
-    ] : SNIPER_MODELS; // STRICT RULE: Sniper Page uses High-Speed pool by default (3.5-flash-lite & 3.1-flash-lite)
+    const baseModels = SNIPER_MODELS; // [gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemma-4-26b, gemma-4-31b]
+    const chosenModel = selectedModel || 'gemini-3.5-flash-lite';
+    const models = [
+        chosenModel,
+        ...baseModels.filter(m => m !== chosenModel)
+    ];
 
     const timeframesContext = derivData?.multiTimeframe ? `
 **SELECTED TIMEFRAMES FOR ANALYSIS:**
