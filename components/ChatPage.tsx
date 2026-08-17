@@ -621,8 +621,9 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
 
             // Append explicit model tag at the end of response text
             const finalModel = getCurrentModelName() || activeModel;
+            const modelLabel = findChatModelConfig(finalModel).label;
             if (responseText.trim().length > 0 && !responseText.includes('*⚡ Executed via Model:')) {
-                responseText += `\n\n---\n*⚡ Executed via Model: ${finalModel}*`;
+                responseText += `\n\n---\n*⚡ Executed via Model: ${modelLabel}*`;
                 setMessages(prev => {
                     const newMessages = [...prev];
                     const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);

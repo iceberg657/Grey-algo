@@ -3187,6 +3187,29 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                     </div>
                                 )}
                             </div>
+
+                            {/* Execution Neural Model Badge - Displayed below Order Book Liquidity Depth Map at the end of analysis */}
+                            {(() => {
+                                const activeConfig = findSniperModelConfig(msg.signal.model || selectedModel);
+                                return (
+                                    <div className="mt-4 bg-indigo-500/10 dark:bg-indigo-950/30 border border-indigo-500/30 rounded-2xl px-5 py-3.5 flex items-center justify-between text-xs font-mono shadow-sm">
+                                        <div className="flex items-center gap-2.5">
+                                            <span className="relative flex h-2.5 w-2.5">
+                                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                                <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-indigo-500"></span>
+                                            </span>
+                                            <span className="text-slate-600 dark:text-slate-300 font-bold uppercase tracking-wider text-[11px]">
+                                                Neural Execution Model
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="font-mono text-xs font-black text-indigo-600 dark:text-indigo-300 bg-indigo-500/20 px-3 py-1 rounded-xl border border-indigo-500/30">
+                                                {activeConfig.label}
+                                            </span>
+                                        </div>
+                                    </div>
+                                );
+                            })()}
                           </div>
                         ) : (
                           <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 px-6 py-4 rounded-2xl rounded-tl-none shadow-sm text-sm text-slate-600 dark:text-slate-400 leading-relaxed">

@@ -4,6 +4,7 @@ import type { SignalData, EconomicEvent } from '../types';
 import { generateAndPlayAudio, stopAudio } from '../services/ttsService';
 import { updateTradeOutcome } from '../services/historyService';
 import { generateLessonFromTradeLog } from '../services/learningService';
+import { findChatModelConfig } from '../services/retryUtils';
 import { TiltCard } from './TiltCard';
 import { motion } from 'motion/react';
 import { TimingCalibrationWidget } from './TimingCalibrationWidget';
@@ -483,18 +484,23 @@ Lot Size: ${data.formattedLotSize || 'N/A'}
             </div>
 
             {/* NEURAL MODEL ENGINE TAG */}
-            <div className="mb-6 flex items-center justify-between bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs font-mono shadow-sm">
-                <div className="flex items-center gap-2">
-                    <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                    </span>
-                    <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-[10px]">Execution Neural Model</span>
-                </div>
-                <span className="font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-500/20 px-2.5 py-0.5 rounded-md border border-indigo-500/30">
-                    {data.model || 'gemini-3.5-flash-lite'}
-                </span>
-            </div>
+            {(() => {
+                const modelCfg = findChatModelConfig(data.model);
+                return (
+                    <div className="mb-6 flex items-center justify-between bg-indigo-500/10 border border-indigo-500/30 rounded-xl px-4 py-2.5 text-xs font-mono shadow-sm">
+                        <div className="flex items-center gap-2">
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                            </span>
+                            <span className="text-gray-500 dark:text-gray-400 font-bold uppercase tracking-wider text-[10px]">Execution Neural Model</span>
+                        </div>
+                        <span className="font-bold text-indigo-600 dark:text-indigo-300 bg-indigo-500/20 px-2.5 py-0.5 rounded-md border border-indigo-500/30">
+                            {modelCfg.label}
+                        </span>
+                    </div>
+                );
+            })()}
 
             {/* Sliding Tab Triggers */}
             <div className="flex bg-slate-200/50 dark:bg-slate-900/60 p-1.5 rounded-2xl gap-1 mb-8 border border-slate-300/30 dark:border-white/5 backdrop-blur-3xl overflow-x-auto scroller-none max-w-full">

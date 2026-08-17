@@ -3208,7 +3208,7 @@ Move SL to entry immediately after TP1 or when price is 50% of the way to TP1.
                 positionProtocol: finalPositionProtocol || undefined,
                 heatmapData: heatmapMapping,
                 model: modelId,
-                insight: `${sanitizeTextOutput(signal.insight || 'Analysis generated successfully.')}\n\n---\n*⚡ Neural Execution Model: ${modelId}*`,
+                insight: `${sanitizeTextOutput(signal.insight || 'Analysis generated successfully.')}\n\n---\n*⚡ Neural Execution Model: ${findSniperModelConfig(modelId).label}*`,
                 formattedLotSize: lotInfo.lotSize > 0 ? lotInfo.lotSize.toString() : signal.formattedLotSize,
                 riskAmount: lotInfo.riskAmount,
                 positionLotSize: lotInfo.lotSize > 0 ? (lotInfo.lotSize / (signal.recommendedPositions || 1)).toFixed(2) + ' per position' : signal.positionLotSize,
