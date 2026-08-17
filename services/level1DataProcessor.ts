@@ -216,25 +216,71 @@ export function processRawL1Tick(
  * Fetches real-time L1 tick data for a single symbol from the backend Deriv / market service
  */
 export async function fetchLevel1Tick(symbol: string, displaySymbol?: string): Promise<Level1Tick | null> {
+    const disp = displaySymbol || symbol;
     try {
         const url = `/api/derivData?symbol=${encodeURIComponent(symbol)}`;
         const res = await fetch(url, { cache: 'no-store' });
-        if (!res.ok) return null;
-        const data = await res.json();
-        if (!data || typeof data.price === 'undefined') return null;
-
-        return processRawL1Tick({
-            symbol: data.symbol || symbol,
-            displaySymbol: displaySymbol || symbol,
-            bid: data.bid,
-            ask: data.ask,
-            price: data.price,
-            epoch: data.epoch
-        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data && typeof data.price === 'number' && !isNaN(data.price)) {
+                return processRawL1Tick({
+                    symbol: data.symbol || symbol,
+                    displaySymbol: disp,
+                    bid: data.bid,
+                    ask: data.ask,
+                    price: data.price,
+                    epoch: data.epoch
+                });
+            }
+        }
     } catch (err) {
-        console.warn(`[level1DataProcessor] Failed to fetch L1 tick for ${symbol}:`, err);
-        return null;
+        console.warn(`[level1DataProcessor] Backend fetch error for ${symbol}, attempting client direct quote:`, err);
     }
+
+    // Direct client-side quote fallback via Yahoo Finance
+    try {
+        const upper = symbol.toUpperCase().replace('/', '').replace(' ', '');
+        let yahooSym = symbol;
+        if (upper === 'GOLD' || upper === 'XAUUSD' || upper === 'FRXXAUUSD') yahooSym = 'GC=F';
+        else if (upper === 'SILVER' || upper === 'XAGUSD') yahooSym = 'SI=F';
+        else if (upper === 'US30' || upper === 'DJI') yahooSym = '^DJI';
+        else if (upper === 'NAS100' || upper === 'NDX') yahooSym = '^NDX';
+        else if (upper === 'SP500' || upper === 'SPX') yahooSym = '^GSPC';
+        else if (upper === 'BTCUSD' || upper === 'BTC') yahooSym = 'BTC-USD';
+        else if (upper === 'ETHUSD' || upper === 'ETH') yahooSym = 'ETH-USD';
+        else if (upper.length === 6 || upper.startsWith('FRX')) {
+            yahooSym = upper.replace('FRX', '') + '=X';
+        }
+
+        const yRes = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=1m&range=1d`, { cache: 'no-store' });
+        if (yRes.ok) {
+            const yData = await yRes.json();
+            const result = yData?.chart?.result?.[0];
+            const meta = result?.meta;
+            const quotes = result?.indicators?.quote?.[0];
+            const closes = (quotes?.close || []).filter((c: any) => typeof c === 'number' && !isNaN(c));
+            const lastPrice = closes[closes.length - 1] || meta?.regularMarketPrice;
+
+            if (lastPrice) {
+                const spreadVal = yahooSym.includes('GC=F') ? 0.3 : (lastPrice * 0.0001);
+                return processRawL1Tick({
+                    symbol,
+                    displaySymbol: disp,
+                    price: Number(lastPrice.toFixed(5)),
+                    bid: Number((lastPrice - spreadVal / 2).toFixed(5)),
+                    ask: Number((lastPrice + spreadVal / 2).toFixed(5)),
+                    high: meta?.regularMarketDayHigh || meta?.high || lastPrice,
+                    low: meta?.regularMarketDayLow || meta?.low || lastPrice,
+                    open: meta?.chartPreviousClose || meta?.previousClose || lastPrice,
+                    epoch: Math.floor(Date.now() / 1000)
+                });
+            }
+        }
+    } catch (directErr) {
+        console.warn(`[level1DataProcessor] Direct Yahoo quote failed for ${symbol}:`, directErr);
+    }
+
+    return null;
 }
 
 /**

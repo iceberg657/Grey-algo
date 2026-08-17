@@ -102,6 +102,10 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
 
     console.log(`[DerivData] Mapping: "${symbol}" -> "${normalized}" -> "${mappedSymbol}"`);
 
+    // For Gold, Forex, Equity Indices, and Crypto, try Yahoo Finance directly or as instantaneous fallback
+    const upperNorm = normalized.toUpperCase();
+    const isMajorGlobalAsset = ['GOLD', 'XAUUSD', 'FRXXAUUSD', 'SILVER', 'XAGUSD', 'US30', 'OTCDJI', 'NAS100', 'OTCNDX', 'SP500', 'OTCSPC', 'EURUSD', 'FRXEURUSD', 'GBPUSD', 'FRXGBPUSD', 'USDJPY', 'FRXUSDJPY'].includes(upperNorm) || upperNorm.startsWith('FRX') || (upperNorm.length === 6 && !upperNorm.startsWith('R_') && !upperNorm.startsWith('BOOM') && !upperNorm.startsWith('CRASH'));
+
     return new Promise((resolve, reject) => {
         let isSettled = false;
         const ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${DERIV_APP_ID}`);
@@ -114,8 +118,22 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
             resolve(data);
         };
 
-        const safeReject = (err: any) => {
+        const safeReject = async (err: any) => {
             if (isSettled) return;
+            // Attempt Yahoo Finance fallback for global assets before rejecting
+            if (isMajorGlobalAsset) {
+                try {
+                    const fallbackData = await fetchYahooFallbackQuote(symbol, fetchHistory, granularity, count);
+                    isSettled = true;
+                    clearTimeout(timeout);
+                    try { ws.close(); } catch {}
+                    resolve(fallbackData);
+                    return;
+                } catch (fallbackErr) {
+                    console.warn('[DerivData] Yahoo fallback also failed:', fallbackErr);
+                }
+            }
+
             isSettled = true;
             clearTimeout(timeout);
             try { ws.close(); } catch {}
@@ -124,7 +142,7 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
 
         const timeout = setTimeout(() => {
             safeReject(new Error('Deriv API timeout'));
-        }, 10000);
+        }, 5000);
 
         ws.on('open', () => {
             // Ticks API does not require authorization
@@ -132,7 +150,7 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
                 ws.send(JSON.stringify({ 
                     ticks_history: mappedSymbol,
                     adjust_start_time: 1,
-                    count: parseInt(count) || 1000, // Get requested candles for deep history
+                    count: parseInt(count) || 1000,
                     end: 'latest',
                     style: 'candles',
                     granularity: parseInt(granularity) || 60
@@ -207,6 +225,78 @@ export async function fetchDerivQuote(symbol: string, _clientToken: string | nul
             safeReject(new Error(`Deriv WS Closed: ${code} ${reason}`));
         });
     });
+}
+
+async function fetchYahooFallbackQuote(symbol: string, fetchHistory: boolean = false, granularity: any = 60, count: any = 1000): Promise<any> {
+    let yahooSym = symbol;
+    const upper = symbol.toUpperCase().replace('/', '').replace(' ', '');
+    if (upper === 'GOLD' || upper === 'XAUUSD' || upper === 'FRXXAUUSD') yahooSym = 'GC=F';
+    else if (upper === 'SILVER' || upper === 'XAGUSD') yahooSym = 'SI=F';
+    else if (upper === 'US30' || upper === 'DJI' || upper === 'OTCDJI') yahooSym = '^DJI';
+    else if (upper === 'NAS100' || upper === 'NDX' || upper === 'OTCNDX') yahooSym = '^NDX';
+    else if (upper === 'SP500' || upper === 'SPX' || upper === 'US500' || upper === 'OTCSPC') yahooSym = '^GSPC';
+    else if (upper === 'BTCUSD' || upper === 'CRYBTCUSD' || upper === 'BTC') yahooSym = 'BTC-USD';
+    else if (upper === 'ETHUSD' || upper === 'CRYETHUSD' || upper === 'ETH') yahooSym = 'ETH-USD';
+    else if (upper.length === 6 || upper.startsWith('FRX')) {
+        const cleanForex = upper.replace('FRX', '');
+        yahooSym = cleanForex + '=X';
+    }
+
+    let interval = '15m';
+    let range = '5d';
+    const granSec = parseInt(granularity) || 60;
+    if (granSec <= 60) { interval = '1m'; range = '1d'; }
+    else if (granSec <= 300) { interval = '5m'; range = '1d'; }
+    else if (granSec <= 900) { interval = '15m'; range = '5d'; }
+    else if (granSec <= 3600) { interval = '60m'; range = '1mo'; }
+    else { interval = '1d'; range = '3mo'; }
+
+    const res = await fetch(`https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(yahooSym)}?interval=${interval}&range=${range}`);
+    if (!res.ok) throw new Error(`Yahoo Finance HTTP ${res.status}`);
+    const data = await res.json();
+    const result = data?.chart?.result?.[0];
+    if (!result) throw new Error("No Yahoo result data");
+
+    const meta = result.meta;
+    const quotes = result.indicators?.quote?.[0];
+    const timestamps = result.timestamp || [];
+
+    if (fetchHistory && quotes && timestamps && timestamps.length > 0) {
+        const candles: any[] = [];
+        for (let i = 0; i < timestamps.length; i++) {
+            if (quotes.open[i] != null && quotes.close[i] != null) {
+                candles.push({
+                    epoch: timestamps[i],
+                    datetime: new Date(timestamps[i] * 1000).toISOString(),
+                    open: quotes.open[i],
+                    high: quotes.high[i] || quotes.open[i],
+                    low: quotes.low[i] || quotes.open[i],
+                    close: quotes.close[i],
+                    volume: quotes.volume[i] || 100,
+                    tick_volume: quotes.volume[i] || 100
+                });
+            }
+        }
+        if (candles.length > 0) {
+            return {
+                symbol,
+                candles: candles.slice(-count)
+            };
+        }
+    }
+
+    const validCloses = (quotes?.close || []).filter((c: any) => typeof c === 'number' && !isNaN(c));
+    const lastPrice = validCloses[validCloses.length - 1] || meta?.regularMarketPrice;
+    if (!lastPrice) throw new Error("No price found");
+
+    const spreadVal = yahooSym.includes('GC=F') ? 0.3 : (lastPrice * 0.0001);
+    return {
+        symbol,
+        price: Number(lastPrice.toFixed(5)),
+        bid: Number((lastPrice - spreadVal / 2).toFixed(5)),
+        ask: Number((lastPrice + spreadVal / 2).toFixed(5)),
+        epoch: Math.floor(Date.now() / 1000)
+    };
 }
 
 export default async (req: Request, res: Response) => {

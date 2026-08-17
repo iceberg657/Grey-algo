@@ -619,6 +619,20 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                 }
             }
 
+            // Append explicit model tag at the end of response text
+            const finalModel = getCurrentModelName() || activeModel;
+            if (responseText.trim().length > 0 && !responseText.includes('*⚡ Executed via Model:')) {
+                responseText += `\n\n---\n*⚡ Executed via Model: ${finalModel}*`;
+                setMessages(prev => {
+                    const newMessages = [...prev];
+                    const msgIndex = newMessages.findIndex(m => m.id === streamMessageId);
+                    if (msgIndex !== -1) {
+                        newMessages[msgIndex] = { ...newMessages[msgIndex], text: responseText, model: finalModel };
+                    }
+                    return newMessages;
+                });
+            }
+
             // Save final model message to Firestore
             if (userMetadata?.uid && responseText.trim().length > 0) {
                 const finalModelMessage: ChatMessage = {
@@ -626,7 +640,7 @@ export const ChatPage: React.FC<ChatPageProps> = ({ onBack, onLogout, messages, 
                     role: 'model',
                     text: responseText,
                     timestamp: Date.now(),
-                    model: getCurrentModelName() || activeModel
+                    model: finalModel
                 };
                 const path = `users/${userMetadata.uid}/chat_messages/${streamMessageId}`;
                 try {

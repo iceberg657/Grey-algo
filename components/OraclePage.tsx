@@ -5,6 +5,7 @@ import { getApiKey } from '../services/retryUtils';
 import { NeuralBackground } from './NeuralBackground';
 import { Mic, MicOff, Keyboard, MessageSquare, Send, ImagePlus } from 'lucide-react';
 import { GREYALPHA_IDENTITY } from '../services/identity';
+import { fetchMultipleLevel1Ticks, formatLevel1DataForGeminiLive, streamLevel1ToGeminiChatContext } from '../services/level1DataProcessor';
 
 interface OraclePageProps {
   onBack: () => void;
@@ -59,15 +60,28 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
       inputModeRef.current = mode;
   };
 
-  const sendText = () => {
+  const sendText = async () => {
       if (sessionRef.current && textInput.trim()) {
           discardTurnRef.current = false;
+          const userQuery = textInput;
+          setTextInput('');
+          setModelMessage(prev => prev + "\nUser: " + userQuery); // Show user text
+
+          // Enrich user text with real-time Level 1 market data context
+          let enrichedText = userQuery;
+          try {
+              const l1Feed = await streamLevel1ToGeminiChatContext(userQuery);
+              if (l1Feed) {
+                  enrichedText = `${userQuery}\n\n[LIVE MARKET LEVEL 1 DATA FEED]:\n${l1Feed}`;
+              }
+          } catch (e) {
+              console.warn('[Oracle] Telemetry enrichment failed:', e);
+          }
+
           sessionRef.current.sendClientContent({ 
-              turns: [{ role: 'user', parts: [{ text: textInput }] }], 
+              turns: [{ role: 'user', parts: [{ text: enrichedText }] }], 
               turnComplete: true 
           });
-          setModelMessage(prev => prev + "\nUser: " + textInput); // Show user text
-          setTextInput('');
       }
   }
 
@@ -231,6 +245,27 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
           onopen: () => {
             setIsActive(true);
             setIsInitializing(false);
+
+            // Synchronize real-time Level 1 Top-of-Book market telemetry on Oracle session open
+            fetchMultipleLevel1Ticks([
+              { displaySymbol: 'XAUUSD (Gold)', derivSymbol: 'XAUUSD' },
+              { displaySymbol: 'US30', derivSymbol: 'US30' },
+              { displaySymbol: 'EURUSD', derivSymbol: 'EURUSD' },
+              { displaySymbol: 'BTCUSD', derivSymbol: 'BTCUSD' }
+            ]).then(ticks => {
+              if (ticks && ticks.length > 0) {
+                const liveFeed = formatLevel1DataForGeminiLive(ticks);
+                sessionPromise.then(s => {
+                  s.sendClientContent({
+                    turns: [{
+                      role: 'user',
+                      parts: [{ text: `[SYSTEM TELEMETRY INITIALIZATION]\nReal-time benchmark market telemetry stream synchronized:\n${liveFeed}\n\nNote: Always cite these exact live price numbers (~4404-4456 region for Gold spot) when asked about market prices.` }]
+                    }],
+                    turnComplete: true
+                  });
+                });
+              }
+            }).catch(e => console.warn('[Oracle] OnOpen telemetry failed:', e));
             
             if (workletNode && audioStream) {
               // Audio input loop using AudioWorklet
@@ -312,6 +347,31 @@ export const OraclePage: React.FC<OraclePageProps> = ({ onBack, isHidden = false
                             id: call.id,
                             name: call.name,
                             response: { result: `Successfully navigated to ${args.page}` }
+                          }]
+                        });
+                      });
+                    }
+                  } else if (call.name === 'get_live_market_data') {
+                    const args = call.args as any;
+                    const reqSymbol = args?.symbol || 'XAUUSD';
+                    try {
+                      const l1Context = await streamLevel1ToGeminiChatContext(reqSymbol);
+                      sessionPromise.then(s => {
+                        s.sendToolResponse({
+                          functionResponses: [{
+                            id: call.id,
+                            name: call.name,
+                            response: { result: l1Context || `Live Market Telemetry for ${reqSymbol}: Stream active.` }
+                          }]
+                        });
+                      });
+                    } catch (err) {
+                      sessionPromise.then(s => {
+                        s.sendToolResponse({
+                          functionResponses: [{
+                            id: call.id,
+                            name: call.name,
+                            response: { result: `Error fetching live data for ${reqSymbol}` }
                           }]
                         });
                       });
@@ -424,6 +484,20 @@ Use the tool 'navigate_to_page' with the correct 'page' argument. Available page
                       }
                     },
                     required: ['page']
+                  }
+                },
+                {
+                  name: 'get_live_market_data',
+                  description: 'Fetches real-time Level 1 Top-of-Book market price, ticks, spreads, and Technical/SMC metrics for any financial asset (e.g. Gold/XAUUSD, US30, EURUSD, BTCUSD, NAS100).',
+                  parameters: {
+                    type: 'object',
+                    properties: {
+                      symbol: {
+                        type: 'string',
+                        description: "The financial asset symbol to fetch live data for. E.g. 'GOLD', 'XAUUSD', 'EURUSD', 'US30', 'BTCUSD', 'NAS100'"
+                      }
+                    },
+                    required: ['symbol']
                   }
                 }
               ]

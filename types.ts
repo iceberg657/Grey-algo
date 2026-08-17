@@ -196,6 +196,7 @@ export interface SignalData {
     checklist?: string[];
     invalidationScenario?: string;
     counterArgumentRejection?: string;
+    model?: string;
     riskAnalysis?: RiskAnalysis;
     sentiment?: Sentiment;
     sources?: {
