@@ -13,7 +13,8 @@ import {
     PILOT_MODELS, 
     initializeApiKey, 
     getChatPool, 
-    CHAT_MODELS 
+    CHAT_MODELS,
+    findSniperModelConfig
 } from './retryUtils.js';
 import { validateAndFixTPSL } from '../utils/riskRewardCalculator.js';
 import { buildCompleteTradeSetup } from '../utils/tradeSetup.js';

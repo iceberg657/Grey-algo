@@ -808,11 +808,10 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         ctEnvironment = localStorage.getItem('ctrader_environment') || 'demo';
       } catch (e) {}
 
-      // If Advanced Streaming (Level 2) is active, require cTrader connection without falling back to Deriv
+      // If Advanced Streaming (Level 2) is active but credentials are missing, set notice and fall back
       if (isAdvancedStreaming && (!ctToken || !ctAccount)) {
-         const missingErr = "Level 2 (cTrader) Streaming is active. Please enter your cTrader Access Token and Account ID in Settings to fetch Level 2 data. Standard (Deriv Level 1) streaming is stopped while Level 2 mode is active.";
+         const missingErr = "Level 2 (cTrader) credentials missing. Please enter your cTrader Access Token and Account ID in Settings to enable Level 2 data. Falling back to Standard Level 1 streaming.";
          setCTraderConnectionError(missingErr);
-         throw new Error(missingErr);
       }
 
       // Define 3 timeframes based on trading style
@@ -858,7 +857,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
       setCTraderConnectionError(null);
 
-      if (isAdvancedStreaming) {
+      let level2Success = false;
+      if (isAdvancedStreaming && ctToken && ctAccount) {
           usedBroker = 'cTrader Level 2';
           const ctAsset = getCTraderSymbol(asset);
           console.log(`[SniperLiveTrade Level 2] Fetching ${counts.entryCount} Bars Level 2 Data from cTrader for ${ctAsset} (raw: ${asset})...`);
@@ -871,8 +871,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
                   fetch(`/api/ctrader/trendbars?symbol=${ctAsset}&period=${timeframes.ctHtf}&accountId=${ctAccount}&environment=${ctEnvironment}&count=${counts.htfCount}`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal }),
                   fetch(`/api/ctrader/ticks?symbol=${ctAsset}&type=BID&accountId=${ctAccount}&environment=${ctEnvironment}`, { headers: { 'Authorization': `Bearer ${ctToken}` }, signal: controller.signal })
               ]);
-              
-              clearTimeout(timeoutId);
               
               const [eData, cData, hData, tData] = await Promise.all([
                   entryRes.json(), confirmRes.json(), htfRes.json(), tickRes.json()
@@ -889,19 +887,19 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               if (tData && tData.ticks) {
                  ctraderTicks = tData.ticks;
               }
+              level2Success = true;
           } catch (ctError: any) {
-              console.error(`[SniperLiveTrade Level 2] cTrader feed error:`, ctError);
+              console.warn(`[SniperLiveTrade Level 2] cTrader feed unavailable, falling back to Standard Level 1 feed:`, ctError);
               
               let friendlyError = ctError.message || String(ctError);
               if (friendlyError.includes('ECONNRESET') || friendlyError.includes('TLS')) {
-                  friendlyError = "TLS connection failed (ECONNRESET) on port 5035. Outbound custom TCP socket connections restricted.";
+                  friendlyError = "TLS connection failed (ECONNRESET) on port 5035.";
               }
-              
-              setCTraderConnectionError(friendlyError);
-              // STRICT LEVEL 2 ISOLATION: Do NOT fall back to Deriv Level 1 streaming!
-              throw new Error(`Level 2 Data Stream Error: ${friendlyError}. Standard (Level 1) streaming is stopped per Level 2 preference.`);
+              setCTraderConnectionError(`Level 2 Data Stream Notice: ${friendlyError}. Fallback to Standard feed active.`);
           }
-      } else {
+      }
+
+      if (!level2Success) {
           // Fallback / Standard Deriv Fetch
           usedBroker = 'Deriv';
           const symbol = getDerivSymbol(asset);
@@ -926,8 +924,6 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
               fetch(`/api/derivData?symbol=${symbol}&history=true&granularity=${timeframes.htf}&count=${counts.htfCount}${clientToken ? `&token=${encodeURIComponent(clientToken)}` : ''}`, { signal: controller.signal, cache: 'no-store' })
           ]);
           
-          clearTimeout(timeoutId);
-          
           const [eData, cData, hData] = await Promise.all([
               entryRes.json(), confirmRes.json(), htfRes.json()
           ]);
@@ -937,6 +933,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           confirmData = cData;
           htfData = hData;
       }
+
+      clearTimeout(timeoutId);
 
       // Absolute OHLCV normalization pipeline
       const normalizeCandleList = (rawCandles: any[]) => {
