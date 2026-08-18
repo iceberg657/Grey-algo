@@ -79,10 +79,41 @@ export default async function handler(req: Request, res: Response) {
         console.log(`[GeminiProxy] Analyzing with ${targetModel} (key: ...${apiKey.slice(-4)}) [Mode: ${isLite ? 'Sniper/Lite' : 'Standard Flash'}]`);
         const ai = new GoogleGenAI({ apiKey });
 
+        const isGemmaModel = targetModel.toLowerCase().includes('gemma');
+        const effectiveConfig: any = config ? { ...config } : {};
+        let contentsForModel = contents;
+
+        if (isGemmaModel) {
+          // Gemma models in Google AI API do NOT support OpenAPI responseSchema or systemInstruction in config
+          delete effectiveConfig.responseSchema;
+          
+          if (effectiveConfig.systemInstruction) {
+            const sysInst = typeof effectiveConfig.systemInstruction === 'string'
+              ? effectiveConfig.systemInstruction
+              : JSON.stringify(effectiveConfig.systemInstruction);
+            delete effectiveConfig.systemInstruction;
+
+            if (Array.isArray(contents) && contents.length > 0) {
+              const firstContent = { ...contents[0] };
+              if (firstContent.parts && Array.isArray(firstContent.parts)) {
+                firstContent.parts = [
+                  { text: `[SYSTEM INSTRUCTIONS]:\n${sysInst}\n\n` },
+                  ...firstContent.parts
+                ];
+              } else {
+                firstContent.parts = [{ text: `[SYSTEM INSTRUCTIONS]:\n${sysInst}\n\n${JSON.stringify(firstContent)}` }];
+              }
+              contentsForModel = [firstContent, ...contents.slice(1)];
+            }
+          }
+
+          effectiveConfig.responseMimeType = 'application/json';
+        }
+
         const sdkResponse = await ai.models.generateContent({
           model: targetModel,
-          contents: contents,
-          config: config,
+          contents: contentsForModel,
+          config: effectiveConfig,
         });
 
         if (sdkResponse && sdkResponse.candidates && sdkResponse.candidates.length > 0) {

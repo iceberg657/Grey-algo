@@ -1123,12 +1123,15 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         const response = await runWithModelFallback<any>(
             models,
             async (modelId) => {
+                const isGemmaModel = modelId.toLowerCase().includes('gemma');
                 const config: any = {
                     temperature: 0.0,
                     maxOutputTokens: 2048,
-                    responseMimeType: "application/json",
-                    responseSchema: SignalDataSchema
+                    responseMimeType: "application/json"
                 };
+                if (!isGemmaModel) {
+                    config.responseSchema = SignalDataSchema;
+                }
 
                 if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
                     config.thinkingConfig = {
@@ -2008,12 +2011,15 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
         return await runWithModelFallback<SignalData>(
             models,
             async (modelId) => {
+                const isGemmaModel = modelId.toLowerCase().includes('gemma');
                 const config: any = {
                     temperature: 0.1,
                     maxOutputTokens: 2048,
-                    responseMimeType: "application/json",
-                    responseSchema: SniperDataSchema
+                    responseMimeType: "application/json"
                 };
+                if (!isGemmaModel) {
+                    config.responseSchema = SniperDataSchema;
+                }
 
                 let text = '';
                 const controller = new AbortController();
@@ -2694,12 +2700,15 @@ JSON Structure:
         return await runWithModelFallback<SignalData>(
             models,
             async (modelId) => {
+                const isGemmaModel = modelId.toLowerCase().includes('gemma');
                 const config: any = {
                     temperature: 0.1,
-                    maxOutputTokens: 2048,
-                    responseMimeType: "application/json",
-                    responseSchema: SniperDataSchema
+                    maxOutputTokens: isGemmaModel ? 3576 : 2048,
+                    responseMimeType: "application/json"
                 };
+                if (!isGemmaModel) {
+                    config.responseSchema = SniperDataSchema;
+                }
 
                 if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
                     config.thinkingConfig = {
