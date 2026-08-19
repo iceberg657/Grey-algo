@@ -12,7 +12,7 @@ export const DEFAULT_MARKET_CONFIG: MarketConfig = {
 };
 
 export const MARKET_CONFIGS: Record<string, MarketConfig> = {
-    // --- FOREX ---
+    // --- FOREX MAJORS & MINORS ---
     'EURUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
     'GBPUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0008, tp1Distance: 0.0020 },
     'USDJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.08, tp1Distance: 0.20 },
@@ -21,6 +21,26 @@ export const MARKET_CONFIGS: Record<string, MarketConfig> = {
     'USDCAD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
     'USDCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
     'NZDUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
+    'AUDNZD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0006, tp1Distance: 0.0018 },
+    'AUDCAD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0006, tp1Distance: 0.0018 },
+    'AUDCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0006, tp1Distance: 0.0018 },
+    'AUDJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.10, tp1Distance: 0.30 },
+    'CADCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0006, tp1Distance: 0.0018 },
+    'CADJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.10, tp1Distance: 0.30 },
+    'CHFJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.12, tp1Distance: 0.35 },
+    'EURAUD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0008, tp1Distance: 0.0024 },
+    'EURCAD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0007, tp1Distance: 0.0021 },
+    'EURCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0005, tp1Distance: 0.0015 },
+    'EURGBP': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0004, tp1Distance: 0.0012 },
+    'EURJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.10, tp1Distance: 0.30 },
+    'EURNZD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0009, tp1Distance: 0.0027 },
+    'GBPAUD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0010, tp1Distance: 0.0030 },
+    'GBPCAD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0009, tp1Distance: 0.0027 },
+    'GBPCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0008, tp1Distance: 0.0024 },
+    'GBPNZD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0011, tp1Distance: 0.0033 },
+    'NZDCAD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0006, tp1Distance: 0.0018 },
+    'NZDCHF': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.0006, tp1Distance: 0.0018 },
+    'NZDJPY': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 0.10, tp1Distance: 0.30 },
     
     // --- COMMODITIES & CRYPTO ---
     'XAUUSD': { ...DEFAULT_MARKET_CONFIG, minStopLoss: 2.0, tp1Distance: 5.0 }, // Gold $2 move

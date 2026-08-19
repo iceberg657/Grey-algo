@@ -618,7 +618,12 @@ export async function runWithModelFallback<T>(
                     errorMsg.includes('not valid json') ||
                     errorMsg.includes('non-json') ||
                     errorMsg.includes('empty response') ||
-                    errorMsg.includes('failed to parse')
+                    errorMsg.includes('failed to parse') ||
+                    errorMsg.includes('no structural json') ||
+                    errorMsg.includes('structural json') ||
+                    errorMsg.includes('json elements') ||
+                    errorMsg.includes('anomaly') ||
+                    errorMsg.includes('json')
                 ) {
                     
                     // Check if this is the last model in the list

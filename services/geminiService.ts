@@ -30,6 +30,40 @@ export const smcCandlestickLogic = ``;
 export const retailCandlestickLogic = ``;
 export const combinedCandlestickLogic = ``;
 
+function compressPromptForGemma(promptText: string): string {
+    if (!promptText) return '';
+    let compressed = promptText
+        .replace(/\*\*INSTITUTIONAL ANALYSIS & MATHEMATICAL THEORIES[\s\S]*?(?=\*\*INSTITUTIONAL|\*\*QUANT|\*\*MARKET|\*\*RCA|\*\*ENGINE|\*\*PREMIUM)/gi, '')
+        .replace(/\n{3,}/g, '\n\n');
+
+    compressed += `\n\nCRITICAL MANDATE FOR GEMMA OUTPUT FORMAT:
+You may write brief technical reasoning inside <scratchpad>...</scratchpad> tags first if needed.
+Directly after </scratchpad>, you MUST output ONLY a valid JSON object starting with "{" and ending with "}".
+All array elements MUST be separated by commas (e.g. ["Item 1", "Item 2"], [1.0850, 1.0890]).
+Do NOT write introductory text, explanations, or greetings outside the JSON.
+
+REQUIRED JSON FORMAT EXAMPLE:
+<scratchpad>
+M5 trend is bullish CHoCH. Price reacted off Order Block at 1.0850.
+</scratchpad>
+{
+  "signal": "BUY",
+  "confidence": 85,
+  "entryPoints": [1.0850],
+  "entryType": "Market Execution",
+  "stopLoss": 1.0820,
+  "takeProfits": [1.0890, 1.0920, 1.0950],
+  "grade": "A+",
+  "analysisBreakdown": ["M5 CHoCH bullish confirmation", "Price reacting off M15 Order Block"],
+  "reasoning": ["Institutional liquidity sweep completed below previous day low"],
+  "checklist": ["Trend alignment: Bullish", "RSI divergence: Confirmed"],
+  "candlestickPatterns": ["Bullish Engulfing"],
+  "insight": "High conviction scalp trade setting up at demand zone."
+}`;
+
+    return compressed;
+}
+
 const AI_TRADING_PLAN = (rrRatio: string, asset: string, strategies: string[], style: TradingStyle, userSettings?: UserSettings, twelveDataQuote?: any, globalTrend?: any, quantData?: any, currentDate?: Date, regime?: MarketRegime, advancedQuantSignal?: any) => {
     const date = currentDate || new Date();
     const isWeekend = date.getDay() === 0 || date.getDay() === 6; // 0 = Sunday, 6 = Saturday
@@ -104,6 +138,14 @@ ${advancedQuantSignal ? `
 - BOS Detection: ${quantData.bos ? 'YES ✅' : 'NO ❌'}
 - FVG / Imbalance: ${quantData.fvg ? `DETECTED (${quantData.fvg.type})` : 'NONE'}
 - Order Block (OB): ${quantData.ob ? `DETECTED (${quantData.ob.type})` : 'NONE'}
+
+**INSTITUTIONAL SUPPORT & RESISTANCE MATRIX:**
+- Pivot Point: ${quantData.supportResistanceLevels?.pivotPoint || 'N/A'}
+- Primary Resistance (R1): ${quantData.supportResistanceLevels?.resistances?.[0]?.price || 'N/A'} (${quantData.supportResistanceLevels?.resistances?.[0]?.description || ''})
+- Secondary Resistance (R2): ${quantData.supportResistanceLevels?.resistances?.[1]?.price || 'N/A'}
+- Primary Support (S1): ${quantData.supportResistanceLevels?.supports?.[0]?.price || 'N/A'} (${quantData.supportResistanceLevels?.supports?.[0]?.description || ''})
+- Secondary Support (S2): ${quantData.supportResistanceLevels?.supports?.[1]?.price || 'N/A'}
+- Key Zone: ${quantData.supportResistanceLevels?.keyZoneDescription || 'N/A'}
 
 **MARKOV CHAIN REGIME (HEDGE FUND METHOD):**
 - Mathematical State: ${quantData.markovRegime?.currentState || 'N/A'}
@@ -1126,7 +1168,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 const isGemmaModel = modelId.toLowerCase().includes('gemma');
                 const config: any = {
                     temperature: 0.0,
-                    maxOutputTokens: 2048,
+                    maxOutputTokens: isGemmaModel ? 900 : 2048,
                     responseMimeType: "application/json"
                 };
                 if (!isGemmaModel) {
@@ -2012,9 +2054,10 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
             models,
             async (modelId) => {
                 const isGemmaModel = modelId.toLowerCase().includes('gemma');
+                const activePrompt = isGemmaModel ? compressPromptForGemma(prompt) : prompt;
                 const config: any = {
                     temperature: 0.1,
-                    maxOutputTokens: 2048,
+                    maxOutputTokens: isGemmaModel ? 900 : 2048,
                     responseMimeType: "application/json"
                 };
                 if (!isGemmaModel) {
@@ -2031,7 +2074,7 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             model: modelId,
-                            contents: [{ parts: [{ text: prompt }] }],
+                            contents: [{ parts: [{ text: activePrompt }] }],
                             config: config,
                             apiKey: apiKey
                         }),
@@ -2045,7 +2088,7 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                     const ai = new GoogleGenAI({ apiKey });
                     const result = await ai.models.generateContent({
                         model: modelId,
-                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        contents: [{ role: 'user', parts: [{ text: activePrompt }] }],
                         config: config
                     });
                     text = result.text || '';
@@ -2701,9 +2744,10 @@ JSON Structure:
             models,
             async (modelId) => {
                 const isGemmaModel = modelId.toLowerCase().includes('gemma');
+                const activePrompt = isGemmaModel ? compressPromptForGemma(prompt) : prompt;
                 const config: any = {
                     temperature: 0.1,
-                    maxOutputTokens: isGemmaModel ? 3576 : 2048,
+                    maxOutputTokens: isGemmaModel ? 900 : 2048,
                     responseMimeType: "application/json"
                 };
                 if (!isGemmaModel) {
@@ -2726,7 +2770,7 @@ JSON Structure:
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             model: modelId,
-                            contents: [{ parts: [{ text: prompt }] }],
+                            contents: [{ parts: [{ text: activePrompt }] }],
                             config: config,
                             apiKey: apiKey
                         }),
@@ -2754,7 +2798,7 @@ JSON Structure:
                     const ai = new GoogleGenAI({ apiKey });
                     const result = await ai.models.generateContent({
                         model: modelId,
-                        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                        contents: [{ role: 'user', parts: [{ text: activePrompt }] }],
                         config: config
                     });
                     text = result.text || '';
@@ -3364,6 +3408,12 @@ function extractJson(str: string): any {
     const repairJson = (jsonStr: string) => {
         let repaired = jsonStr.trim();
 
+        // Auto-fix missing commas between string elements in arrays: "item1" "item2" -> "item1", "item2"
+        repaired = repaired.replace(/"\s*"/g, '", "');
+
+        // Auto-fix missing commas between numbers in arrays: 1.0850 1.0860 -> 1.0850, 1.0860
+        repaired = repaired.replace(/(\b\d+(?:\.\d+)?)\s+(\b\d+(?:\.\d+)?)/g, '$1, $2');
+
         // Count structural elements
         const openBraces = (repaired.match(/{/g) || []).length;
         const closeBraces = (repaired.match(/}/g) || []).length;
@@ -3394,9 +3444,15 @@ function extractJson(str: string): any {
     };
 
     try {
+        // Strip out scratchpad or thinking blocks
+        const cleanStr = str
+            .replace(/<scratchpad>[\s\S]*?<\/scratchpad>/gi, '')
+            .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+            .trim();
+
         // 1. Try markdown code block first as it's the cleanest
-        const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        let target = jsonMatch ? jsonMatch[1].trim() : str.trim();
+        const jsonMatch = cleanStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        let target = jsonMatch ? jsonMatch[1].trim() : cleanStr.trim();
 
         // 2. Isolate the FIRST and LAST structural braces/brackets in case of preceding/succeeding text
         const firstBrace = target.indexOf('{');

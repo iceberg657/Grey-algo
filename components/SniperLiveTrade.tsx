@@ -718,26 +718,26 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     if (normalized === 'JAPAN225' || normalized === 'NIKKEI' || normalized === 'N225' || normalized === 'OTCN225') return 'OTC_N225';
     if (normalized === 'AUSTRALIA200' || normalized === 'AS51' || normalized === 'OTCAS51') return 'OTC_AS51';
 
-    // 2. Forex
+    // 2. Forex (Majors & Minors)
     if (normalized.includes('GOLD') || normalized.includes('XAUUSD')) return 'frxXAUUSD';
     if (normalized.includes('SILVER') || normalized.includes('XAGUSD')) return 'frxXAGUSD';
     if (normalized.includes('PLATINUM') || normalized.includes('XPTUSD')) return 'frxXPTUSD';
     if (normalized.includes('PALLADIUM') || normalized.includes('XPDUSD')) return 'frxXPDUSD';
     if (normalized.includes('BRENT') || normalized.includes('XBRUSD')) return 'frxXBRUSD';
     if (normalized.includes('WTI') || normalized.includes('XTIUSD')) return 'frxXTIUSD';
-    if (normalized.includes('EURUSD')) return 'frxEURUSD';
-    if (normalized.includes('GBPUSD')) return 'frxGBPUSD';
-    if (normalized.includes('GBPJPY')) return 'frxGBPJPY';
-    if (normalized.includes('EURGBP')) return 'frxEURGBP';
-    if (normalized.includes('EURJPY')) return 'frxEURJPY';
-    if (normalized.includes('GBPCHF')) return 'frxGBPCHF';
-    if (normalized.includes('EURCHF')) return 'frxEURCHF';
-    if (normalized.includes('AUDJPY')) return 'frxAUDJPY';
-    if (normalized.includes('USDJPY')) return 'frxUSDJPY';
-    if (normalized.includes('AUDUSD')) return 'frxAUDUSD';
-    if (normalized.includes('USDCAD')) return 'frxUSDCAD';
-    if (normalized.includes('USDCHF')) return 'frxUSDCHF';
-    if (normalized.includes('NZDUSD')) return 'frxNZDUSD';
+    if (normalized.startsWith('FRX')) return 'frx' + normalized.substring(3);
+    
+    const knownForexPairs = [
+      'EURUSD', 'GBPUSD', 'GBPJPY', 'EURGBP', 'EURJPY', 'GBPCHF', 'EURCHF', 'AUDJPY', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD',
+      'AUDNZD', 'AUDCAD', 'AUDCHF', 'CADCHF', 'CADJPY', 'CHFJPY', 'EURAUD', 'EURCAD', 'EURNZD', 'GBPAUD', 'GBPCAD', 'GBPNZD', 'NZDCAD', 'NZDCHF', 'NZDJPY'
+    ];
+    for (const pair of knownForexPairs) {
+      if (normalized.includes(pair)) return 'frx' + pair;
+    }
+    // Generic fallback for any 6-character currency pair (e.g., EURNOK, USDSEK, etc.)
+    if (/^[A-Z]{6}$/.test(normalized) && !['OTC_DJ', 'OTC_ND', 'OTC_SP', 'CRASH1', 'BOOM10'].some(p => normalized.startsWith(p))) {
+      return 'frx' + normalized;
+    }
     
     // Volatility Indices (Robust Mapping)
     if (normalized.match(/V(?:OLATILITY)?101S/)) return '1HZ10V';
@@ -1123,9 +1123,13 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     }
 
     try {
-      // 1. Extract asset from query
-      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|platinum|palladium|brent|wti|eurusd|gbpusd|gbpjpy|usdjpy|eurgbp|eurjpy|gbpchf|eurchf|audjpy|nzdjpy|cadjpy|chfjpy|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xptusd|xpdusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|usdchf|audusd|usdcad|nzdusd)/i);
-      const asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
+      // 1. Extract asset from query, or fallback to selectedAsset
+      const assetMatch = currentQuery.match(/(otc_dji|otc_ndx|otc_spc|otc_ftse|otc_gdaxi|otc_fchi|otc_n225|otc_as51|us30|dow\s?jones|wall\s?street|us100|nasdaq|ndx|us500|s&p500|sp500|spc|uk100|ftse|germany40|dax|france40|cac|japan225|nikkei|n225|australia200|as51|gold|silver|platinum|palladium|brent|wti|audnzd|audcad|audchf|cadchf|cadjpy|chfjpy|euraud|eurcad|eurnzd|gbpaud|gbpcad|gbpnzd|nzdcad|nzdchf|nzdjpy|eurusd|gbpusd|gbpjpy|usdjpy|eurgbp|eurjpy|gbpchf|eurchf|audjpy|nzdjpy|usdchf|audusd|usdcad|nzdusd|btc(?:usd)?|eth(?:usd)?|ltc(?:usd)?|xauusd|xagusd|xptusd|xpdusd|xbrusd|xtiusd|v(?:olatility)?\s?\d{1,3}(?:\s?1[sS])?|boom\s?\d{1,4}|crash\s?\d{1,4}|step|jump\s?\d{1,3}|range|\b[a-zA-Z]{6}\b)/i);
+      let asset = assetMatch ? assetMatch[0].toUpperCase().replace(/\s+/g, '') : null;
+      
+      if (!asset && selectedAsset) {
+        asset = selectedAsset.toUpperCase().replace(/\s+/g, '');
+      }
 
       if (!asset) {
         const aiMsgId = (Date.now() + 1).toString();
@@ -1567,7 +1571,8 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
 
   const SUPPORTED_ASSETS = [
     { category: 'Global Indices', items: ['US 30 (OTC_DJI)', 'US 100 (OTC_NDX)', 'US 500 (OTC_SPC)', 'Europe 50 (OTC_STOXX50E)', 'Germany 40 (OTC_GDAXI)', 'France 40 (OTC_FCHI)', 'Japan 225 (OTC_N225)', 'Australia 200 (OTC_AS51)'] },
-    { category: 'Forex', items: ['EURUSD', 'GBPUSD', 'GBPJPY', 'EURGBP', 'EURJPY', 'GBPCHF', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'XAUUSD (Gold)', 'SILVER', 'BRENT', 'WTI'] },
+    { category: 'Forex Majors & Commodities', items: ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD', 'EURGBP', 'EURJPY', 'GBPCHF', 'XAUUSD (Gold)', 'SILVER', 'BRENT', 'WTI'] },
+    { category: 'Forex Minors & Crosses', items: ['AUDNZD', 'AUDCAD', 'AUDCHF', 'AUDJPY', 'CADCHF', 'CADJPY', 'CHFJPY', 'EURAUD', 'EURCAD', 'EURCHF', 'EURNZD', 'GBPAUD', 'GBPCAD', 'GBPNZD', 'NZDCAD', 'NZDCHF', 'NZDJPY'] },
     { category: 'Crypto', items: ['BTCUSD', 'ETHUSD', 'LTCUSD'] },
     { category: 'Volatility Indices', items: ['V10', 'V25', 'V50', 'V75', 'V100', 'V10 (1s)', 'V25 (1s)', 'V50 (1s)', 'V75 (1s)', 'V100 (1s)'] },
     { category: 'Boom/Crash', items: [

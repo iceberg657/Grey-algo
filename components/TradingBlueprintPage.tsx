@@ -67,6 +67,7 @@ const AVAILABLE_ASSETS = [
     'US30', 'NAS100', 'SPX500', 'Europe50', 'Germany40', 'France40', 'Japan225', 'Australia200', 'UK100',
     // Forex
     'EURUSD', 'GBPUSD', 'GBPJPY', 'EURGBP', 'EURJPY', 'GBPCHF', 'USDJPY', 'AUDUSD', 'USDCAD', 'USDCHF', 'NZDUSD',
+    'AUDNZD', 'AUDCAD', 'AUDCHF', 'AUDJPY', 'CADCHF', 'CADJPY', 'CHFJPY', 'EURAUD', 'EURCAD', 'EURCHF', 'EURNZD', 'GBPAUD', 'GBPCAD', 'GBPNZD', 'NZDCAD', 'NZDCHF', 'NZDJPY',
     // Commodities
     'XAUUSD', 'SILVER', 'BRENT', 'WTI',
     // Crypto

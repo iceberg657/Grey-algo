@@ -1743,6 +1743,88 @@ export function analyzeSMC(
 
     const strongWeakLevels = findStrongWeakLevels();
 
+    // Enhanced Multi-Layered Institutional Support & Resistance Engine
+    const calculateSupportAndResistance = () => {
+        const hvns = volumeProfile.hvns || [];
+        const highPrice = Math.max(...candles.map(c => c.high));
+        const lowPrice = Math.min(...candles.map(c => c.low));
+        const closePrice = candles[candles.length - 1].close;
+
+        // Standard & Fibonacci Pivot Points
+        const pivotPoint = (highPrice + lowPrice + closePrice) / 3;
+        const range = highPrice - lowPrice;
+
+        // Classic Pivots
+        const r1 = (2 * pivotPoint) - lowPrice;
+        const s1 = (2 * pivotPoint) - highPrice;
+        const r2 = pivotPoint + range;
+        const s2 = pivotPoint - range;
+        const r3 = highPrice + 2 * (pivotPoint - lowPrice);
+        const s3 = lowPrice - 2 * (highPrice - pivotPoint);
+
+        // Collect Resistance candidates (Levels above current price)
+        const resistanceCandidates: Array<{ price: number; type: string; weight: number; label: string }> = [];
+        // Collect Support candidates (Levels below current price)
+        const supportCandidates: Array<{ price: number; type: string; weight: number; label: string }> = [];
+
+        // 1. Swing Highs/Lows
+        if (lastSwingHigh) resistanceCandidates.push({ price: lastSwingHigh, type: 'SWING_HIGH', weight: 8, label: `Last Swing High @ ${lastSwingHigh.toFixed(5)}` });
+        if (lastSwingLow) supportCandidates.push({ price: lastSwingLow, type: 'SWING_LOW', weight: 8, label: `Last Swing Low @ ${lastSwingLow.toFixed(5)}` });
+
+        // 2. High Volume Absorption Nodes (HVNs)
+        hvns.forEach(hvn => {
+            if (hvn.priceLevel > currentPrice) {
+                resistanceCandidates.push({ price: hvn.priceLevel, type: 'HVN_RESISTANCE', weight: 9, label: `High Volume Node Resistance @ ${hvn.priceLevel.toFixed(5)}` });
+            } else if (hvn.priceLevel < currentPrice) {
+                supportCandidates.push({ price: hvn.priceLevel, type: 'HVN_SUPPORT', weight: 9, label: `High Volume Node Support @ ${hvn.priceLevel.toFixed(5)}` });
+            }
+        });
+
+        // 3. Unmitigated Order Blocks
+        highClarityOBs.forEach(ob => {
+            if (ob.type === 'BEARISH_OB' && ob.low > currentPrice) {
+                resistanceCandidates.push({ price: ob.meanThreshold, type: 'BEARISH_OB_SUPPLY', weight: 10, label: `[${ob.timeframe}] Bearish OB Supply Zone @ ${ob.meanThreshold.toFixed(5)}` });
+            } else if (ob.type === 'BULLISH_OB' && ob.high < currentPrice) {
+                supportCandidates.push({ price: ob.meanThreshold, type: 'BULLISH_OB_DEMAND', weight: 10, label: `[${ob.timeframe}] Bullish OB Demand Zone @ ${ob.meanThreshold.toFixed(5)}` });
+            }
+        });
+
+        // 4. Standard Pivots
+        if (r1 > currentPrice) resistanceCandidates.push({ price: r1, type: 'PIVOT_R1', weight: 6, label: `Pivot R1 @ ${r1.toFixed(5)}` });
+        if (r2 > currentPrice) resistanceCandidates.push({ price: r2, type: 'PIVOT_R2', weight: 7, label: `Pivot R2 @ ${r2.toFixed(5)}` });
+        if (s1 < currentPrice) supportCandidates.push({ price: s1, type: 'PIVOT_S1', weight: 6, label: `Pivot S1 @ ${s1.toFixed(5)}` });
+        if (s2 < currentPrice) supportCandidates.push({ price: s2, type: 'PIVOT_S2', weight: 7, label: `Pivot S2 @ ${s2.toFixed(5)}` });
+
+        // Sort Resistances ascending (nearest to farthest above price)
+        resistanceCandidates.sort((a, b) => a.price - b.price);
+        // Sort Supports descending (nearest to farthest below price)
+        supportCandidates.sort((a, b) => b.price - a.price);
+
+        const primaryResistance = resistanceCandidates[0]?.price || r1;
+        const secondaryResistance = resistanceCandidates[1]?.price || r2;
+        const primarySupport = supportCandidates[0]?.price || s1;
+        const secondarySupport = supportCandidates[1]?.price || s2;
+
+        return {
+            pivotPoint: roundAssetPrice(pivotPoint, assetSymbol),
+            supports: [
+                { level: 'S1', price: roundAssetPrice(primarySupport, assetSymbol), description: supportCandidates[0]?.label || `Primary Support @ ${primarySupport.toFixed(5)}` },
+                { level: 'S2', price: roundAssetPrice(secondarySupport, assetSymbol), description: supportCandidates[1]?.label || `Secondary Support @ ${secondarySupport.toFixed(5)}` },
+                { level: 'S3', price: roundAssetPrice(s3, assetSymbol), description: `Major Structural Floor @ ${s3.toFixed(5)}` }
+            ],
+            resistances: [
+                { level: 'R1', price: roundAssetPrice(primaryResistance, assetSymbol), description: resistanceCandidates[0]?.label || `Primary Resistance @ ${primaryResistance.toFixed(5)}` },
+                { level: 'R2', price: roundAssetPrice(secondaryResistance, assetSymbol), description: resistanceCandidates[1]?.label || `Secondary Resistance @ ${secondaryResistance.toFixed(5)}` },
+                { level: 'R3', price: roundAssetPrice(r3, assetSymbol), description: `Major Structural Ceiling @ ${r3.toFixed(5)}` }
+            ],
+            closestSupport: roundAssetPrice(primarySupport, assetSymbol),
+            closestResistance: roundAssetPrice(primaryResistance, assetSymbol),
+            keyZoneDescription: `Current Price ${currentPrice.toFixed(5)} is sandwiched between Support ${primarySupport.toFixed(5)} and Resistance ${primaryResistance.toFixed(5)}.`
+        };
+    };
+
+    const supportResistanceLevels = calculateSupportAndResistance();
+
     // B. Volume Voids, High Volume Reversal Nodes & Fading Momentum Engine
     const analyzeVolumeFadingAndNodes = () => {
         const hvns = volumeProfile.hvns || [];
@@ -2237,6 +2319,7 @@ export function analyzeSMC(
         recommendedExecution,
         mathematicalSL,
         scalpTargets,
+        supportResistanceLevels,
         equalHighsLows,
         luxAlgoOrderBlocks,
         luxAlgoFVGs,
