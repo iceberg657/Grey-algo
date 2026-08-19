@@ -1260,6 +1260,10 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     throw new Error("Empty response from AI - The model returned no content.");
                 }
 
+                if (isGemmaModel && responseText) {
+                    responseText = await executeGemmaTwoPassSelfCleaning(responseText, apiKey);
+                }
+
                 const data = extractJson(responseText);
                 if (!data || Object.keys(data).length === 0) {
                     throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
@@ -2094,6 +2098,10 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                     text = result.text || '';
                 }
 
+                if (isGemmaModel && text) {
+                    text = await executeGemmaTwoPassSelfCleaning(text, apiKey);
+                }
+
                 const signal = extractJson(text);
                 if (!signal || Object.keys(signal).length === 0) {
                     throw new Error("Failed to parse retail signal JSON.");
@@ -2807,6 +2815,10 @@ JSON Structure:
                     }
                 }
 
+                if (isGemmaModel && text) {
+                    text = await executeGemmaTwoPassSelfCleaning(text, apiKey);
+                }
+
                 const signal = extractJson(text);
                 if (!signal || Object.keys(signal).length === 0) {
                     throw new Error(`Failed to parse valid JSON from ${modelId} response.`);
@@ -3401,10 +3413,58 @@ export function scanObjectForIssues(obj: any): { hasIssues: boolean; reason?: st
     return { hasIssues: false };
 }
 
+async function executeGemmaTwoPassSelfCleaning(rawOutput: string, apiKey: string): Promise<string> {
+    if (!rawOutput || rawOutput.trim().length === 0) return rawOutput;
+
+    console.log(`[Gemma 2-Pass Pipeline] Pass 1 complete (${rawOutput.length} chars). Executing Pass 2 (Self-Cleaning JSON Conversion)...`);
+
+    const pass2Prompt = `You are an institutional JSON conversion & cleaning engine.
+Convert the following trading analysis into a 100% strictly valid JSON object matching the required schema.
+
+CRITICAL INSTRUCTIONS:
+- Output ONLY the raw JSON starting with '{' and ending with '}'.
+- Do NOT output markdown code fences (\`\`\`json), explanations, or text outside the JSON.
+- Ensure all numeric values (entryPoints, stopLoss, takeProfits, confidence) are formatted as valid numbers or arrays of numbers.
+- Do NOT hallucinate placeholder text.
+
+RAW ANALYSIS TO CONVERT:
+${rawOutput}`;
+
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for Pass 2
+
+        const res = await fetch('/api/gemini/analyze', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                model: 'gemini-3.5-flash-lite',
+                contents: [{ parts: [{ text: pass2Prompt }] }],
+                config: { temperature: 0.0, responseMimeType: "application/json" },
+                apiKey: apiKey
+            }),
+            signal: controller.signal
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+            const data = await res.json();
+            const cleanedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (cleanedText && cleanedText.trim().length > 10) {
+                console.log(`[Gemma 2-Pass Pipeline] Pass 2 successfully converted raw analysis into clean JSON.`);
+                return cleanedText;
+            }
+        }
+    } catch (e) {
+        console.warn(`[Gemma 2-Pass Pipeline] Pass 2 conversion encountered an error, falling back to robust sanitizer:`, e);
+    }
+    return rawOutput;
+}
+
 function extractJson(str: string): any {
     if (!str) return {};
 
-    // Helper to deeply repair truncated JSON
+    // Helper to deeply repair truncated or malformed JSON
     const repairJson = (jsonStr: string) => {
         let repaired = jsonStr.trim();
 
@@ -3414,28 +3474,24 @@ function extractJson(str: string): any {
         // Auto-fix missing commas between numbers in arrays: 1.0850 1.0860 -> 1.0850, 1.0860
         repaired = repaired.replace(/(\b\d+(?:\.\d+)?)\s+(\b\d+(?:\.\d+)?)/g, '$1, $2');
 
-        // Count structural elements
-        const openBraces = (repaired.match(/{/g) || []).length;
-        const closeBraces = (repaired.match(/}/g) || []).length;
-        const openBrackets = (repaired.match(/\[/g) || []).length;
-        const closeBrackets = (repaired.match(/\]/g) || []).length;
-        const quoteCount = (repaired.match(/"/g) || []).length;
-
         // Fix unclosed quotes
+        const quoteCount = (repaired.match(/"/g) || []).length;
         if (quoteCount % 2 !== 0) {
-            // Check if it ends mid-string or mid-key
             repaired += '"';
         }
 
         // Remove trailing commas before closing braces/brackets
         repaired = repaired.replace(/,\s*([}\]])/g, '$1');
 
-        // Close unclosed arrays
+        // Balance structural braces and brackets
+        const openBraces = (repaired.match(/{/g) || []).length;
+        const closeBraces = (repaired.match(/}/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length;
+        const closeBrackets = (repaired.match(/\]/g) || []).length;
+
         if (openBrackets > closeBrackets) {
             repaired += ']'.repeat(openBrackets - closeBrackets);
         }
-
-        // Close unclosed objects
         if (openBraces > closeBraces) {
             repaired += '}'.repeat(openBraces - closeBraces);
         }
@@ -3444,64 +3500,61 @@ function extractJson(str: string): any {
     };
 
     try {
-        // Strip out scratchpad or thinking blocks
-        const cleanStr = str
+        // Step 1: Strip out scratchpad, thought, or html tags
+        let cleanStr = str
             .replace(/<scratchpad>[\s\S]*?<\/scratchpad>/gi, '')
             .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
+            .replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, '$1')
             .trim();
 
-        // 1. Try markdown code block first as it's the cleanest
-        const jsonMatch = cleanStr.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
-        let target = jsonMatch ? jsonMatch[1].trim() : cleanStr.trim();
+        // Step 2: Extract ONLY the content between the FIRST '{' and LAST '}' using regex
+        const objectMatch = cleanStr.match(/\{[\s\S]*\}/);
+        let target = '';
 
-        // 2. Isolate the FIRST and LAST structural braces/brackets in case of preceding/succeeding text
-        const firstBrace = target.indexOf('{');
-        const lastBrace = target.lastIndexOf('}');
-        const firstBracket = target.indexOf('[');
-        const lastBracket = target.lastIndexOf(']');
-
-        // we want the earliest of { or [
-        let firstOpen = -1;
-        if (firstBrace !== -1 && firstBracket !== -1) {
-            firstOpen = Math.min(firstBrace, firstBracket);
-        } else if (firstBrace !== -1) {
-            firstOpen = firstBrace;
+        if (objectMatch) {
+            target = objectMatch[0].trim();
         } else {
-            firstOpen = firstBracket;
-        }
-
-        let lastClose = -1;
-        if (firstOpen === firstBrace) lastClose = lastBrace;
-        if (firstOpen === firstBracket) lastClose = lastBracket;
-
-        if (firstOpen !== -1) {
-            if (lastClose !== -1 && lastClose > firstOpen) {
-                target = target.substring(firstOpen, lastClose + 1).trim();
+            // Check for array at root
+            const arrayMatch = cleanStr.match(/\[[\s\S]*\]/);
+            if (arrayMatch) {
+                target = arrayMatch[0].trim();
             } else {
-                target = target.substring(firstOpen).trim();
+                // If truncated, isolate from first '{' or '[' to the end
+                const firstBrace = cleanStr.indexOf('{');
+                const firstBracket = cleanStr.indexOf('[');
+                let firstOpen = -1;
+                if (firstBrace !== -1 && firstBracket !== -1) {
+                    firstOpen = Math.min(firstBrace, firstBracket);
+                } else if (firstBrace !== -1) {
+                    firstOpen = firstBrace;
+                } else {
+                    firstOpen = firstBracket;
+                }
+
+                if (firstOpen !== -1) {
+                    target = cleanStr.substring(firstOpen).trim();
+                } else {
+                    throw new Error("Model output contains no structural JSON elements ({ or [).");
+                }
             }
-        } else {
-            throw new Error("Model output contains no structural JSON elements ({ or [).");
         }
 
-        // Try parsing immediately before doing any destructive operations
+        // Step 3: Attempt immediate parsing
         try {
             return JSON.parse(target);
         } catch (firstPassError) {
-            console.log("Initial JSON.parse failed, attempting sanitization...", firstPassError);
-
-            // 3. Sanitization: remove comments and line breaks that might break JSON.parse
+            // Step 4: Sanitization (remove comments, control chars, trailing commas)
             let sanitized = target
-                .replace(/(?<!https?:)\/\/.*$/gm, '') // Remove single-line comments (but NOT in URLs)
+                .replace(/(?<!https?:)\/\/.*$/gm, '') // Remove single-line comments
                 .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-                .replace(/[\n\r\t]/g, ' ') // Replace newlines and tabs with spaces to prevent control char issues
+                .replace(/[\n\r\t]/g, ' ') // Replace newlines and tabs
                 .replace(/[\u0000-\u0019\u007F-\u009F]/g, '') // Remove control chars
                 .replace(/,\s*([}\]])/g, '$1'); // Remove trailing commas
-                
+
             try {
                 return JSON.parse(sanitized);
             } catch (initialError) {
-                // 4. If standard parse fails, attempt deep repair
+                // Step 5: Deep repair
                 const repaired = repairJson(sanitized);
                 try {
                     return JSON.parse(repaired);
