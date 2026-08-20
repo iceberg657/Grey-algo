@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'motion/react';
-import { Timer, Clock, AlertTriangle, CheckCircle2, Flame, ShieldAlert, Sparkles } from 'lucide-react';
+import { Timer, Clock, AlertTriangle, CheckCircle2, Flame, ShieldAlert, Sparkles, RefreshCw, Zap } from 'lucide-react';
 import { SignalData } from '../types';
 
 interface SignalCountdownTimerProps {
@@ -8,6 +8,7 @@ interface SignalCountdownTimerProps {
   messageTimestamp?: number;
   variant?: 'badge' | 'hud' | 'both';
   className?: string;
+  onFlushFeed?: (asset: string) => Promise<any> | void;
 }
 
 /**
@@ -54,9 +55,25 @@ export const SignalCountdownTimer: React.FC<SignalCountdownTimerProps> = ({
   signal,
   messageTimestamp,
   variant = 'hud',
-  className = ''
+  className = '',
+  onFlushFeed
 }) => {
   const [now, setNow] = useState<number>(() => Date.now());
+  const [isFlushing, setIsFlushing] = useState<boolean>(false);
+  const [flushSuccess, setFlushSuccess] = useState<boolean>(false);
+
+  const handleManualFlush = async () => {
+    if (!onFlushFeed || isFlushing) return;
+    setIsFlushing(true);
+    try {
+      await onFlushFeed(signal.asset);
+      setFlushSuccess(true);
+      setTimeout(() => setFlushSuccess(false), 2500);
+    } catch (_) {
+    } finally {
+      setIsFlushing(false);
+    }
+  };
 
   useEffect(() => {
     // Ticks every second for real-time countdown updates
@@ -230,7 +247,7 @@ export const SignalCountdownTimer: React.FC<SignalCountdownTimerProps> = ({
         />
       </div>
 
-      {/* Bottom row: Telemetry metadata pills */}
+      {/* Bottom row: Telemetry metadata pills & Stream Flush */}
       <div className="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-slate-200/60 dark:border-slate-800/60 text-[10px]">
         <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400">
           <span className="inline-flex items-center gap-1">
@@ -243,7 +260,25 @@ export const SignalCountdownTimer: React.FC<SignalCountdownTimerProps> = ({
           </span>
         </div>
 
-        <div className="flex items-center gap-1.5 font-medium">
+        <div className="flex items-center gap-2 font-medium">
+          {onFlushFeed && (
+            <button
+              onClick={handleManualFlush}
+              disabled={isFlushing}
+              className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-lg border text-[9px] font-mono font-bold tracking-wider transition-all cursor-pointer ${
+                flushSuccess
+                  ? 'bg-emerald-500 text-white border-emerald-400 shadow-xs'
+                  : isFlushing
+                  ? 'bg-slate-200 dark:bg-slate-800 text-slate-400 border-transparent cursor-not-allowed'
+                  : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20'
+              }`}
+              title="Flush current Level 1 & Level 2 data stream for this signal"
+            >
+              <RefreshCw className={`w-2.5 h-2.5 ${isFlushing ? 'animate-spin' : ''}`} />
+              <span>{flushSuccess ? 'STREAM FLUSHED' : isFlushing ? 'FLUSHING...' : 'FLUSH LIVE STREAM'}</span>
+            </button>
+          )}
+
           {isExpired ? (
             <span className="inline-flex items-center gap-1 text-rose-600 dark:text-rose-400 font-bold">
               <ShieldAlert className="w-3 h-3" />

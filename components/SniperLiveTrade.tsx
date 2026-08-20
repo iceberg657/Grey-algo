@@ -28,7 +28,9 @@ import {
   BellOff,
   Settings,
   X,
-  Save
+  Save,
+  RotateCw,
+  Layers
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
 import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal, formatPrice } from '../services/geminiService';
@@ -58,6 +60,16 @@ import { ThemeToggleButton } from './ThemeToggleButton';
 import { getDailyMarketRegime, DailyRegime } from '../services/pilotService';
 import { LiquidityHeatmapChart } from './LiquidityHeatmapChart';
 import { SignalCountdownTimer } from './SignalCountdownTimer';
+import { SniperDataStreamHUD } from './SniperDataStreamHUD';
+import { 
+  flushMasterStream, 
+  flushLevel1Stream, 
+  flushLevel2Stream, 
+  MasterStreamFlushResult, 
+  Level1StreamData, 
+  Level2StreamData, 
+  normalizeStreamAsset 
+} from '../services/sniperDataStreamService';
 
 const AntigravityVerdictDisplay: React.FC<{ insight: string }> = ({ insight }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -383,11 +395,58 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
   const [dailyRegime, setDailyRegime] = useState<DailyRegime | null>(null);
   const [ctraderConnectionError, setCTraderConnectionError] = useState<string | null>(null);
   const ctraderDepthRef = React.useRef<{ bids: [number, number][], asks: [number, number][] } | null>(null);
+  const [showStreamHUD, setShowStreamHUD] = useState<boolean>(true);
+  const [isFlushingLiveStream, setIsFlushingLiveStream] = useState<boolean>(false);
+  const [lastFlushedTimestamp, setLastFlushedTimestamp] = useState<number>(Date.now());
   
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermission>(
     typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
   );
   const notifiedMsgIdsRef = useRef<Set<string>>(new Set());
+
+  // Master Data Stream Flush Handler for Sniper Page
+  const handleFlushMarketStream = async (targetAsset?: string): Promise<MasterStreamFlushResult | null> => {
+    const assetToFlush = targetAsset || lastAnalyzedAsset || query.split(' ')[0] || 'US30';
+    setIsFlushingLiveStream(true);
+    try {
+      const result = await flushMasterStream(assetToFlush);
+      setLivePrice(result.level1.raw || {
+        symbol: result.level1.symbol,
+        price: result.level1.price,
+        bid: result.level1.bid,
+        ask: result.level1.ask,
+        candles: result.level1.candles,
+        multiTimeframe: result.level1.multiTimeframe
+      });
+      ctraderDepthRef.current = {
+        bids: result.level2.bids,
+        asks: result.level2.asks
+      };
+      setLastFlushedTimestamp(Date.now());
+      return result;
+    } catch (err) {
+      console.warn('[SniperLiveTrade] Flush error:', err);
+      return null;
+    } finally {
+      setIsFlushingLiveStream(false);
+    }
+  };
+
+  const handleStreamHUDFlushComplete = (res: { level1: Level1StreamData; level2: Level2StreamData }) => {
+    setLivePrice(res.level1.raw || {
+      symbol: res.level1.symbol,
+      price: res.level1.price,
+      bid: res.level1.bid,
+      ask: res.level1.ask,
+      candles: res.level1.candles,
+      multiTimeframe: res.level1.multiTimeframe
+    });
+    ctraderDepthRef.current = {
+      bids: res.level2.bids,
+      asks: res.level2.asks
+    };
+    setLastFlushedTimestamp(Date.now());
+  };
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -1720,6 +1779,22 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 </AnimatePresence>
               </div>
 
+              {/* Master Stream Flush Trigger (Mobile) */}
+              <button
+                id="btn-mobile-flush-stream"
+                onClick={() => handleFlushMarketStream()}
+                disabled={isFlushingLiveStream}
+                className={`p-2 rounded-xl transition-all border cursor-pointer ${
+                  isFlushingLiveStream
+                    ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40 animate-pulse'
+                    : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 border-slate-200/60 dark:border-slate-700/60'
+                }`}
+                title="Flush Live Market Data Streams (L1 Deriv + L2 cTrader Depth)"
+                aria-label="Flush Market Stream"
+              >
+                <RotateCw className={`w-5 h-5 ${isFlushingLiveStream ? 'animate-spin text-emerald-500' : ''}`} />
+              </button>
+
               {typeof window !== 'undefined' && 'Notification' in window && (
                 <button
                   onClick={handleToggleNotifications}
@@ -1905,6 +1980,24 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 )}
               </AnimatePresence>
             </div>
+
+            {/* Master Stream Flush Trigger (Desktop) */}
+            <button
+              id="btn-desktop-flush-stream"
+              onClick={() => handleFlushMarketStream()}
+              disabled={isFlushingLiveStream}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold font-mono transition-all cursor-pointer ${
+                isFlushingLiveStream
+                  ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40 animate-pulse'
+                  : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border-slate-200/60 dark:border-slate-700/60 hover:text-emerald-500'
+              }`}
+              title="Flush Live Market Data Streams (L1 Deriv + L2 cTrader Depth)"
+              aria-label="Flush Market Streams"
+            >
+              <RotateCw className={`w-3.5 h-3.5 ${isFlushingLiveStream ? 'animate-spin text-emerald-500' : ''}`} />
+              <span className="hidden md:inline">{isFlushingLiveStream ? 'Flushing Feed...' : 'Flush Stream'}</span>
+            </button>
+
             {typeof window !== 'undefined' && 'Notification' in window && (
               <button
                 onClick={handleToggleNotifications}
@@ -2179,7 +2272,14 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               </div>
             </div>
 
-
+            {/* Level 1 & Level 2 Real-Time Streaming Ingestion HUD & Master Flush Controls */}
+            <div className="mb-8">
+              <SniperDataStreamHUD
+                currentAsset={lastAnalyzedAsset || (query ? query.split(' ')[0] : 'US30')}
+                onFlushComplete={handleStreamHUDFlushComplete}
+                isAdvancedGranted={isAdvancedStreamingGranted}
+              />
+            </div>
 
             {/* Results Area */}
             <div className="space-y-8 min-h-[400px]">
@@ -2261,7 +2361,12 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                       <span className="text-slate-600">•</span>
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{msg.signal.timeframe || 'M5'}</span>
                                       <span className="text-slate-600">•</span>
-                                      <SignalCountdownTimer signal={msg.signal} messageTimestamp={msg.timestamp} variant="badge" />
+                                      <SignalCountdownTimer 
+                                        signal={msg.signal} 
+                                        messageTimestamp={msg.timestamp} 
+                                        variant="badge" 
+                                        onFlushFeed={(asset) => handleFlushMarketStream(asset)}
+                                      />
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <h2 className="text-3xl font-black tracking-tighter italic uppercase">{msg.signal.asset}</h2>
@@ -2295,9 +2400,14 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                 </div>
                               </div>
 
-                              {/* Live Countdown & Freshness HUD */}
+                              {/* Live Countdown & Freshness HUD with Stream Flushing */}
                               <div className="mb-8">
-                                <SignalCountdownTimer signal={msg.signal} messageTimestamp={msg.timestamp} variant="hud" />
+                                <SignalCountdownTimer 
+                                  signal={msg.signal} 
+                                  messageTimestamp={msg.timestamp} 
+                                  variant="hud" 
+                                  onFlushFeed={(asset) => handleFlushMarketStream(asset)}
+                                />
                               </div>
 
                               {/* Price Levels Grid */}
