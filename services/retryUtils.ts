@@ -31,7 +31,7 @@ export async function initializeApiKey() {
                         console.log(`[LaneOrchestrator] Using CUSTOM user override API key (Strict: ${USE_STRICT_MODE}).`);
                     }
                 }
-            } catch (e) {
+            } catch {
                 console.warn("[LaneOrchestrator] Failed to parse user settings for custom key.");
             }
         }
@@ -48,21 +48,18 @@ export async function initializeApiKey() {
             k7: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_7 || process.env.API_KEY_7) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_7 || meta.env.API_KEY_7) : undefined,
             k8: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_8 || process.env.API_KEY_8) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_8 || meta.env.API_KEY_8) : undefined,
             k9: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_9 || process.env.API_KEY_9) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_9 || meta.env.API_KEY_9) : undefined,
-            k10: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_10 || process.env.API_KEY_10) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_10 || meta.env.API_KEY_10) : undefined,
+            k10: (typeof process !== 'undefined' && process.env) ? (process.env.VITE_API_KEY_10 || process.env.API_KEY_10) : (typeof window !== 'undefined' && meta && meta.env) ? (meta.env.VITE_API_KEY_10 || meta.env.API_KEY_10) : undefined
         };
 
         const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
-
         // Assign all valid env keys to KEYS
         Object.entries(envKeys).forEach(([key, val]) => {
             if (isValid(val)) (KEYS as any)[key] = (val as string).trim();
         });
-
         if (isValid(envKeys.k1)) {
             API_KEY = envKeys.k1?.trim();
         }
-        
-        if (!KEYS.k1 && API_KEY) KEYS.k1 = API_KEY;
+        if (!KEYS.k1 && API_KEY) { KEYS.k1 = API_KEY; }
 
         // 2. Fallback to server endpoint (Local development or Proxy)
         // We ALWAYS try to fetch from server to get non-VITE keys or updated values
@@ -79,7 +76,7 @@ export async function initializeApiKey() {
                     });
                 }
             }
-        } catch (error) {
+        } catch (e) {
             console.warn('Failed to fetch API key from server, checking process.env...');
         }
 
@@ -102,13 +99,14 @@ export async function initializeApiKey() {
                     if (isValid(pEnv.API_KEY_10)) KEYS.k10 = pEnv.API_KEY_10.trim();
                 }
             }
-        } catch (e) {}
-
+        } catch (e) {
+        }
+        
         if (!API_KEY && !KEYS.k1) {
             console.error('API key not available in any environment.');
         }
     })();
-
+    
     return initializationPromise;
 }
 
@@ -159,8 +157,6 @@ export const getSniperPool = () => {
 export const SNIPER_MODELS = [
     'gemini-3.5-flash-lite',  // Model 5
     'gemini-3.1-flash-lite',  // Model 6
-    'gemma-4-26b',            // Model 7
-    'gemma-4-31b'             // Model 8
 ];
 
 export interface SniperModelOption {
@@ -188,20 +184,6 @@ export const SNIPER_MODEL_CONFIGS: SniperModelOption[] = [
         sublabel: 'Gemini 3.1 Flash Lite',
         isBlue: true,
         color: 'sky'
-    },
-    {
-        id: 'gemma-4-26b',
-        label: 'Model 7',
-        sublabel: 'Gemma 4 26B',
-        isRed: true,
-        color: 'red'
-    },
-    {
-        id: 'gemma-4-31b',
-        label: 'Model 8',
-        sublabel: 'Gemma 4 31B',
-        isRed: true,
-        color: 'red'
     }
 ];
 
@@ -209,14 +191,6 @@ export function findSniperModelConfig(modelId?: string): SniperModelOption {
     if (!modelId) return SNIPER_MODEL_CONFIGS[0];
     const clean = modelId.toLowerCase().replace(/^models\//, '');
     
-    // Model 7: Gemma 4 26B
-    if (clean.includes('gemma') && (clean.includes('26b') || clean.includes('model 7') || clean === 'model-7')) {
-        return SNIPER_MODEL_CONFIGS[2];
-    }
-    // Model 8: Gemma 4 31B
-    if (clean.includes('gemma') && (clean.includes('31b') || clean.includes('model 8') || clean === 'model-8')) {
-        return SNIPER_MODEL_CONFIGS[3];
-    }
     // Model 5: Gemini 3.5 Flash Lite
     if ((clean.includes('3.5') && clean.includes('lite')) || clean === 'model-5' || clean === 'model 5') {
         return SNIPER_MODEL_CONFIGS[0];
@@ -225,14 +199,12 @@ export function findSniperModelConfig(modelId?: string): SniperModelOption {
     if ((clean.includes('3.1') && clean.includes('lite')) || clean === 'model-6' || clean === 'model 6') {
         return SNIPER_MODEL_CONFIGS[1];
     }
-
     const exact = SNIPER_MODEL_CONFIGS.find(m => m.id === clean || m.id === modelId);
     if (exact) return exact;
-
     return SNIPER_MODEL_CONFIGS[0];
 }
 
-// 3. CHAT & LIVE (Keys 5 & 6)
+
 export const getChatPool = () => {
     const keys = getUniqueKeys([K.K5(), K.K6()]);
     return keys.length > 0 ? keys : getAnalysisPool();
@@ -333,22 +305,6 @@ export function findChatModelConfig(modelId?: string): ChatModelOption {
     if (clean.includes('gemma') && (clean.includes('31b') || clean.includes('model 8') || clean === 'model-8')) {
         return CHAT_MODEL_CONFIGS[7];
     }
-    // Model 1: Gemini 3.7 Flash
-    if ((clean.includes('3.7') && clean.includes('flash')) || clean === 'model-1' || clean === 'model 1') {
-        return CHAT_MODEL_CONFIGS[0];
-    }
-    // Model 2: Gemini 3.6 Flash
-    if ((clean.includes('3.6') && clean.includes('flash')) || clean === 'model-2' || clean === 'model 2') {
-        return CHAT_MODEL_CONFIGS[1];
-    }
-    // Model 3: Gemini 3.5 Flash
-    if ((clean.includes('3.5') && clean.includes('flash') && !clean.includes('lite')) || clean === 'model-3' || clean === 'model 3') {
-        return CHAT_MODEL_CONFIGS[2];
-    }
-    // Model 4: Gemini 3.0 / 3 Flash Preview
-    if ((clean.includes('3-flash') || clean.includes('3.0-flash') || clean.includes('preview')) || clean === 'model-4' || clean === 'model 4') {
-        return CHAT_MODEL_CONFIGS[3];
-    }
     // Model 5: Gemini 3.5 Flash Lite
     if ((clean.includes('3.5') && clean.includes('lite')) || clean === 'model-5' || clean === 'model 5') {
         return CHAT_MODEL_CONFIGS[4];
@@ -357,293 +313,111 @@ export function findChatModelConfig(modelId?: string): ChatModelOption {
     if ((clean.includes('3.1') && clean.includes('lite')) || clean === 'model-6' || clean === 'model 6') {
         return CHAT_MODEL_CONFIGS[5];
     }
-
+    // Model 4: Gemini 3.0 Flash
+    if (clean.includes('3.0') || clean === 'model-4' || clean === 'model 4' || clean.includes('preview')) {
+        return CHAT_MODEL_CONFIGS[3];
+    }
+    // Model 3: Gemini 3.5 Flash
+    if (clean.includes('3.5') && !clean.includes('lite') || clean === 'model-3' || clean === 'model 3') {
+        return CHAT_MODEL_CONFIGS[2];
+    }
+    // Model 2: Gemini 3.6 Flash
+    if (clean.includes('3.6') || clean === 'model-2' || clean === 'model 2') {
+        return CHAT_MODEL_CONFIGS[1];
+    }
+    
     const exact = CHAT_MODEL_CONFIGS.find(m => m.id === clean || m.id === modelId);
     if (exact) return exact;
-
     return CHAT_MODEL_CONFIGS[0];
 }
 
-// 4. FEATURE DISTRIBUTION (Keys 6-9)
+export const getAntigravityPool = () => getUniqueKeys([K.K7(), K.K8()]).length > 0 ? getUniqueKeys([K.K7(), K.K8()]) : getAnalysisPool();
+export const getPilotPool = () => getUniqueKeys([K.K8(), K.K9()]).length > 0 ? getUniqueKeys([K.K8(), K.K9()]) : getAnalysisPool();
+export const getBetaPool = () => getUniqueKeys([K.K9(), K.K10()]).length > 0 ? getUniqueKeys([K.K9(), K.K10()]) : getAnalysisPool();
+export const getSuggestionPool = () => getBetaPool();
+export const getDeltaPool = () => getBetaPool();
+export const getGammaPool = () => getBetaPool();
+export const getTtsPool = () => getBetaPool();
+export const getSniperKey = async () => getApiKey();
 
-export const getAntigravityPool = () => getUniqueKeys([K.K3(), K.K1(), K.K2(), K.K4()]);
+export const PILOT_MODELS = ANALYSIS_MODELS;
+export const LEARNING_MODELS = ANALYSIS_MODELS;
+export const SUGGESTION_MODELS = ANALYSIS_MODELS;
+export const MARKET_MODELS = ANALYSIS_MODELS;
+export const SUMMARY_MODELS = ANALYSIS_MODELS;
+export const EMBEDDING_MODELS = ['text-embedding-004'];
+export const TTS_MODELS = ['gemini-2.5-flash-preview-tts', 'gemini-2.0-flash', 'gemini-3.5-flash-lite'];
 
-// ALPHA (Key 6)
-export const getAlphaPool = () => {
-    const keys = getUniqueKeys([K.K6()]);
-    return keys.length > 0 ? keys : getAnalysisPool();
+export const resetNeuralLanes = () => {
+    console.log('[LaneOrchestrator] Neural lanes reset.');
 };
-// A: AI Pilot / Regime Tracker
-export const PILOT_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
-// B: AI ASSETS SUGGESTION 
-export const SUGGESTION_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
 
-// BETA (Key 7)
-export const getBetaPool = () => {
-    const keys = getUniqueKeys([K.K7()]);
-    return keys.length > 0 ? keys : getAnalysisPool();
-};
-// A: Global Market Intelligence
-export const MARKET_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
-// B: Neural Learning (Truth Layer)
-export const LEARNING_MODELS = ['gemini-3.5-flash', 'gemini-3.1-flash-lite'];
-
-// GAMMA (Key 8)
-export const getGammaPool = () => {
-    const keys = getUniqueKeys([K.K8()]);
-    return keys.length > 0 ? keys : getAnalysisPool();
-};
-// A: Session Summaries
-export const SUMMARY_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
-// B: Neural TTS
-export const TTS_MODELS = ['gemini-3.1-flash-tts-preview']; 
-
-// DELTA (Key 9)
-export const getDeltaPool = () => {
-    const keys = getUniqueKeys([K.K9()]);
-    return keys.length > 0 ? keys : getAnalysisPool();
-};
-// A: Embeddings & Pattern Recognition
-export const EMBEDDING_MODELS = ['gemini-embedding-2-preview'];
-// B: Prompt Optimization
-export const OPTIMIZATION_MODELS = ['gemini-3.5-flash-lite', 'gemini-3.1-flash-lite'];
-
-// Legacy Compatibility Exports (Update these to point to new logic)
-export const getSuggestionPool = getAlphaPool;
-export const getPilotPool = getAlphaPool;
-export const getAutoMlPool = getBetaPool;
-export const getServicePool = getChatPool; 
-export const getSuggestionStructurePool = getBetaPool; 
-export const getTtsPool = getGammaPool;
-export const getTtsKey = () => [K.K8()].filter(k => !!k); // Redirect to K8 (Gamma)
-export const getSniperKey = () => K.K10() || API_KEY || '';
-
-// Global Penalty Box for exhausted keys
-const cooldownMap = new Map<string, number>();
-const COOLDOWN_DURATION = 30000; // Reduced to 30s for faster recovery
-
-function isThrottled(key: string): boolean {
-    const expiry = cooldownMap.get(key);
-    if (!expiry) return false;
-    if (Date.now() > expiry) {
-        cooldownMap.delete(key);
-        return false;
-    }
-    return true;
-}
-
-/**
- * Manually reset the cooldown map. 
- * Used when the user clicks "Reconnect Lane" to force a fresh retry.
- */
-export function resetNeuralLanes() {
-    cooldownMap.clear();
-    console.log("Neural Lanes (API Keys) have been manually reset.");
-}
-
-/**
- * Executes a call by rotating through API keys in a pool.
- * If a key hits 429, it goes to the Penalty Box.
- */
-export async function executeLaneCall<T>(
-    operationFactory: (apiKey: string) => Promise<T>,
-    pool?: string[] | (() => string[])
-): Promise<T> {
-    await initializeApiKey();
-    const resolvedPool = typeof pool === 'function' ? pool() : (pool || getAnalysisPool());
-    
-    // Deduplicate and filter pool
-    const uniquePool = Array.from(new Set((resolvedPool || []).filter(k => typeof k === 'string' && k.trim().length > 5)));
-    
-    // Fallback if resolved pool is empty - Ensure fallbacks are also filtered
-    const activePool = uniquePool.length > 0 ? uniquePool : [K.K2(), K.K1(), K.P()].filter(k => typeof k === 'string' && k.trim().length > 5);
-    
-    if (activePool.length === 0) {
-        throw new Error("Gemini API key is missing. Please provide a valid Gemini API key in Settings.");
-    }
-    
-    // STRICT MODE OVERRIDE
-    if (USE_STRICT_MODE && API_KEY) {
-        if (!isThrottled(API_KEY)) {
-            try {
-                console.log(`[LaneOrchestrator] STRICT MODE ACTIVE. Using primary custom key.`);
-                return await operationFactory(API_KEY);
-            } catch (error: any) {
-                const errorMsg = (error.message || '').toLowerCase();
-                const isQuota = errorMsg.includes('429') || error.status === 429 || errorMsg.includes('quota') || (typeof error === 'string' && error.includes('429'));
-                
-                if (isQuota) {
-                    console.warn(`[LaneOrchestrator] Custom Strict Key EXHAUSTED. Temporarily falling back to pool...`);
-                    cooldownMap.set(API_KEY, Date.now() + 60000); // 1 min penalty
-                } else {
-                    throw error;
-                }
-            }
-        }
-    }
-
-    let lastError: any = null;
-
-    let availableKeys = activePool.filter(k => !isThrottled(k));
-    
-    // If all keys are throttled, we try them anyway as a last resort, 
-    // but we should prioritize the one that was throttled longest ago.
-    const keysToTry = availableKeys.length > 0 ? availableKeys : activePool;
-
-    console.log(`[LaneOrchestrator] Attempting call with pool size: ${keysToTry.length}`);
-
-    for (const apiKey of keysToTry) {
-        try {
-            console.log(`[LaneOrchestrator] Using key ending in ...${apiKey.slice(-4)}`);
-            return await operationFactory(apiKey);
-        } catch (error: any) {
-            lastError = error;
-            const errorMsg = String(error.message || (typeof error === 'object' ? JSON.stringify(error) : error) || '').toLowerCase();
-            const isQuota = errorMsg.includes('429') || 
-                           error.status === 429 || 
-                           errorMsg.includes('quota') || 
-                           errorMsg.includes('resource_exhausted') ||
-                           errorMsg.includes('limit reached') ||
-                           errorMsg.includes('exhausted') ||
-                           errorMsg.includes('too many requests');
-            
-            if (isQuota) {
-                console.warn(`[LaneOrchestrator] Quota hit for key ending in ...${apiKey.slice(-4)}. Throttling for ${COOLDOWN_DURATION/1000}s.`);
-                cooldownMap.set(apiKey, Date.now() + COOLDOWN_DURATION);
-                continue; 
-            }
-            
-            // If it's a 400 Bad Request, checking if it's actually an "invalid key" error
-            // If it is, we should throttle this key and MOVE TO NEXT.
-            if (error.status === 400 || errorMsg.includes('invalid') || errorMsg.includes('bad request') || errorMsg.includes('key')) {
-                console.warn(`[LaneOrchestrator] Potential invalid key/request for ...${apiKey.slice(-4)}. Throttling and rotating.`);
-                cooldownMap.set(apiKey, Date.now() + 86400000); // 24h cooldown for likely dead keys
-                continue;
-            }
-            
-            // For other errors, try next key
-            console.warn(`[LaneOrchestrator] Error with key ...${apiKey.slice(-4)}: ${errorMsg.substring(0, 100)}. Trying next key...`);
-            continue;
-        }
-    }
-    throw lastError || new Error("All Neural Lanes are currently congested or exhausted.");
-}
-
-export async function executeGeminiCall<T>(op: (k: string) => Promise<T>, pool?: string[]): Promise<T> {
-    await initializeApiKey(); // Ensure API key is initialized
-    const activePool = pool || getAnalysisPool();
-    return executeLaneCall(op, activePool);
-}
+export const executeGeminiCall = executeLaneCall;
 
 export async function runWithRetry<T>(
     operation: () => Promise<T>,
-    retries: number = 1, // Reduced default retries
-    baseDelay: number = 1000, // Reduced base delay
-    onRetry?: (delayMs: number) => void
-): Promise<T> {
-    try {
-        return await operation();
-    } catch (error: any) {
-        if (retries <= 0) throw error;
-        const msg = (error.message || '').toLowerCase();
-        
-        // OPTIMIZATION: Do NOT retry 429s here. Let them bubble up to `runWithModelFallback`
-        // so we can switch models immediately without waiting.
-        // We DO retry 500s, 503s, and network/XHR errors which are often transient.
-        if (
-            msg.includes('503') || 
-            msg.includes('500') || 
-            msg.includes('overloaded') || 
-            msg.includes('xhr error') || 
-            msg.includes('rpc failed') ||
-            msg.includes('fetch failed') ||
-            msg.includes('network error')
-        ) {
-            // Invoke callback if provided to notify UI of the wait time
-            if (onRetry) {
-                onRetry(baseDelay);
-            }
-            await new Promise(r => setTimeout(r, baseDelay));
-            return runWithRetry(operation, retries - 1, baseDelay * 1.5, onRetry); // Reduced backoff multiplier
-        }
-        throw error;
-    }
-}
-
-/**
- * Enhanced fallback that tries a different model series if one is quota-exhausted.
- * Loops through the model list `loopCount` times before failing.
- */
-export async function runWithModelFallback<T>(
-    modelIds: string[],
-    operationFactory: (modelId: string) => Promise<T>,
-    onRetry?: (delayMs: number) => void,
-    loopCount: number = 1 // Reduced default loop count to 1 for speed
+    maxRetries: number = 3,
+    delayMs: number = 2000
 ): Promise<T> {
     let lastError: any;
-    
-    outerLoop: for (let i = 0; i < loopCount; i++) {
-        for (let j = 0; j < modelIds.length; j++) {
-            const model = modelIds[j];
-            try {
-                // Internal retry for 500/503 errors (network blips)
-                return await runWithRetry(() => operationFactory(model), 1, 1000, onRetry);
-            } catch (error: any) {
-                lastError = error;
-                const errorMsg = String(error.message || error || '').toLowerCase();
-                const isQuota = errorMsg.includes('429') || 
-                               error.status === 429 || 
-                               errorMsg.includes('quota') || 
-                               errorMsg.includes('resource_exhausted') ||
-                               errorMsg.includes('limit reached') ||
-                               errorMsg.includes('finish_reason: length');
-                
-                // If it's a 429 (Quota), 400 (Invalid Argument/Model Limit), OR a persistent 5xx/Network error
-                if (
-                    isQuota || 
-                    error.status === 400 ||
-                    error.status === 404 ||
-                    (error.status && error.status >= 500) ||
-                    errorMsg.includes('invalid') ||
-                    errorMsg.includes('unsupported') ||
-                    errorMsg.includes('not found') ||
-                    errorMsg.includes('404') ||
-                    errorMsg.includes('503') ||
-                    errorMsg.includes('500') ||
-                    errorMsg.includes('xhr error') ||
-                    errorMsg.includes('rpc failed') ||
-                    errorMsg.includes('fetch failed') ||
-                    errorMsg.includes('max tokens') ||
-                    errorMsg.includes('unexpected token') ||
-                    errorMsg.includes('not valid json') ||
-                    errorMsg.includes('non-json') ||
-                    errorMsg.includes('empty response') ||
-                    errorMsg.includes('failed to parse') ||
-                    errorMsg.includes('no structural json') ||
-                    errorMsg.includes('structural json') ||
-                    errorMsg.includes('json elements') ||
-                    errorMsg.includes('anomaly') ||
-                    errorMsg.includes('json')
-                ) {
-                    
-                    // Check if this is the last model in the list
-                    if (j === modelIds.length - 1) {
-                        // If we have loops remaining, wait 3s and restart the chain
-                        if (i < loopCount - 1) {
-                            console.log(`All models exhausted in pass ${i+1}. Waiting 3s before restarting chain...`);
-                            if (onRetry) onRetry(3000); // Trigger UI Countdown
-                            await new Promise(resolve => setTimeout(resolve, 3000));
-                            continue outerLoop; // Jump to next outer iteration (restart from first model)
-                        }
-                    }
-                    
-                    console.log(`Model Quota/Network Exhausted for ${model} (${errorMsg.substring(0, 50)}...). Cascading...`);
-                    continue; // Try next model in the list
-                }
-                
-                // For non-retryable errors (e.g. 400 Bad Request), stop immediately
-                break;
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            return await operation();
+        } catch (error: any) {
+            lastError = error;
+            if (attempt < maxRetries) {
+                await new Promise(res => setTimeout(res, delayMs * attempt));
             }
+        }
+    }
+    throw lastError;
+}
+
+// Retry execution logic
+export async function executeLaneCall<T>(
+    apiCall: (apiKey: string) => Promise<T>,
+    poolFn: () => string[] = getAnalysisPool
+): Promise<T> {
+    const pool = poolFn();
+    const activeKeys = pool.length > 0 ? pool : (API_KEY ? [API_KEY] : []);
+    
+    if (activeKeys.length === 0) {
+        throw new Error("No API keys available for this lane.");
+    }
+
+    let lastError;
+    for (const key of activeKeys) {
+        try {
+            return await apiCall(key);
+        } catch (e: any) {
+            lastError = e;
+            const message = e.message || '';
+            if (message.includes('429') || message.includes('quota') || message.includes('exhausted')) {
+                console.warn("[LaneOrchestrator] Key exhausted in lane, rotating...");
+                continue;
+            }
+            throw e;
+        }
+    }
+    throw lastError;
+}
+
+export async function runWithModelFallback<T>(
+    models: string[],
+    callFn: (model: string) => Promise<T>
+): Promise<T> {
+    let lastError;
+    for (const model of models) {
+        try {
+            return await callFn(model);
+        } catch (e: any) {
+            lastError = e;
+            const msg = e.message || '';
+            if (msg.includes('429') || msg.includes('quota') || msg.includes('overloaded') || msg.includes('503') || msg.includes('fetch')) {
+                console.warn(`[LaneOrchestrator] Model ${model} failed, falling back...`);
+                continue;
+            }
+            throw e;
         }
     }
     throw lastError;

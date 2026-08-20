@@ -36,30 +36,10 @@ function compressPromptForGemma(promptText: string): string {
         .replace(/\*\*INSTITUTIONAL ANALYSIS & MATHEMATICAL THEORIES[\s\S]*?(?=\*\*INSTITUTIONAL|\*\*QUANT|\*\*MARKET|\*\*RCA|\*\*ENGINE|\*\*PREMIUM)/gi, '')
         .replace(/\n{3,}/g, '\n\n');
 
-    compressed += `\n\nCRITICAL MANDATE FOR GEMMA OUTPUT FORMAT:
-You may write brief technical reasoning inside <scratchpad>...</scratchpad> tags first if needed.
-Directly after </scratchpad>, you MUST output ONLY a valid JSON object starting with "{" and ending with "}".
-All array elements MUST be separated by commas (e.g. ["Item 1", "Item 2"], [1.0850, 1.0890]).
-Do NOT write introductory text, explanations, or greetings outside the JSON.
-
-REQUIRED JSON FORMAT EXAMPLE:
-<scratchpad>
-M5 trend is bullish CHoCH. Price reacted off Order Block at 1.0850.
-</scratchpad>
-{
-  "signal": "BUY",
-  "confidence": 85,
-  "entryPoints": [1.0850],
-  "entryType": "Market Execution",
-  "stopLoss": 1.0820,
-  "takeProfits": [1.0890, 1.0920, 1.0950],
-  "grade": "A+",
-  "analysisBreakdown": ["M5 CHoCH bullish confirmation", "Price reacting off M15 Order Block"],
-  "reasoning": ["Institutional liquidity sweep completed below previous day low"],
-  "checklist": ["Trend alignment: Bullish", "RSI divergence: Confirmed"],
-  "candlestickPatterns": ["Bullish Engulfing"],
-  "insight": "High conviction scalp trade setting up at demand zone."
-}`;
+    compressed += `\n\nSTRICT DIRECTIVE FOR GEMMA:
+1. Return ONLY raw JSON matching the required signal structure.
+2. Keep all reasoning points under 15 words each.
+3. Output concise, fast, non-repetitive JSON.`;
 
     return compressed;
 }
@@ -1080,8 +1060,8 @@ async function callGeminiDirectly(request: AnalysisRequest): Promise<Omit<Signal
                 });
                 if (proxyRes.ok) {
                     const data = await proxyRes.json();
-                    if (data.candidates?.[0]?.content?.parts?.[0]?.text) {
-                        searchContext = `\n[SEARCH GROUNDING FROM GEMINI 2.5 FLASH]:\n${data.candidates[0].content.parts[0].text}\n`;
+                    if (data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text) {
+                        searchContext = `\n[SEARCH GROUNDING FROM GEMINI 2.5 FLASH]:\n${data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text}\n`;
                     }
                 }
             } catch (e) {
@@ -1171,8 +1151,11 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     maxOutputTokens: isGemmaModel ? 900 : 2048,
                     responseMimeType: "application/json"
                 };
+                let finalPromptParts = promptParts;
                 if (!isGemmaModel) {
                     config.responseSchema = SignalDataSchema;
+                } else {
+                    finalPromptParts = [{ text: promptParts[0].text + "\n[MANDATORY JSON RESPONSE SCHEMA]:\n" + JSON.stringify(SignalDataSchema) + "\n\nYou must return a valid JSON object matching the above schema.\n\n" }, ...promptParts.slice(1)];
                 }
 
                 if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
@@ -1195,7 +1178,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             model: modelId,
-                            contents: [{ parts: promptParts }],
+                            contents: [{ parts: finalPromptParts }],
                             config: config,
                             apiKey: apiKey
                         }),
@@ -1226,7 +1209,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     }
 
                     const data = await proxyRes.json();
-                    responseText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    responseText = data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text || '';
                     candidates = data.candidates;
                     promptFeedback = data.promptFeedback;
                 } catch (proxyError: any) {
@@ -1247,7 +1230,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                     console.log('[Gemini] Falling back to direct SDK call...');
                     const fallbackResponse = await ai.models.generateContent({
                         model: modelId,
-                        contents: [{ parts: promptParts }],
+                        contents: [{ parts: finalPromptParts }],
                         config: config,
                     });
 
@@ -1258,10 +1241,6 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
 
                 if (!responseText) {
                     throw new Error("Empty response from AI - The model returned no content.");
-                }
-
-                if (isGemmaModel && responseText) {
-                    responseText = await executeGemmaTwoPassSelfCleaning(responseText, apiKey);
                 }
 
                 const data = extractJson(responseText);
@@ -1506,7 +1485,7 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 model: modelId,
-                                contents: [{ parts: promptParts }],
+                                contents: [{ parts: finalPromptParts }],
                                 config: config,
                                 apiKey: apiKey
                             }),
@@ -1533,7 +1512,7 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
                             throw new Error(errorMsg);
                         }
                         const data = await proxyRes.json();
-                        return { text: data.candidates?.[0]?.content?.parts?.[0]?.text || '' } as any;
+                        return { text: data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text || '' } as any;
                     } catch (e) {
                         console.warn(`[AssetDetection] Model ${modelId} failed. Attempting fallback if available...`);
                         throw e;
@@ -2064,8 +2043,11 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                     maxOutputTokens: isGemmaModel ? 900 : 2048,
                     responseMimeType: "application/json"
                 };
+                let finalPromptText = activePrompt;
                 if (!isGemmaModel) {
                     config.responseSchema = SniperDataSchema;
+                } else {
+                    finalPromptText = activePrompt + "\n[MANDATORY JSON RESPONSE SCHEMA]:\n" + JSON.stringify(SniperDataSchema) + "\n\nYou must return a valid JSON object matching the above schema.\n\n";
                 }
 
                 let text = '';
@@ -2078,7 +2060,7 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             model: modelId,
-                            contents: [{ parts: [{ text: activePrompt }] }],
+                            contents: [{ parts: [{ text: finalPromptText }] }],
                             config: config,
                             apiKey: apiKey
                         }),
@@ -2087,19 +2069,15 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                     clearTimeout(timeoutId);
                     if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
                     const data = await proxyRes.json();
-                    text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    text = data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text || '';
                 } catch (e) {
                     const ai = new GoogleGenAI({ apiKey });
                     const result = await ai.models.generateContent({
                         model: modelId,
-                        contents: [{ role: 'user', parts: [{ text: activePrompt }] }],
+                        contents: [{ role: 'user', parts: [{ text: finalPromptText }] }],
                         config: config
                     });
                     text = result.text || '';
-                }
-
-                if (isGemmaModel && text) {
-                    text = await executeGemmaTwoPassSelfCleaning(text, apiKey);
                 }
 
                 const signal = extractJson(text);
@@ -2225,7 +2203,7 @@ Return your response in a structured JSON object matching the AntigravityVerdict
             }
 
             const data = await proxyRes.json();
-            const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+            const text = data?.text || data?.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data?.candidates?.[0]?.content?.parts?.[0]?.text;
             const parsed = extractJson(text);
             if (!parsed) throw new Error("Failed to parse Antigravity verdict JSON.");
 
@@ -2290,7 +2268,7 @@ export async function generateSniperLiveSignal(
     const cleanQueryForLLM = cleanBrokerQuery(strippedQuery);
 
     const isDeepThinking = !!userSettings?.deepThinking;
-    const baseModels = SNIPER_MODELS; // [gemini-3.5-flash-lite, gemini-3.1-flash-lite, gemma-4-26b, gemma-4-31b]
+    const baseModels = SNIPER_MODELS; // [gemini-3.5-flash-lite, gemini-3.1-flash-lite]
     const chosenModel = selectedModel || 'gemini-3.5-flash-lite';
     const models = [
         chosenModel,
@@ -2758,8 +2736,11 @@ JSON Structure:
                     maxOutputTokens: isGemmaModel ? 900 : 2048,
                     responseMimeType: "application/json"
                 };
+                let finalPromptText = activePrompt;
                 if (!isGemmaModel) {
                     config.responseSchema = SniperDataSchema;
+                } else {
+                    finalPromptText = activePrompt + "\n[MANDATORY JSON RESPONSE SCHEMA]:\n" + JSON.stringify(SniperDataSchema) + "\n\nYou must return a valid JSON object matching the above schema.\n\n";
                 }
 
                 if (isDeepThinking && (modelId.includes('pro') || modelId.includes('thinking'))) {
@@ -2778,7 +2759,7 @@ JSON Structure:
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({
                             model: modelId,
-                            contents: [{ parts: [{ text: activePrompt }] }],
+                            contents: [{ parts: [{ text: finalPromptText }] }],
                             config: config,
                             apiKey: apiKey
                         }),
@@ -2796,7 +2777,7 @@ JSON Structure:
 
                     if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
                     const data = await proxyRes.json();
-                    text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                    text = data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text || '';
                     if (!text) {
                         const finishReason = data.candidates?.[0]?.finishReason;
                         throw new Error(`Empty response from model. Finish reason: ${finishReason || 'Unknown'}`);
@@ -2806,17 +2787,13 @@ JSON Structure:
                     const ai = new GoogleGenAI({ apiKey });
                     const result = await ai.models.generateContent({
                         model: modelId,
-                        contents: [{ role: 'user', parts: [{ text: activePrompt }] }],
+                        contents: [{ role: 'user', parts: [{ text: finalPromptText }] }],
                         config: config
                     });
                     text = result.text || '';
                     if (!text) {
                         throw new Error('Empty response from direct SDK fallback.');
                     }
-                }
-
-                if (isGemmaModel && text) {
-                    text = await executeGemmaTwoPassSelfCleaning(text, apiKey);
                 }
 
                 const signal = extractJson(text);
@@ -3413,85 +3390,35 @@ export function scanObjectForIssues(obj: any): { hasIssues: boolean; reason?: st
     return { hasIssues: false };
 }
 
-async function executeGemmaTwoPassSelfCleaning(rawOutput: string, apiKey: string): Promise<string> {
-    if (!rawOutput || rawOutput.trim().length === 0) return rawOutput;
-
-    console.log(`[Gemma 2-Pass Pipeline] Pass 1 complete (${rawOutput.length} chars). Executing Pass 2 (Self-Cleaning JSON Conversion)...`);
-
-    const pass2Prompt = `You are an institutional JSON conversion & cleaning engine.
-Convert the following trading analysis into a 100% strictly valid JSON object matching the required schema.
-
-CRITICAL INSTRUCTIONS:
-- Output ONLY the raw JSON starting with '{' and ending with '}'.
-- Do NOT output markdown code fences (\`\`\`json), explanations, or text outside the JSON.
-- Ensure all numeric values (entryPoints, stopLoss, takeProfits, confidence) are formatted as valid numbers or arrays of numbers.
-- Do NOT hallucinate placeholder text.
-
-RAW ANALYSIS TO CONVERT:
-${rawOutput}`;
-
-    try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout for Pass 2
-
-        const res = await fetch('/api/gemini/analyze', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                model: 'gemini-3.5-flash-lite',
-                contents: [{ parts: [{ text: pass2Prompt }] }],
-                config: { temperature: 0.0, responseMimeType: "application/json" },
-                apiKey: apiKey
-            }),
-            signal: controller.signal
-        });
-        clearTimeout(timeoutId);
-
-        if (res.ok) {
-            const data = await res.json();
-            const cleanedText = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            if (cleanedText && cleanedText.trim().length > 10) {
-                console.log(`[Gemma 2-Pass Pipeline] Pass 2 successfully converted raw analysis into clean JSON.`);
-                return cleanedText;
-            }
-        }
-    } catch (e) {
-        console.warn(`[Gemma 2-Pass Pipeline] Pass 2 conversion encountered an error, falling back to robust sanitizer:`, e);
-    }
-    return rawOutput;
-}
-
 function extractJson(str: string): any {
     if (!str) return {};
 
-    // Helper to deeply repair truncated or malformed JSON
+    // Helper to deeply repair truncated JSON
     const repairJson = (jsonStr: string) => {
         let repaired = jsonStr.trim();
 
-        // Auto-fix missing commas between string elements in arrays: "item1" "item2" -> "item1", "item2"
-        repaired = repaired.replace(/"\s*"/g, '", "');
-
-        // Auto-fix missing commas between numbers in arrays: 1.0850 1.0860 -> 1.0850, 1.0860
-        repaired = repaired.replace(/(\b\d+(?:\.\d+)?)\s+(\b\d+(?:\.\d+)?)/g, '$1, $2');
+        // Count structural elements
+        const openBraces = (repaired.match(/{/g) || []).length;
+        const closeBraces = (repaired.match(/}/g) || []).length;
+        const openBrackets = (repaired.match(/\[/g) || []).length;
+        const closeBrackets = (repaired.match(/\]/g) || []).length;
+        const quoteCount = (repaired.match(/"/g) || []).length;
 
         // Fix unclosed quotes
-        const quoteCount = (repaired.match(/"/g) || []).length;
         if (quoteCount % 2 !== 0) {
+            // Check if it ends mid-string or mid-key
             repaired += '"';
         }
 
         // Remove trailing commas before closing braces/brackets
         repaired = repaired.replace(/,\s*([}\]])/g, '$1');
 
-        // Balance structural braces and brackets
-        const openBraces = (repaired.match(/{/g) || []).length;
-        const closeBraces = (repaired.match(/}/g) || []).length;
-        const openBrackets = (repaired.match(/\[/g) || []).length;
-        const closeBrackets = (repaired.match(/\]/g) || []).length;
-
+        // Close unclosed arrays
         if (openBrackets > closeBrackets) {
             repaired += ']'.repeat(openBrackets - closeBrackets);
         }
+
+        // Close unclosed objects
         if (openBraces > closeBraces) {
             repaired += '}'.repeat(openBraces - closeBraces);
         }
@@ -3500,61 +3427,58 @@ function extractJson(str: string): any {
     };
 
     try {
-        // Step 1: Strip out scratchpad, thought, or html tags
-        let cleanStr = str
-            .replace(/<scratchpad>[\s\S]*?<\/scratchpad>/gi, '')
-            .replace(/<thought>[\s\S]*?<\/thought>/gi, '')
-            .replace(/```(?:json)?\s*([\s\S]*?)\s*```/gi, '$1')
-            .trim();
+        // 1. Try markdown code block first as it's the cleanest
+        const jsonMatch = str.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+        let target = jsonMatch ? jsonMatch[1].trim() : str.trim();
 
-        // Step 2: Extract ONLY the content between the FIRST '{' and LAST '}' using regex
-        const objectMatch = cleanStr.match(/\{[\s\S]*\}/);
-        let target = '';
+        // 2. Isolate the FIRST and LAST structural braces/brackets in case of preceding/succeeding text
+        const firstBrace = target.indexOf('{');
+        const lastBrace = target.lastIndexOf('}');
+        const firstBracket = target.indexOf('[');
+        const lastBracket = target.lastIndexOf(']');
 
-        if (objectMatch) {
-            target = objectMatch[0].trim();
+        // we want the earliest of { or [
+        let firstOpen = -1;
+        if (firstBrace !== -1 && firstBracket !== -1) {
+            firstOpen = Math.min(firstBrace, firstBracket);
+        } else if (firstBrace !== -1) {
+            firstOpen = firstBrace;
         } else {
-            // Check for array at root
-            const arrayMatch = cleanStr.match(/\[[\s\S]*\]/);
-            if (arrayMatch) {
-                target = arrayMatch[0].trim();
-            } else {
-                // If truncated, isolate from first '{' or '[' to the end
-                const firstBrace = cleanStr.indexOf('{');
-                const firstBracket = cleanStr.indexOf('[');
-                let firstOpen = -1;
-                if (firstBrace !== -1 && firstBracket !== -1) {
-                    firstOpen = Math.min(firstBrace, firstBracket);
-                } else if (firstBrace !== -1) {
-                    firstOpen = firstBrace;
-                } else {
-                    firstOpen = firstBracket;
-                }
-
-                if (firstOpen !== -1) {
-                    target = cleanStr.substring(firstOpen).trim();
-                } else {
-                    throw new Error("Model output contains no structural JSON elements ({ or [).");
-                }
-            }
+            firstOpen = firstBracket;
         }
 
-        // Step 3: Attempt immediate parsing
+        let lastClose = -1;
+        if (firstOpen === firstBrace) lastClose = lastBrace;
+        if (firstOpen === firstBracket) lastClose = lastBracket;
+
+        if (firstOpen !== -1) {
+            if (lastClose !== -1 && lastClose > firstOpen) {
+                target = target.substring(firstOpen, lastClose + 1).trim();
+            } else {
+                target = target.substring(firstOpen).trim();
+            }
+        } else {
+            throw new Error("Model output contains no structural JSON elements ({ or [).");
+        }
+
+        // Try parsing immediately before doing any destructive operations
         try {
             return JSON.parse(target);
         } catch (firstPassError) {
-            // Step 4: Sanitization (remove comments, control chars, trailing commas)
+            console.log("Initial JSON.parse failed, attempting sanitization...", firstPassError);
+
+            // 3. Sanitization: remove comments and line breaks that might break JSON.parse
             let sanitized = target
-                .replace(/(?<!https?:)\/\/.*$/gm, '') // Remove single-line comments
+                .replace(/(?<!https?:)\/\/.*$/gm, '') // Remove single-line comments (but NOT in URLs)
                 .replace(/\/\*[\s\S]*?\*\//g, '') // Remove multi-line comments
-                .replace(/[\n\r\t]/g, ' ') // Replace newlines and tabs
+                .replace(/[\n\r\t]/g, ' ') // Replace newlines and tabs with spaces to prevent control char issues
                 .replace(/[\u0000-\u0019\u007F-\u009F]/g, '') // Remove control chars
                 .replace(/,\s*([}\]])/g, '$1'); // Remove trailing commas
-
+                
             try {
                 return JSON.parse(sanitized);
             } catch (initialError) {
-                // Step 5: Deep repair
+                // 4. If standard parse fails, attempt deep repair
                 const repaired = repairJson(sanitized);
                 try {
                     return JSON.parse(repaired);
@@ -3714,7 +3638,7 @@ Provide a concise, high-impact summary with bullet points. Be blunt. If there is
 
             if (!proxyRes.ok) throw new Error(`Proxy failed: ${proxyRes.status}`);
             const data = await proxyRes.json();
-            return data.candidates?.[0]?.content?.parts?.[0]?.text || "MACRO CONFLUENCE: UNKNOWN.";
+            return data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text || "MACRO CONFLUENCE: UNKNOWN.";
         } catch (e) {
             // Fallback to direct SDK if proxy fails
             const ai = new GoogleGenAI({ apiKey });

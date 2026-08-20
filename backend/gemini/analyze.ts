@@ -85,8 +85,24 @@ export default async function handler(req: Request, res: Response) {
 
         if (isGemmaModel) {
           // Gemma models in Google AI API do NOT support OpenAPI responseSchema or systemInstruction in config
-          delete effectiveConfig.responseSchema;
+          let schemaString = '';
+          if (effectiveConfig.responseSchema) {
+            schemaString = `\n[MANDATORY JSON RESPONSE SCHEMA]:\n` + JSON.stringify(effectiveConfig.responseSchema) + `\n\nYou must return a valid JSON object matching the above schema.\n\n`;
+            delete effectiveConfig.responseSchema;
+          }
           
+          if (schemaString && Array.isArray(contents) && contents.length > 0) {
+             const firstContent = { ...contents[0] };
+             if (firstContent.parts && Array.isArray(firstContent.parts)) {
+                 firstContent.parts = [ { text: schemaString }, ...firstContent.parts ];
+             } else {
+                 firstContent.parts = [ { text: schemaString + "\n" + JSON.stringify(firstContent) } ];
+             }
+             contentsForModel = [firstContent, ...contents.slice(1)];
+             // If we already appended it, reset it so systemInstruction block doesn't add it again
+             schemaString = '';
+          }
+
           if (effectiveConfig.systemInstruction) {
             const sysInst = typeof effectiveConfig.systemInstruction === 'string'
               ? effectiveConfig.systemInstruction
@@ -97,11 +113,12 @@ export default async function handler(req: Request, res: Response) {
               const firstContent = { ...contents[0] };
               if (firstContent.parts && Array.isArray(firstContent.parts)) {
                 firstContent.parts = [
+                  { text: schemaString },
                   { text: `[SYSTEM INSTRUCTIONS]:\n${sysInst}\n\n` },
                   ...firstContent.parts
                 ];
               } else {
-                firstContent.parts = [{ text: `[SYSTEM INSTRUCTIONS]:\n${sysInst}\n\n${JSON.stringify(firstContent)}` }];
+                firstContent.parts = [{ text: schemaString + `[SYSTEM INSTRUCTIONS]:\n${sysInst}\n\n${JSON.stringify(firstContent)}` }];
               }
               contentsForModel = [firstContent, ...contents.slice(1)];
             }
@@ -117,7 +134,9 @@ export default async function handler(req: Request, res: Response) {
         });
 
         if (sdkResponse && sdkResponse.candidates && sdkResponse.candidates.length > 0) {
-          return res.status(200).json(sdkResponse);
+          const plainResponse = JSON.parse(JSON.stringify(sdkResponse));
+          plainResponse.text = sdkResponse.text;
+          return res.status(200).json(plainResponse);
         }
       } catch (err: any) {
         lastError = err;

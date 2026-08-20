@@ -219,6 +219,7 @@ export async function sendMessageStreamWithRetry(
                     currentModel = modelId;
                     yield {
                         ...chunk,
+                        text: chunk.text,
                         model: modelId
                     };
                 }
