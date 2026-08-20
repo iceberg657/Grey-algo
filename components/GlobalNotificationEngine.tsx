@@ -26,9 +26,9 @@ interface NotificationConfig {
 }
 
 const DEFAULT_SESSION_ASSETS: Record<string, string[]> = {
-    Asian: ['USDJPY', 'GBPJPY', 'EURJPY', 'AUDUSD', 'NZDUSD', 'BTCUSD', 'ETHUSD', 'LTCUSD'],
-    London: ['EURUSD', 'GBPUSD', 'EURGBP', 'GBPJPY', 'EURJPY', 'GBPCHF', 'XAUUSD', 'UK100', 'Germany40', 'France40', 'Europe50'],
-    'New York': ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'USDCHF', 'AUDUSD', 'XAUUSD', 'SILVER', 'BRENT', 'WTI', 'US30', 'NAS100', 'SPX500', 'BTCUSD', 'ETHUSD']
+    Asian: ['USDJPY', 'GBPJPY', 'EURJPY', 'AUDUSD', 'NZDUSD', 'NZDJPY', 'NZDCAD', 'NZDCHF', 'BTCUSD', 'ETHUSD', 'LTCUSD'],
+    London: ['EURUSD', 'GBPUSD', 'EURGBP', 'GBPJPY', 'EURJPY', 'GBPCHF', 'EURAUD', 'EURCAD', 'EURCHF', 'EURNZD', 'GBPCAD', 'GBPNZD', 'XAUUSD', 'UK100', 'Germany40', 'France40', 'Europe50'],
+    'New York': ['EURUSD', 'GBPUSD', 'USDJPY', 'USDCAD', 'USDCHF', 'AUDUSD', 'NZDCAD', 'GBPCAD', 'EURCAD', 'XAUUSD', 'SILVER', 'BRENT', 'WTI', 'US30', 'NAS100', 'SPX500', 'BTCUSD', 'ETHUSD']
 };
 
 const getAllowedAssetsForCurrentSession = (

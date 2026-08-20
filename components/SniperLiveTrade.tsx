@@ -57,6 +57,7 @@ import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { ThemeToggleButton } from './ThemeToggleButton';
 import { getDailyMarketRegime, DailyRegime } from '../services/pilotService';
 import { LiquidityHeatmapChart } from './LiquidityHeatmapChart';
+import { SignalCountdownTimer } from './SignalCountdownTimer';
 
 const AntigravityVerdictDisplay: React.FC<{ insight: string }> = ({ insight }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -2251,7 +2252,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                     {msg.signal.signal === 'BUY' ? <TrendingUp className="w-8 h-8" /> : msg.signal.signal === 'SELL' ? <TrendingDown className="w-8 h-8" /> : <Activity className="w-8 h-8" />}
                                   </div>
                                   <div>
-                                    <div className="flex items-center gap-2 mb-1">
+                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
                                       <span className={`text-[10px] font-black uppercase tracking-[0.3em] ${
                                         msg.signal.signal === 'BUY' ? 'text-emerald-500' : msg.signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-500'
                                       }`}>
@@ -2259,6 +2260,8 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                       </span>
                                       <span className="text-slate-600">•</span>
                                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{msg.signal.timeframe || 'M5'}</span>
+                                      <span className="text-slate-600">•</span>
+                                      <SignalCountdownTimer signal={msg.signal} messageTimestamp={msg.timestamp} variant="badge" />
                                     </div>
                                     <div className="flex items-center gap-3">
                                       <h2 className="text-3xl font-black tracking-tighter italic uppercase">{msg.signal.asset}</h2>
@@ -2290,6 +2293,11 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                     </div>
                                   </div>
                                 </div>
+                              </div>
+
+                              {/* Live Countdown & Freshness HUD */}
+                              <div className="mb-8">
+                                <SignalCountdownTimer signal={msg.signal} messageTimestamp={msg.timestamp} variant="hud" />
                               </div>
 
                               {/* Price Levels Grid */}

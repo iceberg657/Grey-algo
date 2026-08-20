@@ -13,14 +13,18 @@ import {
 
 // Subscribed assets by category
 const ASSETS_BY_CATEGORY = {
-  Forex: ['EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'USDCAD'],
+  Forex: [
+    'EURUSD', 'GBPUSD', 'USDJPY', 'GBPJPY', 'AUDUSD', 'USDCAD',
+    'NZDCHF', 'NZDCAD', 'NZDJPY', 'GBPNZD', 'GBPCAD', 'GBPCHF',
+    'EURAUD', 'EURCAD', 'EURCHF', 'EURGBP', 'EURJPY', 'EURNZD'
+  ],
   Indices: ['US30', 'NAS100', 'US500', 'GER40', 'UK100'],
   Metals: ['XAUUSD', 'XAGUSD', 'XPTUSD', 'XPDUSD']
 };
 
 // Initial default checklist states
 const DEFAULT_CHECKLISTS: Record<string, boolean[]> = {
-  // Forex
+  // Forex Majors
   'EURUSD_Scalping': [true, true, false, true],
   'EURUSD_Day Trading': [true, false, false, false],
   'GBPUSD_Scalping': [true, true, true, true],
@@ -33,6 +37,33 @@ const DEFAULT_CHECKLISTS: Record<string, boolean[]> = {
   'AUDUSD_Day Trading': [true, false, false, false],
   'USDCAD_Scalping': [false, false, false, false],
   'USDCAD_Day Trading': [false, false, false, false],
+  
+  // Forex Crosses & Minors (MT5 Level 2 additions)
+  'NZDCHF_Scalping': [true, true, false, false],
+  'NZDCHF_Day Trading': [true, false, false, false],
+  'NZDCAD_Scalping': [true, true, true, false],
+  'NZDCAD_Day Trading': [true, true, false, false],
+  'NZDJPY_Scalping': [false, true, true, true],
+  'NZDJPY_Day Trading': [true, true, false, false],
+  'GBPNZD_Scalping': [true, true, true, true],
+  'GBPNZD_Day Trading': [true, true, true, false],
+  'GBPCAD_Scalping': [true, true, false, true],
+  'GBPCAD_Day Trading': [true, false, false, false],
+  'GBPCHF_Scalping': [false, true, false, true],
+  'GBPCHF_Day Trading': [true, true, false, false],
+  'EURAUD_Scalping': [true, true, true, false],
+  'EURAUD_Day Trading': [true, false, true, false],
+  'EURCAD_Scalping': [true, true, false, true],
+  'EURCAD_Day Trading': [true, true, false, false],
+  'EURCHF_Scalping': [false, true, false, false],
+  'EURCHF_Day Trading': [false, false, false, false],
+  'EURGBP_Scalping': [true, false, true, false],
+  'EURGBP_Day Trading': [true, true, false, false],
+  'EURJPY_Scalping': [true, true, true, true],
+  'EURJPY_Day Trading': [true, true, false, true],
+  'EURNZD_Scalping': [true, true, true, false],
+  'EURNZD_Day Trading': [true, true, false, false],
+
   // Indices
   'US30_Scalping': [true, true, true, false],
   'US30_Day Trading': [true, true, true, true],
@@ -44,6 +75,7 @@ const DEFAULT_CHECKLISTS: Record<string, boolean[]> = {
   'GER40_Day Trading': [true, false, true, false],
   'UK100_Scalping': [false, false, false, false],
   'UK100_Day Trading': [false, false, false, false],
+
   // Metals
   'XAUUSD_Scalping': [true, true, true, true],
   'XAUUSD_Day Trading': [true, true, true, false],
@@ -55,14 +87,26 @@ const DEFAULT_CHECKLISTS: Record<string, boolean[]> = {
   'XPDUSD_Day Trading': [false, false, false, false]
 };
 
-// Mock base prices for live ticker effect
+// Mock base prices for live ticker effect (calibrated with live MT5 quotes)
 const BASE_PRICES: Record<string, number> = {
-  EURUSD: 1.0854,
-  GBPUSD: 1.2642,
-  USDJPY: 156.45,
-  GBPJPY: 197.82,
-  AUDUSD: 0.6651,
-  USDCAD: 1.3624,
+  EURUSD: 1.08540,
+  GBPUSD: 1.26420,
+  USDJPY: 156.450,
+  GBPJPY: 197.820,
+  AUDUSD: 0.66510,
+  USDCAD: 1.36240,
+  NZDCHF: 0.47545,
+  NZDCAD: 0.82080,
+  NZDJPY: 94.311,
+  GBPNZD: 2.28684,
+  GBPCAD: 1.87730,
+  GBPCHF: 1.08739,
+  EURAUD: 1.64097,
+  EURCAD: 1.61140,
+  EURCHF: 0.93336,
+  EURGBP: 0.85830,
+  EURJPY: 185.134,
+  EURNZD: 1.96295,
   US30: 39120.50,
   NAS100: 18640.20,
   US500: 5310.80,
