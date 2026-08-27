@@ -886,8 +886,6 @@ Return ONLY the raw JSON array. Do not include any markdown backticks, explanati
 // Support both export styles
 export default createViteApp;
 
-if (!process.env.VERCEL && (process.env.NODE_ENV !== 'production' || process.argv[1]?.includes('server.ts'))) {
-  createViteApp().catch(err => {
-    console.error('[Server] Failed to start:', err);
-  });
-}
+createViteApp().catch(err => {
+  console.error('[Server] Failed to start:', err);
+});

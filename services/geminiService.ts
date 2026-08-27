@@ -26,6 +26,7 @@ import { getLearnedStrategies } from './learningService.js';
 import { detectMarketRegime, MarketRegime } from '../utils/marketRegime.js';
 import { GREYALPHA_IDENTITY } from './identity.js';
 import { SignalDataSchema, SniperDataSchema, AntigravityVerdictSchema } from './schema.js';
+import { QuantMath } from '../utils/advancedExecutionEngines.js';
 export const smcCandlestickLogic = ``;
 export const retailCandlestickLogic = ``;
 export const combinedCandlestickLogic = ``;
@@ -79,6 +80,11 @@ ${advancedQuantSignal ? `
 - Current RSI: ${quantData.rsi}
 - Last Swing High: ${quantData.lastSwingHigh} | Last Swing Low: ${quantData.lastSwingLow}
 - BOS: ${quantData.bos ? 'YES' : 'NO'} | CHoCH: ${quantData.choch ? 'YES' : 'NO'}
+
+**QUANTITATIVE VWAP & SUPERTREND STRATEGY ENGINE:**
+- Dynamic SuperTrend: ${quantData.superTrend?.direction || (quantData.trend === 'BULLISH' ? 'BUY 🟢' : 'SELL 🔴')} (Trailing Level: ${quantData.superTrend?.value?.toFixed(5) || 'N/A'})
+- Session VWAP: ${quantData.vwap?.value?.toFixed(5) || 'N/A'} (Upper +1σ: ${quantData.vwap?.upperBand1?.toFixed(5) || 'N/A'}, Lower -1σ: ${quantData.vwap?.lowerBand1?.toFixed(5) || 'N/A'})
+- Multi-Timeframe Alignment: ${quantData.mtfAlignment ? `${quantData.mtfAlignment.score}% (${quantData.mtfAlignment.bias})` : 'M1/M5/M15/H1 Structured Confluence'}
 
 **MARKOV CHAIN REGIME (HEDGE FUND METHOD):**
 - Mathematical State: ${quantData.markovRegime?.currentState || 'N/A'}
@@ -2396,11 +2402,22 @@ ${quantData.validPOIs?.map((p: any) => `  * ${p.direction} ${p.type} [${p.id}]: 
 - Current Zone: ${quantData.currentZone}
 - Zone Valid for Signal: ${quantData.zoneValid ? 'YES' : 'NO'}
 
-**3 TIMEFRAME CONFIRMATION:**
-- Entry TF Trend: ${quantData.tfConfirmation?.entryTrend} | HTF Trend: ${quantData.tfConfirmation?.htfTrend}
-- All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅' : 'NO ❌'}
+**3 TIMEFRAME CONFIRMATION & MTF CONVERGENCE MATRIX:**
+- Entry TF Trend: ${quantData.tfConfirmation?.entryTrend || 'NEUTRAL'} | HTF Trend: ${quantData.tfConfirmation?.htfTrend || 'NEUTRAL'}
+- All Timeframes Aligned: ${quantData.tfConfirmation?.allAligned ? 'YES ✅ (100% CONVERGENCE)' : 'NO ❌ (PULLBACK / ASYMMETRIC)'}
+- MTF Alignment Status: ${quantData.mtfAlignment ? `${quantData.mtfAlignment.score}% Alignment (${quantData.mtfAlignment.bias})` : (quantData.tfConfirmation?.allAligned ? 'FULL BULL/BEAR DOMINANCE' : 'PULLBACK INTO HTF BIAS')}
 - Current Trading Session: ${quantData.session || 'OFF_SESSION'} (${quantData.killzone?.reason})
 ${quantData.ctraderTicks ? `- HIGH DENSITY cTRADER TICK DATA: ${quantData.ctraderTicks.length} recent ticks captured. Utilize tick density as proxy for volume and orderbook activity.` : ''}
+
+**QUANTITATIVE VWAP & SUPERTREND STRATEGY ENGINE:**
+- Dynamic SuperTrend Direction: ${quantData.superTrend?.direction || (quantData.trend === 'BULLISH' ? 'BUY 🟢' : 'SELL 🔴')}
+- SuperTrend Dynamic Support/Resistance: ${quantData.superTrend?.value?.toFixed(5) || quantData.mathematicalSL || 'N/A'}
+- SuperTrend Trend Continuation: ${quantData.superTrend?.trendContinuation ? 'YES (Riding Institutional Momentum)' : 'PULLBACK / TESTING BASE'}
+- Session VWAP Level: ${quantData.vwap?.value?.toFixed(5) || quantData.institutionalExecution?.vwap?.toFixed(5) || 'N/A'}
+- VWAP Deviation +1σ Band: ${quantData.vwap?.upperBand1?.toFixed(5) || 'N/A'} | +2σ Band: ${quantData.vwap?.upperBand2?.toFixed(5) || 'N/A'}
+- VWAP Deviation -1σ Band: ${quantData.vwap?.lowerBand1?.toFixed(5) || 'N/A'} | -2σ Band: ${quantData.vwap?.lowerBand2?.toFixed(5) || 'N/A'}
+- VWAP Positioning: ${quantData.vwap?.position || (livePrice > (quantData.vwap?.value || livePrice) ? 'PREMIUM (Above VWAP)' : 'DISCOUNT (Below VWAP)')}
+- Sniper Strategy Confluence: SuperTrend + VWAP + Multi-Timeframe Alignment synchronized mid-analysis for maximum win-rate sniper execution.
 
 **ENGINE WEIGHTED SCORE & GRADE:**
 - Total Score: ${quantData.weightedScore?.totalScore}/100

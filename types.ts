@@ -351,6 +351,11 @@ export interface MarketDataItem {
     price: number;
     change: number;
     changePercent: number;
+    bid?: number;
+    ask?: number;
+    high?: number;
+    low?: number;
+    timestamp?: number;
 }
 
 export interface GlobalMarketSector {
