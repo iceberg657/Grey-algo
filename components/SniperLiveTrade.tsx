@@ -1679,16 +1679,16 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
   return (
     <div className="min-h-screen bg-slate-50/15 dark:bg-[#070b14]/50 text-slate-800 dark:text-slate-200 font-sans selection:bg-emerald-500/30 transition-colors duration-300 backdrop-blur-xl">
       {/* Header */}
-      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 px-4 py-3 transition-colors duration-300">
-        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center justify-between w-full sm:w-auto gap-4">
+      <header className="sticky top-0 z-50 bg-white/80 dark:bg-[#020617]/80 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800/50 px-3 py-1.5 sm:px-4 sm:py-2 transition-colors duration-300">
+        <div className="max-w-4xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3">
+          <div className="flex items-center justify-between w-full sm:w-auto gap-3">
             <button 
               onClick={onBack}
-              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-colors group"
+              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800/50 rounded-xl transition-colors group"
             >
-              <ArrowLeft className="w-5 h-5 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
+              <ArrowLeft className="w-4 h-4 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors" />
             </button>
-            <div className="flex items-center gap-2 sm:hidden">
+            <div className="flex items-center gap-1.5 sm:hidden">
               {/* Mobile Model Selector */}
               <div className="relative" ref={modelDropdownRef}>
                 {(() => {
@@ -1710,12 +1710,12 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                   return (
                     <button
                       onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border text-xs font-mono font-bold transition-all ${btnClass}`}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-[11px] font-mono font-bold transition-all ${btnClass}`}
                       title="Select Sniper Model"
                     >
-                      <span className={`w-2 h-2 rounded-full animate-pulse ${dotClass}`} />
+                      <span className={`w-1.5 h-1.5 rounded-full animate-pulse ${dotClass}`} />
                       <span className={textClass}>{activeConfig.label}</span>
-                      <ChevronDown className={`w-3.5 h-3.5 opacity-60 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`w-3 h-3 opacity-60 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                   );
                 })()}
@@ -1727,10 +1727,10 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                       animate={{ opacity: 1, y: 0, scale: 1 }}
                       exit={{ opacity: 0, y: 6, scale: 0.95 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-full left-0 mt-2 w-56 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
+                      className="absolute top-full left-0 mt-2 w-52 bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
                     >
-                      <div className="px-2.5 py-1.5">
-                        <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                      <div className="px-2 py-1">
+                        <span className="text-[9px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                           Sniper Model
                         </span>
                       </div>
@@ -1758,18 +1758,18 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                             <button
                               key={cfg.id}
                               onClick={() => handleSelectSniperModel(cfg.id)}
-                              className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all ${
+                              className={`w-full flex items-center justify-between p-1.5 rounded-lg text-left transition-all ${
                                 isSelected ? 'bg-slate-100 dark:bg-slate-800 font-bold' : itemBtnClass
                               }`}
                             >
-                              <div className="flex items-center gap-2">
-                                <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                              <div className="flex items-center gap-1.5">
+                                <span className={`w-1.5 h-1.5 rounded-full ${dotColor}`} />
                                 <div className="flex flex-col">
-                                  <span className={`text-xs font-mono font-bold ${itemTextClass}`}>{cfg.label}</span>
-                                  <span className="text-[9px] text-slate-400 font-mono">{cfg.sublabel}</span>
+                                  <span className={`text-[11px] font-mono font-bold ${itemTextClass}`}>{cfg.label}</span>
+                                  <span className="text-[8px] text-slate-400 font-mono">{cfg.sublabel}</span>
                                 </div>
                               </div>
-                              {isSelected && <Check className={`w-4 h-4 ${checkColor}`} />}
+                              {isSelected && <Check className={`w-3.5 h-3.5 ${checkColor}`} />}
                             </button>
                           );
                         })}
@@ -1784,7 +1784,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 id="btn-mobile-flush-stream"
                 onClick={() => handleFlushMarketStream()}
                 disabled={isFlushingLiveStream}
-                className={`p-2 rounded-xl transition-all border cursor-pointer ${
+                className={`p-1.5 rounded-lg transition-all border cursor-pointer ${
                   isFlushingLiveStream
                     ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40 animate-pulse'
                     : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 text-slate-600 dark:text-slate-300 border-slate-200/60 dark:border-slate-700/60'
@@ -1792,13 +1792,13 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 title="Flush Live Market Data Streams (L1 Deriv + L2 cTrader Depth)"
                 aria-label="Flush Market Stream"
               >
-                <RotateCw className={`w-5 h-5 ${isFlushingLiveStream ? 'animate-spin text-emerald-500' : ''}`} />
+                <RotateCw className={`w-4 h-4 ${isFlushingLiveStream ? 'animate-spin text-emerald-500' : ''}`} />
               </button>
 
               {typeof window !== 'undefined' && 'Notification' in window && (
                 <button
                   onClick={handleToggleNotifications}
-                  className={`p-2 rounded-xl transition-all group ${
+                  className={`p-1.5 rounded-lg transition-all group ${
                     notificationPermission === 'granted'
                       ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20'
                       : notificationPermission === 'denied'
@@ -1814,9 +1814,9 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                   }
                 >
                   {notificationPermission === 'granted' ? (
-                    <Bell className="w-5 h-5 text-emerald-500" />
+                    <Bell className="w-4 h-4 text-emerald-500" />
                   ) : (
-                    <BellOff className="w-5 h-5" />
+                    <BellOff className="w-4 h-4" />
                   )}
                 </button>
               )}
@@ -1828,18 +1828,18 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                         initial={{ opacity: 0, scale: 0.9, x: 10 }}
                         animate={{ opacity: 1, scale: 1, x: 0 }}
                         exit={{ opacity: 0, scale: 0.9, x: 10 }}
-                        className="absolute right-full mr-2 top-0 bottom-0 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 shadow-xl z-10 whitespace-nowrap"
+                        className="absolute right-full mr-2 top-0 bottom-0 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 shadow-xl z-10 whitespace-nowrap"
                       >
-                        <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Clear History?</span>
+                        <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Clear History?</span>
                         <button 
                           onClick={handleClearChat}
-                          className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 px-2 py-1 rounded-lg transition-colors"
+                          className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 px-1.5 py-0.5 rounded transition-colors"
                         >
                           Confirm
                         </button>
                         <button 
                           onClick={() => setShowDeleteConfirm(false)}
-                          className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded-lg transition-colors"
+                          className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 px-1.5 py-0.5 rounded transition-colors"
                         >
                           Cancel
                         </button>
@@ -1848,10 +1848,10 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                   </AnimatePresence>
                   <button 
                     onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
-                    className={`p-2 rounded-xl transition-colors group ${showDeleteConfirm ? 'bg-rose-100 dark:bg-rose-500/20' : 'hover:bg-rose-100 dark:hover:bg-rose-500/10'}`}
+                    className={`p-1.5 rounded-lg transition-colors group ${showDeleteConfirm ? 'bg-rose-100 dark:bg-rose-500/20' : 'hover:bg-rose-100 dark:hover:bg-rose-500/10'}`}
                     title="Clear Neural History"
                   >
-                    <Trash2 className={`w-5 h-5 transition-colors ${showDeleteConfirm ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400 group-hover:text-rose-500'}`} />
+                    <Trash2 className={`w-4 h-4 transition-colors ${showDeleteConfirm ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400 group-hover:text-rose-500'}`} />
                   </button>
                 </div>
               )}
@@ -1859,22 +1859,22 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)] flex-shrink-0">
-              <Target className="w-5 h-5 sm:w-6 h-6 text-emerald-500" />
+          <div className="flex items-center gap-2 sm:gap-2.5">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-emerald-500/10 rounded-lg sm:rounded-xl flex items-center justify-center border border-emerald-500/20 shadow-[0_0_12px_rgba(16,185,129,0.1)] flex-shrink-0">
+              <Target className="w-4 h-4 sm:w-4.5 sm:h-4.5 text-emerald-500" />
             </div>
             <div>
-              <h1 className="text-base sm:text-lg font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
+              <h1 className="text-sm sm:text-base font-bold bg-gradient-to-r from-slate-900 to-slate-600 dark:from-white dark:to-slate-400 bg-clip-text text-transparent">
                 Sniper Live Trade
               </h1>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-500/70">Live Market Feed</span>
+                <span className="text-[8px] sm:text-[9px] font-bold uppercase tracking-widest text-emerald-600 dark:text-emerald-500/70">Live Market Feed</span>
               </div>
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2">
+          <div className="hidden sm:flex items-center gap-1.5">
             {/* Desktop Model Selector */}
             <div className="relative" ref={modelDropdownRef}>
               {(() => {
@@ -1896,17 +1896,17 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 return (
                   <button
                     onClick={() => setIsModelDropdownOpen(!isModelDropdownOpen)}
-                    className={`flex items-center gap-2 px-3 py-1.5 rounded-2xl border transition-all backdrop-blur-md cursor-pointer shadow-xs ${btnClass}`}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl border transition-all backdrop-blur-md cursor-pointer shadow-xs ${btnClass}`}
                     title="Select Sniper Model"
                     aria-label="Select Intelligence Model"
                   >
-                    <span className={`w-2 h-2 rounded-full animate-pulse shadow-xs ${dotClass}`} />
+                    <span className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-xs ${dotClass}`} />
                     <div className="flex flex-col items-start text-left">
-                      <span className={`text-[12px] font-bold tracking-tight uppercase font-mono ${textClass}`}>
+                      <span className={`text-[11px] font-bold tracking-tight uppercase font-mono ${textClass}`}>
                         {activeConfig.label}
                       </span>
                     </div>
-                    <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform duration-200 ml-1 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ml-0.5 ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
                   </button>
                 );
               })()}
@@ -1914,18 +1914,18 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               <AnimatePresence>
                 {isModelDropdownOpen && (
                   <motion.div
-                    initial={{ opacity: 0, y: 8, scale: 0.96 }}
+                    initial={{ opacity: 0, y: 6, scale: 0.96 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: 8, scale: 0.96 }}
+                    exit={{ opacity: 0, y: 6, scale: 0.96 }}
                     transition={{ duration: 0.15, ease: 'easeOut' }}
-                    className="absolute top-full right-0 mt-2 w-72 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-2 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
+                    className="absolute top-full right-0 mt-2 w-64 bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl p-1.5 z-50 divide-y divide-slate-100 dark:divide-slate-800/60"
                   >
-                    <div className="px-3 py-2">
-                      <span className="text-[10px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
+                    <div className="px-2.5 py-1">
+                      <span className="text-[9px] font-mono font-bold tracking-wider text-slate-400 dark:text-slate-500 uppercase">
                         Select Sniper Model
                       </span>
                     </div>
-                    <div className="pt-1.5 space-y-1">
+                    <div className="pt-1 space-y-1">
                       {SNIPER_MODEL_CONFIGS.map((cfg) => {
                         const isSelected = selectedModel === cfg.id;
                         let btnClasses = 'hover:bg-emerald-500/5 dark:hover:bg-emerald-950/20 text-slate-700 dark:text-slate-300 border border-transparent hover:border-emerald-500/20';
@@ -1952,25 +1952,25 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                           <button
                             key={cfg.id}
                             onClick={() => handleSelectSniperModel(cfg.id)}
-                            className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left transition-all cursor-pointer ${
+                            className={`w-full flex items-center justify-between p-2 rounded-xl text-left transition-all cursor-pointer ${
                               isSelected ? selectedClasses : btnClasses
                             }`}
                           >
-                            <div className="flex items-center gap-2.5">
-                              <div className={`w-2 h-2 rounded-full ${dotClass}`} />
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full ${dotClass}`} />
                               <div>
-                                <div className="flex items-center gap-1.5">
-                                  <span className={`text-xs font-bold font-mono ${isSelected ? '' : textClass}`}>
+                                <div className="flex items-center gap-1">
+                                  <span className={`text-[11px] font-bold font-mono ${isSelected ? '' : textClass}`}>
                                     {cfg.label}
                                   </span>
                                 </div>
-                                <span className="text-[10px] text-slate-400 font-mono block">
+                                <span className="text-[9px] text-slate-400 font-mono block">
                                   {cfg.sublabel}
                                 </span>
                               </div>
                             </div>
                             {isSelected && (
-                              <Check className={`w-4 h-4 ${checkClass}`} />
+                              <Check className={`w-3.5 h-3.5 ${checkClass}`} />
                             )}
                           </button>
                         );
@@ -1986,7 +1986,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               id="btn-desktop-flush-stream"
               onClick={() => handleFlushMarketStream()}
               disabled={isFlushingLiveStream}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-bold font-mono transition-all cursor-pointer ${
+              className={`flex items-center gap-1 px-2.5 py-1 rounded-xl border text-[11px] font-bold font-mono transition-all cursor-pointer ${
                 isFlushingLiveStream
                   ? 'bg-emerald-500/20 text-emerald-500 border-emerald-500/40 animate-pulse'
                   : 'bg-slate-100 hover:bg-slate-200 dark:bg-slate-800/80 dark:hover:bg-slate-700/80 text-slate-700 dark:text-slate-200 border-slate-200/60 dark:border-slate-700/60 hover:text-emerald-500'
@@ -1994,14 +1994,14 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
               title="Flush Live Market Data Streams (L1 Deriv + L2 cTrader Depth)"
               aria-label="Flush Market Streams"
             >
-              <RotateCw className={`w-3.5 h-3.5 ${isFlushingLiveStream ? 'animate-spin text-emerald-500' : ''}`} />
-              <span className="hidden md:inline">{isFlushingLiveStream ? 'Flushing Feed...' : 'Flush Stream'}</span>
+              <RotateCw className={`w-3 h-3 ${isFlushingLiveStream ? 'animate-spin text-emerald-500' : ''}`} />
+              <span className="hidden md:inline">{isFlushingLiveStream ? 'Flushing...' : 'Flush Stream'}</span>
             </button>
 
             {typeof window !== 'undefined' && 'Notification' in window && (
               <button
                 onClick={handleToggleNotifications}
-                className={`p-2 rounded-xl transition-all group ${
+                className={`p-1.5 rounded-xl transition-all group ${
                   notificationPermission === 'granted'
                     ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-500/20'
                     : notificationPermission === 'denied'
@@ -2017,9 +2017,9 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 }
               >
                 {notificationPermission === 'granted' ? (
-                  <Bell className="w-5 h-5 text-emerald-500" />
+                  <Bell className="w-4 h-4 text-emerald-500" />
                 ) : (
-                  <BellOff className="w-5 h-5" />
+                  <BellOff className="w-4 h-4" />
                 )}
               </button>
             )}
@@ -2031,18 +2031,18 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                       initial={{ opacity: 0, scale: 0.9, x: 10 }}
                       animate={{ opacity: 1, scale: 1, x: 0 }}
                       exit={{ opacity: 0, scale: 0.9, x: 10 }}
-                      className="absolute right-full mr-2 top-0 bottom-0 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-3 shadow-xl z-10 whitespace-nowrap"
+                      className="absolute right-full mr-2 top-0 bottom-0 flex items-center gap-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl px-2.5 shadow-xl z-10 whitespace-nowrap"
                     >
-                      <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Clear History?</span>
+                      <span className="text-[9px] font-bold text-slate-500 uppercase tracking-widest">Clear History?</span>
                       <button 
                         onClick={handleClearChat}
-                        className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 px-2 py-1 rounded-lg transition-colors"
+                        className="text-[9px] font-black text-rose-500 uppercase tracking-widest hover:bg-rose-500/10 px-1.5 py-0.5 rounded transition-colors"
                       >
                         Confirm
                       </button>
                       <button 
                         onClick={() => setShowDeleteConfirm(false)}
-                        className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 px-2 py-1 rounded-lg transition-colors"
+                        className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:bg-slate-100 dark:hover:bg-slate-800 px-1.5 py-0.5 rounded transition-colors"
                       >
                         Cancel
                       </button>
@@ -2051,10 +2051,10 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 </AnimatePresence>
                 <button 
                   onClick={() => setShowDeleteConfirm(!showDeleteConfirm)}
-                  className={`p-2 rounded-xl transition-colors group ${showDeleteConfirm ? 'bg-rose-100 dark:bg-rose-500/20' : 'hover:bg-rose-100 dark:hover:bg-rose-500/10'}`}
+                  className={`p-1.5 rounded-xl transition-colors group ${showDeleteConfirm ? 'bg-rose-100 dark:bg-rose-500/20' : 'hover:bg-rose-100 dark:hover:bg-rose-500/10'}`}
                   title="Clear Neural History"
                 >
-                  <Trash2 className={`w-5 h-5 transition-colors ${showDeleteConfirm ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400 group-hover:text-rose-500'}`} />
+                  <Trash2 className={`w-4 h-4 transition-colors ${showDeleteConfirm ? 'text-rose-500' : 'text-slate-500 dark:text-slate-400 group-hover:text-rose-500'}`} />
                 </button>
               </div>
             )}
@@ -2063,17 +2063,17 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
         </div>
       </header>
 
-      <main className="max-w-4xl mx-auto px-4 py-8 pb-32">
+      <main className="max-w-4xl mx-auto px-3 sm:px-4 py-4 pb-28">
         {accessStatus === 'locked' ? renderLocked() : accessStatus === 'pending' ? renderPending() : (
           <>
             {/* Monday/Friday Warning Banner */}
             {([1, 5].includes(new Date().getDay())) && (
-              <div className="mb-6 p-4 bg-amber-500/10 border border-amber-500/20 rounded-2xl flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+              <div className="mb-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5">
+                <AlertCircle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="text-sm font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-1">Trading Day Warning</h3>
-                  <p className="text-xs text-amber-700 dark:text-amber-400/80 leading-relaxed">
-                    Historical logs restrict high-confidence trading on Mondays and Fridays due to lower profitability and market unpredictability. Capital preservation is priority. Proceed with extreme caution or remain flat.
+                  <h3 className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-widest mb-0.5">Trading Day Warning</h3>
+                  <p className="text-[11px] text-amber-700 dark:text-amber-400/80 leading-relaxed">
+                    Historical logs restrict high-confidence trading on Mondays and Fridays due to lower profitability and market unpredictability. Capital preservation is priority.
                   </p>
                 </div>
               </div>
@@ -2081,34 +2081,30 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
 
             {/* cTrader TLS Connection Fallback Alert */}
             {ctraderConnectionError && (
-              <div className="mb-6 p-4 bg-rose-500/10 border border-rose-500/20 rounded-2xl flex items-start gap-3 relative overflow-hidden">
-                <AlertCircle className="w-5 h-5 text-rose-500 flex-shrink-0 mt-0.5" />
+              <div className="mb-3 p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-start gap-2.5 relative overflow-hidden">
+                <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <h3 className="text-sm font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-1">
-                    ⚡ cTrader Connection Anomaly
+                  <h3 className="text-xs font-bold text-rose-600 dark:text-rose-400 uppercase tracking-widest mb-0.5">
+                    ⚡ cTrader Connection Notice
                   </h3>
-                  <p className="text-xs text-rose-700 dark:text-rose-300/80 leading-relaxed">
-                    The system experienced a TLS Connection reset (ECONNRESET) on port 5035 while accessing cTrader's Open API. 
-                    This is typical in sandboxed runtimes with restricted outbound ports. 
+                  <p className="text-[11px] text-rose-700 dark:text-rose-300/80 leading-relaxed">
+                    TLS reset encountered on Open API port 5035. Backup high-fidelity Deriv stream active with full institutional indicators.
                   </p>
-                  <p className="text-xs text-rose-700 dark:text-rose-300/80 leading-relaxed mt-1 font-semibold">
-                    🛡️ Autopilot Fallback Engaged: The Quant Engine has automatically routed this stream through the backup high-fidelity Deriv feed. All institutional SMC indicators, retail bias simulators, and Antigravity Devil's Advocate models are fully functional and secure.
-                  </p>
-                  <div className="mt-3 flex items-center gap-2">
+                  <div className="mt-2 flex items-center gap-2">
                     <button
                       onClick={() => {
                         setSelectedStreamingMode('Standard');
                         setCTraderConnectionError(null);
                       }}
-                      className="px-3 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      className="px-2.5 py-1 bg-rose-500 hover:bg-rose-600 text-white rounded-lg text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                     >
-                      Switch back to Standard (Deriv)
+                      Use Standard (Deriv)
                     </button>
                     <button
                       onClick={() => {
                         setCTraderConnectionError(null);
                       }}
-                      className="px-3 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
+                      className="px-2.5 py-1 bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-lg text-[9px] font-bold uppercase tracking-wider transition-colors cursor-pointer"
                     >
                       Dismiss
                     </button>
@@ -2118,16 +2114,16 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
             )}
 
             {/* Style Selector */}
-            <div className="mb-8 sticky top-20 z-40 bg-slate-50/80 dark:bg-[#020617]/80 backdrop-blur-md py-2 transition-colors duration-300">
-              <div className="flex items-center justify-between mb-3 px-1">
-                <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500">
+            <div className="mb-3.5 sticky top-12 sm:top-14 z-40 bg-slate-50/90 dark:bg-[#020617]/90 backdrop-blur-md py-1.5 transition-colors duration-300">
+              <div className="flex items-center justify-between mb-1.5 px-1">
+                <label className="text-[9px] font-black uppercase tracking-[0.18em] text-slate-400 dark:text-slate-500">
                   Execution Style
                 </label>
                 <button 
                   onClick={() => setShowAssets(!showAssets)}
-                  className="text-[10px] font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors flex items-center gap-1"
+                  className="text-[9px] font-black uppercase tracking-widest text-emerald-500 hover:text-emerald-400 transition-colors flex items-center gap-1"
                 >
-                  <Activity className="w-3 h-3" />
+                  <Activity className="w-2.5 h-2.5" />
                   {showAssets ? 'Hide Assets' : 'Supported Assets'}
                 </button>
               </div>
@@ -2138,15 +2134,15 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden mb-4"
+                    className="overflow-hidden mb-3"
                   >
-                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 rounded-2xl p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 rounded-xl p-3 grid grid-cols-2 md:grid-cols-4 gap-3">
                       {SUPPORTED_ASSETS.map((cat) => (
                         <div key={cat.category}>
-                          <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">{cat.category}</h4>
-                          <ul className="space-y-1">
+                          <h4 className="text-[9px] font-black uppercase tracking-widest text-slate-500 mb-1">{cat.category}</h4>
+                          <ul className="space-y-0.5">
                             {cat.items.map((item) => (
-                              <li key={item} className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{item}</li>
+                              <li key={item} className="text-[9px] text-slate-400 dark:text-slate-500 font-medium">{item}</li>
                             ))}
                           </ul>
                         </div>
@@ -2156,15 +2152,15 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 )}
               </AnimatePresence>
 
-              <div className="flex items-center gap-2">
-                <div className="grid grid-cols-3 gap-2 bg-white dark:bg-slate-900/50 p-1 rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-sm flex-1">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <div className="grid grid-cols-3 gap-1 sm:gap-1.5 bg-white dark:bg-slate-900/50 p-1 rounded-xl sm:rounded-2xl border border-slate-200 dark:border-slate-800/50 shadow-xs flex-1">
                   {tradingStyles.map((s) => (
                     <button
                       key={s.id}
                       onClick={() => setStyle(s.id)}
-                      className={`py-2.5 rounded-xl text-xs font-bold transition-all ${
+                      className={`py-1.5 sm:py-2 rounded-lg sm:rounded-xl text-[11px] sm:text-xs font-bold transition-all ${
                         style === s.id 
-                          ? 'bg-emerald-500 text-white shadow-lg shadow-emerald-500/20' 
+                          ? 'bg-emerald-500 text-white shadow-md shadow-emerald-500/20' 
                           : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800/50'
                       }`}
                     >
@@ -2175,31 +2171,31 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 <div className="relative z-50">
                   <button
                     onClick={() => setShowTimeframeSettings(!showTimeframeSettings)}
-                    className={`p-2.5 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 rounded-2xl transition-colors shadow-sm ${showTimeframeSettings ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-500 hover:text-emerald-500 dark:text-slate-400 dark:hover:text-emerald-400'}`}
+                    className={`p-1.5 sm:p-2 bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800/50 rounded-xl sm:rounded-2xl transition-colors shadow-xs ${showTimeframeSettings ? 'text-emerald-500 dark:text-emerald-400' : 'text-slate-500 hover:text-emerald-500 dark:text-slate-400 dark:hover:text-emerald-400'}`}
                     title="Configure Timeframes"
                   >
-                    <Settings className="w-5 h-5" />
+                    <Settings className="w-4 h-4" />
                   </button>
 
                   <AnimatePresence>
                     {showTimeframeSettings && (
                       <motion.div
-                        initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                        initial={{ opacity: 0, scale: 0.95, y: -8 }}
                         animate={{ opacity: 1, scale: 1, y: 0 }}
-                        exit={{ opacity: 0, scale: 0.95, y: -10 }}
-                        className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-2xl p-5 w-80 max-w-[90vw]"
+                        exit={{ opacity: 0, scale: 0.95, y: -8 }}
+                        className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-2xl p-4 w-72 max-w-[90vw]"
                       >
-                        <div className="flex items-center justify-between mb-4">
-                          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
-                            <Settings className="w-4 h-4 text-emerald-500" /> Timeframes
+                        <div className="flex items-center justify-between mb-3">
+                          <h3 className="text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                            <Settings className="w-3.5 h-3.5 text-emerald-500" /> Timeframes
                           </h3>
-                          <button onClick={() => setShowTimeframeSettings(false)} className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
-                            <X className="w-4 h-4" />
+                          <button onClick={() => setShowTimeframeSettings(false)} className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
+                            <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
 
-                        <div className="space-y-3">
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-2">
+                        <div className="space-y-2.5">
+                          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1">
                             For: <span className="text-emerald-500">{style}</span>
                           </div>
 
@@ -2217,8 +2213,8 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                             const currentPref = timeframePrefs[style] || defaultTimeframePrefs[style] || defaultTimeframePrefs['day trading(1 to 2hrs)'];
                             
                             return (
-                              <div key={tf} className="flex items-center justify-between gap-3">
-                                <label className="text-xs font-bold text-slate-700 dark:text-slate-300 capitalize min-w-[70px]">
+                              <div key={tf} className="flex items-center justify-between gap-2">
+                                <label className="text-[11px] font-bold text-slate-700 dark:text-slate-300 capitalize min-w-[60px]">
                                   {tf === 'htf' ? 'Higher' : tf}
                                 </label>
                                 <select
@@ -2241,7 +2237,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                       localStorage.setItem('greyquant_sniper_timeframes', JSON.stringify(newPrefs));
                                     }
                                   }}
-                                  className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1.5 text-xs font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                                  className="flex-1 bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-lg px-2 py-1 text-[11px] font-medium text-slate-800 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
                                 >
                                   {options.map(o => (
                                     <option key={o.v} value={o.v}>{o.label}</option>
@@ -2252,7 +2248,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                           })}
                         </div>
                         
-                        <div className="mt-4 flex gap-2">
+                        <div className="mt-3 flex gap-2">
                           <button
                             onClick={() => {
                               const newPrefs = { ...timeframePrefs };
@@ -2260,7 +2256,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                               setTimeframePrefs(newPrefs);
                               localStorage.setItem('greyquant_sniper_timeframes', JSON.stringify(newPrefs));
                             }}
-                            className="flex-1 py-2 text-[10px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                            className="flex-1 py-1.5 text-[9px] font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
                           >
                             Reset Defaults
                           </button>
@@ -2273,7 +2269,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
             </div>
 
             {/* Level 1 & Level 2 Real-Time Streaming Ingestion HUD & Master Flush Controls */}
-            <div className="mb-8">
+            <div className="mb-4">
               <SniperDataStreamHUD
                 currentAsset={lastAnalyzedAsset || (query ? query.split(' ')[0] : 'US30')}
                 onFlushComplete={handleStreamHUDFlushComplete}

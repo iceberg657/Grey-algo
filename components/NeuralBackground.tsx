@@ -85,43 +85,51 @@ export const NeuralBackground: React.FC = () => {
             if (!ctx || !canvas) return;
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            const isDark = theme === 'dark';
+            const isMidnight = theme === 'midnight';
+            const isDark = theme === 'dark' || isMidnight;
             
-            // Replicate dynamic liquid overlay blending using the screen composite mode
-            ctx.globalCompositeOperation = isDark ? 'screen' : 'multiply';
+            // In midnight mode, preserve true pitch black canvas with ultra-subtle deep specular ambiance
+            if (!isMidnight) {
+                // Replicate dynamic liquid overlay blending using the screen composite mode
+                ctx.globalCompositeOperation = isDark ? 'screen' : 'multiply';
 
-            blobs.forEach((b) => {
-                b.x += b.vx;
-                b.y += b.vy;
+                blobs.forEach((b) => {
+                    b.x += b.vx;
+                    b.y += b.vy;
 
-                // Handle soft edge boundaries
-                if (b.x - b.radius < -100 || b.x + b.radius > canvas.width + 100) b.vx *= -1;
-                if (b.y - b.radius < -100 || b.y + b.radius > canvas.height + 100) b.vy *= -1;
+                    // Handle soft edge boundaries
+                    if (b.x - b.radius < -100 || b.x + b.radius > canvas.width + 100) b.vx *= -1;
+                    if (b.y - b.radius < -100 || b.y + b.radius > canvas.height + 100) b.vy *= -1;
 
-                b.x = Math.max(-b.radius, Math.min(canvas.width + b.radius, b.x));
-                b.y = Math.max(-b.radius, Math.min(canvas.height + b.radius, b.y));
+                    b.x = Math.max(-b.radius, Math.min(canvas.width + b.radius, b.x));
+                    b.y = Math.max(-b.radius, Math.min(canvas.height + b.radius, b.y));
 
-                const color = isDark ? b.colorDark : b.colorLight;
-                const grad = ctx.createRadialGradient(b.x, b.y, b.radius * 0.05, b.x, b.y, b.radius);
-                grad.addColorStop(0, color);
-                grad.addColorStop(0.5, color.replace(/[\d\.]+\)$/, '0.06)'));
-                grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                    const color = isDark ? b.colorDark : b.colorLight;
+                    const grad = ctx.createRadialGradient(b.x, b.y, b.radius * 0.05, b.x, b.y, b.radius);
+                    grad.addColorStop(0, color);
+                    grad.addColorStop(0.5, color.replace(/[\d\.]+\)$/, '0.06)'));
+                    grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
 
-                ctx.beginPath();
-                ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
-                ctx.fillStyle = grad;
-                ctx.fill();
-            });
+                    ctx.beginPath();
+                    ctx.arc(b.x, b.y, b.radius, 0, Math.PI * 2);
+                    ctx.fillStyle = grad;
+                    ctx.fill();
+                });
+            }
 
-            // Subtle micro-sparkles shimmering over the liquid glass to represent fine grains of high-end frosted screens
+            // Subtle micro-sparkles / silver star-dust shimmering
             ctx.globalCompositeOperation = 'source-over';
-            const sparkleColor = isDark ? 'rgba(255, 255, 255, 0.07)' : 'rgba(15, 23, 42, 0.03)';
+            const sparkleColor = isMidnight 
+                ? 'rgba(226, 232, 240, 0.12)' 
+                : isDark 
+                    ? 'rgba(255, 255, 255, 0.07)' 
+                    : 'rgba(15, 23, 42, 0.03)';
             ctx.fillStyle = sparkleColor;
-            for (let i = 0; i < 12; i++) {
-                const sx = (Math.sin(Date.now() * 0.0006 * (i + 1)) * 0.5 + 0.5) * canvas.width;
-                const sy = (Math.cos(Date.now() * 0.0005 * (i + 1)) * 0.5 + 0.5) * canvas.height;
+            for (let i = 0; i < (isMidnight ? 16 : 12); i++) {
+                const sx = (Math.sin(Date.now() * 0.0004 * (i + 1)) * 0.5 + 0.5) * canvas.width;
+                const sy = (Math.cos(Date.now() * 0.0003 * (i + 1)) * 0.5 + 0.5) * canvas.height;
                 ctx.beginPath();
-                ctx.arc(sx, sy, 1, 0, Math.PI * 2);
+                ctx.arc(sx, sy, isMidnight ? 0.8 : 1, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -136,10 +144,18 @@ export const NeuralBackground: React.FC = () => {
         };
     }, [theme]);
 
+    const isMidnight = theme === 'midnight';
+
     return (
-        <div className="fixed inset-0 w-full h-full overflow-hidden pointer-events-none z-0 bg-slate-50/70 dark:bg-[#070b14] transition-colors duration-700">
-            {/* Liquid Bubble Gradients / Blobs of Light both on light and dark mode */}
-            <div className="absolute inset-0 overflow-hidden mix-blend-multiply dark:mix-blend-screen opacity-75 dark:opacity-60">
+        <div className={`fixed inset-0 w-full h-full overflow-hidden pointer-events-none z-0 ${
+            isMidnight 
+                ? 'bg-black' 
+                : 'bg-slate-50/70 dark:bg-[#070b14]'
+        } transition-colors duration-700`}>
+            {/* Liquid Bubble Gradients / Blobs of Light both on light and dark mode (dimmed on midnight to keep true pitch black) */}
+            <div className={`absolute inset-0 overflow-hidden mix-blend-multiply dark:mix-blend-screen ${
+                isMidnight ? 'opacity-10' : 'opacity-75 dark:opacity-60'
+            }`}>
                 {/* Bubble 1: Top Left - Indigo / Blue */}
                 <div className="absolute top-[-10%] left-[-15%] w-[60vw] h-[60vw] rounded-full bg-indigo-200/35 dark:bg-indigo-900/20 blur-[130px] md:blur-[190px] animate-blob-1" />
                 
@@ -154,7 +170,9 @@ export const NeuralBackground: React.FC = () => {
             </div>
 
             {/* Moving Liquid Gradient Canvas Layer */}
-            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full opacity-60 dark:opacity-85 mix-blend-color-dodge" />
+            <canvas ref={canvasRef} className={`absolute inset-0 w-full h-full ${
+                isMidnight ? 'opacity-30' : 'opacity-60 dark:opacity-85'
+            } mix-blend-color-dodge`} />
         </div>
     );
 };

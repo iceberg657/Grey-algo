@@ -311,7 +311,7 @@ const NeuralRadarWidget: React.FC<{ symbol: string; theme: string }> = ({ symbol
     const bias = overallScore >= 50 ? 'BULLISH' : 'BEARISH';
     
     // Colors
-    const isDark = theme === 'dark';
+    const isDark = theme === 'dark' || theme === 'midnight';
     const primaryColor = bias === 'BULLISH' ? '#4ade80' : '#ef4444'; // Green, Red
     const bgFill = bias === 'BULLISH' ? 'rgba(74, 222, 128, 0.2)' : 'rgba(239, 68, 68, 0.2)';
     

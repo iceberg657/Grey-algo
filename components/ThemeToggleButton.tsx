@@ -36,9 +36,9 @@ export const ThemeToggleButton: React.FC = () => {
         {
             id: 'midnight',
             label: 'Midnight',
-            desc: 'Deep Obsidian Pitch Black',
-            color: 'text-purple-400',
-            icon: <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+            desc: 'Pitch Black & Silver Lining',
+            color: 'text-slate-200',
+            icon: <Sparkles className="w-4 h-4 text-slate-200 animate-pulse" />
         }
     ];
 
@@ -46,7 +46,7 @@ export const ThemeToggleButton: React.FC = () => {
 
     return (
         <div className="relative inline-block" ref={dropdownRef}>
-            <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-800/60 midnight:bg-black/80 backdrop-blur-md border border-gray-200 dark:border-white/10 midnight:border-purple-500/20 rounded-full p-1 shadow-sm">
+            <div className="flex items-center gap-1 bg-white/80 dark:bg-slate-800/60 midnight:bg-black/90 backdrop-blur-md border border-gray-200 dark:border-white/10 midnight:border-white/15 rounded-full p-1 shadow-sm">
                 <button 
                     onClick={toggleTheme}
                     className="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all duration-300 hover:bg-black/5 dark:hover:bg-white/10"
@@ -54,7 +54,7 @@ export const ThemeToggleButton: React.FC = () => {
                     title="Click to toggle theme (Light / Dark / Midnight)"
                 >
                     {currentOption.icon}
-                    <span className="capitalize tracking-wider text-[11px] font-black text-slate-800 dark:text-slate-200 midnight:text-purple-200">
+                    <span className="capitalize tracking-wider text-[11px] font-black text-slate-800 dark:text-slate-200 midnight:text-slate-100">
                         {theme === 'midnight' ? 'Midnight' : theme === 'dark' ? 'Dark' : 'Light'}
                     </span>
                 </button>
@@ -69,9 +69,9 @@ export const ThemeToggleButton: React.FC = () => {
             </div>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white/95 dark:bg-slate-900/95 midnight:bg-black/95 backdrop-blur-2xl border border-gray-200 dark:border-white/10 midnight:border-purple-500/30 shadow-2xl p-1.5 z-50 animate-fade-in">
-                    <div className="px-3 py-2 border-b border-gray-100 dark:border-white/5 midnight:border-white/5 mb-1">
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 midnight:text-purple-300/60">Select Theme</span>
+                <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white/95 dark:bg-slate-900/95 midnight:bg-black/95 backdrop-blur-2xl border border-gray-200 dark:border-white/10 midnight:border-white/15 shadow-2xl p-1.5 z-50 animate-fade-in">
+                    <div className="px-3 py-2 border-b border-gray-100 dark:border-white/5 midnight:border-white/10 mb-1">
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 midnight:text-slate-400">Select Theme</span>
                     </div>
                     {themeOptions.map((opt) => (
                         <button
@@ -82,19 +82,19 @@ export const ThemeToggleButton: React.FC = () => {
                             }}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition-all ${
                                 theme === opt.id 
-                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 midnight:bg-purple-500/15 midnight:text-purple-300 font-black' 
-                                    : 'text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 midnight:hover:bg-purple-950/40'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 midnight:bg-white/10 midnight:text-white font-black' 
+                                    : 'text-slate-600 dark:text-slate-300 hover:bg-black/5 dark:hover:bg-white/5 midnight:hover:bg-white/5'
                             }`}
                         >
-                            <div className="p-1.5 rounded-lg bg-black/5 dark:bg-white/5 midnight:bg-purple-950/60">
+                            <div className="p-1.5 rounded-lg bg-black/5 dark:bg-white/5 midnight:bg-white/10">
                                 {opt.icon}
                             </div>
                             <div className="flex flex-col">
                                 <span className="text-xs font-bold tracking-wide">{opt.label}</span>
-                                <span className="text-[9px] text-slate-400 midnight:text-slate-500 font-medium">{opt.desc}</span>
+                                <span className="text-[9px] text-slate-400 midnight:text-slate-400 font-medium">{opt.desc}</span>
                             </div>
                             {theme === opt.id && (
-                                <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 midnight:bg-purple-400 animate-pulse" />
+                                <div className="ml-auto w-2 h-2 rounded-full bg-emerald-500 midnight:bg-slate-200 animate-pulse" />
                             )}
                         </button>
                     ))}
