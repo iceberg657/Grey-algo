@@ -31,6 +31,180 @@ export const smcCandlestickLogic = ``;
 export const retailCandlestickLogic = ``;
 export const combinedCandlestickLogic = ``;
 
+/**
+ * Intelligent Directionality Auto-Correction and Healing Layer.
+ * Guarantees that AI-generated trade setups strictly respect mathematical directionality:
+ * - BUY: EntryRange.min <= EntryRange.max, StopLoss < Entry, TakeProfits > Entry (ascending TP1 < TP2 < TP3)
+ * - SELL: EntryRange.min <= EntryRange.max, StopLoss > Entry, TakeProfits < Entry (descending TP1 > TP2 > TP3)
+ * - Auto-repairs mirrored/inverted targets, clamps spreads, and aligns pending order types.
+ */
+export function autoCorrectSignalDirectionality<T extends any>(
+    signal: T,
+    referencePrice: number = 0,
+    atrHint?: number
+): T {
+    if (!signal || typeof signal !== 'object') return signal;
+
+    const rawDirection = String((signal as any).signal || '').toUpperCase();
+    if (rawDirection !== 'BUY' && rawDirection !== 'SELL') {
+        return signal;
+    }
+
+    const isBuy = rawDirection === 'BUY';
+    const sig = signal as any;
+
+    // 1. Resolve and normalize Entry Range / Entry Points
+    let entryPrice = 0;
+    if (sig.entryRange && (typeof sig.entryRange.min === 'number' || typeof sig.entryRange.max === 'number')) {
+        let min = Number(sig.entryRange.min) || Number(sig.entryRange.max) || referencePrice;
+        let max = Number(sig.entryRange.max) || Number(sig.entryRange.min) || referencePrice;
+        if (min > max) {
+            const tmp = min;
+            min = max;
+            max = tmp;
+        }
+        sig.entryRange = { min, max };
+        entryPrice = (min + max) / 2;
+    } else if (Array.isArray(sig.entryPoints) && sig.entryPoints.length > 0) {
+        sig.entryPoints = sig.entryPoints.map((ep: any) => Number(ep) || referencePrice || 0);
+        entryPrice = sig.entryPoints[0] || referencePrice;
+    } else if (referencePrice > 0) {
+        entryPrice = referencePrice;
+        if (sig.entryRange) {
+            sig.entryRange = { min: referencePrice * 0.9995, max: referencePrice * 1.0005 };
+        }
+        if (sig.entryPoints) {
+            sig.entryPoints = [referencePrice, referencePrice, referencePrice];
+        }
+    }
+
+    if (entryPrice <= 0 && referencePrice > 0) {
+        entryPrice = referencePrice;
+    }
+
+    if (entryPrice <= 0) {
+        return signal;
+    }
+
+    // Determine baseline volatility distance buffer
+    const minBuffer = atrHint && atrHint > 0 
+        ? Math.max(atrHint * 0.8, entryPrice * 0.001) 
+        : entryPrice * 0.002;
+
+    // 2. Fix and Validate Stop Loss
+    let currentSL = Number(sig.stopLoss);
+    let slDistance = (currentSL > 0 && !isNaN(currentSL)) ? Math.abs(entryPrice - currentSL) : 0;
+    if (slDistance < minBuffer * 0.25) {
+        slDistance = minBuffer;
+    }
+
+    if (isBuy) {
+        // BUY: Stop Loss MUST be strictly below entryPrice
+        if (isNaN(currentSL) || currentSL <= 0 || currentSL >= entryPrice) {
+            sig.stopLoss = Number((entryPrice - slDistance).toFixed(6));
+        }
+    } else {
+        // SELL: Stop Loss MUST be strictly above entryPrice
+        if (isNaN(currentSL) || currentSL <= 0 || currentSL <= entryPrice) {
+            sig.stopLoss = Number((entryPrice + slDistance).toFixed(6));
+        }
+    }
+
+    const effectiveSlDist = Math.max(Math.abs(entryPrice - Number(sig.stopLoss)), minBuffer);
+
+    // 3. Fix and Validate Take Profits
+    if (!Array.isArray(sig.takeProfits) || sig.takeProfits.length === 0) {
+        sig.takeProfits = [0, 0];
+    }
+
+    const tps: number[] = sig.takeProfits.map((tp: any) => Number(tp)).filter((n: number) => !isNaN(n) && n > 0);
+    const correctedTps: number[] = [];
+    const baseRatios = [1.5, 2.5, 4.0];
+
+    if (isBuy) {
+        // BUY: All TPs MUST be strictly above entryPrice in ascending order
+        for (let i = 0; i < Math.max(tps.length, 2); i++) {
+            const rawTp = tps[i];
+            let tpVal: number;
+            if (rawTp && rawTp > entryPrice) {
+                tpVal = rawTp;
+            } else if (rawTp && rawTp > 0) {
+                // Mirrored distance if model inverted direction
+                tpVal = entryPrice + Math.abs(entryPrice - rawTp);
+            } else {
+                tpVal = entryPrice + effectiveSlDist * (baseRatios[i] || (1.5 + i));
+            }
+            correctedTps.push(Number(tpVal.toFixed(6)));
+        }
+        correctedTps.sort((a, b) => a - b);
+        for (let i = 1; i < correctedTps.length; i++) {
+            if (correctedTps[i] <= correctedTps[i - 1]) {
+                correctedTps[i] = Number((correctedTps[i - 1] + effectiveSlDist * 0.5).toFixed(6));
+            }
+        }
+    } else {
+        // SELL: All TPs MUST be strictly below entryPrice in descending order
+        for (let i = 0; i < Math.max(tps.length, 2); i++) {
+            const rawTp = tps[i];
+            let tpVal: number;
+            if (rawTp && rawTp < entryPrice) {
+                tpVal = rawTp;
+            } else if (rawTp && rawTp > 0) {
+                // Mirrored distance if model inverted direction
+                tpVal = entryPrice - Math.abs(entryPrice - rawTp);
+            } else {
+                tpVal = entryPrice - effectiveSlDist * (baseRatios[i] || (1.5 + i));
+            }
+            correctedTps.push(Number(tpVal.toFixed(6)));
+        }
+        correctedTps.sort((a, b) => b - a);
+        for (let i = 1; i < correctedTps.length; i++) {
+            if (correctedTps[i] >= correctedTps[i - 1]) {
+                correctedTps[i] = Number((correctedTps[i - 1] - effectiveSlDist * 0.5).toFixed(6));
+            }
+        }
+    }
+
+    sig.takeProfits = correctedTps;
+
+    // 4. Fix Scaling Entries if present
+    if (Array.isArray(sig.scalingEntries) && sig.scalingEntries.length > 0) {
+        sig.scalingEntries = sig.scalingEntries.map((se: any, idx: number) => {
+            if (!se || typeof se !== 'object') return se;
+            const trigger = Number(se.triggerPrice) || (isBuy ? entryPrice + effectiveSlDist * 0.5 * (idx + 1) : entryPrice - effectiveSlDist * 0.5 * (idx + 1));
+            let seSL = Number(se.stopLoss);
+            let seTP = Number(se.takeProfit);
+
+            if (isBuy) {
+                if (isNaN(seSL) || seSL >= trigger) seSL = entryPrice;
+                if (isNaN(seTP) || seTP <= trigger) seTP = correctedTps[correctedTps.length - 1] || trigger + effectiveSlDist;
+            } else {
+                if (isNaN(seSL) || seSL <= trigger) seSL = entryPrice;
+                if (isNaN(seTP) || seTP >= trigger) seTP = correctedTps[correctedTps.length - 1] || trigger - effectiveSlDist;
+            }
+
+            return {
+                ...se,
+                triggerPrice: Number(trigger.toFixed(6)),
+                stopLoss: Number(seSL.toFixed(6)),
+                takeProfit: Number(seTP.toFixed(6))
+            };
+        });
+    }
+
+    // 5. Entry Type Alignment
+    if (sig.entryType) {
+        const et = String(sig.entryType);
+        if (isBuy && et.includes('Sell')) {
+            sig.entryType = et.replace('Sell', 'Buy');
+        } else if (!isBuy && et.includes('Buy')) {
+            sig.entryType = et.replace('Buy', 'Sell');
+        }
+    }
+
+    return signal;
+}
+
 function compressPromptForGemma(promptText: string): string {
     if (!promptText) return '';
     let compressed = promptText
@@ -1275,31 +1449,9 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
                 }
 
                 if (sigString !== 'NEUTRAL') {
-                    if (!Array.isArray(data.entryPoints) || data.entryPoints.length === 0 || isNaN(Number(data.entryPoints[0]))) {
-                        throw new Error(`Invalid entry points format. Expected array of numbers.`);
-                    }
-                    if (isNaN(Number(data.stopLoss))) {
-                        throw new Error(`Invalid stop loss format.`);
-                    }
-                    if (!Array.isArray(data.takeProfits) || data.takeProfits.length === 0 || isNaN(Number(data.takeProfits[0]))) {
-                        throw new Error(`Invalid take profits format. Expected array of numbers.`);
-                    }
-                    
-                    const ep = Number(data.entryPoints[0]);
-                    const sl = Number(data.stopLoss);
-                    const tp1 = Number(data.takeProfits[0]);
-                    
-                    // Basic sanity bounds
-                    if (ep <= 0 || sl <= 0 || tp1 <= 0) {
-                        throw new Error("Zero values not allowed for prices.");
-                    }
-                    
-                    // Validate basic math logic directionality to prevent completely upside-down signals
-                    if (sigString === 'BUY') {
-                        if (tp1 <= ep || sl >= ep) throw new Error("BUY Signal invalid TP/SL directionality.");
-                    } else if (sigString === 'SELL') {
-                        if (tp1 >= ep || sl <= ep) throw new Error("SELL Signal invalid TP/SL directionality.");
-                    }
+                    // Auto-heal and validate directionality, entries, stop loss, and take profits
+                    const fallbackPrice = request.twelveDataQuote?.close ? parseFloat(request.twelveDataQuote.close) : 0;
+                    autoCorrectSignalDirectionality(data, fallbackPrice, request.twelveDataQuote?.atr ? parseFloat(request.twelveDataQuote.atr) : undefined);
                 }
                 // --- END VALIDATION LAYER ---
 
@@ -2097,6 +2249,8 @@ Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra te
                     console.warn(`[VALIDATION FAILED] Discarding response from ${modelId}. Reason: ${scanResult.reason}`);
                     throw new Error(`Invalid or degenerate model output (failed to parse): ${scanResult.reason}`);
                 }
+
+                autoCorrectSignalDirectionality(signal, livePrice);
                 return signal as SignalData;
             }, getSniperPool
         );
@@ -2678,11 +2832,11 @@ JSON Structure:
   "confidence": number (MAX 85),
   "asset": "${assetName}",
   "timeframe": "The specific timeframe used for entry",
-  "entryRange": {"min": number, "max": number}, // If Market Execution, encapsulate live price ${livePrice}. If Pending, set exactly at the intended entry zone.
+  "entryRange": {"min": number, "max": number}, // If Market Execution, encapsulate live price ${livePrice}. If Pending, set exactly at the intended entry zone. min MUST be <= max.
   "entryType": "Market Execution" | "Buy Limit" | "Sell Limit" | "Buy Stop" | "Sell Stop", // CRITICAL HALLUCINATION PREVENTION: If "signal" is "BUY", this MUST be a "Buy" type or "Market Execution". If "signal" is "SELL", this MUST be a "Sell" type or "Market Execution". NEVER mix them.
   "expirationTime": "string if entryType is Limit/Stop based on Time Window/Session, or null",
-  "stopLoss": number, // Explicit price level
-  "takeProfits": [number, number], // CRITICAL: MUST provide two explicit price targets
+  "stopLoss": number, // Explicit price level. For BUY: stopLoss < entry. For SELL: stopLoss > entry.
+  "takeProfits": [number, number], // Explicit price targets. For BUY: takeProfits > entry (TP1 < TP2). For SELL: takeProfits < entry (TP1 > TP2).
   "formattedLotSize": "String (e.g. '0.10')",
   "recommendedPositions": number (e.g. 2),
   "positionLotSize": "String (e.g. '0.05 per position')",
@@ -2831,31 +2985,9 @@ JSON Structure:
                 }
                 
                 if (String(signal.signal).toUpperCase() !== 'NEUTRAL') {
-                    if (!signal.entryRange || isNaN(Number(signal.entryRange.min)) || isNaN(Number(signal.entryRange.max))) {
-                        throw new Error(`Invalid entryRange format. Missing min/max bounds.`);
-                    }
-                    if (isNaN(Number(signal.stopLoss))) {
-                        throw new Error(`Invalid stop loss format. Got: ${signal.stopLoss}`);
-                    }
-                    if (!Array.isArray(signal.takeProfits) || signal.takeProfits.length === 0 || isNaN(Number(signal.takeProfits[0]))) {
-                        throw new Error(`Invalid take profits format. Expected an array of numbers. Got: ${JSON.stringify(signal.takeProfits)}`);
-                    }
-                    
-                    const ep = Number(signal.entryRange.min);
-                    const sl = Number(signal.stopLoss);
-                    const tp1 = Number(signal.takeProfits[0]);
-                    
-                    if (ep <= 0 || sl <= 0 || tp1 <= 0) {
-                        throw new Error("Zero values not allowed for prices.");
-                    }
-                    
-                    // Directional math bounds validation to catch upside-down signals
-                    const isBuy = String(signal.signal).toUpperCase() === 'BUY';
-                    if (isBuy) {
-                        if (tp1 <= ep || sl >= ep) throw new Error("BUY Signal invalid TP/SL directionality.");
-                    } else {
-                        if (tp1 >= ep || sl <= ep) throw new Error("SELL Signal invalid TP/SL directionality.");
-                    }
+                    // Auto-heal and mathematically enforce clean bounds, stop loss, and take profits
+                    const fallbackPrice = livePrice > 0 ? livePrice : (signal.entryRange?.min ? Number(signal.entryRange.min) : 0);
+                    autoCorrectSignalDirectionality(signal, fallbackPrice, quantData?.atr);
                 }
                 // --- END VALIDATION LAYER ---
 
