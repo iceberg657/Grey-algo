@@ -138,6 +138,8 @@ const getUniqueKeys = (keys: string[]) => {
 // 1. CHART ANALYSIS (Keys 1-4)
 export const getAnalysisPool = () => getUniqueKeys([K.K1(), K.K2(), K.K3(), K.K4()]); 
 export const ANALYSIS_MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
     'gemini-3.7-flash',
     'gemini-3.6-flash',
     'gemini-3.5-flash',
@@ -155,6 +157,8 @@ export const getSniperPool = () => {
     return keys.length > 0 ? keys : getAnalysisPool();
 };
 export const SNIPER_MODELS = [
+    'gemini-2.5-flash',
+    'gemini-2.0-flash',
     'gemini-3.5-flash-lite',  // Model 5
     'gemini-3.1-flash-lite',  // Model 6
 ];
@@ -373,12 +377,12 @@ export async function runWithRetry<T>(
     throw lastError;
 }
 
-// Retry execution logic
 export async function executeLaneCall<T>(
     apiCall: (apiKey: string) => Promise<T>,
-    poolFn: () => string[] = getAnalysisPool
+    poolFnOrArray: (() => string[]) | string[] = getAnalysisPool
 ): Promise<T> {
-    const pool = poolFn();
+    await initializeApiKey();
+    const pool = typeof poolFnOrArray === 'function' ? poolFnOrArray() : (Array.isArray(poolFnOrArray) ? poolFnOrArray : []);
     const activeKeys = pool.length > 0 ? pool : (API_KEY ? [API_KEY] : []);
     
     if (activeKeys.length === 0) {
@@ -391,8 +395,8 @@ export async function executeLaneCall<T>(
             return await apiCall(key);
         } catch (e: any) {
             lastError = e;
-            const message = e.message || '';
-            if (message.includes('429') || message.includes('quota') || message.includes('exhausted')) {
+            const message = (e?.message || '').toLowerCase();
+            if (message.includes('429') || message.includes('quota') || message.includes('exhausted') || message.includes('rate limit')) {
                 console.warn("[LaneOrchestrator] Key exhausted in lane, rotating...");
                 continue;
             }
@@ -412,9 +416,20 @@ export async function runWithModelFallback<T>(
             return await callFn(model);
         } catch (e: any) {
             lastError = e;
-            const msg = e.message || '';
-            if (msg.includes('429') || msg.includes('quota') || msg.includes('overloaded') || msg.includes('503') || msg.includes('fetch')) {
-                console.warn(`[LaneOrchestrator] Model ${model} failed, falling back...`);
+            const msg = (e?.message || '').toLowerCase();
+            if (
+                msg.includes('429') || 
+                msg.includes('quota') || 
+                msg.includes('overloaded') || 
+                msg.includes('503') || 
+                msg.includes('fetch') || 
+                msg.includes('not found') || 
+                msg.includes('404') || 
+                msg.includes('timeout') || 
+                msg.includes('empty response') || 
+                msg.includes('failed to parse')
+            ) {
+                console.warn(`[LaneOrchestrator] Model ${model} failed (${e.message}), falling back to next model...`);
                 continue;
             }
             throw e;

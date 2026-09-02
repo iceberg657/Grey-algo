@@ -1466,7 +1466,7 @@ Your primary directive is to **ELIMINATE FALSE REVERSAL TRAPS AND STOP-LOSS HUNT
         };
 
         return validateAndFixTPSL(rawSignal, request.riskRewardRatio, request.tradingStyle, request.twelveDataQuote);
-    }, getAnalysisPool());
+    }, getAnalysisPool);
 }
 
 async function detectAssetFromImage(image: { data: string, mimeType: string }): Promise<string | null> {
@@ -1491,7 +1491,7 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
                                 model: modelId,
-                                contents: [{ parts: finalPromptParts }],
+                                contents: [{ parts: promptParts }],
                                 config: config,
                                 apiKey: apiKey
                             }),
@@ -1518,14 +1518,14 @@ async function detectAssetFromImage(image: { data: string, mimeType: string }): 
                             throw new Error(errorMsg);
                         }
                         const data = await proxyRes.json();
-                        return { text: data.text || data.candidates?.[0]?.content?.parts?.find(p => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text || '' } as any;
+                        return { text: data.text || data.candidates?.[0]?.content?.parts?.find((p: any) => p.text && !p.thought)?.text || data.candidates?.[0]?.content?.parts?.[0]?.text || '' } as any;
                     } catch (e) {
                         console.warn(`[AssetDetection] Model ${modelId} failed. Attempting fallback if available...`);
                         throw e;
                     }
                 }
             );
-        }, getAnalysisPool());
+        }, getAnalysisPool);
 
         const symbol = response.text?.trim().toUpperCase().replace(/[^A-Z0-9/]/g, '');
         if (symbol && symbol !== 'UNKNOWN' && symbol.length >= 3) {
@@ -3525,7 +3525,7 @@ export async function getGeminiAnalysis(prompt: string): Promise<string> {
         });
         if (!response.text) throw new Error("No response from AI strategy analyzer");
         return response.text;
-    }, getAnalysisPool());
+    }, getAnalysisPool);
 }
 
 export async function generateTradingBlueprint(
