@@ -205,9 +205,9 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
             onDragOver={handleDrag}
             onDrop={handleDrop}
             onMouseEnter={handleMouseEnter}
-            className={`relative group flex flex-col items-center justify-center p-4 border-2 border-dashed rounded-lg cursor-pointer transition-all focus-within:ring-2 focus-within:ring-green-500/50 ${
-                isDragging ? 'border-green-400 bg-gray-200/80 dark:bg-dark-card/80' : 'border-gray-300 dark:border-green-500/30 hover:border-green-400 dark:hover:bg-dark-bg/60'
-            } min-h-[160px] overflow-hidden`}
+            className={`relative group flex flex-col items-center justify-center p-3 border-2 border-dashed rounded-xl cursor-pointer transition-all focus-within:ring-2 focus-within:ring-emerald-500/50 ${
+                isDragging ? 'border-emerald-400 bg-emerald-50/20 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-emerald-500/20 hover:border-emerald-400 dark:hover:bg-slate-900/60'
+            } min-h-[130px] overflow-hidden`}
         >
             {/* Hidden Input Layer for native context menu "Paste" support AND Click-to-Select */}
             <textarea
@@ -234,25 +234,25 @@ const ImageUploader: React.FC<ImageUploaderProps> = ({ id, title, subtitle, onFi
                 <>
                     <img src={imagePreview} alt={title} className="absolute inset-0 w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20 pointer-events-none">
-                        <span className="text-white font-semibold">Change or Paste</span>
+                        <span className="text-white text-xs font-bold">Change Image</span>
                     </div>
                     <button 
                         onClick={handleRemoveImage}
                         className="absolute top-2 right-2 bg-red-600/80 hover:bg-red-500 text-white rounded-full p-1 leading-none shadow-lg z-30 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all"
                         aria-label={`Remove ${title} image`}
                     >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                         </svg>
                     </button>
                 </>
             ) : (
                 <div className="flex flex-col items-center justify-center pointer-events-none">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="w-8 h-8 mb-2 text-gray-600 dark:text-dark-text-secondary group-hover:text-green-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6 mb-1.5 text-slate-400 dark:text-slate-500 group-hover:text-emerald-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                     </svg>
-                    <p className="font-semibold text-gray-800 dark:text-dark-text text-center text-sm">{title} {required && <span className="text-red-500">*</span>}</p>
-                    <p className="text-[10px] text-gray-600 dark:text-dark-text-secondary text-center uppercase tracking-tight">Paste Image or Click to Select</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200 text-center text-xs">{title} {required && <span className="text-rose-500">*</span>}</p>
+                    <p className="text-[9px] text-slate-500 dark:text-slate-400 text-center uppercase tracking-wider mt-0.5">{subtitle || 'Paste or Click to Select'}</p>
                 </div>
             )}
         </div>
@@ -268,7 +268,7 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     const [isMultiDimensional, setIsMultiDimensional] = useState(true);
     const [liteAnalysis, setLiteAnalysis] = useState(false);
     const [asset, setAsset] = useState<string>('');
-    const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[2]);
+    const [riskRewardRatio, setRiskRewardRatio] = useState<string>(RISK_REWARD_RATIOS[1] || '1:2.5');
     const [tradingStyle, setTradingStyle] = useState<TradingStyle>('day trading(1 to 2hrs)');
     const [images, setImages] = useState<{ higher?: File, primary?: File, execution?: File }>({});
     const [error, setError] = useState<string | null>(null);
@@ -324,35 +324,35 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
     };
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="space-y-4">
             
             {/* Pro Tip Card */}
-            <div className="bg-white/80 dark:bg-slate-800/30 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] p-4 rounded-xl">
-                <div className="flex items-start gap-3">
-                    <div className="mt-1 text-blue-400 flex-shrink-0">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <div className="bg-white/60 dark:bg-slate-900/40 backdrop-blur-xl border border-slate-200/70 dark:border-white/10 p-3 rounded-2xl shadow-xs">
+                <div className="flex items-start gap-2.5">
+                    <div className="mt-0.5 text-sky-500 flex-shrink-0">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
                             <path strokeLinecap="round" strokeLinejoin="round" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                         </svg>
                     </div>
                     <div className="flex-1">
-                        <h4 className="font-bold text-blue-400 dark:text-blue-300 mb-1 uppercase text-xs tracking-widest">Optional Strategy Boosters</h4>
-                        <p className="text-xs text-gray-800 dark:text-blue-100/80 mb-2">
-                            For maximum AI precision, include these indicators in your screenshots:
+                        <h4 className="font-bold text-sky-600 dark:text-sky-400 uppercase text-[10px] tracking-wider mb-0.5">Strategy Boosters</h4>
+                        <p className="text-[11px] text-slate-600 dark:text-slate-300 mb-1.5">
+                            For maximum AI precision, include key indicators in screenshots:
                         </p>
-                        <div className="flex flex-wrap gap-2">
+                        <div className="flex flex-wrap gap-1.5">
                             {['RSI (7/14)', 'MACD', 'Volume Profile', 'Liquidity Zones', 'S/R Levels', 'Fair Value Gaps'].map(tag => (
-                                <span key={tag} className="px-2 py-0.5 bg-blue-500/20 border border-blue-500/30 rounded-md text-[10px] font-bold text-blue-300 uppercase">{tag}</span>
+                                <span key={tag} className="px-1.5 py-0.5 bg-sky-500/10 border border-sky-500/20 rounded-md text-[9px] font-bold text-sky-600 dark:text-sky-300 uppercase">{tag}</span>
                             ))}
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="space-y-3 border-t border-gray-200 dark:border-gray-700 pt-4">
-                <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <div className="space-y-2 border-t border-slate-200 dark:border-slate-800 pt-3">
+                <div className="flex flex-wrap items-center justify-center gap-2.5">
                     {/* Top-Down Toggle */}
-                    <div className="flex items-center justify-center space-x-3 bg-white/80 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] p-2 rounded-lg w-full sm:w-auto">
-                        <span className="text-sm font-medium text-gray-800 dark:text-dark-text/80">Top-Down</span>
+                    <div className="flex items-center justify-center space-x-2 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl shadow-xs">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Top-Down</span>
                         <label htmlFor="analysis-toggle" className="relative inline-flex items-center cursor-pointer">
                             <input 
                                 type="checkbox" 
@@ -361,16 +361,16 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                                 checked={isMultiDimensional}
                                 onChange={() => setIsMultiDimensional(!isMultiDimensional)}
                             />
-                            <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-green-500/50 dark:peer-focus:ring-green-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-green-600"></div>
+                            <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
                         </label>
-                        <span className={`text-sm font-medium transition-colors ${isMultiDimensional ? 'text-green-500' : 'text-gray-800 dark:text-dark-text/80'}`}>
+                        <span className={`text-xs font-bold transition-colors ${isMultiDimensional ? 'text-emerald-500' : 'text-slate-500 dark:text-slate-400'}`}>
                             Multi-Dim
                         </span>
                     </div>
 
                     {/* Lite Analysis Toggle */}
-                    <div className="flex items-center justify-center space-x-3 bg-white/80 dark:bg-slate-800/40 backdrop-blur-xl border border-gray-200 dark:border-white/10 shadow-[0_4px_16px_0_rgba(31,38,135,0.1)] dark:shadow-[0_4px_16px_0_rgba(0,0,0,0.3)] p-2 rounded-lg w-full sm:w-auto">
-                        <span className="text-sm font-medium text-gray-800 dark:text-dark-text/80">Standard</span>
+                    <div className="flex items-center justify-center space-x-2 bg-white/70 dark:bg-slate-900/50 backdrop-blur-xl border border-slate-200 dark:border-white/10 px-3 py-1.5 rounded-xl shadow-xs">
+                        <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">Standard</span>
                         <label htmlFor="lite-analysis-toggle" className="relative inline-flex items-center cursor-pointer">
                             <input 
                                 type="checkbox" 
@@ -379,9 +379,9 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                                 checked={liteAnalysis}
                                 onChange={() => setLiteAnalysis(!liteAnalysis)}
                             />
-                            <div className="w-11 h-6 bg-gray-400 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-500/50 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+                            <div className="w-9 h-5 bg-slate-300 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
                         </label>
-                        <span className={`text-sm font-medium transition-colors ${liteAnalysis ? 'text-blue-500' : 'text-gray-800 dark:text-dark-text/80'}`}>
+                        <span className={`text-xs font-bold transition-colors ${liteAnalysis ? 'text-sky-500' : 'text-slate-500 dark:text-slate-400'}`}>
                             Lite Mode
                         </span>
                     </div>
@@ -390,15 +390,15 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
 
             </div>
 
-            <motion.div layout className={`grid grid-cols-1 gap-4 ${isMultiDimensional ? 'md:grid-cols-3' : ''}`}>
+            <motion.div layout className={`grid grid-cols-1 gap-2.5 ${isMultiDimensional ? 'md:grid-cols-3' : ''}`}>
                 <AnimatePresence mode="popLayout">
                     {isMultiDimensional && (
                         <motion.div
                             key="higher"
-                            initial={{ opacity: 0, scale: 0.9 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.3 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
                         >
                             <ImageUploader 
                                 id="higher" 
@@ -423,10 +423,10 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                     {isMultiDimensional && (
                         <motion.div
                             key="execution"
-                            initial={{ opacity: 0, scale: 0.9 }}
+                            initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.3 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            transition={{ duration: 0.2 }}
                         >
                             <ImageUploader 
                                 id="execution" 
@@ -440,36 +440,42 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
                 </AnimatePresence>
             </motion.div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-gray-300 dark:border-green-500/30">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
                  <div>
-                    <label htmlFor="asset" className="block text-sm font-medium text-gray-800 dark:text-dark-text/80 mb-2">Asset Symbol (e.g. EUR/USD, BTC/USD)</label>
+                    <label htmlFor="asset" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Asset Symbol
+                    </label>
                     <input
                         type="text"
                         id="asset"
                         value={asset}
                         onChange={(e) => setAsset(e.target.value)}
-                        placeholder="EUR/USD (or leave blank to auto-detect)"
-                        className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500/50 focus:border-green-500/50 block w-full p-2.5 outline-none transition-all shadow-inner uppercase"
+                        placeholder="EUR/USD, BTC, US30..."
+                        className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 block w-full p-2.5 outline-none transition-all uppercase placeholder:normal-case font-medium"
                     />
                 </div>
                  <div>
-                    <label htmlFor="tradingStyle" className="block text-sm font-medium text-gray-800 dark:text-dark-text/80 mb-2">Trading Style</label>
+                    <label htmlFor="tradingStyle" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Trading Style
+                    </label>
                     <select
                         id="tradingStyle"
                         value={tradingStyle}
                         onChange={(e) => setTradingStyle(e.target.value as TradingStyle)}
-                        className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500/50 focus:border-green-500/50 block w-full p-2.5 outline-none transition-all shadow-inner"
+                        className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 block w-full p-2.5 outline-none transition-all font-medium cursor-pointer"
                     >
                         {TRADING_STYLES.map(style => <option key={style} value={style}>{style}</option>)}
                     </select>
                 </div>
                  <div>
-                    <label htmlFor="riskRewardRatio" className="block text-sm font-medium text-gray-800 dark:text-dark-text/80 mb-2">Risk/Reward Ratio</label>
+                    <label htmlFor="riskRewardRatio" className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
+                        Risk/Reward Ratio
+                    </label>
                     <select
                         id="riskRewardRatio"
                         value={riskRewardRatio}
                         onChange={(e) => setRiskRewardRatio(e.target.value)}
-                         className="bg-white/80 dark:bg-slate-900/40 backdrop-blur-md border border-gray-200 dark:border-white/10 text-gray-900 dark:text-dark-text text-sm rounded-lg focus:ring-green-500/50 focus:border-green-500/50 block w-full p-2.5 outline-none transition-all shadow-inner"
+                        className="bg-white/80 dark:bg-slate-900/60 backdrop-blur-md border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-slate-100 text-xs rounded-xl focus:ring-1 focus:ring-emerald-500/50 focus:border-emerald-500/50 block w-full p-2.5 outline-none transition-all font-medium cursor-pointer font-mono"
                     >
                         {RISK_REWARD_RATIOS.map(ratio => <option key={ratio} value={ratio}>{ratio}</option>)}
                     </select>
@@ -477,24 +483,24 @@ export const SignalGeneratorForm: React.FC<SignalGeneratorFormProps> = ({ onSubm
             </div>
 
             {error && (
-                <div className="text-center p-2 text-sm text-red-400 bg-red-900/20 border border-red-500/50 rounded-lg animate-fade-in">
+                <div className="text-center p-2 text-xs font-bold text-rose-500 bg-rose-500/10 border border-rose-500/30 rounded-xl animate-fade-in">
                     {error}
                 </div>
             )}
 
-            <div className="pt-2">
+            <div className="pt-1">
                  <button 
                     type="submit" 
                     disabled={isLoading}
-                    className={`w-full text-white font-bold rounded-xl text-base px-5 py-4 text-center transition-all duration-300 transform hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center focus:ring-4 focus:outline-none shadow-[0_4px_16px_0_rgba(0,0,0,0.2)] backdrop-blur-md border ${
+                    className={`w-full text-white font-black rounded-xl text-xs uppercase tracking-wider px-4 py-3 text-center transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center shadow-md backdrop-blur-md border cursor-pointer ${
                         tradingStyle.includes('Scalping')
-                            ? 'bg-red-500/80 hover:bg-red-400/90 border-red-400/50 focus:ring-red-500/50 animate-glowing-border-red' 
-                            : 'bg-green-500/80 hover:bg-green-400/90 border-green-400/50 focus:ring-green-500/50'
+                            ? 'bg-rose-500 hover:bg-rose-600 border-rose-400/50 shadow-rose-500/20' 
+                            : 'bg-emerald-500 hover:bg-emerald-600 border-emerald-400/50 shadow-emerald-500/20'
                     }`}
                 >
                     {isLoading ? (
                         <>
-                             <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                             <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>

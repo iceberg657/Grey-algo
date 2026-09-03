@@ -119,20 +119,27 @@ export function autoCorrectSignalDirectionality<T extends any>(
 
     const tps: number[] = sig.takeProfits.map((tp: any) => Number(tp)).filter((n: number) => !isNaN(n) && n > 0);
     const correctedTps: number[] = [];
-    const baseRatios = [1.5, 2.5, 4.0];
+    // GreyAlpha standard RR ratios: TP1 at 1.5x (certain fast friction/scalps) or 2.0x, TP2 at 2.5x (range 1:2 to 1:3.5), TP3 at 3.5x (runner)
+    const defaultRatios = [1.5, 2.5, 3.5];
 
     if (isBuy) {
-        // BUY: All TPs MUST be strictly above entryPrice in ascending order
+        // BUY: All TPs MUST be strictly above entryPrice in ascending order meeting minimum RR
         for (let i = 0; i < Math.max(tps.length, 2); i++) {
             const rawTp = tps[i];
             let tpVal: number;
-            if (rawTp && rawTp > entryPrice) {
+            const minRequiredRR = i === 0 ? 1.5 : i === 1 ? 2.0 : 3.0;
+            const minAllowedPrice = entryPrice + effectiveSlDist * minRequiredRR;
+
+            if (rawTp && rawTp >= minAllowedPrice && rawTp <= entryPrice + effectiveSlDist * 8.0) {
                 tpVal = rawTp;
-            } else if (rawTp && rawTp > 0) {
+            } else if (rawTp && rawTp > 0 && Math.abs(rawTp - entryPrice) >= effectiveSlDist * 1.5) {
                 // Mirrored distance if model inverted direction
                 tpVal = entryPrice + Math.abs(entryPrice - rawTp);
+                if (tpVal < minAllowedPrice) {
+                    tpVal = entryPrice + effectiveSlDist * defaultRatios[i];
+                }
             } else {
-                tpVal = entryPrice + effectiveSlDist * (baseRatios[i] || (1.5 + i));
+                tpVal = entryPrice + effectiveSlDist * (defaultRatios[i] || (1.5 + i * 1.0));
             }
             correctedTps.push(Number(tpVal.toFixed(6)));
         }
@@ -143,17 +150,23 @@ export function autoCorrectSignalDirectionality<T extends any>(
             }
         }
     } else {
-        // SELL: All TPs MUST be strictly below entryPrice in descending order
+        // SELL: All TPs MUST be strictly below entryPrice in descending order meeting minimum RR
         for (let i = 0; i < Math.max(tps.length, 2); i++) {
             const rawTp = tps[i];
             let tpVal: number;
-            if (rawTp && rawTp < entryPrice) {
+            const minRequiredRR = i === 0 ? 1.5 : i === 1 ? 2.0 : 3.0;
+            const maxAllowedPrice = entryPrice - effectiveSlDist * minRequiredRR;
+
+            if (rawTp && rawTp <= maxAllowedPrice && rawTp >= entryPrice - effectiveSlDist * 8.0) {
                 tpVal = rawTp;
-            } else if (rawTp && rawTp > 0) {
+            } else if (rawTp && rawTp > 0 && Math.abs(entryPrice - rawTp) >= effectiveSlDist * 1.5) {
                 // Mirrored distance if model inverted direction
                 tpVal = entryPrice - Math.abs(entryPrice - rawTp);
+                if (tpVal > maxAllowedPrice) {
+                    tpVal = entryPrice - effectiveSlDist * defaultRatios[i];
+                }
             } else {
-                tpVal = entryPrice - effectiveSlDist * (baseRatios[i] || (1.5 + i));
+                tpVal = entryPrice - effectiveSlDist * (defaultRatios[i] || (1.5 + i * 1.0));
             }
             correctedTps.push(Number(tpVal.toFixed(6)));
         }
@@ -1853,19 +1866,42 @@ export function calculateRRLevels(
     let tp2Label = '';
     let tp3Label = '';
 
-    const hasValidCustomTPs = !isScalping && Array.isArray(customTPs) && 
+    // Standard GreyAlpha RR standard range: 1:2 to 1:3.5 (with 1:1.5 for quick scalp / high friction setups)
+    const mult1 = isScalping ? 1.5 : 2.0;
+    const mult2 = 2.5;
+    const mult3 = 3.5;
+
+    const hasValidCustomTPs = Array.isArray(customTPs) && 
         customTPs.length >= 2 && 
         customTPs[0] > 0 && 
         customTPs[1] > 0 &&
         (signal === 'BUY' 
-            ? (customTPs[0] > entry && customTPs[1] > customTPs[0])
-            : (customTPs[0] < entry && customTPs[1] < customTPs[0])
+            ? (customTPs[0] >= entry + risk * 1.45 && customTPs[1] > customTPs[0])
+            : (customTPs[0] <= entry - risk * 1.45 && customTPs[1] < customTPs[0])
         );
 
     if (hasValidCustomTPs) {
-        tp1 = parseFloat(customTPs[0].toFixed(precision));
-        tp2 = parseFloat(customTPs[1].toFixed(precision));
-        tp3 = customTPs[2] ? parseFloat(customTPs[2].toFixed(precision)) : parseFloat((tp2 + (tp2 - tp1)).toFixed(precision));
+        let t1 = customTPs[0];
+        let t2 = customTPs[1];
+        let t3 = customTPs[2] || (signal === 'BUY' ? entry + risk * mult3 : entry - risk * mult3);
+
+        // Ensure minimum GreyAlpha RR standards:
+        // TP1: >= 1:1.5
+        // TP2: >= 1:2.0 (range 1:2 to 1:3.5)
+        // TP3: >= 1:3.0 (range 1:2 to 1:3.5)
+        if (signal === 'BUY') {
+            if (t1 - entry < risk * 1.45) t1 = entry + risk * mult1;
+            if (t2 - entry < risk * 1.95) t2 = entry + risk * mult2;
+            if (t3 - entry < risk * 2.95) t3 = entry + risk * mult3;
+        } else {
+            if (entry - t1 < risk * 1.45) t1 = entry - risk * mult1;
+            if (entry - t2 < risk * 1.95) t2 = entry - risk * mult2;
+            if (entry - t3 < risk * 2.95) t3 = entry - risk * mult3;
+        }
+
+        tp1 = parseFloat(t1.toFixed(precision));
+        tp2 = parseFloat(t2.toFixed(precision));
+        tp3 = parseFloat(t3.toFixed(precision));
         
         const rr1 = Math.abs(tp1 - entry) / risk;
         const rr2 = Math.abs(tp2 - entry) / risk;
@@ -1875,13 +1911,9 @@ export function calculateRRLevels(
         tp2Label = `1:${rr2.toFixed(1)}`;
         tp3Label = `1:${rr3.toFixed(1)}`;
     } else {
-        const mult1 = 1.5;
-        const mult2 = 2.5;
-        const mult3 = 3.2;
-
-        tp1Label = '1:1.5';
-        tp2Label = '1:2.5';
-        tp3Label = '1:3.2';
+        tp1Label = `1:${mult1.toFixed(1)}`;
+        tp2Label = `1:${mult2.toFixed(1)}`;
+        tp3Label = `1:${mult3.toFixed(1)}`;
 
         if (signal === 'BUY') {
             tp1 = parseFloat((entry + risk * mult1).toFixed(precision));
@@ -2178,7 +2210,7 @@ Your task:
 2. Formulate a robust trading signal: BUY or SELL. (Neutral is NOT allowed; you must lean to a bias based on technical evidence).
 3. Set your confidence level (base it on the alignment of the trend and key structure: 50% - 90% maximum).
 4. Provide a simple reasoning of 2-3 bullet points describing what a professional chart analyst would see here.
-5. Provide Stop Loss and Take Profit levels that are standard technical targets based on the 300-candle structure (e.g. key swing highs/lows, support/resistance levels, or ATR offsets).
+5. Provide Stop Loss and Take Profit levels that are standard technical targets based on the 300-candle structure. Take Profit targets MUST follow the GreyAlpha standard Risk-to-Reward (R:R) range of 1:2 to 1:3.5 (with 1:1.5 for quick scalp / high friction setups). Never output a Take Profit that is closer to entry than Stop Loss. Always ensure BUY TP > Entry > SL and SELL TP < Entry < SL.
 
 Return ONLY a JSON object matching the SniperDataSchema. Do NOT add any extra text or markdown formatting.
 
@@ -2645,7 +2677,7 @@ ${quantData.orderflowMetrics?.l2Metrics ? `
 *CRITICAL MATH COMPLIANCE INSTRUCTIONS:*
 - **STRICT PRICE BOUNDS (NO GUESSING):** You are strictly FORBIDDEN from guessing standard Stop Loss and Take Profit levels based on visual charting habits. 
 - You MUST anchor your Stop Loss EXACTLY using the engine mathematical SL or the Monte Carlo bounds (Lower Bound for BUY, Upper Bound for SELL). 
-- **SCALP & DAY TRADING 1:2 to 1:3 R:R RATIO TARGET:** For the Sniper page and scalp executions, you MUST design the Take Profit targets to achieve a 1:2 to 1:3 Risk-to-Reward ratio (Risk 1 unit to Reward 2.0x–3.0x units). Set Take Profit 1 (TP1) at 1:1.5 RR to lock in early profits, Take Profit 2 (TP2) at 1:2.5 RR (hitting the core 1:2 to 1:3 target requested by the user), and Take Profit 3 (TP3) at 1:3.2 RR as a runner.
+- **GREYALPHA STANDARD 1:2 to 1:3.5 R:R RATIO TARGET:** For the Sniper page and live executions, you MUST design the Take Profit targets to achieve the GreyAlpha standard Risk-to-Reward ratio range of **1:2 to 1:3.5** (with **1:1.5** for quick scalps / high friction setups). Set Take Profit 1 (TP1) at 1:1.5 to 1:2.0 RR to lock in initial profits and enable moving SL to breakeven, Take Profit 2 (TP2) at 1:2.5 to 1:3.0 RR (hitting the core 1:2 to 1:3.5 target), and Take Profit 3 (TP3) at 1:3.5 RR as a runner. Under NO circumstances should any Take Profit be placed closer to the entry than 1.5x the Stop Loss distance.
 - Your Take Profits MUST align with Expected Median Price, the 1:2.5 target, and the structural Liquidity targets provided. If a user asks for statistical/mathematical projections, ONLY use the Monte Carlo bounds.
 - **BINARY DECISION MATRIX:** The Quant Engine and Antigravity Research have analyzed displacement, orderbook depth, and macro structure. If the Antigravity Research or Advanced Engine Signal gives a confirmed direction (e.g., PROCEED_SELL or SELL), you MUST output exactly that directional bias ("SELL"). Do NOT issue a counter-trend signal based on single-candle M1 lower/upper wicks. Align the final execution card with the higher-timeframe institutional bias!
 - **NO NEUTRAL RULE:** Neutrality is a failure state. If the mathematical logic states BUY or SELL, your response MUST be BUY or SELL. You may not choose Neutral unless the engine explicitly gives Neutral.
@@ -2726,7 +2758,7 @@ ${style.includes('scalping') ? `
 - CONFIRMATION TIMEFRAME: 15min
 - STRUCTURE/CONTEXT: 1hr (Use for trend and major levels)
 - **PROP FIRM SCALPING MANDATE**: To achieve consistent daily targets, you must hunt for a quick "scalp" displacement leg and secure the daily target.
-- **RISK TO REWARD SHIFT**: Shift the mathematical engine to a high-win-rate intraday scalper. Target a **1:1 or 1:1.5 Risk-to-Reward (R:R)** ratio, optimizing for a **70-80% win rate**. Do NOT use wide stop losses or long holding times.` :
+- **RISK TO REWARD SHIFT**: Shift the mathematical engine to high precision. Target the GreyAlpha standard **1:2 to 1:3.5 Risk-to-Reward (R:R)** ratio (with **1:1.5** for quick friction setups), optimizing for a **70-80% win rate**. Do NOT use wide stop losses or inverted risk/reward ratios.` :
             style.includes('day trading') ? `
 - ENTRY TIMEFRAMES: 15min, 30min, 1hr (Prioritize for entry confirmation)
 - STRUCTURE/CONTEXT: 4hrs (Use for daily bias and institutional zones)` :
@@ -2737,7 +2769,7 @@ ${style.includes('scalping') ? `
 **MEAN REVERSION & HIGH WIN-RATE OPTIMIZATION (THE MATH OF SCALPING):**
 ${style.includes('scalping') ? `
 1. **THE "ONE AND DONE" TARGET:** To win every day and protect prop firm accounts, you must secure a daily target and close exposure. You hunt for a quick "scalp" displacement leg or a short-term rotation back to the average.
-2. **HIGH WIN RATE (70-80%):** You MUST aim for a 1:1 or tight 1:1.5 Risk-to-Reward ratio to ensure high statistical probability of hitting Take Profit 1 and Take Profit 2. Do NOT maximize for 5-year returns or wide stop-losses.
+2. **HIGH WIN RATE (70-80%):** You MUST aim for the standard 1:2 to 1:3.5 Risk-to-Reward ratio (or 1:1.5 for quick scalp rotations) to ensure high statistical probability of hitting Take Profit 1 and Take Profit 2 without sacrificing positive expectancy. Do NOT maximize for 5-year returns or wide stop-losses.
 3. **PRICE LEVEL MEAN REVERSION (Category 1):** Use dynamic Z-scores, Bollinger Bands, and RSI/Stochastic overextensions. If price wicks outside the 3rd Standard Deviation band and oscillators flash overbought/oversold, generate a "Sniper Entry Range".
 4. **RETURN MEAN REVERSION (Category 2):** Track behavioral overreaction. Scan for high-displacing institutional "Signature Legs" where price moves out of bounds in a single session. Fade the overextension for a liquidity pullback.
 5. **REGIME-DEPENDENT KILL SWITCH:** If the market regime is "Highly Trending" or breaking out into a heavy one-way institutional trend, you MUST DEACTIVATE mean reversion signals and output a setup that aligns with the trend (or output NEUTRAL to avoid catching a falling knife).
@@ -3127,12 +3159,14 @@ JSON Structure:
                     ((finalSignal === 'BUY' && finalSL < midEntry) || (finalSignal === 'SELL' && finalSL > midEntry)) &&
                     Math.abs(midEntry - finalSL) >= minSLDistance;
 
+                const slDist = Math.abs(midEntry - finalSL);
                 const isAiTpsValid = Array.isArray(originalTPs) && 
                     originalTPs.length >= 2 && 
                     finalTPs[0] > 0 && 
                     finalTPs[1] > 0 &&
-                    ((finalSignal === 'BUY' && finalTPs[0] > midEntry && finalTPs[1] > finalTPs[0]) ||
-                     (finalSignal === 'SELL' && finalTPs[0] < midEntry && finalTPs[1] < finalTPs[0]));
+                    slDist > 0 &&
+                    ((finalSignal === 'BUY' && finalTPs[0] >= midEntry + slDist * 1.45 && finalTPs[1] > finalTPs[0]) ||
+                     (finalSignal === 'SELL' && finalTPs[0] <= midEntry - slDist * 1.45 && finalTPs[1] < finalTPs[0]));
 
                 // Apply mathematical pricing bounds from Monte Carlo / QuantData as fallback if AI SL is invalid
                 if (!isAiSlValid && quantData?.monteCarloPrediction && finalSignal !== 'NEUTRAL') {
@@ -3211,7 +3245,7 @@ JSON Structure:
 
                 if (rrLevels) {
                     finalTPs = [rrLevels.tp1, rrLevels.tp2, rrLevels.tp3];
-                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on 1.0x, ${isScalping ? '1.5x, 2.0x' : '2.0x, 3.0x'} risk distances to ensure high-probability profit locking.`);
+                    finalReasoning.push(`🎯 Mathematically calibrated Take Profits based exactly on GreyAlpha standard 1:2 to 1:3.5 Risk-to-Reward range (${rrLevels.rrRatios.tp1}, ${rrLevels.rrRatios.tp2}, ${rrLevels.rrRatios.tp3}) to ensure optimal profit locking.`);
                     finalPositionProtocol = `
 **POSITION MANAGEMENT PROTOCOL (ANTI-REVERSAL SHIELD):**
 - Entry: ${midEntry}

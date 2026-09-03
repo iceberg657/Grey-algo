@@ -2613,7 +2613,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                               <div className={`text-[9px] font-black uppercase tracking-widest mb-1 ${
                                                 msg.signal.signal === 'BUY' ? 'text-emerald-500/70' : msg.signal.signal === 'SELL' ? 'text-rose-500/70' : 'text-slate-500'
                                               }`}>
-                                                  TP3 • {msg.signal.rrLevels?.rrRatios?.tp3 || '1:3.2'}
+                                                  TP3 • {msg.signal.rrLevels?.rrRatios?.tp3 || '1:3.5'}
                                               </div>
                                               <div className={`text-sm font-black ${
                                                 msg.signal.signal === 'BUY' ? 'text-emerald-500' : msg.signal.signal === 'SELL' ? 'text-rose-500' : 'text-slate-600'
@@ -3373,17 +3373,17 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
 
       {/* Input Area */}
       {accessStatus === 'granted' && (
-        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50 dark:from-[#020617] dark:via-[#020617] to-transparent pt-10 pb-6 px-4 transition-colors duration-300">
+        <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-slate-50 via-slate-50 dark:from-[#020617] dark:via-[#020617] to-transparent pt-4 pb-3 px-3 transition-colors duration-300 z-30">
           <div className="max-w-4xl mx-auto">
             {/* Streaming Protocol Selection Control */}
-            <div className="flex flex-col items-center gap-1.5 mb-4">
-              <div className="bg-slate-100/80 dark:bg-slate-900/80 border border-slate-200/50 dark:border-slate-800/50 rounded-2xl p-1 flex gap-1 shadow-md backdrop-blur-md">
+            <div className="flex flex-col items-center gap-1 mb-2">
+              <div className="bg-slate-100/90 dark:bg-slate-900/90 border border-slate-200/60 dark:border-slate-800/60 rounded-xl p-0.5 flex gap-1 shadow-xs backdrop-blur-md">
                 <button
                   type="button"
                   onClick={() => handleStreamingModeChange('Standard')}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer ${
                     selectedStreamingMode === 'Standard'
-                      ? 'bg-emerald-500 text-white shadow-md'
+                      ? 'bg-emerald-500 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                   }`}
                 >
@@ -3394,14 +3394,14 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                   type="button"
                   onClick={() => handleStreamingModeChange('Advanced')}
                   disabled={!isAdvancedStreamingGranted}
-                  className={`flex items-center gap-2 px-4 py-1.5 rounded-xl text-[10px] uppercase tracking-wider font-bold transition-all ${
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-[9px] uppercase tracking-wider font-bold transition-all cursor-pointer ${
                     selectedStreamingMode === 'Advanced'
-                      ? 'bg-indigo-500 text-white shadow-md'
+                      ? 'bg-indigo-500 text-white shadow-xs'
                       : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
                   } ${!isAdvancedStreamingGranted ? 'opacity-40 cursor-not-allowed' : ''}`}
                 >
                   {!isAdvancedStreamingGranted ? (
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-2.5 w-2.5 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" />
                     </svg>
                   ) : (
@@ -3411,7 +3411,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 </button>
               </div>
               {!isAdvancedStreamingGranted && (
-                <p className="text-[9px] text-amber-500/80 font-semibold tracking-wide uppercase">
+                <p className="text-[8px] text-amber-500/80 font-semibold tracking-wide uppercase">
                   ⚠️ Advanced cTrader Streaming is locked. Request access from the oversight team.
                 </p>
               )}
@@ -3427,23 +3427,23 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder="Asset + Broker Price (e.g. US30 @ 39550 or EURUSD)"
-                className="w-full bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800/50 rounded-2xl py-4 pl-6 pr-16 text-sm focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600 backdrop-blur-xl shadow-xl dark:shadow-none text-slate-900 dark:text-slate-100"
+                className="w-full bg-white/90 dark:bg-slate-900/90 border border-slate-200/80 dark:border-slate-800/80 rounded-xl py-2.5 pl-4 pr-12 text-xs focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-500 backdrop-blur-xl shadow-md text-slate-900 dark:text-slate-100 font-medium"
                 disabled={isAnalyzing}
               />
               <button
                 type="submit"
                 disabled={!query.trim() || isAnalyzing}
-                className="absolute right-2 top-2 bottom-2 px-4 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-800 disabled:text-slate-600 text-white rounded-xl transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center"
+                className="absolute right-1.5 top-1.5 bottom-1.5 px-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-600 text-white rounded-lg transition-all shadow-xs flex items-center justify-center cursor-pointer"
               >
                 {isAnalyzing ? (
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 ) : (
-                  <Send className="w-5 h-5" />
+                  <Send className="w-3.5 h-3.5" />
                 )}
               </button>
             </form>
-            <p className="text-[10px] text-center text-slate-600 mt-3 font-medium uppercase tracking-widest">
-              Powered by Gemini 3.1 Flash Lite & Deriv Live Feed
+            <p className="text-[9px] text-center text-slate-400 dark:text-slate-500 mt-1.5 font-medium uppercase tracking-wider">
+              Powered by GreyAlpha Neural Matrix & Live Feeds
             </p>
           </div>
         </div>

@@ -128,8 +128,8 @@ export function calculateTPSL(
   const tpDistances: [number, number, number] = [0, 0, 0];
   
   const rUnit = currentSlDist; 
-  // Restore institutional standard ratios: TP1 at 1.5x, TP2 at 2.5x, TP3 at 4x or user target
-  const ratios = [1.5, 2.5, Math.max(4.0, targetRatio)]; 
+  // GreyAlpha standard RR range: 1:2 to 1:3.5 (with 1:1.5 for scalps / certain setups)
+  const ratios = isScalping ? [1.5, 2.5, 3.5] : [2.0, 2.8, Math.max(3.5, targetRatio)]; 
 
   ratios.forEach((r, idx) => {
       const dist = rUnit * r;

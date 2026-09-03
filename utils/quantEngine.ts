@@ -2284,9 +2284,9 @@ export function analyzeSMC(
         l2ShieldNote,
         tp1: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 1.5 : currentPrice - scalpRiskPips * 1.5, assetSymbol),
         tp2: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 2.5 : currentPrice - scalpRiskPips * 2.5, assetSymbol),
-        tp3: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 3.2 : currentPrice - scalpRiskPips * 3.2, assetSymbol),
+        tp3: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 3.5 : currentPrice - scalpRiskPips * 3.5, assetSymbol),
         riskRewardRatio: "1:2.5",
-        minScalpRR: "1:2.0 - 1:3.0",
+        minScalpRR: "1:2.0 - 1:3.5 (1:1.5 for fast friction setups)",
         pipsAtRisk: scalpRiskPips,
         targetProfitPips: scalpRiskPips * 2.5
     };

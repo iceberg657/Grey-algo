@@ -72,29 +72,29 @@ const NavButton: React.FC<{
     isLocked?: boolean;
 }> = ({ onClick, 'aria-label': ariaLabel, icon, label, index, highlight, isLocked }) => (
     <motion.button
-        initial={{ opacity: 0, y: 10 }}
+        initial={{ opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: index * 0.03, duration: 0.4, ease: [0.23, 1, 0.32, 1] }}
+        transition={{ delay: index * 0.02, duration: 0.35, ease: [0.23, 1, 0.32, 1] }}
         onClick={onClick}
         aria-label={ariaLabel}
-        className={`group relative flex flex-col items-center justify-center gap-2 p-4 rounded-3xl transition-all duration-500 border backdrop-blur-3xl hover:-translate-y-1 hover:scale-105 active:scale-95 shadow-xl ${
+        className={`group relative flex flex-col items-center justify-center gap-1.5 p-2.5 sm:p-3 rounded-2xl transition-all duration-300 border backdrop-blur-2xl hover:-translate-y-0.5 hover:scale-[1.02] active:scale-95 shadow-xs ${
             highlight 
-                ? 'bg-emerald-500/80 text-white border-emerald-400/50 hover:bg-emerald-500/90 shadow-emerald-500/30' 
-                : 'text-slate-600 dark:text-slate-300 bg-white/50 dark:bg-slate-800/50 border-white/40 dark:border-white/10 hover:bg-white/80 dark:hover:bg-slate-700/60 hover:text-emerald-500 dark:hover:text-emerald-400'
+                ? 'bg-emerald-500/85 text-white border-emerald-400/50 hover:bg-emerald-500/95 shadow-emerald-500/20' 
+                : 'text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-slate-800/40 border-slate-200/60 dark:border-white/10 hover:bg-white/90 dark:hover:bg-slate-700/60 hover:text-emerald-500 dark:hover:text-emerald-400'
         }`}
     >
         {isLocked && (
-            <div className="absolute -top-1.5 -right-1.5 bg-rose-500 text-white rounded-full p-1 shadow-lg z-20 border border-white/20 shadow-rose-500/30">
-                <ShieldAlert size={10} />
+            <div className="absolute -top-1 -right-1 bg-rose-500 text-white rounded-full p-0.5 shadow-md z-20 border border-white/20">
+                <ShieldAlert size={9} />
             </div>
         )}
-        <div className={`transition-transform duration-500 group-hover:rotate-6 ${highlight ? 'text-white' : 'text-slate-400 group-hover:text-emerald-500'}`}>
+        <div className={`transition-transform duration-300 group-hover:scale-110 ${highlight ? 'text-white' : 'text-slate-400 group-hover:text-emerald-500'}`}>
             {icon}
         </div>
-        <span className="text-[10px] font-bold uppercase tracking-widest leading-none mt-1">{label}</span>
+        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-wider leading-none mt-0.5 whitespace-nowrap">{label}</span>
         
         {highlight && (
-            <div className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-white/40 rounded-full blur-sm" />
+            <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-1/3 h-0.5 bg-white/40 rounded-full blur-xs" />
         )}
     </motion.button>
 );
@@ -582,41 +582,41 @@ export const HomePage: React.FC<HomePageProps> = ({
             </AnimatePresence>
 
             <motion.div 
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 15 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: [0.23, 1, 0.32, 1] }}
-                className={`w-full max-w-6xl mx-auto p-4 sm:p-6 lg:p-10 flex-grow flex flex-col ${broadcasts.length > 0 ? 'pt-20' : ''}`}
+                transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
+                className={`w-full max-w-6xl mx-auto p-3 sm:p-5 lg:p-6 flex-grow flex flex-col ${broadcasts.length > 0 ? 'pt-16' : ''}`}
             >
-                <header className="flex flex-col items-center mb-16 relative">
-                    <div className="relative sm:absolute sm:top-0 sm:right-0 flex items-center justify-end gap-3 w-full sm:w-auto mb-6 sm:mb-0">
+                <header className="flex flex-col items-center mb-8 sm:mb-10 relative">
+                    <div className="relative sm:absolute sm:top-0 sm:right-0 flex items-center justify-end gap-2.5 w-full sm:w-auto mb-4 sm:mb-0">
                         <ServiceStatusIndicator onOpenSettings={handleOpenSettings} />
                         <ThemeToggleButton />
                     </div>
 
                     <motion.div 
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ scale: 1.01 }}
                         className="relative cursor-pointer group"
                         onClick={handleOpenSettings}
                     >
-                        <div className="absolute inset-0 bg-emerald-500/10 dark:bg-emerald-500/5 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                        <h1 className="text-5xl sm:text-6xl font-black tracking-tightest text-slate-900 dark:text-white transition-all duration-500 italic uppercase">
+                        <div className="absolute inset-0 bg-emerald-500/10 dark:bg-emerald-500/5 blur-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tightest text-slate-900 dark:text-white transition-all duration-300 italic uppercase">
                             Grey<span className="text-emerald-500">Alpha</span>
                         </h1>
                     </motion.div>
                     
-                    <div className="mt-4 flex items-center gap-4 text-slate-400 dark:text-slate-500">
-                        <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
+                    <div className="mt-2.5 flex items-center gap-3 text-slate-400 dark:text-slate-500">
+                        <div className="h-px w-6 bg-slate-200 dark:bg-slate-800" />
                         <p 
-                            className="text-[9px] font-bold uppercase tracking-[0.6em] whitespace-nowrap"
+                            className="text-[8px] sm:text-[9px] font-bold uppercase tracking-[0.4em] whitespace-nowrap"
                             style={{ fontFamily: 'system-ui', fontStyle: 'normal', textDecorationLine: 'none' }}
                         >
                             Autonomous Trading Hub
                         </p>
-                        <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
+                        <div className="h-px w-6 bg-slate-200 dark:bg-slate-800" />
                     </div>
                 </header>
 
-                <nav className="mb-16 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-3">
+                <nav className="mb-8 sm:mb-10 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-10 gap-2 sm:gap-2.5">
                     {navItems.map((item, idx) => (
                         <NavButton
                             key={item.label}
@@ -631,11 +631,11 @@ export const HomePage: React.FC<HomePageProps> = ({
                     ))}
                 </nav>
 
-                <main className="grid grid-cols-1 gap-12">
+                <main className="grid grid-cols-1 gap-8 sm:gap-10">
                    <motion.div
-                        initial={{ opacity: 0, x: -20 }}
+                        initial={{ opacity: 0, x: -15 }}
                         animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.2 }}
+                        transition={{ delay: 0.15 }}
                    >
                        <MarketOverview 
                             analysisCount={analysisCount} 
@@ -654,88 +654,88 @@ export const HomePage: React.FC<HomePageProps> = ({
 
                    {userSettings.showDashboardSignals !== false && (
                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
+                        initial={{ opacity: 0, y: 15 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.3 }}
+                        transition={{ delay: 0.2 }}
                         className="relative group w-full animate-fade-in"
                    >
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-                            <Bell size={14} className="text-emerald-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Signals Scanner</span>
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                            <Bell size={13} className="text-emerald-500 animate-pulse" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Live Signals Scanner</span>
                         </div>
 
-                        <div className="bg-white dark:bg-slate-950 p-6 sm:p-8 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
+                        <div className="bg-white dark:bg-slate-950 p-4 sm:p-6 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden transition-all duration-500 hover:shadow-emerald-500/5">
                             <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-30" />
                             
-                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-6 gap-4">
+                            <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 gap-3">
                                 <div>
-                                    <h3 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                    <h3 className="text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">
                                         Live Setup Alerts
                                     </h3>
-                                    <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                                    <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
                                         Continuous mechanical scans searching for high-probability market setups.
                                     </p>
                                 </div>
                                 <button
                                     onClick={onNavigateToNotifications}
-                                    className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[10px] font-black uppercase tracking-widest rounded-2xl transition-all hover:scale-105 active:scale-95"
+                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all hover:scale-105 active:scale-95"
                                 >
                                     Manage Scanner Console
-                                    <ChevronRight size={14} />
+                                    <ChevronRight size={13} />
                                 </button>
                             </div>
 
                             {liveSignals.length === 0 ? (
-                                <div className="flex flex-col items-center justify-center py-10 bg-slate-50/50 dark:bg-slate-900/40 rounded-[24px] border border-dashed border-slate-200 dark:border-white/5">
-                                    <div className="w-12 h-12 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 relative mb-4">
+                                <div className="flex flex-col items-center justify-center py-6 sm:py-8 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-dashed border-slate-200 dark:border-white/5">
+                                    <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-500 relative mb-2.5">
                                         <span className="absolute inset-0 rounded-full bg-emerald-500/20 animate-ping" />
-                                        <Activity size={20} />
+                                        <Activity size={18} />
                                     </div>
-                                    <p className="text-xs font-bold text-slate-600 dark:text-slate-300 uppercase tracking-widest">
+                                    <p className="text-[11px] font-bold text-slate-600 dark:text-slate-300 uppercase tracking-wider">
                                         Scanner Active
                                     </p>
-                                    <p className="text-[10px] text-slate-400 mt-1">
+                                    <p className="text-[9px] text-slate-400 mt-0.5">
                                         Sifting liquidity pools & trend structure... No active signals found yet.
                                     </p>
                                 </div>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {liveSignals.slice(0, 6).map((sig) => (
                                         <div 
                                             key={sig.id}
-                                            className="p-4 bg-slate-50/50 dark:bg-slate-900/40 rounded-[24px] border border-slate-100 dark:border-white/5 hover:border-emerald-500/20 transition-all flex flex-col justify-between"
+                                            className="p-3 bg-slate-50/50 dark:bg-slate-900/40 rounded-2xl border border-slate-100 dark:border-white/5 hover:border-emerald-500/20 transition-all flex flex-col justify-between"
                                         >
                                             <div className="flex items-center justify-between">
-                                                 <div className="flex items-center gap-2.5">
-                                                     <div className={`p-2 rounded-xl ${sig.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                                                         {sig.direction === 'BUY' ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                                                 <div className="flex items-center gap-2">
+                                                     <div className={`p-1.5 rounded-lg ${sig.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                                                         {sig.direction === 'BUY' ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}
                                                      </div>
                                                      <div>
-                                                         <h4 className="text-sm font-black text-slate-900 dark:text-white flex items-center gap-1.5">
+                                                         <h4 className="text-xs font-black text-slate-900 dark:text-white flex items-center gap-1">
                                                              {sig.asset}
-                                                             <span className="text-[9px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-1.5 py-0.5 rounded-md">
+                                                             <span className="text-[8px] font-black uppercase tracking-wider text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-white/5 px-1 py-0.5 rounded">
                                                                  {sig.timeframe}
                                                              </span>
                                                          </h4>
-                                                         <span className="text-[10px] text-slate-400 font-medium">
+                                                         <span className="text-[9px] text-slate-400 font-medium">
                                                              {sig.pattern || 'SMC Setup'}
                                                          </span>
                                                      </div>
                                                  </div>
-                                                 <span className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1 rounded-full ${sig.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'}`}>
+                                                 <span className={`text-[8px] font-black uppercase tracking-wider px-2 py-0.5 rounded-full ${sig.direction === 'BUY' ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border border-rose-500/20'}`}>
                                                      {sig.direction}
                                                  </span>
                                              </div>
 
-                                             <div className="mt-4 grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-white/5 rounded-2xl p-2.5 font-mono text-xs">
+                                             <div className="mt-3 grid grid-cols-2 gap-2 bg-slate-100/50 dark:bg-white/5 rounded-xl p-2 font-mono text-[11px]">
                                                  <div>
-                                                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Entry</span>
+                                                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Entry</span>
                                                      <span className="font-bold text-slate-800 dark:text-slate-200">
                                                          {sig.entry?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
                                                      </span>
                                                  </div>
                                                  <div>
-                                                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">Take Profit</span>
+                                                     <span className="block text-[8px] font-black text-slate-400 uppercase tracking-wider mb-0.5">Take Profit</span>
                                                      <span className={`font-bold ${sig.direction === 'BUY' ? 'text-emerald-500' : 'text-rose-500'}`}>
                                                          {sig.takeProfit?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 })}
                                                      </span>
@@ -750,27 +750,27 @@ export const HomePage: React.FC<HomePageProps> = ({
                     )}
 
                     <motion.div
-                        initial={{ opacity: 0, y: 30 }}
+                        initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
+                        transition={{ delay: 0.25 }}
                         className="relative group lg:max-w-4xl lg:mx-auto w-full"
                     >
-                        <div className="absolute -top-6 left-1/2 -translate-x-1/2 flex items-center gap-3">
-                            <TrendingUp size={14} className="text-emerald-500" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Analysis Core</span>
+                        <div className="absolute -top-5 left-1/2 -translate-x-1/2 flex items-center gap-2">
+                            <TrendingUp size={13} className="text-emerald-500" />
+                            <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Analysis Core</span>
                         </div>
 
-                        <div className="bg-white dark:bg-slate-950 p-6 sm:p-10 rounded-[40px] border border-slate-200 dark:border-white/5 shadow-2xl relative overflow-hidden transition-all duration-700 hover:shadow-emerald-500/5">
+                        <div className="bg-white dark:bg-slate-950 p-4 sm:p-6 lg:p-8 rounded-3xl border border-slate-200 dark:border-white/5 shadow-xl relative overflow-hidden transition-all duration-500 hover:shadow-emerald-500/5">
                              <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-emerald-500/50 to-transparent opacity-30" />
                              
                             {error ? (
-                                 <div className="min-h-[400px] flex flex-col items-center justify-center relative z-10">
-                                    <div className="p-4 bg-rose-500/10 border border-rose-500/20 rounded-3xl mb-8">
+                                 <div className="min-h-[300px] flex flex-col items-center justify-center relative z-10">
+                                    <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-2xl mb-6">
                                         <ErrorMessage message={error} />
                                     </div>
                                     <button
                                         onClick={handleReconnect}
-                                        className="px-8 py-4 bg-rose-500 hover:bg-rose-400 text-white text-xs font-black uppercase tracking-widest rounded-2xl transition-all shadow-xl shadow-rose-500/20 active:scale-95"
+                                        className="px-6 py-3 bg-rose-500 hover:bg-rose-400 text-white text-[11px] font-black uppercase tracking-widest rounded-xl transition-all shadow-lg shadow-rose-500/20 active:scale-95"
                                     >
                                         Restore Neural Link
                                     </button>
@@ -788,14 +788,14 @@ export const HomePage: React.FC<HomePageProps> = ({
                 </main>
             </motion.div>
             
-            <footer className="w-full text-center mt-20 px-4 pb-12 text-slate-400 dark:text-slate-600">
+            <footer className="w-full text-center mt-12 px-4 pb-8 text-slate-400 dark:text-slate-600">
                 <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-6 mb-6">
-                        <div className="h-px w-12 bg-slate-100 dark:bg-slate-900" />
-                        <Activity size={20} className="opacity-20 translate-y-1" />
-                        <div className="h-px w-12 bg-slate-100 dark:bg-slate-900" />
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
+                        <Activity size={16} className="opacity-30" />
+                        <div className="h-px w-8 bg-slate-200 dark:bg-slate-800" />
                     </div>
-                    <p className="max-w-sm mx-auto text-[9px] font-bold uppercase tracking-[0.4em] leading-loose opacity-60">
+                    <p className="max-w-sm mx-auto text-[8px] font-bold uppercase tracking-[0.3em] leading-relaxed opacity-60">
                         Operational parameters within bounds. Terminal status: <span className="text-emerald-500">Synchronized</span>.
                     </p>
                 </div>
