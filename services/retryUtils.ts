@@ -383,35 +383,52 @@ export async function executeLaneCall<T>(
 ): Promise<T> {
     await initializeApiKey();
     const pool = typeof poolFnOrArray === 'function' ? poolFnOrArray() : (Array.isArray(poolFnOrArray) ? poolFnOrArray : []);
-    const activeKeys = pool.length > 0 ? pool : (API_KEY ? [API_KEY] : []);
-    
-    if (activeKeys.length === 0) {
-        throw new Error("No API keys available for this lane.");
-    }
+    const activeKeys = pool.length > 0 ? pool : (API_KEY ? [API_KEY] : ['']);
 
-    let lastError;
+    let lastError: any = null;
     for (const key of activeKeys) {
         try {
             return await apiCall(key);
         } catch (e: any) {
             lastError = e;
             const message = (e?.message || '').toLowerCase();
-            if (message.includes('429') || message.includes('quota') || message.includes('exhausted') || message.includes('rate limit')) {
-                console.warn("[LaneOrchestrator] Key exhausted in lane, rotating...");
+            if (
+                message.includes('429') || 
+                message.includes('quota') || 
+                message.includes('exhausted') || 
+                message.includes('rate limit') ||
+                message.includes('fetch') ||
+                message.includes('network') ||
+                message.includes('timeout')
+            ) {
+                console.warn("[LaneOrchestrator] Key/Lane issue, rotating key in lane...", message);
                 continue;
             }
             throw e;
         }
     }
-    throw lastError;
+    
+    // If active keys failed, try one final attempt with empty key (server will use default GEMINI_API_KEY)
+    if (activeKeys.length > 0 && activeKeys[0] !== '') {
+        try {
+            return await apiCall('');
+        } catch (serverErr) {
+            lastError = serverErr;
+        }
+    }
+
+    if (lastError) throw lastError;
+    return await apiCall('');
 }
 
 export async function runWithModelFallback<T>(
     models: string[],
     callFn: (model: string) => Promise<T>
 ): Promise<T> {
-    let lastError;
-    for (const model of models) {
+    let lastError: any = null;
+    const modelList = models && models.length > 0 ? models : ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+    
+    for (const model of modelList) {
         try {
             return await callFn(model);
         } catch (e: any) {
@@ -422,6 +439,7 @@ export async function runWithModelFallback<T>(
                 msg.includes('quota') || 
                 msg.includes('overloaded') || 
                 msg.includes('503') || 
+                msg.includes('500') ||
                 msg.includes('fetch') || 
                 msg.includes('not found') || 
                 msg.includes('404') || 

@@ -3,6 +3,8 @@ import { Request, Response } from 'express';
 const STANDARD_FLASH_CASCADE = [
   'gemini-2.5-flash',
   'gemini-2.0-flash',
+  'gemini-1.5-flash',
+  'gemini-2.5-pro',
   'gemini-3.7-flash',
   'gemini-3.6-flash',
   'gemini-3.5-flash',
@@ -16,6 +18,7 @@ const STANDARD_FLASH_CASCADE = [
 const LITE_CASCADE = [
   'gemini-2.5-flash',
   'gemini-2.0-flash',
+  'gemini-1.5-flash',
   'gemini-3.5-flash-lite',
   'gemini-3.1-flash-lite',
   'gemma-4-26b',
@@ -35,20 +38,25 @@ export default async function handler(req: Request, res: Response) {
   }
 
   const { model, contents, config, apiKey: clientApiKey } = req.body;
-  const rawModel = typeof model === 'string' ? model.replace(/^models\//, '') : 'gemini-3.5-flash-lite';
+  const rawModel = typeof model === 'string' ? model.replace(/^models\//, '') : 'gemini-2.5-flash';
   const isLite = rawModel.includes('lite') || rawModel.includes('gemma');
 
   const isValid = (k: any) => typeof k === 'string' && k.trim().length > 5 && k !== 'undefined' && k !== 'null';
 
-  // Analysis Keys pool (Keys 1-4, Key 10, and GEMINI_API_KEY)
+  // Analysis Keys pool (GEMINI_API_KEY, Keys 1-10, and client override)
   const candidateKeys = [
+    process.env.GEMINI_API_KEY,
     process.env.API_KEY_10,
     process.env.GEMINI_API_KEY_10,
     process.env.API_KEY_3,
     process.env.API_KEY_1,
     process.env.API_KEY_2,
     process.env.API_KEY_4,
-    process.env.GEMINI_API_KEY,
+    process.env.API_KEY_5,
+    process.env.API_KEY_6,
+    process.env.API_KEY_7,
+    process.env.API_KEY_8,
+    process.env.API_KEY_9,
     process.env.API_KEY,
     clientApiKey,
   ].filter(isValid).map((k: any) => k.trim());
@@ -57,7 +65,7 @@ export default async function handler(req: Request, res: Response) {
 
   if (uniqueKeys.length === 0) {
     console.error('[GeminiProxy] No valid API key found.');
-    return res.status(400).json({ error: 'Gemini API key not configured or invalid.' });
+    return res.status(400).json({ error: 'Gemini API key not configured or invalid. Please check your environment configuration.' });
   }
 
   // Model sequence selection:
