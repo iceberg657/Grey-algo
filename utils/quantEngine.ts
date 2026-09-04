@@ -2226,6 +2226,34 @@ export function analyzeSMC(
 
     const greyModelPrediction = calculateGM11(closes.slice(-100), 3);
 
+    // Calibrated Stop Loss Distance & Breathing Room for lower timeframes / 1-minute chart
+    const upperSym = (assetSymbol || '').toUpperCase();
+    let minSafetyDist = currentPrice * 0.0008; // Base 8 pips default on 5-digit forex
+    if (upperSym.includes('JPY')) {
+        minSafetyDist = Math.max(minSafetyDist, 0.12); // At least 12-15 pips on JPY pairs
+    } else if (upperSym.includes('XAU') || upperSym.includes('GOLD')) {
+        minSafetyDist = Math.max(minSafetyDist, 2.5); // At least $2.50 on Gold
+    } else if (upperSym.includes('BTC')) {
+        minSafetyDist = Math.max(minSafetyDist, 200.0); // At least $200 on BTC
+    } else if (upperSym.includes('ETH')) {
+        minSafetyDist = Math.max(minSafetyDist, 15.0);
+    } else if (upperSym.includes('US30') || upperSym.includes('DJI') || upperSym.includes('DOW')) {
+        minSafetyDist = Math.max(minSafetyDist, 35.0); // At least 35 points on US30
+    } else if (upperSym.includes('NAS') || upperSym.includes('US100') || upperSym.includes('NDX')) {
+        minSafetyDist = Math.max(minSafetyDist, 20.0); // At least 20 points on NAS100
+    } else if (upperSym.includes('SPX') || upperSym.includes('US500')) {
+        minSafetyDist = Math.max(minSafetyDist, 6.0);
+    } else if (upperSym.includes('BOOM') || upperSym.includes('CRASH') || upperSym.includes('VOLATILITY') || upperSym.includes('V100') || upperSym.includes('V75')) {
+        minSafetyDist = Math.max(minSafetyDist, currentPrice * 0.003);
+    } else {
+        // Standard Forex pairs like EURUSD, AUDUSD, GBPUSD: minimum 8 to 12 pips (0.0008 - 0.0012)
+        minSafetyDist = Math.max(minSafetyDist, 0.0008);
+    }
+
+    const effectiveAtr = Math.max(atr || 0, minSafetyDist * 0.8);
+    const calibratedAtrMultiplier = 1.8; // Calibrated breathing room for lower timeframes
+    const standardMinDist = Math.max(minSafetyDist, effectiveAtr * calibratedAtrMultiplier);
+
     // Level 2 Liquidity Shielded Stop Loss Protection
     let l2ShieldNote = 'Structural ATR Protection';
     if (l2Metrics && (l2Metrics as any).liquidityWalls && (l2Metrics as any).liquidityWalls.length > 0) {
@@ -2233,13 +2261,17 @@ export function analyzeSMC(
         if (explicitSignal === 'BUY') {
             const supp = walls.find((w: any) => w.type === 'SUPPORT' && w.price < currentPrice);
             if (supp) {
-                mathematicalSL = Math.min(mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5), supp.price - (atr || currentPrice * 0.001) * 0.4);
+                const wallSL = supp.price - effectiveAtr * 0.5;
+                // Ensure wall SL has adequate calibrated distance from entry
+                mathematicalSL = Math.min(currentPrice - standardMinDist, wallSL);
                 l2ShieldNote = `Shielded behind Level 2 Orderbook Support Wall @ ${formatAssetPrice(supp.price, assetSymbol)}`;
             }
         } else if (explicitSignal === 'SELL') {
             const res = walls.find((w: any) => w.type === 'RESISTANCE' && w.price > currentPrice);
             if (res) {
-                mathematicalSL = Math.max(mathematicalSL || (currentPrice + (atr || currentPrice * 0.002) * 1.5), res.price + (atr || currentPrice * 0.001) * 0.4);
+                const wallSL = res.price + effectiveAtr * 0.5;
+                // Ensure wall SL has adequate calibrated distance from entry
+                mathematicalSL = Math.max(currentPrice + standardMinDist, wallSL);
                 l2ShieldNote = `Shielded behind Level 2 Orderbook Resistance Wall @ ${formatAssetPrice(res.price, assetSymbol)}`;
             }
         }
@@ -2248,47 +2280,58 @@ export function analyzeSMC(
             const sellStops = stopClusters.filter(s => s.type === 'SELL_STOP_LIQUIDITY' && s.price < currentPrice);
             if (sellStops.length > 0) {
                 const lowestStop = Math.min(...sellStops.map(s => s.price));
-                mathematicalSL = Math.min(mathematicalSL || (currentPrice - (atr || currentPrice * 0.002) * 1.5), lowestStop - (atr || currentPrice * 0.001) * 0.5);
+                const clusterSL = lowestStop - effectiveAtr * 0.5;
+                mathematicalSL = Math.min(currentPrice - standardMinDist, clusterSL);
                 l2ShieldNote = `Shielded behind Institutional Sell Stop Liquidity Pool @ ${formatAssetPrice(lowestStop, assetSymbol)}`;
             }
         } else if (explicitSignal === 'SELL') {
             const buyStops = stopClusters.filter(s => s.type === 'BUY_STOP_LIQUIDITY' && s.price > currentPrice);
             if (buyStops.length > 0) {
                 const highestStop = Math.max(...buyStops.map(s => s.price));
-                mathematicalSL = Math.max(mathematicalSL || (currentPrice + (atr || currentPrice * 0.002) * 1.5), highestStop + (atr || currentPrice * 0.001) * 0.5);
+                const clusterSL = highestStop + effectiveAtr * 0.5;
+                mathematicalSL = Math.max(currentPrice + standardMinDist, clusterSL);
                 l2ShieldNote = `Shielded behind Institutional Buy Stop Liquidity Pool @ ${formatAssetPrice(highestStop, assetSymbol)}`;
             }
         }
     }
 
+    // Fallback and validation for Stop Loss
+    const isBuy = explicitSignal === 'BUY';
+    const fallbackSL = isBuy ? currentPrice - standardMinDist : currentPrice + standardMinDist;
+    
     if (mathematicalSL > 0) {
+        // Enforce that mathematicalSL is not too tight
+        const currentDist = Math.abs(currentPrice - mathematicalSL);
+        if (currentDist < standardMinDist || (isBuy && mathematicalSL >= currentPrice) || (!isBuy && mathematicalSL <= currentPrice)) {
+            mathematicalSL = fallbackSL;
+        }
         mathematicalSL = roundAssetPrice(mathematicalSL, assetSymbol);
+    } else {
+        mathematicalSL = roundAssetPrice(fallbackSL, assetSymbol);
     }
 
-    // Calculate precision Scalp & Market Execution Targets (enforcing 1:2 to 1:3 minimum Risk-to-Reward ratio)
-    const isBuy = explicitSignal === 'BUY';
-    const fallbackSL = isBuy ? currentPrice - (atr || currentPrice * 0.002) * 1.5 : currentPrice + (atr || currentPrice * 0.002) * 1.5;
-    const finalSL = roundAssetPrice(mathematicalSL || fallbackSL, assetSymbol);
+    // Calculate precision Scalp & Market Execution Targets (enforcing ALWAYS 1:2.0 minimum Risk-to-Reward ratio on lower timeframe)
+    const finalSL = mathematicalSL;
     const slDist = Math.abs(currentPrice - finalSL);
-    const scalpRiskPips = slDist > 0 ? slDist : (atr || currentPrice * 0.002) * 1.5;
+    const scalpRiskPips = Math.max(slDist, standardMinDist);
 
     const scalpTargets = {
         entry: roundAssetPrice(currentPrice, assetSymbol),
         marketExecutionRange: {
-            minPrice: roundAssetPrice(isBuy ? currentPrice - (atr || currentPrice * 0.001) * 0.1 : currentPrice, assetSymbol),
-            maxPrice: roundAssetPrice(isBuy ? currentPrice : currentPrice + (atr || currentPrice * 0.001) * 0.1, assetSymbol),
+            minPrice: roundAssetPrice(isBuy ? currentPrice - effectiveAtr * 0.1 : currentPrice, assetSymbol),
+            maxPrice: roundAssetPrice(isBuy ? currentPrice : currentPrice + effectiveAtr * 0.1, assetSymbol),
             executionMode: 'IMMEDIATE_MARKET_EXECUTION',
-            maxAllowedSlippage: ((atr || currentPrice * 0.001) * 0.15).toFixed(getAssetPrecision(assetSymbol))
+            maxAllowedSlippage: (effectiveAtr * 0.15).toFixed(getAssetPrecision(assetSymbol))
         },
         stopLoss: finalSL,
         l2ShieldNote,
-        tp1: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 1.5 : currentPrice - scalpRiskPips * 1.5, assetSymbol),
-        tp2: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 2.5 : currentPrice - scalpRiskPips * 2.5, assetSymbol),
-        tp3: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 3.5 : currentPrice - scalpRiskPips * 3.5, assetSymbol),
-        riskRewardRatio: "1:2.5",
-        minScalpRR: "1:2.0 - 1:3.5 (1:1.5 for fast friction setups)",
+        tp1: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 2.0 : currentPrice - scalpRiskPips * 2.0, assetSymbol),
+        tp2: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 3.0 : currentPrice - scalpRiskPips * 3.0, assetSymbol),
+        tp3: roundAssetPrice(isBuy ? currentPrice + scalpRiskPips * 4.5 : currentPrice - scalpRiskPips * 4.5, assetSymbol),
+        riskRewardRatio: "1:2.0",
+        minScalpRR: "1:2.0 - 1:3.5 (Always 1:2.0 minimum on lower timeframe)",
         pipsAtRisk: scalpRiskPips,
-        targetProfitPips: scalpRiskPips * 2.5
+        targetProfitPips: scalpRiskPips * 2.0
     };
 
     const sessionAnchors = calculateSessionOpeningAnchors(candles, currentPrice);

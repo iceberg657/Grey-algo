@@ -58,55 +58,51 @@ export function calculateTPSL(
   
   // Use ATR from Twelve Data if available for a "Volatility Buffer"
   const atr = twelveDataQuote?.atr ? parseFloat(twelveDataQuote.atr) : null;
-  const genericMinDist = baseEntry * 0.0015; // Increased generic fallback safety
+  const genericMinDist = Math.max(baseEntry * 0.0008, 0.0008); // Calibrated minimum safety floor (e.g. 8-10 pips on Forex)
   
   // Use a safer default for config minimums, ensuring enough breathing room
-  let configMinDist = marketConfig ? marketConfig.minStopLoss * 1.5 : genericMinDist;
+  let configMinDist = marketConfig ? Math.max(marketConfig.minStopLoss * 1.5, genericMinDist) : genericMinDist;
   
-  // If ATR is available, use it to define a safe minimum distance (1.2x ATR for standard, 0.8x for scalping) -> Much wider than before
+  // If ATR is available, use it to define a safe minimum distance (at least 1.5x - 2.0x ATR for lower timeframe breathing room)
   if (atr && !isNaN(atr)) {
-      const atrMultiplier = isScalping ? 0.8 : 1.5;
+      const atrMultiplier = isScalping ? 1.5 : 2.0;
       configMinDist = Math.max(configMinDist, atr * atrMultiplier);
   }
 
-  if (isScalping && !atr) {
-      configMinDist = configMinDist * 0.6; // Not as tight
-  }
-
-  // ABSOLUTE FLOORS FOR VOLATILE ASSETS TO PREVENT TINY STOP LOSSES
+  // ABSOLUTE CALIBRATED FLOORS FOR ASSETS TO PREVENT TINY/TIGHT STOP LOSSES ON 1M/LOWER TIMEFRAMES
   const upperAsset = asset.toUpperCase();
-  if (upperAsset.includes('XAU') || upperAsset.includes('GOLD')) {
-      configMinDist = Math.max(configMinDist, 2.0); // At least $2 move for Gold
+  if (upperAsset.includes('JPY')) {
+      configMinDist = Math.max(configMinDist, 0.12); // At least 12-15 pips on JPY pairs
+  } else if (upperAsset.includes('XAU') || upperAsset.includes('GOLD')) {
+      configMinDist = Math.max(configMinDist, 2.5); // At least $2.50 move for Gold
   } else if (upperAsset.includes('BTC')) {
-      configMinDist = Math.max(configMinDist, 150);
-  } else if (upperAsset.includes('US30') || upperAsset.includes('DJI') || upperAsset.includes('NAS')) {
-      configMinDist = Math.max(configMinDist, 20);
+      configMinDist = Math.max(configMinDist, 200);
+  } else if (upperAsset.includes('ETH')) {
+      configMinDist = Math.max(configMinDist, 15.0);
+  } else if (upperAsset.includes('US30') || upperAsset.includes('DJI') || upperAsset.includes('DOW')) {
+      configMinDist = Math.max(configMinDist, 35.0);
+  } else if (upperAsset.includes('NAS') || upperAsset.includes('NDX') || upperAsset.includes('US100')) {
+      configMinDist = Math.max(configMinDist, 20.0);
+  } else if (upperAsset.includes('SPX') || upperAsset.includes('US500')) {
+      configMinDist = Math.max(configMinDist, 6.0);
   } else if (upperAsset.includes('BOOM') || upperAsset.includes('CRASH')) {
       configMinDist = Math.max(configMinDist, 3.0);
   }
   
   let currentSlDist = Math.abs(baseEntry - stopLoss);
 
-
-  // If SL is invalid, too close, or on wrong side, Recalculate
-  // Increase strictness for when AI gives us a tiny stop loss
+  // If SL is invalid, too close, or on wrong side, Recalculate with calibrated buffer
   const isSlValid = stopLoss > 0 && currentSlDist >= configMinDist;
   const isSlCorrectSide = signal === 'BUY' ? stopLoss < baseEntry : stopLoss > baseEntry;
 
   if (!isSlValid || !isSlCorrectSide) {
-      // Create safer SL based on ATR-like logic or config minimum
-      const bufferMultiplier = isScalping ? 1.5 : 2.0;
-      
-      // Give it breathing room, don't just snap to the bare minimum
-      let buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist * bufferMultiplier : currentSlDist * 1.1); 
+      // Create safer SL based on ATR-like logic or config minimum with calibrated breathing room
+      const buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist * 1.2 : currentSlDist);
       
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
   }
 
-  // PRECISE ADJUSTMENT: If the AI provided a valid SL, we keep it as is (Precision).
-  // If we had to recalculate, we use the buffer.
-  // We no longer arbitrarily reduce the SL distance by 20% to keep it "Precise" to the technical level.
   const originalSlDist = currentSlDist;
 
   // 3. ENFORCE DISTINCT ENTRIES
@@ -123,13 +119,13 @@ export function calculateTPSL(
       }
   }
 
-  // 4. Calculate Distinct Take Profits based on R:R
+  // 4. Calculate Distinct Take Profits based on R:R (ALWAYS 1:2.0 minimum on lower timeframes/scalps)
   const takeProfits: [number, number, number] = [0, 0, 0];
   const tpDistances: [number, number, number] = [0, 0, 0];
   
   const rUnit = currentSlDist; 
-  // GreyAlpha standard RR range: 1:2 to 1:3.5 (with 1:1.5 for scalps / certain setups)
-  const ratios = isScalping ? [1.5, 2.5, 3.5] : [2.0, 2.8, Math.max(3.5, targetRatio)]; 
+  // GreyAlpha standard RR range: ALWAYS 1:2.0 minimum on lower timeframes
+  const ratios = isScalping ? [2.0, 3.0, 4.5] : [2.0, 3.0, Math.max(4.5, targetRatio)]; 
 
   ratios.forEach((r, idx) => {
       const dist = rUnit * r;
