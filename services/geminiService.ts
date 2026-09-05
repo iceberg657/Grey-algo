@@ -2381,6 +2381,7 @@ export async function generateAntigravityResearch(
     initialAnalysis?: SignalData,
     macroContext?: string
 ): Promise<AntigravityVerdict> {
+    const retailSignal = initialAnalysis;
     const prompt = `You are the Antigravity Agent, an elite institutional deep-research trading agent.
 Your primary objective is to act as a QuantConnect Algorithmic Strategy Router & Dynamic Verification Engine.
 Hardcoded, rigid rules are causing unprofitable bleeding losses. We are transitioning to a fully adaptive, dynamic architecture that maps the current market structure to QuantConnect Lean quantitative algorithms.
@@ -2495,9 +2496,10 @@ Return your response in a structured JSON object matching the AntigravityVerdict
         }, getAntigravityPool);
     } catch (err) {
         console.warn("[GeminiService] Antigravity model call failed, generating deterministic institutional audit:", err);
+        const resolvedSignal = (initialAnalysis?.signal || retailSignal?.signal || 'BUY').toUpperCase();
         const fallbackVerdict: AntigravityVerdict = {
-            verdict: retailSignal.signal === 'BUY' ? 'PROCEED_BUY' : (retailSignal.signal === 'SELL' ? 'PROCEED_SELL' : 'PROCEED_BUY'),
-            confidence: Math.max(75, retailSignal.confidence || 75),
+            verdict: resolvedSignal === 'BUY' ? 'PROCEED_BUY' : (resolvedSignal === 'SELL' ? 'PROCEED_SELL' : 'PROCEED_BUY'),
+            confidence: Math.max(75, initialAnalysis?.confidence || retailSignal?.confidence || 75),
             flawsFound: [
                 'Session liquidity concentration near recent swing highs and lows.',
                 'Ensure strict 1:2.0+ Risk-to-Reward and ATR-based Stop Loss execution.'
@@ -2505,7 +2507,7 @@ Return your response in a structured JSON object matching the AntigravityVerdict
             quantConnectStrategyId: 'QC-SMC-DYNAMIC-ALPHA',
             dynamicLotMultiplier: '1.0x (Standard Kelly Calibration)',
             dynamicRiskReward: '1:2.5 (Institutional Target Range)',
-            executiveSummary: `Institutional orderflow alignment audited for ${asset}. Technical trend structure and multi-timeframe liquidity support the ${retailSignal.signal || 'active'} bias.`,
+            executiveSummary: `Institutional orderflow alignment audited for ${asset}. Technical trend structure and multi-timeframe liquidity support the ${resolvedSignal} bias.`,
             deepAnalysisMarkdown: `### 🔬 Institutional Order Flow Verification\n- **Asset**: ${asset}\n- **Market Structure**: Multi-timeframe trend alignment confirmed\n- **Risk Protocol**: Calibrated Stop Loss and minimum 1:2.0 RR target verified.\n- **Confluence**: SMC Fair Value Gap and Key Liquidity levels align with setup.`
         };
         return fallbackVerdict;

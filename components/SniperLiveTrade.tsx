@@ -33,7 +33,7 @@ import {
   Layers
 } from 'lucide-react';
 import { QuantEnginePipeline, MarketSeries, MarketBar } from '../utils/advancedExecutionEngines';
-import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal, formatPrice } from '../services/geminiService';
+import { generateSniperLiveSignal, generateAntigravityResearch, generateMacroContext, generateRegularRetailSignal, generateQuantitativeFallbackSignal, formatPrice } from '../services/geminiService';
 import { TradingStyle, SignalData, UserMetadata, UserSettings, AntigravityVerdict } from '../types';
 import { SNIPER_MODELS, SNIPER_MODEL_CONFIGS, findSniperModelConfig } from '../services/retryUtils';
 import { Loader } from './Loader';
@@ -1427,12 +1427,19 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
       });
 
       // 1.5 Generate the regular/retail preliminary signal using the 300-candle model
-      const retailSignal = await generateRegularRetailSignal(
-        currentQuery,
-        style,
-        derivData,
-        userSettings
-      );
+      let retailSignal: SignalData;
+      try {
+        retailSignal = await generateRegularRetailSignal(
+          currentQuery,
+          style,
+          derivData,
+          userSettings
+        );
+      } catch (retailErr) {
+        console.warn("[SniperLiveTrade] Regular retail signal fallback engaged:", retailErr);
+        const refPrice = currentLivePrice || (derivData?.candles?.length ? derivData.candles[derivData.candles.length - 1].close : 100);
+        retailSignal = generateQuantitativeFallbackSignal(asset, refPrice, derivData, style, userSettings);
+      }
 
       // 2. Dispatch Antigravity Agent to act as Devil's Advocate (auditing the retail setup with 1,000 candles)
       setMessages(prev => {
