@@ -85,9 +85,9 @@ export const HistoryPage: React.FC<HistoryPageProps> = ({ onSelectAnalysis, onBa
 
         const csvRows = history.map(row => {
             const timestamp = new Date(row.timestamp).toLocaleString();
-            const takeProfits = row.takeProfits.join(' | ');
-            const reasoning = row.reasoning.join(' | ');
-            const checklist = row.checklist ? row.checklist.join(' | ') : '';
+            const takeProfits = (row.takeProfits || []).map((tp: any) => typeof tp === 'object' && tp !== null ? (tp.price || JSON.stringify(tp)) : String(tp)).join(' | ');
+            const reasoning = (row.reasoning || []).map((r: any) => typeof r === 'object' && r !== null ? (r.text || r.reason || JSON.stringify(r)) : String(r)).join(' | ');
+            const checklist = (row.checklist || []).map((c: any) => typeof c === 'object' && c !== null ? (c.item || c.name || JSON.stringify(c)) : String(c)).join(' | ');
             const invalidation = row.invalidationScenario || '';
             const sources = row.sources ? row.sources.map(s => s.uri).join(' | ') : '';
             const entryPoints = row.entryPoints.join(' | ');

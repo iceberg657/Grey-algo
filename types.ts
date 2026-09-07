@@ -193,7 +193,7 @@ export interface SignalData {
     positionProtocol?: string;
     reasoning: string[];
     insight: string;
-    checklist?: string[];
+    checklist?: (string | { item: string; passed?: boolean })[];
     invalidationScenario?: string;
     counterArgumentRejection?: string;
     model?: string;

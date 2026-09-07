@@ -1823,10 +1823,16 @@ function getAssetPrecision(asset: string): number {
     return 5;
 }
 
-export function sanitizeTextOutput(text: string): string {
-    if (!text || typeof text !== 'string') return text || '';
+export function sanitizeTextOutput(text: any): string {
+    if (text === undefined || text === null) return '';
+    let rawStr: string;
+    if (typeof text === 'object') {
+        rawStr = text.item || text.text || text.name || text.description || text.title || JSON.stringify(text);
+    } else {
+        rawStr = String(text);
+    }
     const runawayPattern = /\b(?:safely|nicely|properly|correctly|accurately|immediately|precisely|truly|exactly|cleanly|perfectly|smoothly|indeed|strictly|right\s+away|here|today|now|done|fine|well|securely)\b(?:\s+\b(?:safely|nicely|properly|correctly|accurately|immediately|precisely|truly|exactly|cleanly|perfectly|smoothly|indeed|strictly|right\s+away|here|today|now|done|fine|well|securely)\b){2,}/gi;
-    let cleaned = text.replace(runawayPattern, '.');
+    let cleaned = rawStr.replace(runawayPattern, '.');
     cleaned = cleaned.replace(/\s*\.\s*\./g, '.').replace(/\s{2,}/g, ' ').trim();
     return cleaned;
 }
@@ -2234,10 +2240,10 @@ export function generateQuantitativeFallbackSignal(
             `Standard institutional target projection aiming for 1:2.0 minimum R:R.`
         ],
         checklist: [
-            { item: 'Market Structure & Liquidity Sweep Confirmation', passed: true },
-            { item: 'Fair Value Gap (FVG) Mitigation Zone', passed: true },
-            { item: 'Minimum 1:2.0 Risk-to-Reward Ratio', passed: true },
-            { item: 'Volatility / ATR Spread Protection', passed: true }
+            'Market Structure & Liquidity Sweep Confirmation',
+            'Fair Value Gap (FVG) Mitigation Zone',
+            'Minimum 1:2.0 Risk-to-Reward Ratio',
+            'Volatility / ATR Spread Protection'
         ],
         candlestickPatterns: ['Institutional Order Block', 'Fair Value Gap Mitigation'],
         insight: `Quantitative Smart Money Setup for ${asset} generated via algorithmic market structure validator.`,

@@ -700,10 +700,30 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
     const q = firestoreQuery(msgRef, orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        ...doc.data(),
-        id: doc.id
-      })) as SniperMessage[];
+      const msgs = snapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        if (data?.signal) {
+          if (Array.isArray(data.signal.checklist)) {
+            data.signal.checklist = data.signal.checklist.map((item: any) => 
+              typeof item === 'object' && item !== null ? (item.item || item.text || item.name || JSON.stringify(item)) : String(item || '')
+            );
+          }
+          if (Array.isArray(data.signal.reasoning)) {
+            data.signal.reasoning = data.signal.reasoning.map((r: any) =>
+              typeof r === 'object' && r !== null ? (r.text || r.reason || JSON.stringify(r)) : String(r || '')
+            );
+          }
+          if (Array.isArray(data.signal.candlestickPatterns)) {
+            data.signal.candlestickPatterns = data.signal.candlestickPatterns.map((p: any) =>
+              typeof p === 'object' && p !== null ? (p.pattern || p.name || JSON.stringify(p)) : String(p || '')
+            );
+          }
+        }
+        return {
+          ...data,
+          id: doc.id
+        };
+      }) as SniperMessage[];
       
       // Push Notification trigger system for real-time live trading signals
       msgs.forEach((msg) => {
@@ -2776,10 +2796,11 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                   )}
                                 </div>
                                 <div className="space-y-2">
-                                  {msg.signal.reasoning?.map((r, i) => {
-                                    const parts = r.split(':');
+                                  {msg.signal.reasoning?.map((r: any, i) => {
+                                    const rStr = typeof r === 'object' && r !== null ? (r.text || r.reason || JSON.stringify(r)) : String(r || '');
+                                    const parts = rStr.split(':');
                                     const title = parts.length > 1 ? parts[0] : '';
-                                    const content = parts.length > 1 ? parts.slice(1).join(':').trim() : r;
+                                    const content = parts.length > 1 ? parts.slice(1).join(':').trim() : rStr;
                                     
                                     return (
                                       <div key={i} className="flex items-start gap-3 bg-white/30 dark:bg-slate-900/30 p-3 rounded-2xl border border-slate-200/30 dark:border-slate-800/30">
@@ -3090,12 +3111,16 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                 <Shield className="w-3 h-3" /> Institutional Checklist
                               </h3>
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                                {msg.signal.checklist?.map((item, i) => (
-                                  <div key={i} className="flex items-center gap-3 text-xs text-slate-500">
-                                    <CheckCircle2 className="w-4 h-4 text-emerald-500/50" />
-                                    {item}
-                                  </div>
-                                ))}
+                                {msg.signal.checklist?.map((item: any, i: number) => {
+                                  const itemText = typeof item === 'object' && item !== null ? (item.item || item.text || item.name || JSON.stringify(item)) : String(item || '');
+                                  const isPassed = typeof item === 'object' && item !== null && 'passed' in item ? Boolean(item.passed) : true;
+                                  return (
+                                    <div key={i} className="flex items-center gap-3 text-xs text-slate-500">
+                                      <CheckCircle2 className={`w-4 h-4 ${isPassed ? 'text-emerald-500/80' : 'text-slate-400'}`} />
+                                      <span className={isPassed ? 'text-slate-700 dark:text-slate-300 font-medium' : 'text-slate-400 line-through'}>{itemText}</span>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
 
@@ -3118,15 +3143,18 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
                                     <span className="text-[9px] font-black uppercase tracking-widest text-slate-400 block mb-2">Detected Candlestick Patterns</span>
                                     {msg.signal.candlestickPatterns && msg.signal.candlestickPatterns.length > 0 ? (
                                       <div className="flex flex-wrap gap-2">
-                                        {msg.signal.candlestickPatterns?.map((pattern, idx) => (
-                                          <span 
-                                            key={idx} 
-                                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15"
-                                          >
-                                            <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
-                                            {pattern}
-                                          </span>
-                                        ))}
+                                        {msg.signal.candlestickPatterns?.map((pattern: any, idx: number) => {
+                                          const patternText = typeof pattern === 'object' && pattern !== null ? (pattern.pattern || pattern.name || JSON.stringify(pattern)) : String(pattern || '');
+                                          return (
+                                            <span 
+                                              key={idx} 
+                                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/15"
+                                            >
+                                              <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                              {patternText}
+                                            </span>
+                                          );
+                                        })}
                                       </div>
                                     ) : (
                                       <span className="text-xs text-slate-400 font-medium italic">No distinct candlestick patterns detected in the current micro-session.</span>
