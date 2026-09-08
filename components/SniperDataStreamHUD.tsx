@@ -84,12 +84,12 @@ export const SniperDataStreamHUD: React.FC<SniperDataStreamHUDProps> = ({
   // Subscribe to model health reports & trigger passive probe if needed
   useEffect(() => {
     const unsub = modelHealthService.subscribe((report) => {
-      if (!activeModel || report.model === activeModel || activeModel.includes(report.model) || report.model.includes(activeModel)) {
+      if (!activeModel || !report.model || report.model === activeModel || activeModel.includes(report.model) || report.model.includes(activeModel)) {
         setModelHealth(report);
       }
     });
 
-    if (!modelHealthService.getLatestReport(activeModel)) {
+    if (!modelHealthService.getLatestReport()) {
       modelHealthService.run2KTokenDataTest(activeModel, false).catch(() => {});
     }
 
@@ -103,14 +103,16 @@ export const SniperDataStreamHUD: React.FC<SniperDataStreamHUDProps> = ({
     try {
       const res = await modelHealthService.run2KTokenDataTest(activeModel, true);
       setModelHealth(res);
-      if (res.status === 'optimal') {
-        setStatusMessage(`Neural pipeline verified: ${res.latencyMs}ms (${res.tokensPerSec} tok/s) - zero traffic hold-up.`);
-      } else if (res.status === 'moderate') {
-        setStatusMessage(`Neural pipeline stable: ${res.latencyMs}ms (${res.tokensPerSec} tok/s).`);
-      } else if (res.status === 'congested') {
+      const upperStatus = res.status?.toUpperCase();
+      const tp = res.tokensPerSec ?? res.throughput ?? 0;
+      if (upperStatus === 'OPTIMAL') {
+        setStatusMessage(`Neural pipeline verified: ${res.latencyMs}ms (${tp} tok/s) - zero traffic hold-up.`);
+      } else if (upperStatus === 'MODERATE') {
+        setStatusMessage(`Neural pipeline stable: ${res.latencyMs}ms (${tp} tok/s).`);
+      } else if (upperStatus === 'HOLD_UP' || upperStatus === 'CONGESTED') {
         setStatusMessage(`Traffic hold-up alert: latency is ${res.latencyMs}ms on ${activeModel}.`);
       } else {
-        setStatusMessage(`Model ping failed: ${res.error || 'Check API key or network'}`);
+        setStatusMessage(`Model ping status: ${res.summary || 'Pipeline offline'}`);
       }
     } catch (e: any) {
       setStatusMessage(`2K test error: ${e.message || 'Probe failed'}`);
@@ -320,7 +322,7 @@ export const SniperDataStreamHUD: React.FC<SniperDataStreamHUDProps> = ({
           </div>
           <div className="flex items-baseline justify-between">
             <span className="text-sm sm:text-base font-mono font-black text-slate-900 dark:text-white">
-              {l1Data?.price ? l1Data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 }) : '---'}
+              {typeof l1Data?.price === 'number' ? l1Data.price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 }) : '---'}
             </span>
             <span className={`text-[9px] font-mono font-bold ${
               (l1Data?.microImbalance || 0) >= 0 ? 'text-emerald-500' : 'text-rose-500'
@@ -397,43 +399,63 @@ export const SniperDataStreamHUD: React.FC<SniperDataStreamHUDProps> = ({
       {/* Real-Time Neural Model Network Traffic & 2K Token Data Flow Strip */}
       <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800/60 bg-gradient-to-r from-slate-50/90 via-slate-50/40 to-indigo-50/30 dark:from-slate-900/90 dark:via-slate-900/40 dark:to-indigo-950/30 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 flex-wrap">
-          <div className="flex items-center gap-1.5">
-            <span className={`w-2 h-2 rounded-full ${
-              !modelHealth ? 'bg-slate-400' :
-              modelHealth.status === 'optimal' ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50 animate-pulse' :
-              modelHealth.status === 'moderate' ? 'bg-amber-500 shadow-xs shadow-amber-500/50' :
-              modelHealth.status === 'congested' ? 'bg-red-500 shadow-xs shadow-red-500/50 animate-ping' :
-              'bg-rose-600'
-            }`} />
-            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-700 dark:text-slate-300">
-              Network Traffic:
-            </span>
-            <span className={`text-[10px] font-mono font-black uppercase px-1.5 py-0.5 rounded ${
-              !modelHealth ? 'text-slate-500 bg-slate-100 dark:bg-slate-800' :
-              modelHealth.status === 'optimal' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' :
-              modelHealth.status === 'moderate' ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20' :
-              modelHealth.status === 'congested' ? 'text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30' :
-              'text-rose-500 bg-rose-500/10'
-            }`}>
-              {!modelHealth ? 'IDLE' :
-               modelHealth.status === 'optimal' ? 'OPTIMAL FLOW (NO HOLD-UP)' :
-               modelHealth.status === 'moderate' ? 'MODERATE LATENCY' :
-               modelHealth.status === 'congested' ? 'DATA FLOW HOLD-UP' :
-               'OFFLINE / ERROR'}
-            </span>
-          </div>
+          {(() => {
+            const rawStatus = (modelHealth?.status || '').toUpperCase();
+            const isOptimal = rawStatus === 'OPTIMAL';
+            const isModerate = rawStatus === 'MODERATE';
+            const isHoldUp = rawStatus === 'HOLD_UP' || rawStatus === 'CONGESTED' || modelHealth?.trafficHoldUp;
+            const isOffline = rawStatus === 'OFFLINE';
 
-          {modelHealth && (
-            <div className="flex items-center gap-2 text-[9px] font-mono text-slate-500 dark:text-slate-400">
-              <span>Ping: <strong className="text-slate-800 dark:text-slate-200">{modelHealth.latencyMs}ms</strong></span>
-              <span>•</span>
-              <span>Throughput: <strong className="text-slate-800 dark:text-slate-200">{modelHealth.tokensPerSec.toLocaleString()} tok/s</strong></span>
-              <span>•</span>
-              <span className="text-slate-400 font-mono truncate max-w-[120px]" title={modelHealth.model}>
-                {modelHealth.model.replace('gemini-', '')}
-              </span>
-            </div>
-          )}
+            let dotColor = 'bg-slate-400';
+            let badgeBg = 'text-slate-500 bg-slate-100 dark:bg-slate-800';
+            let label = 'IDLE';
+
+            if (isOptimal) {
+              dotColor = 'bg-emerald-500 shadow-xs shadow-emerald-500/50 animate-pulse';
+              badgeBg = 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20';
+              label = 'OPTIMAL FLOW (NO HOLD-UP)';
+            } else if (isModerate) {
+              dotColor = 'bg-amber-500 shadow-xs shadow-amber-500/50';
+              badgeBg = 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20';
+              label = 'MODERATE LATENCY';
+            } else if (isHoldUp) {
+              dotColor = 'bg-red-500 shadow-xs shadow-red-500/50 animate-ping';
+              badgeBg = 'text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30';
+              label = 'DATA FLOW HOLD-UP';
+            } else if (isOffline) {
+              dotColor = 'bg-rose-600';
+              badgeBg = 'text-rose-500 bg-rose-500/10 border border-rose-500/30';
+              label = 'OFFLINE / ERROR';
+            }
+
+            const throughputVal = modelHealth?.tokensPerSec ?? modelHealth?.throughput ?? (modelHealth?.latencyMs ? Math.round(2048 / (modelHealth.latencyMs / 1000)) : 0);
+
+            return (
+              <>
+                <div className="flex items-center gap-1.5">
+                  <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                  <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-700 dark:text-slate-300">
+                    Network Traffic:
+                  </span>
+                  <span className={`text-[10px] font-mono font-black uppercase px-1.5 py-0.5 rounded ${badgeBg}`}>
+                    {label}
+                  </span>
+                </div>
+
+                {modelHealth && (
+                  <div className="flex items-center gap-2 text-[9px] font-mono text-slate-500 dark:text-slate-400">
+                    <span>Ping: <strong className="text-slate-800 dark:text-slate-200">{modelHealth.latencyMs ?? 0}ms</strong></span>
+                    <span>•</span>
+                    <span>Throughput: <strong className="text-slate-800 dark:text-slate-200">{Number(throughputVal || 0).toLocaleString()} tok/s</strong></span>
+                    <span>•</span>
+                    <span className="text-slate-400 font-mono truncate max-w-[120px]" title={modelHealth.model}>
+                      {(modelHealth.model || activeModel || '').replace('gemini-', '')}
+                    </span>
+                  </div>
+                )}
+              </>
+            );
+          })()}
         </div>
 
         <div className="flex items-center gap-1.5">

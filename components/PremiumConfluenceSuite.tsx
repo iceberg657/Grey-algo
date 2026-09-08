@@ -973,10 +973,10 @@ JSON Schema:
                           ? 'text-rose-500' 
                           : 'text-slate-500 dark:text-slate-400'
                       }`}>
-                        {liveData.price.toLocaleString(undefined, { 
+                        {typeof liveData?.price === 'number' ? liveData.price.toLocaleString(undefined, { 
                           minimumFractionDigits: premiumAssetClass === 'Indices' ? 2 : (asset.includes('JPY') ? 3 : 5),
                           maximumFractionDigits: premiumAssetClass === 'Indices' ? 2 : (asset.includes('JPY') ? 3 : 5)
-                        })}
+                        }) : '---'}
                       </span>
                       {liveData.direction !== 'flat' && (
                         <span className={`text-[10px] ${liveData.direction === 'up' ? 'text-emerald-500' : 'text-rose-500'}`}>
