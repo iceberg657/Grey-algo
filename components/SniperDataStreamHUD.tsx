@@ -33,9 +33,11 @@ import {
   flushMasterStream, 
   normalizeStreamAsset 
 } from '../services/sniperDataStreamService';
+import { modelHealthService, ModelHealthReport } from '../services/modelHealthService';
 
 interface SniperDataStreamHUDProps {
   currentAsset: string;
+  activeModel?: string;
   onFlushComplete?: (result: { level1: Level1StreamData; level2: Level2StreamData }) => void;
   className?: string;
   isAdvancedGranted?: boolean;
@@ -54,6 +56,7 @@ const WATCHLIST_ASSETS = [
 
 export const SniperDataStreamHUD: React.FC<SniperDataStreamHUDProps> = ({
   currentAsset,
+  activeModel = 'gemini-3.5-flash',
   onFlushComplete,
   className = '',
   isAdvancedGranted = true
@@ -67,10 +70,54 @@ export const SniperDataStreamHUD: React.FC<SniperDataStreamHUDProps> = ({
   const [l1Data, setL1Data] = useState<Level1StreamData | null>(null);
   const [l2Data, setL2Data] = useState<Level2StreamData | null>(null);
   const [lastMasterFlush, setLastMasterFlush] = useState<MasterStreamFlushResult | null>(null);
+
+  // Gemini Model Health & Traffic Hold-Up Monitor
+  const [modelHealth, setModelHealth] = useState<ModelHealthReport | null>(() => 
+    modelHealthService.getLatestReport(activeModel)
+  );
+  const [isTesting2K, setIsTesting2K] = useState<boolean>(false);
   
   const [autoFlushInterval, setAutoFlushInterval] = useState<number>(0); // 0 = off, 10 = 10s, 30 = 30s, 60 = 60s
   const [timeUntilNextFlush, setTimeUntilNextFlush] = useState<number>(0);
   const [statusMessage, setStatusMessage] = useState<string>('Streaming engine idle and ready for ingestion.');
+
+  // Subscribe to model health reports & trigger passive probe if needed
+  useEffect(() => {
+    const unsub = modelHealthService.subscribe((report) => {
+      if (!activeModel || report.model === activeModel || activeModel.includes(report.model) || report.model.includes(activeModel)) {
+        setModelHealth(report);
+      }
+    });
+
+    if (!modelHealthService.getLatestReport(activeModel)) {
+      modelHealthService.run2KTokenDataTest(activeModel, false).catch(() => {});
+    }
+
+    return unsub;
+  }, [activeModel]);
+
+  const handleRun2KTest = async () => {
+    if (isTesting2K) return;
+    setIsTesting2K(true);
+    setStatusMessage(`Running 2K token neural pipeline test for ${activeModel}...`);
+    try {
+      const res = await modelHealthService.run2KTokenDataTest(activeModel, true);
+      setModelHealth(res);
+      if (res.status === 'optimal') {
+        setStatusMessage(`Neural pipeline verified: ${res.latencyMs}ms (${res.tokensPerSec} tok/s) - zero traffic hold-up.`);
+      } else if (res.status === 'moderate') {
+        setStatusMessage(`Neural pipeline stable: ${res.latencyMs}ms (${res.tokensPerSec} tok/s).`);
+      } else if (res.status === 'congested') {
+        setStatusMessage(`Traffic hold-up alert: latency is ${res.latencyMs}ms on ${activeModel}.`);
+      } else {
+        setStatusMessage(`Model ping failed: ${res.error || 'Check API key or network'}`);
+      }
+    } catch (e: any) {
+      setStatusMessage(`2K test error: ${e.message || 'Probe failed'}`);
+    } finally {
+      setIsTesting2K(false);
+    }
+  };
 
   // Sync selected asset with external currentAsset prop if it changes
   useEffect(() => {
@@ -344,6 +391,62 @@ export const SniperDataStreamHUD: React.FC<SniperDataStreamHUDProps> = ({
               {l1Data?.flushedAt ? new Date(l1Data.flushedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : 'Ready'}
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* Real-Time Neural Model Network Traffic & 2K Token Data Flow Strip */}
+      <div className="px-3 py-2 border-t border-slate-100 dark:border-slate-800/60 bg-gradient-to-r from-slate-50/90 via-slate-50/40 to-indigo-50/30 dark:from-slate-900/90 dark:via-slate-900/40 dark:to-indigo-950/30 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-1.5">
+            <span className={`w-2 h-2 rounded-full ${
+              !modelHealth ? 'bg-slate-400' :
+              modelHealth.status === 'optimal' ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50 animate-pulse' :
+              modelHealth.status === 'moderate' ? 'bg-amber-500 shadow-xs shadow-amber-500/50' :
+              modelHealth.status === 'congested' ? 'bg-red-500 shadow-xs shadow-red-500/50 animate-ping' :
+              'bg-rose-600'
+            }`} />
+            <span className="text-[10px] font-mono font-bold tracking-wider uppercase text-slate-700 dark:text-slate-300">
+              Network Traffic:
+            </span>
+            <span className={`text-[10px] font-mono font-black uppercase px-1.5 py-0.5 rounded ${
+              !modelHealth ? 'text-slate-500 bg-slate-100 dark:bg-slate-800' :
+              modelHealth.status === 'optimal' ? 'text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20' :
+              modelHealth.status === 'moderate' ? 'text-amber-600 dark:text-amber-400 bg-amber-500/10 border border-amber-500/20' :
+              modelHealth.status === 'congested' ? 'text-red-600 dark:text-red-400 bg-red-500/10 border border-red-500/30' :
+              'text-rose-500 bg-rose-500/10'
+            }`}>
+              {!modelHealth ? 'IDLE' :
+               modelHealth.status === 'optimal' ? 'OPTIMAL FLOW (NO HOLD-UP)' :
+               modelHealth.status === 'moderate' ? 'MODERATE LATENCY' :
+               modelHealth.status === 'congested' ? 'DATA FLOW HOLD-UP' :
+               'OFFLINE / ERROR'}
+            </span>
+          </div>
+
+          {modelHealth && (
+            <div className="flex items-center gap-2 text-[9px] font-mono text-slate-500 dark:text-slate-400">
+              <span>Ping: <strong className="text-slate-800 dark:text-slate-200">{modelHealth.latencyMs}ms</strong></span>
+              <span>•</span>
+              <span>Throughput: <strong className="text-slate-800 dark:text-slate-200">{modelHealth.tokensPerSec.toLocaleString()} tok/s</strong></span>
+              <span>•</span>
+              <span className="text-slate-400 font-mono truncate max-w-[120px]" title={modelHealth.model}>
+                {modelHealth.model.replace('gemini-', '')}
+              </span>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <button
+            id="btn-run-2k-test"
+            onClick={handleRun2KTest}
+            disabled={isTesting2K}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-600 dark:text-indigo-400 border border-indigo-500/30 text-[10px] font-mono font-bold tracking-wider transition-all cursor-pointer disabled:opacity-50"
+            title="Execute ~2K token data test to verify neural pipeline speed, check for traffic hold-up, and ensure model is online"
+          >
+            <Zap className={`w-3 h-3 ${isTesting2K ? 'animate-bounce text-amber-500' : 'text-indigo-500'}`} />
+            <span>{isTesting2K ? 'TESTING 2K TOKENS...' : '2K TOKEN DATA TEST'}</span>
+          </button>
         </div>
       </div>
 

@@ -409,6 +409,18 @@ class DerivStreamService {
         return this.getLatestPrices();
     }
 
+    public flushAllData(): void {
+        // Complete purge of cached/stale tick prices to guarantee fresh data ingestion
+        this.pricesMap.clear();
+        this.activeSubscriptions.clear();
+        this.lastTickTimestamp = 0;
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.subscribeAllSymbols();
+        } else {
+            this.startStream();
+        }
+    }
+
     public getLastTickTimestamp(): number {
         return this.lastTickTimestamp || Date.now();
     }

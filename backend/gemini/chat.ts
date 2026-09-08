@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { GoogleGenAI } from '@google/genai';
 
 const MODELS_TO_TRY = [
+  'gemini-3.8-flash',       // Model 3.8
   'gemini-3.7-flash',       // Model 1
   'gemini-3.6-flash',       // Model 2
   'gemini-3.5-flash',       // Model 3

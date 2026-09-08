@@ -2289,16 +2289,22 @@ export async function generateRegularRetailSignal(
     const confirmCandles = slicedMultiTimeframe?.confirm?.candles || [];
     const htfCandles = slicedMultiTimeframe?.htf?.candles || [];
 
+    const compactBars = (candles: any[], max: number = 80) => {
+        if (!candles || candles.length === 0) return 'None';
+        const sample = candles.slice(-max);
+        return sample.map(c => `[O:${c.open},H:${c.high},L:${c.low},C:${c.close}]`).join(';');
+    };
+
     const prompt = `You are the Regular Technical Analysis Model.
-Your perspective is comprehensive. You can see the last 300 candles of the market data on each timeframe to simulate a standard technical analyst evaluating medium-to-long term trends, key support/resistance zones, and indicators.
+Your perspective is comprehensive. You evaluate trends, key support/resistance zones, and indicators.
 
 Asset: ${assetName}
 Current Price: ${livePrice}
 
-Here is the historical data you can see (300 CANDLES PER TIMEFRAME):
-- Entry Timeframe (${derivData?.multiTimeframe?.entry?.granularity}s granularity, Last 300 candles): ${JSON.stringify(entryCandles)}
-- Confirmation Timeframe (${derivData?.multiTimeframe?.confirm?.granularity}s granularity, Last 300 candles): ${JSON.stringify(confirmCandles)}
-- Higher Timeframe (${derivData?.multiTimeframe?.htf?.granularity}s granularity, Last 300 candles): ${JSON.stringify(htfCandles)}
+Market Structure (Compact Candles [Open, High, Low, Close]):
+- Entry Timeframe (${derivData?.multiTimeframe?.entry?.granularity}s): ${compactBars(entryCandles, 80)}
+- Confirmation Timeframe (${derivData?.multiTimeframe?.confirm?.granularity}s): ${compactBars(confirmCandles, 80)}
+- Higher Timeframe (${derivData?.multiTimeframe?.htf?.granularity}s): ${compactBars(htfCandles, 80)}
 
 Trading Style requested: ${style}
 

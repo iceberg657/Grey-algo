@@ -8,6 +8,7 @@
 
 import { processRawL1Tick, Level1Tick, getPipMultiplier } from './level1DataProcessor';
 import { calculateL2OrderbookMetrics, detectAbsorptions, L2Metrics, AbsorptionLevel } from '../utils/orderflowEngine';
+import { derivStream } from './derivStreamService';
 
 export interface Level1StreamData {
   symbol: string;
@@ -456,6 +457,11 @@ export async function flushMasterStream(
 ): Promise<MasterStreamFlushResult> {
   const masterStart = performance.now();
   const normalized = normalizeStreamAsset(asset);
+
+  // Force-purge all WebSocket cached tick states so fresh ticks stream immediately
+  try {
+    derivStream.flushAllData();
+  } catch (_) {}
 
   // Execute both flushes concurrently for lowest pipeline latency
   const [l1Result, l2Result] = await Promise.all([

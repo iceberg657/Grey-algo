@@ -157,10 +157,11 @@ export const getSniperPool = () => {
     return keys.length > 0 ? keys : getAnalysisPool();
 };
 export const SNIPER_MODELS = [
-    'gemini-2.5-flash',
-    'gemini-2.0-flash',
+    'gemini-3.5-flash',       // Model 3
+    'gemini-3-flash-preview', // Model 4
     'gemini-3.5-flash-lite',  // Model 5
     'gemini-3.1-flash-lite',  // Model 6
+    'gemini-2.5-flash',
 ];
 
 export interface SniperModelOption {
@@ -169,16 +170,31 @@ export interface SniperModelOption {
     sublabel: string;
     isDefault?: boolean;
     isRed?: boolean;
+    isGreen?: boolean;
     isBlue?: boolean;
     color: string;
 }
 
 export const SNIPER_MODEL_CONFIGS: SniperModelOption[] = [
     {
+        id: 'gemini-3.5-flash',
+        label: 'Model 3',
+        sublabel: 'Gemini 3.5 Flash',
+        isDefault: true,
+        isGreen: true,
+        color: 'emerald'
+    },
+    {
+        id: 'gemini-3-flash-preview',
+        label: 'Model 4',
+        sublabel: 'Gemini 3.0 Flash',
+        isGreen: true,
+        color: 'emerald'
+    },
+    {
         id: 'gemini-3.5-flash-lite',
         label: 'Model 5',
         sublabel: 'Gemini 3.5 Flash Lite',
-        isDefault: true,
         isBlue: true,
         color: 'sky'
     },
@@ -195,13 +211,21 @@ export function findSniperModelConfig(modelId?: string): SniperModelOption {
     if (!modelId) return SNIPER_MODEL_CONFIGS[0];
     const clean = modelId.toLowerCase().replace(/^models\//, '');
     
+    // Model 3: Gemini 3.5 Flash
+    if ((clean.includes('3.5') && !clean.includes('lite')) || clean === 'model-3' || clean === 'model 3') {
+        return SNIPER_MODEL_CONFIGS[0];
+    }
+    // Model 4: Gemini 3.0 Flash / 3 Flash Preview
+    if (clean.includes('3.0') || clean.includes('3-flash') || clean === 'model-4' || clean === 'model 4' || (clean.includes('3') && clean.includes('preview'))) {
+        return SNIPER_MODEL_CONFIGS[1];
+    }
     // Model 5: Gemini 3.5 Flash Lite
     if ((clean.includes('3.5') && clean.includes('lite')) || clean === 'model-5' || clean === 'model 5') {
-        return SNIPER_MODEL_CONFIGS[0];
+        return SNIPER_MODEL_CONFIGS[2];
     }
     // Model 6: Gemini 3.1 Flash Lite
     if ((clean.includes('3.1') && clean.includes('lite')) || clean === 'model-6' || clean === 'model 6') {
-        return SNIPER_MODEL_CONFIGS[1];
+        return SNIPER_MODEL_CONFIGS[3];
     }
     const exact = SNIPER_MODEL_CONFIGS.find(m => m.id === clean || m.id === modelId);
     if (exact) return exact;
@@ -215,6 +239,7 @@ export const getChatPool = () => {
 };
 
 export const CHAT_MODELS = [
+    'gemini-3.8-flash',       // Model 3.8
     'gemini-3.7-flash',       // Model 1
     'gemini-3.6-flash',       // Model 2
     'gemini-3.5-flash',       // Model 3
@@ -239,10 +264,18 @@ export interface ChatModelOption {
 
 export const CHAT_MODEL_CONFIGS: ChatModelOption[] = [
     {
+        id: 'gemini-3.8-flash',
+        label: 'Model 3.8',
+        sublabel: 'Gemini 3.8 Flash',
+        tag: 'ULTRA FAST',
+        isDefault: true,
+        isGreen: true,
+        color: 'emerald'
+    },
+    {
         id: 'gemini-3.7-flash',
         label: 'Model 1',
         sublabel: 'Gemini 3.7 Flash',
-        isDefault: true,
         isGreen: true,
         color: 'emerald'
     },
@@ -301,32 +334,40 @@ export function findChatModelConfig(modelId?: string): ChatModelOption {
     if (!modelId) return CHAT_MODEL_CONFIGS[0];
     const clean = modelId.toLowerCase().replace(/^models\//, '');
     
+    // Model 3.8: Gemini 3.8 Flash
+    if (clean.includes('3.8') || clean === 'model-3.8' || clean === 'model 3.8') {
+        return CHAT_MODEL_CONFIGS[0];
+    }
     // Model 7: Gemma 4 26B
     if (clean.includes('gemma') && (clean.includes('26b') || clean.includes('model 7') || clean === 'model-7')) {
-        return CHAT_MODEL_CONFIGS[6];
+        return CHAT_MODEL_CONFIGS[7];
     }
     // Model 8: Gemma 4 31B
     if (clean.includes('gemma') && (clean.includes('31b') || clean.includes('model 8') || clean === 'model-8')) {
-        return CHAT_MODEL_CONFIGS[7];
+        return CHAT_MODEL_CONFIGS[8];
     }
     // Model 5: Gemini 3.5 Flash Lite
     if ((clean.includes('3.5') && clean.includes('lite')) || clean === 'model-5' || clean === 'model 5') {
-        return CHAT_MODEL_CONFIGS[4];
+        return CHAT_MODEL_CONFIGS[5];
     }
     // Model 6: Gemini 3.1 Flash Lite
     if ((clean.includes('3.1') && clean.includes('lite')) || clean === 'model-6' || clean === 'model 6') {
-        return CHAT_MODEL_CONFIGS[5];
+        return CHAT_MODEL_CONFIGS[6];
     }
     // Model 4: Gemini 3.0 Flash
     if (clean.includes('3.0') || clean === 'model-4' || clean === 'model 4' || clean.includes('preview')) {
-        return CHAT_MODEL_CONFIGS[3];
+        return CHAT_MODEL_CONFIGS[4];
     }
     // Model 3: Gemini 3.5 Flash
     if (clean.includes('3.5') && !clean.includes('lite') || clean === 'model-3' || clean === 'model 3') {
-        return CHAT_MODEL_CONFIGS[2];
+        return CHAT_MODEL_CONFIGS[3];
     }
     // Model 2: Gemini 3.6 Flash
     if (clean.includes('3.6') || clean === 'model-2' || clean === 'model 2') {
+        return CHAT_MODEL_CONFIGS[2];
+    }
+    // Model 1: Gemini 3.7 Flash
+    if (clean.includes('3.7') || clean === 'model-1' || clean === 'model 1') {
         return CHAT_MODEL_CONFIGS[1];
     }
     

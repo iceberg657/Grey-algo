@@ -53,7 +53,8 @@ import {
   deleteDoc, 
   getDocs, 
   writeBatch,
-  setDoc
+  setDoc,
+  limitToLast
 } from 'firebase/firestore';
 import { AgentAnalysisLoader } from './AgentAnalysisLoader';
 import { ThemeToggleButton } from './ThemeToggleButton';
@@ -697,7 +698,7 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
 
     const path = `users/${userMetadata.uid}/sniper_messages`;
     const msgRef = collection(db, 'users', userMetadata.uid, 'sniper_messages');
-    const q = firestoreQuery(msgRef, orderBy('timestamp', 'asc'));
+    const q = firestoreQuery(msgRef, orderBy('timestamp', 'asc'), limitToLast(35));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const msgs = snapshot.docs.map(doc => {
@@ -1262,11 +1263,8 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
         return;
       }
 
-      // 2. Fetch live price from Deriv API and perform analysis with minimum delay
-      const [derivData] = await Promise.all([
-        fetchLivePrice(asset),
-        new Promise(resolve => setTimeout(resolve, 12000)) // Minimum 12s "thinking" time
-      ]);
+      // 2. Fetch live price from Deriv API with zero artificial delay
+      const derivData = await fetchLivePrice(asset);
       
       if (!derivData) {
         throw new Error(`Failed to fetch live market data for ${asset}. Ensure your Deriv API Token is correct.`);
@@ -1433,33 +1431,17 @@ export const SniperLiveTrade: React.FC<SniperLiveTradeProps> = ({ onBack, userMe
           }];
       });
 
-      // 1. Fetch Learned Lessons & Macro Context Summary (Passing all 3 timeframes for combined analysis)
-      const activeLearnedStrategies = await getLearnedStrategies();
-      const macroContextSummary = await generateMacroContext(asset, derivData?.multiTimeframe || {});
-      setMessages(prev => {
-        const filtered = prev.filter(m => m.signal?.id !== 'loading');
-        return [...filtered, {
-            id: Date.now().toString() + '-ag-macro',
-            type: 'ai',
-            content: `Macro Context Analyzed.\n\n${macroContextSummary}\n\nRunning high-speed Regular Technical Model (300-candle analysis window) to simulate standard trader bias...`,
-            signal: { id: 'loading', asset: asset, timeframe: tfLabel, signal: 'NEUTRAL', entryPoints: [0], entryType: 'Market Execution', stopLoss: 0, takeProfits: [0, 0], confidence: 0, analysisBreakdown: [], formattedLotSize: '0.00', reasoning: [], checklist: [], candlestickPatterns: [], insight: '', grade: 'NO TRADE', timestamp: Date.now() } as SignalData
-        }];
-      });
-
-      // 1.5 Generate the regular/retail preliminary signal using the 300-candle model
-      let retailSignal: SignalData;
-      try {
-        retailSignal = await generateRegularRetailSignal(
-          currentQuery,
-          style,
-          derivData,
-          userSettings
-        );
-      } catch (retailErr) {
-        console.warn("[SniperLiveTrade] Regular retail signal fallback engaged:", retailErr);
-        const refPrice = currentLivePrice || (derivData?.candles?.length ? derivData.candles[derivData.candles.length - 1].close : 100);
-        retailSignal = generateQuantitativeFallbackSignal(asset, refPrice, derivData, style, userSettings);
-      }
+      // 1. Fetch Learned Lessons, Macro Context, and Regular Retail Signal concurrently for ultra-fast response
+      const [activeLearnedStrategies, macroContextSummary, retailSignalRes] = await Promise.all([
+        getLearnedStrategies().catch(() => []),
+        generateMacroContext(asset, derivData?.multiTimeframe || {}).catch(() => 'Macro market alignment neutral.'),
+        generateRegularRetailSignal(currentQuery, style, derivData, userSettings).catch((retailErr) => {
+          console.warn("[SniperLiveTrade] Regular retail signal fallback engaged:", retailErr);
+          const refPrice = currentLivePrice || (derivData?.candles?.length ? derivData.candles[derivData.candles.length - 1].close : 100);
+          return generateQuantitativeFallbackSignal(asset, refPrice, derivData, style, userSettings);
+        })
+      ]);
+      const retailSignal: SignalData = retailSignalRes;
 
       // 2. Dispatch Antigravity Agent to act as Devil's Advocate (auditing the retail setup with 1,000 candles)
       setMessages(prev => {
@@ -2327,6 +2309,7 @@ ${antigravityVerdict.deepAnalysisMarkdown}`;
             <div className="mb-4">
               <SniperDataStreamHUD
                 currentAsset={lastAnalyzedAsset || (query ? query.split(' ')[0] : 'US30')}
+                activeModel={selectedModel}
                 onFlushComplete={handleStreamHUDFlushComplete}
                 isAdvancedGranted={isAdvancedStreamingGranted}
               />
