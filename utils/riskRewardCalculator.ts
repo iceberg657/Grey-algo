@@ -52,41 +52,41 @@ export function calculateTPSL(
       while (validEntries.length < 3) validEntries.push(validEntries[0]);
   }
 
-  // 2. Validate Stop Loss (MODERATE & PRECISE)
+  // 2. Validate Stop Loss (TIGHT & SURGICAL PRECISION)
   let stopLoss = existingStopLoss || 0;
   const baseEntry = validEntries[0];
   
   // Use ATR from Twelve Data if available for a "Volatility Buffer"
   const atr = twelveDataQuote?.atr ? parseFloat(twelveDataQuote.atr) : null;
-  const genericMinDist = Math.max(baseEntry * 0.0008, 0.0008); // Calibrated minimum safety floor (e.g. 8-10 pips on Forex)
+  const genericMinDist = Math.max(baseEntry * 0.0003, 0.0003); // Calibrated tight safety floor (e.g. 3-4 pips on Forex)
   
-  // Use a safer default for config minimums, ensuring enough breathing room
-  let configMinDist = marketConfig ? Math.max(marketConfig.minStopLoss * 1.5, genericMinDist) : genericMinDist;
+  // Use a tight default for config minimums
+  let configMinDist = marketConfig ? Math.max(marketConfig.minStopLoss, genericMinDist) : genericMinDist;
   
-  // If ATR is available, use it to define a safe minimum distance (at least 1.5x - 2.0x ATR for lower timeframe breathing room)
+  // If ATR is available, use it for tight, close scalp protection (0.8x - 1.0x ATR)
   if (atr && !isNaN(atr)) {
-      const atrMultiplier = isScalping ? 1.5 : 2.0;
+      const atrMultiplier = isScalping ? 0.8 : 1.0;
       configMinDist = Math.max(configMinDist, atr * atrMultiplier);
   }
 
-  // ABSOLUTE CALIBRATED FLOORS FOR ASSETS TO PREVENT TINY/TIGHT STOP LOSSES ON 1M/LOWER TIMEFRAMES
+  // TIGHT CALIBRATED SURGICAL FLOORS FOR ASSETS TO PREVENT OVERLY WIDE STOPS
   const upperAsset = asset.toUpperCase();
   if (upperAsset.includes('JPY')) {
-      configMinDist = Math.max(configMinDist, 0.12); // At least 12-15 pips on JPY pairs
+      configMinDist = Math.max(configMinDist, 0.04); // Tight 4-6 pips on JPY pairs
   } else if (upperAsset.includes('XAU') || upperAsset.includes('GOLD')) {
-      configMinDist = Math.max(configMinDist, 2.5); // At least $2.50 move for Gold
+      configMinDist = Math.max(configMinDist, 1.0); // Close $1.00 move for Gold
   } else if (upperAsset.includes('BTC')) {
-      configMinDist = Math.max(configMinDist, 200);
+      configMinDist = Math.max(configMinDist, 75.0); // Close $75 move for BTC
   } else if (upperAsset.includes('ETH')) {
-      configMinDist = Math.max(configMinDist, 15.0);
+      configMinDist = Math.max(configMinDist, 5.0);
   } else if (upperAsset.includes('US30') || upperAsset.includes('DJI') || upperAsset.includes('DOW')) {
-      configMinDist = Math.max(configMinDist, 35.0);
+      configMinDist = Math.max(configMinDist, 12.0); // 12-15 points on US30
   } else if (upperAsset.includes('NAS') || upperAsset.includes('NDX') || upperAsset.includes('US100')) {
-      configMinDist = Math.max(configMinDist, 20.0);
+      configMinDist = Math.max(configMinDist, 8.0); // 8-10 points on NAS100
   } else if (upperAsset.includes('SPX') || upperAsset.includes('US500')) {
-      configMinDist = Math.max(configMinDist, 6.0);
+      configMinDist = Math.max(configMinDist, 2.0);
   } else if (upperAsset.includes('BOOM') || upperAsset.includes('CRASH')) {
-      configMinDist = Math.max(configMinDist, 3.0);
+      configMinDist = Math.max(configMinDist, 1.5);
   }
   
   let currentSlDist = Math.abs(baseEntry - stopLoss);
@@ -96,8 +96,8 @@ export function calculateTPSL(
   const isSlCorrectSide = signal === 'BUY' ? stopLoss < baseEntry : stopLoss > baseEntry;
 
   if (!isSlValid || !isSlCorrectSide) {
-      // Create safer SL based on ATR-like logic or config minimum with calibrated breathing room
-      const buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist * 1.2 : currentSlDist);
+      // Create tight surgical SL based on ATR-like logic or config minimum
+      const buffer = Math.max(configMinDist, currentSlDist < configMinDist ? configMinDist * 1.05 : currentSlDist);
       
       stopLoss = signal === 'BUY' ? baseEntry - buffer : baseEntry + buffer;
       currentSlDist = buffer;
@@ -106,7 +106,7 @@ export function calculateTPSL(
   const originalSlDist = currentSlDist;
 
   // 3. ENFORCE DISTINCT ENTRIES
-  const spreadFactor = isScalping ? 0.10 : 0.25;
+  const spreadFactor = isScalping ? 0.05 : 0.15;
   const volatilityUnit = originalSlDist * spreadFactor;
 
   if (Math.abs(validEntries[1] - validEntries[0]) < Number.EPSILON) {
@@ -119,13 +119,13 @@ export function calculateTPSL(
       }
   }
 
-  // 4. Calculate Distinct Take Profits based on R:R (ALWAYS 1:2.0 minimum on lower timeframes/scalps)
+  // 4. Calculate Close & Fast Take Profits (TP1 at 1:1.0 - 1:1.2 for immediate profit lock & breakeven)
   const takeProfits: [number, number, number] = [0, 0, 0];
   const tpDistances: [number, number, number] = [0, 0, 0];
   
   const rUnit = currentSlDist; 
-  // GreyAlpha standard RR range: ALWAYS 1:2.0 minimum on lower timeframes
-  const ratios = isScalping ? [2.0, 3.0, 4.5] : [2.0, 3.0, Math.max(4.5, targetRatio)]; 
+  // Calibrated close R:R: TP1 = 1:1.0 (Quick hit), TP2 = 1:1.8 (Session target), TP3 = 1:2.5 (Runner)
+  const ratios = isScalping ? [1.0, 1.8, 2.5] : [1.2, 2.0, Math.min(2.8, Math.max(2.2, targetRatio))]; 
 
   ratios.forEach((r, idx) => {
       const dist = rUnit * r;
